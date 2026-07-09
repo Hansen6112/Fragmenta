@@ -1,0 +1,347 @@
+/*
+ * FRAGMENTA — Command Parser
+ * A text-adventure verb parser with fuzzy object matching. Anything it
+ * doesn't recognize as a known verb falls through to the hybrid generative
+ * layer (engine/generator.js) instead of a hard error.
+ */
+
+const VERB_SYNONYMS = {
+  look: ["look", "l", "observe"],
+  go: ["go", "travel", "walk", "head", "move", "enter", "return"],
+  map: ["map", "atlas", "locations"],
+  inventory: ["inventory", "i", "inv", "items"],
+  take: ["take", "get", "grab", "pickup", "pick"],
+  drop: ["drop", "discard"],
+  examine: ["examine", "x", "inspect", "study"],
+  talk: ["talk", "speak", "ask", "greet"],
+  rest: ["rest", "sleep", "camp"],
+  status: ["status", "stats", "health", "hp"],
+  lore: ["lore", "codex", "recall", "remember"],
+  fight: ["fight", "attack", "strike", "hit"],
+  explore: ["explore", "search", "scout"],
+  flee: ["flee", "run", "escape", "retreat"],
+  leave: ["leave", "ignore", "pass"],
+  help: ["help", "commands"],
+  save: ["save"],
+  quests: ["quest", "quests", "journal"],
+};
+
+// Single-letter shorthand ("i", "l", "x") only counts as a command when it's
+// the entire input — otherwise "I just want to..." would hijack inventory.
+function resolveVerb(word, isOnlyWord) {
+  for (const [verb, synonyms] of Object.entries(VERB_SYNONYMS)) {
+    for (const syn of synonyms) {
+      if (syn.length === 1 && !isOnlyWord) continue;
+      if (syn === word) return verb;
+    }
+  }
+  return null;
+}
+
+function stripLeadingWords(str, words) {
+  let s = str.trim();
+  for (const w of words) {
+    const re = new RegExp("^" + w + "\\s+", "i");
+    s = s.replace(re, "");
+  }
+  return s;
+}
+
+async function handleInput(rawInput, state) {
+  const input = rawInput.trim();
+  if (!input) return [];
+  const lower = input.toLowerCase();
+  const words = lower.split(/\s+/);
+  const verb = resolveVerb(words[0], words.length === 1);
+  let arg = stripLeadingWords(lower.slice(words[0].length).trim(), ["to", "at", "the", "with"]);
+
+  // Combat takes priority for a small set of verbs
+  if (state.combat) {
+    if (verb === "fight") return playerAttack(state);
+    if (verb === "flee") return attemptFlee(state);
+    if (verb === "leave" && BESTIARY[state.combat.creatureId].friendly) {
+      const name = state.combat.name;
+      state.combat = null;
+      return [`You leave ${withThe(name, false)} in peace.`];
+    }
+    if (verb === "talk" && BESTIARY[state.combat.creatureId].friendly) {
+      state.combat = null;
+      state.health = Math.min(state.maxHealth, state.health + 6);
+      return [
+        "It tilts its great bark-covered head toward you. No words — just a sound like creaking wood, structured, patient.",
+        "Warmth spreads through a wound you didn't realize still ached. You heal 6 health.",
+      ];
+    }
+    if (verb !== "status" && verb !== "look" && verb !== "inventory") {
+      return [`You're in the middle of an encounter. (fight / flee${BESTIARY[state.combat.creatureId].friendly ? " / talk / leave" : ""})`];
+    }
+  }
+
+  switch (verb) {
+    case "look":
+      return cmdLook(state);
+    case "go":
+      return cmdGo(arg, state);
+    case "map":
+      return cmdMap(state);
+    case "inventory":
+      return cmdInventory(state);
+    case "take":
+      return cmdTake(arg, state);
+    case "drop":
+      return cmdDrop(arg, state);
+    case "examine":
+      return cmdExamine(arg, state);
+    case "talk":
+      return cmdTalk(arg, state);
+    case "rest":
+      return cmdRest(state);
+    case "status":
+      return cmdStatus(state);
+    case "lore":
+      return cmdLore(arg, state);
+    case "explore":
+      return cmdExplore(state);
+    case "fight":
+      return ["There's nothing here to fight. Try 'explore' if you're looking for trouble."];
+    case "flee":
+      return ["There's nothing to flee from right now."];
+    case "quests":
+      return cmdQuests(state);
+    case "help":
+      return cmdHelp();
+    case "save":
+      state.save();
+      return ["Game saved."];
+    default:
+      return await generateOpenResponse(input, state);
+  }
+}
+
+function cmdLook(state) {
+  const loc = state.currentLocation();
+  state.visit(state.location);
+  const lines = [`== ${loc.name} ==`, loc.description];
+  const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
+  lines.push(`Paths from here: ${exits}.`);
+  if (loc.services && loc.services.length) {
+    lines.push(`Services available: ${loc.services.join(", ")}.`);
+  }
+  return lines;
+}
+
+function cmdGo(arg, state) {
+  if (!arg) return ["Go where?"];
+  const loc = state.currentLocation();
+  const direct = connectionMatchingName(state.location, arg);
+  if (direct) {
+    return executeTravel(state, [state.location, direct.to], direct.days);
+  }
+  const targetId = findLocationByName(arg);
+  if (!targetId) return [`You don't know of anywhere called "${arg}".`];
+  const result = findPath(state.location, targetId);
+  if (!result) return [`There's no known route from here to ${LOCATIONS[targetId].name}.`];
+  return executeTravel(state, result.path, result.days);
+}
+
+function executeTravel(state, path, totalDays) {
+  const lines = [];
+  const destId = path[path.length - 1];
+  const dest = LOCATIONS[destId];
+  lines.push(`You set out for ${dest.name} — roughly ${totalDays} day${totalDays === 1 ? "" : "s"} of travel.`);
+
+  // roll encounters per leg
+  for (let i = 1; i < path.length; i++) {
+    const legLoc = LOCATIONS[path[i]];
+    const legDanger = legLoc.danger || 1;
+    const chance = Math.min(0.5, legDanger * 0.07);
+    if (Math.random() < chance) {
+      const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
+      const pool = creaturesForTags(tags, legLoc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
+      if (pool.length) {
+        const creatureId = pool[Math.floor(Math.random() * pool.length)];
+        state.day += totalDays;
+        state.location = path[i];
+        state.visit(path[i]);
+        lines.push(`Along the way, near ${legLoc.name}:`);
+        lines.push(...startCombat(state, creatureId));
+        return lines;
+      }
+    }
+  }
+
+  state.day += totalDays;
+  state.location = destId;
+  state.visit(destId);
+  lines.push(...cmdLook(state));
+  return lines;
+}
+
+function cmdMap(state) {
+  const loc = state.currentLocation();
+  const lines = [`You are at ${loc.name}, ${getNation(loc.nation).name}.`];
+  lines.push("Known connections from here:");
+  for (const c of loc.connections) {
+    const t = LOCATIONS[c.to];
+    lines.push(`  -> ${t.name} (${getNation(t.nation).name}) — ~${c.days} day(s) by ${c.mode}${c.desc ? ", " + c.desc : ""}`);
+  }
+  lines.push(`Visited so far: ${state.visited.size} location(s).`);
+  return lines;
+}
+
+function cmdInventory(state) {
+  if (state.inventory.length === 0) return ["You're carrying nothing.", `Gold: ${state.gold}`];
+  return ["You are carrying:", ...state.inventory.map((i) => `  - ${i}`), `Gold: ${state.gold}`];
+}
+
+function cmdTake(arg, state) {
+  if (!arg) return ["Take what?"];
+  const loc = state.currentLocation();
+  if (loc.items && loc.items.length) {
+    const idx = loc.items.findIndex((i) => i.toLowerCase().includes(arg));
+    if (idx >= 0) {
+      const item = loc.items.splice(idx, 1)[0];
+      state.inventory.push(item);
+      return [`You take ${item}.`];
+    }
+  }
+  return [`There's no "${arg}" here to take.`];
+}
+
+function cmdDrop(arg, state) {
+  if (!arg) return ["Drop what?"];
+  const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(arg));
+  if (idx < 0) return [`You aren't carrying "${arg}".`];
+  const item = state.inventory.splice(idx, 1)[0];
+  const loc = state.currentLocation();
+  loc.items = loc.items || [];
+  loc.items.push(item);
+  return [`You leave ${item} behind.`];
+}
+
+function cmdExamine(arg, state) {
+  if (!arg || arg === "self" || arg === "me") {
+    return [`You are ${state.playerName}, day ${state.day} of a journey you didn't fully choose. Health ${state.health}/${state.maxHealth}, ${state.gold} gold.`];
+  }
+  const loc = state.currentLocation();
+  if (arg.includes(loc.name.toLowerCase()) || arg === "here" || arg === "location" || arg === "area") {
+    return [loc.description];
+  }
+  const invItem = state.inventory.find((i) => i.toLowerCase().includes(arg));
+  if (invItem) return [`Just ${invItem}. Nothing more to it, for now.`];
+  const nation = getNation(loc.nation);
+  if (arg.includes(nation.name.toLowerCase())) return [nation.blurb];
+  return generateOpenResponse("examine " + arg, state);
+}
+
+function cmdTalk(arg, state) {
+  const loc = state.currentLocation();
+  const lang = NATION_LANGUAGE[loc.nation] || "vauret";
+  const name = generateNameForNation(loc.nation);
+  const phraseSet = lang === "vauret" ? DRUID_PHRASES : KETHRAKAR_PHRASES;
+  const [phrase, gloss] = phraseSet[Math.floor(Math.random() * phraseSet.length)];
+  const lines = [
+    `You strike up conversation with a local${arg ? ` about ${arg}` : ""}. They give their name as ${name}.`,
+  ];
+  if (loc.nation === "vaeloris" || loc.nation === "sanguivorum") {
+    lines.push(`They mutter something in the old tongue: "${phrase}" — ${gloss}`);
+  } else {
+    lines.push(`They mutter something carved-sounding: "${phrase}" — ${gloss}`);
+  }
+  lines.push(`Then, more practically: "${randomRumor(state)}"`);
+  return lines;
+}
+
+function randomRumor(state) {
+  const rumors = [
+    "Careful past the walls after dark. Things that shouldn't still be moving, still move.",
+    "Heard tell someone found a piece of something out past the border. A Fragmenta shard, they're calling it. Don't go looking for it, if you've got any sense.",
+    "The Kabal's been quiet lately. That's never a good sign.",
+    "There's coin to be made hunting for the guilds, if you don't mind the risk.",
+    "The old lizardfolk don't let anyone near the deep swamp without an escort. For good reason, they say.",
+    "You didn't hear it from me, but the Fingers don't all agree on much these days.",
+  ];
+  return rumors[Math.floor(Math.random() * rumors.length)];
+}
+
+function cmdRest(state) {
+  const loc = state.currentLocation();
+  if (!loc.services || !loc.services.includes("rest")) {
+    return ["There's nowhere safe to rest here. Better to keep moving."];
+  }
+  state.day += 1;
+  const healed = Math.min(state.maxHealth - state.health, 8);
+  state.health += healed;
+  return [`You rest for a day at ${loc.name}. Recovered ${healed} health.`, `It is now day ${state.day}.`];
+}
+
+function cmdStatus(state) {
+  const loc = state.currentLocation();
+  return [
+    `${state.playerName} — day ${state.day}`,
+    `Location: ${loc.name}, ${getNation(loc.nation).name}`,
+    `Health: ${state.health}/${state.maxHealth}`,
+    `Gold: ${state.gold}`,
+    `Fragmenta shards found: ${state.knownFragments}`,
+  ];
+}
+
+function cmdLore(arg, state) {
+  if (!arg) {
+    return ["Codex topics: " + Object.keys(CODEX).join(", "), "Try: lore <topic>"];
+  }
+  const key = Object.keys(CODEX).find((k) => k.includes(arg) || arg.includes(k));
+  if (!key) return [`Nothing in the codex about "${arg}" yet. Topics: ${Object.keys(CODEX).join(", ")}`];
+  const entry = CODEX[key];
+  return [`== ${entry.title} ==`, entry.text];
+}
+
+function cmdQuests(state) {
+  const lines = ["Word on the road:"];
+  for (const q of QUEST_HOOKS) {
+    if (q.trigger === "start" || state.flags[q.trigger]) lines.push("- " + q.text);
+  }
+  return lines;
+}
+
+function cmdExplore(state) {
+  const loc = state.currentLocation();
+  const tags = TERRAIN_TAGS[loc.terrain] || ["continental"];
+  const roll = Math.random();
+  if (roll < 0.35) {
+    const pool = creaturesForTags(tags, loc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
+    if (pool.length) {
+      const creatureId = pool[Math.floor(Math.random() * pool.length)];
+      return startCombat(state, creatureId);
+    }
+  }
+  if (roll < 0.55) {
+    const gold = Math.floor(Math.random() * 8) + 1;
+    state.gold += gold;
+    return [`You search the area around ${loc.name} and turn up ${gold} gold someone else lost track of.`];
+  }
+  if (roll < 0.62 && !state.knownFragments && loc.danger >= 3) {
+    state.knownFragments += 1;
+    state.flags.hasFragmentMotus = true;
+    return [
+      "Something in the dirt catches the light wrong. You dig it free: a piece of dull, grey stone, warm to the touch though the ground around it is cold.",
+      "It doesn't look like much. You suspect that's the point. (a Fragmenta Motus — the smallest tier, the kind even the gods don't notice)",
+    ];
+  }
+  const flavor = [
+    `You look around ${loc.name} a while. Nothing comes of it, but the ${getNation(loc.nation).name} air is instructive, in its way.`,
+    `Nothing here but the ordinary business of ${loc.name} going on without you.`,
+    `You find a good vantage point and just watch for a time. It's not nothing.`,
+  ];
+  return [flavor[Math.floor(Math.random() * flavor.length)]];
+}
+
+function cmdHelp() {
+  return [
+    "Commands: look, go <place>, map, inventory, take <item>, drop <item>,",
+    "examine <thing>, talk [to whom], rest, status, explore, lore [topic],",
+    "quests, fight, flee, save, help.",
+    "You can also just type what you want to do in plain English — the",
+    "world will do its best to make sense of it.",
+  ];
+}
