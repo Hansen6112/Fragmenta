@@ -64,6 +64,7 @@ function playerAttack(state) {
     state.gold += goldFound;
     out.push(`You find ${goldFound} gold on/near the creature.`);
     state.combat = null;
+    out.push(...checkJobProgressOnKill(state, creature));
     return out;
   }
 

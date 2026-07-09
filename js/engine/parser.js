@@ -25,6 +25,10 @@ const VERB_SYNONYMS = {
   save: ["save"],
   quests: ["quest", "quests", "journal"],
   reputation: ["reputation", "rep", "standing", "factions"],
+  board: ["board", "jobs", "noticeboard", "postings"],
+  contracts: ["contracts", "guildcontracts"],
+  accept: ["accept", "claim"],
+  sign: ["sign"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -111,6 +115,14 @@ async function handleInput(rawInput, state) {
       return cmdQuests(state);
     case "reputation":
       return cmdReputation(state);
+    case "board":
+      return cmdBoard(state);
+    case "contracts":
+      return cmdContracts(state);
+    case "accept":
+      return cmdAccept(arg, state);
+    case "sign":
+      return cmdSign(arg, state);
     case "help":
       return cmdHelp();
     case "save":
@@ -212,14 +224,18 @@ function executeTravel(state, path, totalDays) {
   state.location = destId;
   state.visit(destId);
 
+  const jobLines = checkJobProgressOnArrive(state, destId);
+
   const hunt = checkKabalHunt(state, destId);
   if (hunt) {
     lines.push(`You arrive at ${dest.name}.`);
+    lines.push(...jobLines);
     lines.push(...hunt);
     return lines;
   }
 
   lines.push(...cmdLook(state));
+  lines.push(...jobLines);
   return lines;
 }
 
@@ -389,12 +405,92 @@ function cmdLore(arg, state) {
   return [`== ${entry.title} ==`, entry.text];
 }
 
+function describeJobObjective(job) {
+  if (job.type === "bounty") return `defeat a sufficiently dangerous creature (tier ${job.tierThreshold}+) anywhere — resolves automatically`;
+  if (job.type === "courier") return `reach ${LOCATIONS[job.targetLocation].name} — resolves automatically on arrival`;
+  return "";
+}
+
+function formatRepReward(repMap) {
+  const parts = Object.entries(repMap || {}).map(([fid, amt]) => `${FACTIONS[fid] ? FACTIONS[fid].name : fid} +${amt}`);
+  return parts.length ? ` — ${parts.join(", ")}` : "";
+}
+
 function cmdQuests(state) {
-  const lines = ["Word on the road:"];
+  const lines = [];
+  if (state.activeJobs.length) {
+    lines.push("Active work:");
+    state.activeJobs.forEach((j) => {
+      lines.push(`- ${skullString(j.difficulty)} ${j.title}: ${describeJobObjective(j)}`);
+    });
+    lines.push("");
+  }
+  lines.push("Word on the road:");
   for (const q of QUEST_HOOKS) {
     if (q.trigger === "start" || state.flags[q.trigger]) lines.push("- " + q.text);
   }
   return lines;
+}
+
+function cmdBoard(state) {
+  const loc = state.currentLocation();
+  if (!loc.isCity) return ["There's no job board here — try a city."];
+  const board = getOrRefreshBoard(state, state.location);
+  const lines = [`== Job Board: ${loc.name} ==`];
+  if (!board.jobs.length) {
+    lines.push("Nothing posted right now. Check back in a few days.");
+  } else {
+    board.jobs.forEach((j, i) => {
+      const tag = j.taken ? " [TAKEN]" : "";
+      lines.push(`${i + 1}. ${skullString(j.difficulty)} ${j.title}${tag}`);
+      if (!j.taken) {
+        lines.push(`   ${j.description}`);
+        lines.push(`   Reward: ${j.rewardGold} gold${formatRepReward(j.rewardRep)}${j.loot ? " + possible loot" : ""}`);
+      }
+    });
+    lines.push("(accept <number> to take a job)");
+  }
+  if (GUILD_HQ[state.location]) {
+    lines.push(`This city is also home to a guild — try 'contracts'.`);
+  }
+  return lines;
+}
+
+function cmdContracts(state) {
+  const guildId = GUILD_HQ[state.location];
+  if (!guildId) return ["No guild keeps contracts here. Try Nocturne (Mugamiir Safor) or Vorseth (Magma-Hearth)."];
+  const list = GUILD_CONTRACTS[guildId] || [];
+  const lines = [`== ${FACTIONS[guildId].name} — Contracts ==`];
+  list.forEach((c, i) => {
+    const done = state.flags["completed_" + c.id];
+    const active = state.activeJobs.some((j) => j.id === c.id);
+    const tag = done ? " [COMPLETED]" : active ? " [SIGNED]" : "";
+    lines.push(`${i + 1}. ${skullString(c.difficulty)} ${c.title}${tag}`);
+    lines.push(`   ${c.description}`);
+    if (!done && !active) lines.push(`   Reward: ${c.rewardGold} gold${formatRepReward(c.rewardRep)} + ${c.loot}`);
+  });
+  lines.push("(sign <number> to take a contract)");
+  return lines;
+}
+
+function cmdAccept(arg, state) {
+  const loc = state.currentLocation();
+  if (!loc.isCity) return ["There's no job board here."];
+  const num = parseInt((arg.match(/\d+/) || [])[0], 10);
+  if (!num) return ["Accept which job? (accept <number>)"];
+  const result = acceptBoardJob(state, state.location, num - 1);
+  if (!result.ok) return [result.message];
+  return [`Job accepted: ${result.job.title}.`, `Objective: ${describeJobObjective(result.job)}.`];
+}
+
+function cmdSign(arg, state) {
+  const guildId = GUILD_HQ[state.location];
+  if (!guildId) return ["No guild contracts to sign here."];
+  const num = parseInt((arg.match(/\d+/) || [])[0], 10);
+  if (!num) return ["Sign which contract? (sign <number>)"];
+  const result = signGuildContract(state, guildId, num - 1);
+  if (!result.ok) return [result.message];
+  return [`Contract signed: ${result.job.title}.`, `Objective: ${describeJobObjective(result.job)}.`];
 }
 
 function cmdExplore(state) {
@@ -439,6 +535,9 @@ function cmdHelp() {
     "Commands: look, go <place>, map, inventory, take <item>, drop <item>,",
     "examine <thing>, talk [to whom], rest, status, explore, lore [topic],",
     "quests, reputation, fight, flee, save, help.",
+    "Work: board (city job board), accept <number>, contracts (guild-only,",
+    "at Nocturne/Vorseth), sign <number>. Bounty jobs resolve the moment",
+    "you win a big enough fight; courier jobs resolve the moment you arrive.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];

@@ -25,6 +25,8 @@ class GameState {
     this.combat = null; // { creatureId, hp, name } when engaged
     this.knownFragments = 0;
     this.reputation = initialReputation(); // factionId -> -100..100, all 0 until a background is applied
+    this.activeJobs = [];
+    this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
   }
 
   // Applies a chosen background's stats, kit, location, and flags. Called
@@ -76,6 +78,8 @@ class GameState {
       visited: Array.from(this.visited),
       knownFragments: this.knownFragments,
       reputation: this.reputation,
+      activeJobs: this.activeJobs,
+      boards: this.boards,
     };
   }
 
