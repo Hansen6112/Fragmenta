@@ -473,8 +473,9 @@ const LOCATIONS = {
     terrain: "mountain",
     isCity: true,
     danger: 3,
-    services: ["rest"],
-    description: "An isolated mountain-mass city at Sahrimor's far northern reach, cold in a way the rest of the nation refuses to believe.",
+    services: ["rest", "guild"],
+    description:
+      "An isolated mountain-mass city at Sahrimor's far northern reach, cold in a way the rest of the nation refuses to believe. It's also headquarters to the Mugamiir Safor — the largest adventuring guild on the continent, founded a hundred thirty years ago by the survivors of the first serious Black Sands expedition. They predate Sahrimor as a formal nation, and act like it.",
     connections: [{ to: "sahurim", days: 15, mode: "road" }, { to: "iskarr", days: 3, mode: "road" }],
   },
   iskarr: {
@@ -566,12 +567,14 @@ const LOCATIONS = {
   },
   vorseth: {
     name: "Vorseth",
+    altName: "Vorreth",
     nation: "thraekor",
     terrain: "volcanic",
     isCity: true,
     danger: 4,
-    services: ["rest", "shop"],
-    description: "A hold town deep enough in the ash fields that visitors are quietly counted on the way in and on the way out.",
+    services: ["rest", "shop", "guild"],
+    description:
+      "A hold town deep enough in the ash fields that visitors are quietly counted on the way in and on the way out. Also home to the Magma-Hearth Guild — Thraekor's mercenary institution, formally independent of the clans, expected to support confederation wars at discount rather than for free. Its heavy infantry and siege specialists are the guild's calling card, and its long-running rivalry with Sahrimor's Mugamiir Safor is commercial, not personal — though both sides watch the other closely.",
     connections: [{ to: "trutek", days: 5, mode: "road" }, { to: "khar_vantr", days: 5, mode: "volcanic", desc: "guide required" }],
   },
   khar_adrel: {

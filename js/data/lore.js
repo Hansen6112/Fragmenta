@@ -140,6 +140,14 @@ learn not to ask a second time when a senior Adept changes the subject.
 Unregistered ones learn not to ask at all — or they don't get the chance
 to ask twice.`,
   },
+  mugamiir_safor: {
+    title: "The Mugamiir Safor",
+    text: FACTIONS.mugamiir_safor.blurb,
+  },
+  magma_hearth: {
+    title: "The Magma-Hearth Guild",
+    text: FACTIONS.magma_hearth.blurb,
+  },
 };
 
 // World-reactivity flavor: how a place responds to your reputation there,

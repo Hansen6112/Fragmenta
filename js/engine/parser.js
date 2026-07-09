@@ -24,6 +24,7 @@ const VERB_SYNONYMS = {
   help: ["help", "commands"],
   save: ["save"],
   quests: ["quest", "quests", "journal"],
+  reputation: ["reputation", "rep", "standing", "factions"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -108,6 +109,8 @@ async function handleInput(rawInput, state) {
       return ["There's nothing to flee from right now."];
     case "quests":
       return cmdQuests(state);
+    case "reputation":
+      return cmdReputation(state);
     case "help":
       return cmdHelp();
     case "save":
@@ -349,6 +352,25 @@ function cmdStatus(state) {
   ];
 }
 
+function cmdReputation(state) {
+  const lines = ["== Standing ==", "How officials and locals of each power are likely to treat you.", ""];
+  const nations = Object.entries(FACTIONS).filter(([, f]) => f.kind === "nation");
+  const guilds = Object.entries(FACTIONS).filter(([, f]) => f.kind === "guild");
+
+  const fmt = (id, f) => {
+    const value = state.reputation[id] || 0;
+    const sign = value > 0 ? "+" : "";
+    return `  ${f.name}: ${sign}${value} (${reputationTier(value)})`;
+  };
+
+  lines.push("Nations:");
+  nations.forEach(([id, f]) => lines.push(fmt(id, f)));
+  lines.push("");
+  lines.push("Guilds:");
+  guilds.forEach(([id, f]) => lines.push(fmt(id, f)));
+  return lines;
+}
+
 function codexUnlocked(entry, state) {
   return !entry.requires || !!state.flags[entry.requires];
 }
@@ -416,7 +438,7 @@ function cmdHelp() {
   return [
     "Commands: look, go <place>, map, inventory, take <item>, drop <item>,",
     "examine <thing>, talk [to whom], rest, status, explore, lore [topic],",
-    "quests, fight, flee, save, help.",
+    "quests, reputation, fight, flee, save, help.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];

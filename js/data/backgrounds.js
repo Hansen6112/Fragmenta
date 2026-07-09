@@ -3,9 +3,9 @@
  * Who the player is before the story starts. Each background sets a
  * starting location/nation, a starting kit, combat modifiers relative to
  * the base stats (state.js BASE_ATK/BASE_DEF/BASE_HEALTH), and a
- * `reputation` map used by the world-reactivity layer (see parser.js
- * reputationFor / encounter-chance modifiers) so who you are actually
- * changes how nations, guards, and mages treat you.
+ * `reputation` map — the qualitative *seed* for the numeric reputation
+ * meter (see data/factions.js QUALITATIVE_TO_NUMERIC / state.reputation).
+ * Faction ids used here must exist in FACTIONS (data/factions.js).
  *
  * reputation values: "friendly" | "neutral" | "cold" | "hostile"
  */
@@ -37,7 +37,7 @@ const BACKGROUNDS = {
     gold: 40,
     inventory: ["a curved desert blade", "a waterskin", "a contract chit from the Mugamiir Safor"],
     flags: { isMercenary: true },
-    reputation: { sahrimor: "friendly", sanguivorum: "hostile" },
+    reputation: { sahrimor: "friendly", sanguivorum: "hostile", mugamiir_safor: "friendly", magma_hearth: "cold" },
     intro:
       "You've made a living the Sahrimori way: for the right price, and through the right guild. The Mugamiir Safor took its cut and pointed you at whatever paid — ruins, escorts, things people wanted found or wanted gone. This time you're between contracts, and your coin purse is doing the talking.",
   },
@@ -103,9 +103,3 @@ const BACKGROUNDS = {
       "What remains after everything burns — you were raised on the Ash Principle the way other children are raised on lullabies. Thraekor doesn't produce many people who flinch. You were never given the option to be one of them.",
   },
 };
-
-function reputationFor(state, nationId) {
-  const bg = BACKGROUNDS[state.background];
-  if (!bg || !bg.reputation) return "neutral";
-  return bg.reputation[nationId] || "neutral";
-}

@@ -24,6 +24,7 @@ class GameState {
     this.visited = new Set();
     this.combat = null; // { creatureId, hp, name } when engaged
     this.knownFragments = 0;
+    this.reputation = initialReputation(); // factionId -> -100..100, all 0 until a background is applied
   }
 
   // Applies a chosen background's stats, kit, location, and flags. Called
@@ -41,6 +42,7 @@ class GameState {
     this.flags = { ...bg.flags };
     this.nation = bg.nation || this.deriveNationFromLocation(bg.startLocation);
     this.location = bg.startLocation;
+    this.reputation = initialReputation(bg.reputation);
   }
 
   deriveNationFromLocation(locId) {
@@ -73,6 +75,7 @@ class GameState {
       flags: this.flags,
       visited: Array.from(this.visited),
       knownFragments: this.knownFragments,
+      reputation: this.reputation,
     };
   }
 
