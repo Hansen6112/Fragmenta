@@ -2,20 +2,12 @@
  * FRAGMENTA — Bootstrap
  */
 
-const STARTING_LOCATION = {
-  sanguivorum: "zuevaron",
-  vaeloris: "the_arbor",
-  sahrimor: "sahurim",
-  thraekor: "khar_vantr",
-  norrvael: "dragenholm",
-};
-
 const logEl = document.getElementById("log");
 const form = document.getElementById("input-form");
 const input = document.getElementById("input");
 
 let state = null;
-let bootStage = "ask_load"; // ask_load -> ask_name -> ask_nation -> playing
+let bootStage = "ask_load"; // ask_load -> ask_name -> ask_background -> playing
 let pendingName = "";
 
 function print(text, cls) {
@@ -51,21 +43,20 @@ function startNewGame() {
   print("Before the road, a name. What shall we call you?", "system");
 }
 
-function beginNation(nationKey, name) {
+function beginCharacter(bgKey, name) {
   state = new GameState();
   state.playerName = name;
-  state.nation = nationKey;
-  state.location = STARTING_LOCATION[nationKey];
+  state.applyBackground(bgKey);
   state.visit(state.location);
   bootStage = "playing";
 
   printLines(INTRO_TEXT.split("\n\n"));
   print("");
-  print(NATION_INTRO_HOOKS[nationKey]);
+  print(BACKGROUNDS[bgKey].intro);
   print("");
   printLines(cmdLook(state));
   print("");
-  print("(type 'help' any time to see what you can do)", "system");
+  print("(type 'help' any time to see what you can do, or 'status' to see your character)", "system");
 }
 
 async function handleBootInput(raw) {
@@ -86,26 +77,31 @@ async function handleBootInput(raw) {
   }
   if (bootStage === "ask_name") {
     pendingName = text || "Wanderer";
-    bootStage = "ask_nation";
+    bootStage = "ask_background";
     print(`Well met, ${pendingName}.`, "system");
     print("");
-    print("Where does your story begin? Choose a nation:", "system");
-    for (const [key, n] of Object.entries(NATIONS)) {
-      if (key === "kabal") continue;
-      print(`  ${n.name} — ${n.title}`, "system");
-    }
-    print("(type a nation name)", "system");
+    print("Before the road, who were you? Choose where your story begins:", "system");
+    Object.entries(BACKGROUNDS).forEach(([key, bg], i) => {
+      print(`  ${i + 1}. ${bg.name} — ${bg.tagline}`, "system");
+    });
+    print("(type a number, or a name)", "system");
     return;
   }
-  if (bootStage === "ask_nation") {
-    const key = Object.keys(NATIONS).find(
-      (k) => k !== "kabal" && (text.toLowerCase().includes(k) || k.includes(text.toLowerCase()) || NATIONS[k].name.toLowerCase().includes(text.toLowerCase()))
-    );
+  if (bootStage === "ask_background") {
+    const keys = Object.keys(BACKGROUNDS);
+    const asNumber = parseInt(text, 10);
+    let key = null;
+    if (!isNaN(asNumber) && keys[asNumber - 1]) {
+      key = keys[asNumber - 1];
+    } else {
+      const t = text.toLowerCase();
+      key = keys.find((k) => t.includes(k) || k.includes(t) || BACKGROUNDS[k].name.toLowerCase().includes(t));
+    }
     if (!key) {
-      print("Not a nation anyone's heard of. Try: Sanguivorum, Vaeloris, Sahrimor, Thraekor, or Norrvael.", "system");
+      print(`Not a background anyone's heard of. Try a number (1-${keys.length}) or a name.`, "system");
       return;
     }
-    beginNation(key, pendingName);
+    beginCharacter(key, pendingName);
     return;
   }
 }

@@ -275,6 +275,19 @@ const BESTIARY = {
     friendly: true,
     unique: true,
   },
+  kabal_enforcer: {
+    name: "A Kabal Enforcer Patrol",
+    native: "n/a — Kabal Martialum",
+    tier: 3,
+    // Deliberately NOT a terrain tag used by TERRAIN_TAGS — this creature
+    // never enters the normal random-encounter pool. It's only ever spawned
+    // by the Bruise-hunted mechanic in parser.js (checkKabalHunt).
+    tags: ["kabal_hunt"],
+    hp: 20, atk: 6, def: 5,
+    description: "Kabal-trained enforcers, sent to bring in an unregistered practitioner — you — dead or restrained, whichever comes first.",
+    combatNotes: "Winning doesn't clear your name. It just buys you time before the next patrol.",
+    special: true,
+  },
 };
 
 function creaturesForTags(tagList, nation) {

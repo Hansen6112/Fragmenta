@@ -118,6 +118,16 @@ async function handleInput(rawInput, state) {
   }
 }
 
+// Picks a random reputation-flavor line for the current location's nation,
+// or null if reputation there is neutral (the common case — most
+// backgrounds only have opinions about a couple of nations).
+function reputationFlavorLine(state, nationId) {
+  const rep = reputationFor(state, nationId);
+  if (rep === "neutral" || !REPUTATION_FLAVOR[rep]) return null;
+  const lines = REPUTATION_FLAVOR[rep];
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
 function cmdLook(state) {
   const loc = state.currentLocation();
   state.visit(state.location);
@@ -126,6 +136,12 @@ function cmdLook(state) {
   lines.push(`Paths from here: ${exits}.`);
   if (loc.services && loc.services.length) {
     lines.push(`Services available: ${loc.services.join(", ")}.`);
+  }
+  if (state.flags.isBruise && loc.nation === "kabal") {
+    lines.push("You are standing in the one place in the world you have the most reason to fear. Every minute here is borrowed.");
+  } else {
+    const repLine = reputationFlavorLine(state, loc.nation);
+    if (repLine) lines.push(repLine);
   }
   return lines;
 }
@@ -144,6 +160,24 @@ function cmdGo(arg, state) {
   return executeTravel(state, result.path, result.days);
 }
 
+// The Bruise-hunted mechanic: the Kabal's reach is strongest at its own
+// territory, in Sanguivorum (its closest ally), and anywhere with an
+// institutional ("guild") presence. Only ever fires for state.flags.wanted.
+function checkKabalHunt(state, locId) {
+  if (!state.flags.wanted || state.combat) return null;
+  const loc = LOCATIONS[locId];
+  let chance = 0.05;
+  if (loc.nation === "kabal") chance = 0.35;
+  else if (loc.nation === "sanguivorum") chance = 0.18;
+  if (loc.services && loc.services.includes("guild")) chance += 0.07;
+
+  if (Math.random() < chance) {
+    const line = KABAL_HUNT_LINES[Math.floor(Math.random() * KABAL_HUNT_LINES.length)];
+    return [line, ...startCombat(state, "kabal_enforcer")];
+  }
+  return null;
+}
+
 function executeTravel(state, path, totalDays) {
   const lines = [];
   const destId = path[path.length - 1];
@@ -154,7 +188,8 @@ function executeTravel(state, path, totalDays) {
   for (let i = 1; i < path.length; i++) {
     const legLoc = LOCATIONS[path[i]];
     const legDanger = legLoc.danger || 1;
-    const chance = Math.min(0.5, legDanger * 0.07);
+    const repMod = reputationFor(state, legLoc.nation) === "hostile" ? 0.05 : 0;
+    const chance = Math.max(0, Math.min(0.5, legDanger * 0.07 + repMod - (state.stealthMod || 0) * 0.3));
     if (Math.random() < chance) {
       const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
       const pool = creaturesForTags(tags, legLoc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
@@ -173,6 +208,14 @@ function executeTravel(state, path, totalDays) {
   state.day += totalDays;
   state.location = destId;
   state.visit(destId);
+
+  const hunt = checkKabalHunt(state, destId);
+  if (hunt) {
+    lines.push(`You arrive at ${dest.name}.`);
+    lines.push(...hunt);
+    return lines;
+  }
+
   lines.push(...cmdLook(state));
   return lines;
 }
@@ -243,6 +286,17 @@ function cmdTalk(arg, state) {
   const lines = [
     `You strike up conversation with a local${arg ? ` about ${arg}` : ""}. They give their name as ${name}.`,
   ];
+
+  if (loc.nation === "kabal" && state.flags.isNovitiate) {
+    lines.push(`They clock the registration token before they clock your face. "Novitiate," they say, half a question, half a greeting.`);
+  } else if (state.flags.isBruise && (loc.nation === "kabal" || loc.nation === "sanguivorum")) {
+    lines.push("Their eyes linger on you a moment too long before the conversation moves on. You keep your conduit out of sight.");
+  } else {
+    const rep = reputationFor(state, loc.nation);
+    if (rep === "friendly") lines.push(`They talk to you like one of their own — because, as far as they're concerned, you are.`);
+    else if (rep === "hostile") lines.push(`They answer in clipped, minimal sentences. This conversation is a formality, not a welcome.`);
+  }
+
   if (loc.nation === "vaeloris" || loc.nation === "sanguivorum") {
     lines.push(`They mutter something in the old tongue: "${phrase}" — ${gloss}`);
   } else {
@@ -270,28 +324,45 @@ function cmdRest(state) {
     return ["There's nowhere safe to rest here. Better to keep moving."];
   }
   state.day += 1;
-  const healed = Math.min(state.maxHealth - state.health, 8);
+  const friendly = reputationFor(state, loc.nation) === "friendly";
+  const healed = Math.min(state.maxHealth - state.health, friendly ? 12 : 8);
   state.health += healed;
-  return [`You rest for a day at ${loc.name}. Recovered ${healed} health.`, `It is now day ${state.day}.`];
+  const lines = [`You rest for a day at ${loc.name}. Recovered ${healed} health.`, `It is now day ${state.day}.`];
+
+  const hunt = checkKabalHunt(state, state.location);
+  if (hunt) {
+    lines.push("Rest doesn't mean safety, not for you.");
+    lines.push(...hunt);
+  }
+  return lines;
 }
 
 function cmdStatus(state) {
   const loc = state.currentLocation();
+  const bg = BACKGROUNDS[state.background];
   return [
-    `${state.playerName} — day ${state.day}`,
+    `${state.playerName} — ${bg ? bg.name : "Wanderer"} — day ${state.day}`,
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
-    `Health: ${state.health}/${state.maxHealth}`,
+    `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
     `Gold: ${state.gold}`,
     `Fragmenta shards found: ${state.knownFragments}`,
   ];
 }
 
+function codexUnlocked(entry, state) {
+  return !entry.requires || !!state.flags[entry.requires];
+}
+
 function cmdLore(arg, state) {
+  const topics = Object.entries(CODEX)
+    .filter(([, entry]) => codexUnlocked(entry, state))
+    .map(([key]) => key);
+
   if (!arg) {
-    return ["Codex topics: " + Object.keys(CODEX).join(", "), "Try: lore <topic>"];
+    return ["Codex topics: " + topics.join(", "), "Try: lore <topic>"];
   }
-  const key = Object.keys(CODEX).find((k) => k.includes(arg) || arg.includes(k));
-  if (!key) return [`Nothing in the codex about "${arg}" yet. Topics: ${Object.keys(CODEX).join(", ")}`];
+  const key = topics.find((k) => k.includes(arg) || arg.includes(k));
+  if (!key) return [`Nothing in the codex about "${arg}" yet. Topics: ${topics.join(", ")}`];
   const entry = CODEX[key];
   return [`== ${entry.title} ==`, entry.text];
 }
@@ -307,8 +378,13 @@ function cmdQuests(state) {
 function cmdExplore(state) {
   const loc = state.currentLocation();
   const tags = TERRAIN_TAGS[loc.terrain] || ["continental"];
+
+  const hunt = checkKabalHunt(state, state.location);
+  if (hunt) return hunt;
+
+  const encounterChance = Math.max(0.05, 0.35 - (state.stealthMod || 0));
   const roll = Math.random();
-  if (roll < 0.35) {
+  if (roll < encounterChance) {
     const pool = creaturesForTags(tags, loc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
     if (pool.length) {
       const creatureId = pool[Math.floor(Math.random() * pool.length)];

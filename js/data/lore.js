@@ -126,7 +126,50 @@ two share no root and sound nothing alike. Where they cross — rarely,
 and only in the old contact zone — they produce words like Skarr-Daun,
 "iron given life."`,
   },
+  // Only surfaced in the `lore` topic list for mages (isMage) — a small,
+  // concrete reward for choosing a mage background rather than just flavor.
+  inner_kabal: {
+    title: "What the Novitiates Whisper",
+    requires: "isMage",
+    text: `Nothing official. Just the kind of thing you hear in a stairwell at
+the wrong hour: that Primus was there before the Kabal was anything, that
+the Tower's foundations are older than the five nations built around it,
+that the Fingers don't entirely trust each other, and that somewhere
+below the Sepulcher something is being kept, not stored. Registered mages
+learn not to ask a second time when a senior Adept changes the subject.
+Unregistered ones learn not to ask at all — or they don't get the chance
+to ask twice.`,
+  },
 };
+
+// World-reactivity flavor: how a place responds to your reputation there,
+// keyed by BACKGROUNDS[].reputation values. Picked at random in cmdLook /
+// cmdTalk when reputation !== "neutral" for the current nation.
+const REPUTATION_FLAVOR = {
+  friendly: [
+    "A few people recognize what you are, and nod like it means something here.",
+    "You're not a stranger in this place, whatever else you are.",
+    "Someone addresses you like a countryman before you've said a word.",
+  ],
+  cold: [
+    "Conversation doesn't stop when you pass, but it does thin out.",
+    "You get the kind of polite that isn't actually friendly.",
+    "A couple of long looks follow you that you pretend not to notice.",
+  ],
+  hostile: [
+    "More than one hand drifts toward a weapon and then, deliberately, away.",
+    "You are not welcome here, and no one is pretending otherwise.",
+    "Someone is already deciding whether it's worth the trouble of reporting you.",
+  ],
+};
+
+// The Bruise's central pressure mechanic: hunted wherever the Kabal's reach
+// is strongest. See parser.js checkKabalHunt().
+const KABAL_HUNT_LINES = [
+  "A patrol falls into step behind you — too neat, too quiet, Kabal-trained.",
+  "Someone in a grey Kabal-sanctioned coat is asking after 'an unregistered practitioner' two streets back.",
+  "A registration checkpoint has gone up since you were last through here, and you weren't planning on stopping for it.",
+];
 
 const QUEST_HOOKS = [
   {

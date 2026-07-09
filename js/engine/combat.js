@@ -4,9 +4,6 @@
  * simulator. Creature `tier` (0-5) drives how hard the fight is.
  */
 
-const PLAYER_BASE_ATK = 5;
-const PLAYER_BASE_DEF = 2;
-
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -55,13 +52,15 @@ function playerAttack(state) {
     return [`${withThe(creature.name, true)} has done you no harm. Attacking it seems both unwise and unkind.`];
   }
 
-  const dmg = Math.max(1, randInt(PLAYER_BASE_ATK - 2, PLAYER_BASE_ATK + 2) - Math.floor(creature.def / 3));
+  const dmg = Math.max(1, randInt(state.atk - 2, state.atk + 2) - Math.floor(creature.def / 3));
   state.combat.hp -= dmg;
   out.push(`You strike ${withThe(creature.name, false)} for ${dmg} damage.`);
 
   if (state.combat.hp <= 0) {
     out.push(`${withThe(creature.name, true)} falls. ${creature.combatNotes || ""}`.trim());
-    const goldFound = randInt(1, 4) * (creature.tier + 1);
+    // Mercenaries work bounties for a living — a little extra coin for the kill.
+    const bounty = state.flags.isMercenary ? 1.5 : 1;
+    const goldFound = Math.round(randInt(1, 4) * (creature.tier + 1) * bounty);
     state.gold += goldFound;
     out.push(`You find ${goldFound} gold on/near the creature.`);
     state.combat = null;
@@ -69,7 +68,7 @@ function playerAttack(state) {
   }
 
   // enemy retaliates
-  const edmg = Math.max(0, randInt(creature.atk - 1, creature.atk + 2) - PLAYER_BASE_DEF);
+  const edmg = Math.max(0, randInt(creature.atk - 1, creature.atk + 2) - state.def);
   state.health -= edmg;
   if (edmg > 0) {
     out.push(`${withThe(creature.name, true)} hits back for ${edmg} damage.`);
@@ -87,12 +86,12 @@ function playerAttack(state) {
 function attemptFlee(state) {
   if (!state.combat) return ["There's nothing to flee from."];
   const creature = BESTIARY[state.combat.creatureId];
-  const chance = 0.6 - creature.tier * 0.08;
+  const chance = 0.6 - creature.tier * 0.08 + (state.stealthMod || 0);
   if (Math.random() < chance) {
     state.combat = null;
     return [`You break away from ${withThe(creature.name, false)} and put distance between you.`];
   }
-  const edmg = Math.max(0, randInt(creature.atk - 1, creature.atk + 1) - PLAYER_BASE_DEF);
+  const edmg = Math.max(0, randInt(creature.atk - 1, creature.atk + 1) - state.def);
   state.health -= edmg;
   return [`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`];
 }
