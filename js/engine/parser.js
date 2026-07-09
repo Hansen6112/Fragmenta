@@ -15,7 +15,7 @@ const VERB_SYNONYMS = {
   examine: ["examine", "x", "inspect", "study"],
   talk: ["talk", "speak", "ask", "greet"],
   rest: ["rest", "sleep", "camp"],
-  status: ["status", "stats", "health", "hp"],
+  status: ["status", "stats", "health", "hp", "level", "xp"],
   lore: ["lore", "codex", "recall", "remember"],
   fight: ["fight", "attack", "strike", "hit"],
   explore: ["explore", "search", "scout"],
@@ -359,10 +359,16 @@ function cmdRest(state) {
 function cmdStatus(state) {
   const loc = state.currentLocation();
   const bg = BACKGROUNDS[state.background];
+  const xpLine =
+    state.level >= LEVEL_CAP
+      ? "XP: max level reached"
+      : `XP: ${state.xp}/${xpToNextLevel(state.level)} to next level`;
   return [
-    `${state.playerName} — ${bg ? bg.name : "Wanderer"} — day ${state.day}`,
+    `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}`,
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
+    `Magic: ${state.magic}   Knowledge: ${state.knowledge}`,
+    xpLine,
     `Gold: ${state.gold}`,
     `Fragmenta shards found: ${state.knownFragments}`,
   ];
@@ -512,7 +518,7 @@ function cmdExplore(state) {
   if (roll < 0.55) {
     const gold = Math.floor(Math.random() * 8) + 1;
     state.gold += gold;
-    return [`You search the area around ${loc.name} and turn up ${gold} gold someone else lost track of.`];
+    return [`You search the area around ${loc.name} and turn up ${gold} gold someone else lost track of.`, ...state.gainXp(5)];
   }
   if (roll < 0.62 && !state.knownFragments && loc.danger >= 3) {
     state.knownFragments += 1;
@@ -533,8 +539,11 @@ function cmdExplore(state) {
 function cmdHelp() {
   return [
     "Commands: look, go <place>, map, inventory, take <item>, drop <item>,",
-    "examine <thing>, talk [to whom], rest, status, explore, lore [topic],",
-    "quests, reputation, fight, flee, save, help.",
+    "examine <thing>, talk [to whom], rest, status (or level), explore,",
+    "lore [topic], quests, reputation, fight, flee, save, help.",
+    "You gain XP from kills, jobs, and contracts, and level up automatically",
+    "(1-25) — each background grows differently: a fighter's levels favor",
+    "attack/defense/health, a mage's favor magic and knowledge.",
     "Work: board (city job board), accept <number>, contracts (guild-only,",
     "at Nocturne/Vorseth), sign <number>. Bounty jobs resolve the moment",
     "you win a big enough fight; courier jobs resolve the moment you arrive.",

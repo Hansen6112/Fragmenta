@@ -5,6 +5,8 @@
 const BASE_ATK = 5;
 const BASE_DEF = 2;
 const BASE_HEALTH = 20;
+const BASE_MAGIC = 3;
+const BASE_KNOWLEDGE = 3;
 
 class GameState {
   constructor() {
@@ -12,10 +14,14 @@ class GameState {
     this.background = null;
     this.nation = "sanguivorum";
     this.location = "zuevaron";
+    this.level = 1;
+    this.xp = 0;
     this.atk = BASE_ATK;
     this.def = BASE_DEF;
     this.maxHealth = BASE_HEALTH;
     this.health = BASE_HEALTH;
+    this.magic = BASE_MAGIC;
+    this.knowledge = BASE_KNOWLEDGE;
     this.stealthMod = 0;
     this.gold = 25;
     this.inventory = ["a traveler's cloak", "a half-empty waterskin", "a few days' rations"];
@@ -34,10 +40,8 @@ class GameState {
   applyBackground(bgKey) {
     const bg = BACKGROUNDS[bgKey];
     this.background = bgKey;
-    this.atk = BASE_ATK + (bg.atkMod || 0);
-    this.def = BASE_DEF + (bg.defMod || 0);
-    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0);
-    this.health = this.maxHealth;
+    this.level = 1;
+    this.xp = 0;
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
@@ -45,6 +49,50 @@ class GameState {
     this.nation = bg.nation || this.deriveNationFromLocation(bg.startLocation);
     this.location = bg.startLocation;
     this.reputation = initialReputation(bg.reputation);
+    this.recomputeStats(false); // false = full heal to new max, not a level-up top-up
+  }
+
+  // Recalculates atk/def/maxHealth/magic/knowledge from scratch (base +
+  // background mod + Math.round(growth * (level-1))) — always derived from
+  // current level rather than accumulated incrementally, so there's no
+  // rounding drift across many level-ups. `healOnGain` controls what
+  // happens to current health when maxHealth changes: on level-up, the
+  // gained amount is added to current health (you feel stronger, not
+  // proportionally weaker); at character creation, health is simply set
+  // to the new max (full heal).
+  recomputeStats(healOnGain) {
+    const bg = BACKGROUNDS[this.background];
+    if (!bg) return;
+    const n = this.level - 1;
+    const growth = bg.growth || {};
+    const oldMaxHealth = this.maxHealth;
+    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n);
+    this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n);
+    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n);
+    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n);
+    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n);
+    if (healOnGain) {
+      this.health += Math.max(0, this.maxHealth - oldMaxHealth);
+    } else {
+      this.health = this.maxHealth;
+    }
+  }
+
+  // Adds XP and levels up as many times as the total earns (capped at
+  // LEVEL_CAP), returning any level-up announcement lines for the caller
+  // to print. A no-op once the level cap is reached.
+  gainXp(amount) {
+    const lines = [];
+    if (this.level >= LEVEL_CAP || amount <= 0) return lines;
+    this.xp += amount;
+    lines.push(`(+${amount} XP)`);
+    while (this.level < LEVEL_CAP && this.xp >= xpToNextLevel(this.level)) {
+      this.xp -= xpToNextLevel(this.level);
+      this.level += 1;
+      this.recomputeStats(true);
+      lines.push(`*** Level up! You are now level ${this.level}. ***`);
+    }
+    return lines;
   }
 
   deriveNationFromLocation(locId) {
@@ -66,10 +114,14 @@ class GameState {
       background: this.background,
       nation: this.nation,
       location: this.location,
+      level: this.level,
+      xp: this.xp,
       atk: this.atk,
       def: this.def,
       health: this.health,
       maxHealth: this.maxHealth,
+      magic: this.magic,
+      knowledge: this.knowledge,
       stealthMod: this.stealthMod,
       gold: this.gold,
       inventory: this.inventory,

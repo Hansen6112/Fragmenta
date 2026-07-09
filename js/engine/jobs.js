@@ -65,6 +65,7 @@ function resolveJob(state, job) {
     repParts.push(`${FACTIONS[fid] ? FACTIONS[fid].name : fid} +${amt}`);
   }
   lines.push(`+${job.rewardGold} gold${repParts.length ? " — " + repParts.join(", ") : ""}.`);
+  lines.push(...state.gainXp(xpFromJob(job)));
 
   if (job.fragmentChance && Math.random() < job.fragmentChance && state.knownFragments < 3) {
     state.knownFragments += 1;
