@@ -102,9 +102,13 @@ const COURIER_FLAVOR = {
   ],
 };
 
-// Flavor-only loot (matches the game's no-stats item design). Tier 5 has a
-// small chance to grant an actual Fragmenta Motus shard instead — see
-// engine/jobs.js resolveJob.
+// A few of these are registered in data/items.js with an equip slot and a
+// stat bonus (a "well-oiled dagger", a "finely made traveler's cloak"...);
+// the rest (rations, coins, an unassembled weapon component...) are
+// deliberately flavor-only. Note this tier-5 pool's registered bonuses cap
+// at Masterwork (+4), not Legendary — see data/items.js for why. Tier 5
+// also has a small chance to grant an actual Fragmenta Motus shard
+// instead — see engine/jobs.js resolveJob.
 const LOOT_BY_TIER = {
   1: ["a handful of copper coins tied in cloth", "a decent whetstone", "a spare bootlace, oddly well-made"],
   2: ["a well-oiled dagger", "a pouch of dried rations", "a small vial of minor healing draught"],

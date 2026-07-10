@@ -340,26 +340,31 @@ function cmdEquipment(state) {
     const label = EQUIP_SLOT_LABELS[slot];
     if (slot === "trinkets") {
       const items = state.equipment.trinkets;
-      lines.push(`  ${label}: ${items.length ? items.join(", ") : "(empty)"}`);
+      lines.push(`  ${label}: ${items.length ? items.map(formatItemLine).join("; ") : "(empty)"}`);
     } else {
-      lines.push(`  ${label}: ${state.equipment[slot] || "(empty)"}`);
+      const item = state.equipment[slot];
+      lines.push(`  ${label}: ${item ? formatItemLine(item) : "(empty)"}`);
     }
   }
   return lines;
 }
 
-// Which slot an item goes in is inferred from its name (data/equipment.js
-// inferEquipSlot) rather than chosen by the player — items are plain
-// strings with no explicit type. Equipping into an already-occupied
-// single-item slot auto-unequips the old item back to inventory first;
-// Trinkets (the only 2-item slot) is instead a hard block when full, since
-// which of the two to bump would be ambiguous.
+// Which slot an item goes in comes from data/items.js's registry when the
+// item is a known piece of gear, falling back to data/equipment.js's
+// keyword-based inferEquipSlot for anything unlisted (loot the registry
+// hasn't caught up with yet) — items are plain strings with no explicit
+// type field of their own. Equipping into an already-occupied single-item
+// slot auto-unequips the old item back to inventory first; Trinkets (the
+// only 2-item slot) is instead a hard block when full, since which of the
+// two to bump would be ambiguous. recomputeStats() is called after any
+// change since gear bonuses are folded into it directly.
 function cmdEquip(arg, state) {
   if (!arg) return ["Equip what?"];
   const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(arg));
   if (idx < 0) return [`You aren't carrying "${arg}".`];
   const item = state.inventory[idx];
-  const slot = inferEquipSlot(item);
+  const itemDef = getItemDef(item);
+  const slot = itemDef ? itemDef.slot : inferEquipSlot(item);
   if (!slot) return [`${item} isn't something you can equip.`];
 
   if (slot === "trinkets") {
@@ -368,7 +373,8 @@ function cmdEquip(arg, state) {
     }
     state.inventory.splice(idx, 1);
     state.equipment.trinkets.push(item);
-    return [`You equip ${item}. (${EQUIP_SLOT_LABELS.trinkets})`];
+    state.recomputeStats(true);
+    return [`You equip ${formatItemLine(item)}. (${EQUIP_SLOT_LABELS.trinkets})`];
   }
 
   const lines = [];
@@ -380,7 +386,8 @@ function cmdEquip(arg, state) {
   }
   state.inventory.splice(idx, 1);
   state.equipment[slot] = item;
-  lines.push(`You equip ${item}. (${EQUIP_SLOT_LABELS[slot]})`);
+  state.recomputeStats(true);
+  lines.push(`You equip ${formatItemLine(item)}. (${EQUIP_SLOT_LABELS[slot]})`);
   return lines;
 }
 
@@ -392,6 +399,7 @@ function cmdUnequip(arg, state) {
       if (idx >= 0) {
         const item = state.equipment.trinkets.splice(idx, 1)[0];
         state.inventory.push(item);
+        state.recomputeStats(true);
         return [`You unequip ${item}.`];
       }
       continue;
@@ -400,6 +408,7 @@ function cmdUnequip(arg, state) {
     if (current && current.toLowerCase().includes(arg)) {
       state.equipment[slot] = null;
       state.inventory.push(current);
+      state.recomputeStats(true);
       return [`You unequip ${current}.`];
     }
   }

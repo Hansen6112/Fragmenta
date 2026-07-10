@@ -61,29 +61,34 @@ class GameState {
   }
 
   // Recalculates atk/def/maxHealth/magic/knowledge from scratch (base +
-  // background mod + Math.round(growth * (level-1))) — always derived from
-  // current level rather than accumulated incrementally, so there's no
-  // rounding drift across many level-ups. `healOnGain` controls what
-  // happens to current health when maxHealth changes: on level-up, the
-  // gained amount is added to current health (you feel stronger, not
+  // background mod + Math.round(growth * (level-1)) + equipped gear's
+  // bonuses) — always derived from current level/gear rather than
+  // accumulated incrementally, so there's no rounding drift across many
+  // level-ups, and equipping/unequipping is just another recompute rather
+  // than a separate code path. `healOnGain` controls what happens to
+  // current health when maxHealth changes: on level-up or a gear change,
+  // the gained amount is added to current health (you feel stronger, not
   // proportionally weaker); at character creation, health is simply set
-  // to the new max (full heal).
+  // to the new max (full heal). Either way, health is clamped to the new
+  // max afterward — unequipping a +Health item can lower the ceiling
+  // below current health.
   recomputeStats(healOnGain) {
     const bg = BACKGROUNDS[this.background];
     if (!bg) return;
     const n = this.level - 1;
     const growth = bg.growth || {};
     const oldMaxHealth = this.maxHealth;
-    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n);
-    this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n);
-    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n);
-    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0);
-    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n);
+    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n) + equipmentBonus(this, "atk");
+    this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n) + equipmentBonus(this, "def");
+    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health");
+    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic");
+    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge");
     if (healOnGain) {
       this.health += Math.max(0, this.maxHealth - oldMaxHealth);
     } else {
       this.health = this.maxHealth;
     }
+    this.health = Math.min(this.health, this.maxHealth);
   }
 
   // Adds XP and levels up as many times as the total earns (capped at

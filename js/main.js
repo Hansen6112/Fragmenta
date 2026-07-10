@@ -52,7 +52,7 @@ function renderItemList(panel, items, emptyText) {
   for (const [item, count] of counts) {
     const li = document.createElement("li");
     const name = document.createElement("span");
-    name.textContent = item;
+    name.textContent = formatItemLine(item);
     li.appendChild(name);
     if (count > 1) {
       const badge = document.createElement("span");
@@ -96,7 +96,7 @@ function renderEquipment() {
 
     const value = document.createElement("span");
     const filled = slot === "trinkets" ? state.equipment.trinkets : (state.equipment[slot] ? [state.equipment[slot]] : []);
-    value.textContent = filled.length ? filled.join(", ") : "(empty)";
+    value.textContent = filled.length ? filled.map(formatItemLine).join("; ") : "(empty)";
     value.className = filled.length ? "equip-slot-value" : "equip-slot-value inv-empty";
     li.appendChild(value);
 
