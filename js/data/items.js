@@ -139,7 +139,7 @@ const ITEM_DEFS = {
   // Boots
   "worn traveler's boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster" },
   "sand-worn desert sandals": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster" },
-  "legion march boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, effects: ["trailwise"], source: "monster", set: "Legion" },
+  "legion march boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, effects: ["trailwise"], source: "monster", set: "Legion", region: "sanguivorum" },
   "dwarven ironclad boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "canopy-runner boots, silent on any leaf": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, source: "monster" },
   "ash-forged greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster" },
@@ -149,7 +149,7 @@ const ITEM_DEFS = {
   "a plain copper band": { slot: "rings", tier: 1, bonuses: { knowledge: 1 }, source: "monster" },
   "a chipped clay signet": { slot: "rings", tier: 1, bonuses: { knowledge: 1 }, source: "monster" },
   "a merchant's brass seal-ring": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, source: "monster" },
-  "a legion officer's ring": { slot: "rings", tier: 2, bonuses: { atk: 2 }, source: "monster" },
+  "a legion officer's ring": { slot: "rings", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
   "a Kabal apprentice's warded ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, source: "monster" },
   "a lizardfolk bone ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, source: "monster" },
   "a conduit-set ring, faintly humming": { slot: "rings", tier: 4, bonuses: { magic: 4 }, source: "monster" },
@@ -166,7 +166,7 @@ const ITEM_DEFS = {
   // Cloak
   "a patched wool cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster" },
   "a sun-faded desert mantle": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster" },
-  "a legion field cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster" },
+  "a legion field cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
   "a dwarven ash-cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "a Vaeloris leaf-cloak, near invisible in the canopy": { slot: "cloak", tier: 3, bonuses: { knowledge: 3 }, source: "monster" },
   "a mist-touched traveling cloak": { slot: "cloak", tier: 3, bonuses: { magic: 3 }, source: "monster" },
@@ -1132,6 +1132,97 @@ const ITEM_DEFS = {
   "a surveyor's compass": { slot: "trinkets", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job" },
   "a shrine keeper's icon": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "contract" },
   "a master fletcher's marking knife": { slot: "trinkets", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["patient_aim"], source: "job" },
+
+  // ---- Regional nation items (no set; `region` ties them to jobs/quests/
+  // enemies of that nation — see rollCreatureLoot in data/items.js and
+  // rewardForDifficulty in data/jobs.js for how `region` is consulted) ----
+  // Main Hand
+  "a sanguivorum legionary's side sword": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
+  "a vaeloris ashwood hunting bow": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "monster", region: "vaeloris" },
+  "a thraekor black-iron cleaver": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "shop", region: "thraekor" },
+  "a norrvael icewind saber": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "monster", region: "norrvael" },
+  "a sahrimor caravan scimitar": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["feinting_edge"], source: "job", region: "sahrimor" },
+  "a sanguivorum border pike": { slot: "mainhand", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["opening_reach"], source: "contract", region: "sanguivorum" },
+  "a vaeloris thornblade": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["deep_cut"], source: "contract", region: "vaeloris" },
+  "a thraekor forge pike": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["armor_crack"], source: "contract", region: "thraekor" },
+  "a norrvael stormsteel longsword": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["riposte"], source: "contract", region: "norrvael" },
+  "a sahrimor dune falcon spear": { slot: "mainhand", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["opening_reach"], source: "contract", region: "sahrimor" },
+
+  // Off Hand
+  "a sanguivorum infantry shield": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "shop", region: "sanguivorum" },
+  "a vaeloris bark buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a thraekor forge shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a norrvael coastguard shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "a sahrimor sun shield": { slot: "offhand", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
+  "an ironbound fortress shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["stalwart"], source: "contract" },
+
+  // Helmets
+  "a sanguivorum war helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "shop", region: "sanguivorum" },
+  "a vaeloris canopy hood": { slot: "helmet", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "monster", region: "vaeloris" },
+  "a thraekor furnace helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a norrvael watch helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["ambush_sense"], source: "monster", region: "norrvael" },
+  "a sahrimor veiled helm": { slot: "helmet", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a silver laurel helm": { slot: "helmet", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+
+  // Chest
+  "a sanguivorum mail shirt": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
+  "a vaeloris leafwoven vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a thraekor forge plate": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a norrvael stormcoat": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "a sahrimor caravan coat": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
+  "a noble war harness": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["stalwart"], source: "contract" },
+
+  // Gloves
+  "legion sword gloves": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
+  "thorn archer gloves": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "monster", region: "vaeloris" },
+  "forge grip gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "shop", region: "thraekor" },
+  "storm sail gloves": { slot: "gloves", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "desert rider gloves": { slot: "gloves", tier: 3, bonuses: { atk: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
+  "master's iron gauntlets": { slot: "gloves", tier: 4, bonuses: { atk: 4 }, effects: ["armor_crack"], source: "contract" },
+
+  // Boots ("Legion March Boots" already existed pre-batch and was updated
+  // in place above with a region tag, rather than duplicated here)
+  "canopy walker boots": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["surefooted"], source: "monster", region: "vaeloris" },
+  "forge walker greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "cliff patrol boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "monster", region: "norrvael" },
+  "caravan rider boots": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
+  "king's expedition boots": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["surefooted"], source: "contract" },
+
+  // Rings ("a legion officer's ring" already existed pre-batch and was
+  // updated in place above rather than duplicated here)
+  "a living vine ring": { slot: "rings", tier: 2, bonuses: { magic: 2 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a forge master's band": { slot: "rings", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a stormglass ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "a merchant prince's band": { slot: "rings", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a royal chancellor's signet": { slot: "rings", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+
+  // Necklaces
+  "a legion medal of service": { slot: "necklace", tier: 2, bonuses: { atk: 2 }, effects: ["executioner"], source: "shop", region: "sanguivorum" },
+  "elderwood prayer beads": { slot: "necklace", tier: 2, bonuses: { magic: 2 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a forgemaster's chain": { slot: "necklace", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a navigator's compass chain": { slot: "necklace", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "monster", region: "norrvael" },
+  "a sun merchant pendant": { slot: "necklace", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a silver court medallion": { slot: "necklace", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+
+  // Cloaks ("a legion field cloak" already existed pre-batch and was
+  // updated in place above rather than duplicated here)
+  "a mossweave cloak": { slot: "cloak", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "monster", region: "vaeloris" },
+  "an ashfall traveler's mantle": { slot: "cloak", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a stormwatch cape": { slot: "cloak", tier: 3, bonuses: { def: 2, magic: 1 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "a desert silk cloak": { slot: "cloak", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a noble court mantle": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+
+  // Trinkets
+  "a legion campaign token": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["tactical_memory"], source: "shop", region: "sanguivorum" },
+  "a canopy seed charm": { slot: "trinkets", tier: 2, bonuses: { health: 2 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a forgestone charm": { slot: "trinkets", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a stormglass hand compass": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "a merchant contract scroll": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a desert sun coin": { slot: "trinkets", tier: 3, bonuses: { atk: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", region: "sahrimor" },
+  "a river ferry bell": { slot: "trinkets", tier: 3, bonuses: { def: 2, magic: 1 }, effects: ["elemental_focus"], source: "shop" },
+  "a black iron smith's mark": { slot: "trinkets", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["crushing_impact"], source: "contract", region: "thraekor" },
+  "a noble family seal": { slot: "trinkets", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job" },
+  "an ancient trade ledger": { slot: "trinkets", tier: 4, bonuses: { knowledge: 4 }, effects: ["merchants_eye"], source: "contract", region: "sahrimor" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
@@ -1142,6 +1233,33 @@ for (const [name, def] of Object.entries(ITEM_DEFS)) {
   if (def.source !== "monster") continue;
   if (!COMBAT_LOOT_POOL[def.tier]) COMBAT_LOOT_POOL[def.tier] = [];
   COMBAT_LOOT_POOL[def.tier].push(name);
+}
+
+// Derived at load time: every "monster"-sourced item that also carries a
+// `region` (nation) tag, grouped by [region][tier] — the regional sibling
+// of COMBAT_LOOT_POOL, consulted by rollCreatureLoot when the defeated
+// creature is itself nation-locked (BESTIARY's optional `nations` field).
+const REGIONAL_LOOT_POOL = {};
+for (const [name, def] of Object.entries(ITEM_DEFS)) {
+  if (def.source !== "monster" || !def.region) continue;
+  if (!REGIONAL_LOOT_POOL[def.region]) REGIONAL_LOOT_POOL[def.region] = {};
+  if (!REGIONAL_LOOT_POOL[def.region][def.tier]) REGIONAL_LOOT_POOL[def.region][def.tier] = [];
+  REGIONAL_LOOT_POOL[def.region][def.tier].push(name);
+}
+
+// Derived at load time: every "job"-sourced item that also carries a
+// `region` tag, grouped by [region][tier] — consulted by data/jobs.js's
+// rewardForDifficulty so a job posted on a given nation's board can hand
+// out that nation's own gear instead of only the generic LOOT_BY_TIER
+// list. Defined here (not in jobs.js, which loads first) since ITEM_DEFS
+// only exists once this file has parsed; jobs.js reads this global at
+// call time, well after both files have loaded.
+const REGIONAL_JOB_LOOT_POOL = {};
+for (const [name, def] of Object.entries(ITEM_DEFS)) {
+  if (def.source !== "job" || !def.region) continue;
+  if (!REGIONAL_JOB_LOOT_POOL[def.region]) REGIONAL_JOB_LOOT_POOL[def.region] = {};
+  if (!REGIONAL_JOB_LOOT_POOL[def.region][def.tier]) REGIONAL_JOB_LOOT_POOL[def.region][def.tier] = [];
+  REGIONAL_JOB_LOOT_POOL[def.region][def.tier].push(name);
 }
 
 function getItemDef(itemName) {
@@ -1185,13 +1303,24 @@ function equipmentBonus(state, statKey) {
 // tiers run 0-5; clamped to 1-4 so nothing above Masterwork ever drops
 // from a normal kill — see file header on Legendary). Chance climbs with
 // danger: 16% at tier 1 up to 40% at tier 4. Master Appraiser's 6pc set
-// bonus raises that chance by 20% (relative).
+// bonus raises that chance by 20% (relative). Nation-locked creatures
+// (BESTIARY's optional `nations` field) have a 50% chance to draw from
+// that nation's REGIONAL_LOOT_POOL instead of the generic pool, when one
+// exists at this tier — everything else (most creatures have no `nations`
+// restriction) behaves exactly as before.
 function rollCreatureLoot(state, creature) {
   const tier = Math.max(1, Math.min(4, creature.tier || 1));
-  const pool = COMBAT_LOOT_POOL[tier];
-  if (!pool || !pool.length) return null;
   let dropChance = 0.08 + tier * 0.08;
   if (hasSetTier(state, "Master Appraiser", 6)) dropChance *= 1.2;
   if (Math.random() >= dropChance) return null;
+  if (creature.nations && creature.nations.length) {
+    const nation = creature.nations[Math.floor(Math.random() * creature.nations.length)];
+    const regionalPool = REGIONAL_LOOT_POOL[nation] && REGIONAL_LOOT_POOL[nation][tier];
+    if (regionalPool && regionalPool.length && Math.random() < 0.5) {
+      return regionalPool[Math.floor(Math.random() * regionalPool.length)];
+    }
+  }
+  const pool = COMBAT_LOOT_POOL[tier];
+  if (!pool || !pool.length) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }

@@ -132,13 +132,26 @@ const LOOT_BY_TIER = {
   5: ["a relic fragment of uncertain origin", "an item that hums faintly and makes you uneasy to carry", "a shard of something that was clearly never meant to be found"],
 };
 
+// When a loot roll succeeds and the board's own nation has region-tagged
+// "job"-sourced gear at this difficulty (REGIONAL_JOB_LOOT_POOL, data/
+// items.js), a job has a 50% chance to hand out that nation's own item
+// instead of the generic LOOT_BY_TIER list — everything else (no
+// boardNation, or that nation has nothing at this tier) is unchanged.
 function rewardForDifficulty(difficulty, boardNation) {
   const gold = difficulty * (12 + Math.floor(Math.random() * 9)); // d*[12-20]
   const repAmount = difficulty * (2 + Math.floor(Math.random() * 3)); // d*[2-4]
   const rep = {};
   if (boardNation) rep[boardNation] = repAmount;
   const lootChance = 0.15 * difficulty;
-  const loot = Math.random() < lootChance ? LOOT_BY_TIER[difficulty][Math.floor(Math.random() * LOOT_BY_TIER[difficulty].length)] : null;
+  let loot = null;
+  if (Math.random() < lootChance) {
+    const regionalPool = boardNation && REGIONAL_JOB_LOOT_POOL[boardNation] && REGIONAL_JOB_LOOT_POOL[boardNation][difficulty];
+    if (regionalPool && regionalPool.length && Math.random() < 0.5) {
+      loot = regionalPool[Math.floor(Math.random() * regionalPool.length)];
+    } else {
+      loot = LOOT_BY_TIER[difficulty][Math.floor(Math.random() * LOOT_BY_TIER[difficulty].length)];
+    }
+  }
   return { gold, rep, loot };
 }
 
