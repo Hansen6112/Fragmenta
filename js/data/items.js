@@ -1511,6 +1511,55 @@ const ITEM_DEFS = {
   "jeweled trade weights": { slot: "trinkets", tier: 4, bonuses: { knowledge: 2, magic: 2 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
   "a golden scarab": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "contract", region: "sahrimor" },
   "a royal trade charter": { slot: "trinkets", tier: 4, bonuses: { knowledge: 4 }, effects: ["tactical_memory"], source: "contract", region: "sahrimor" },
+
+  // ---- Legendary (tier 5) items ----
+  // Legendary names are kept in their given Title Case (unlike every
+  // lower-tier item's lowercase-with-article convention) since each is a
+  // singular, famous artifact rather than a generic described-in-passing
+  // piece of gear — a deliberate departure to make them read distinctly
+  // in inventory/loot lines.
+  //
+  // Source labels here are new narrative categories (world_boss, dungeon,
+  // quest, arena, exploration, ancient_vault, secret_quest) rather than
+  // the usual shop/monster/job/contract/faction/starter enum — none of
+  // these have a matching game system yet (no dungeons, arena, or
+  // exploration-find mechanic exist), consistent with how "contract"
+  // beyond the two hand-authored capstones was already documented as
+  // reserved for future specific quests, not auto-obtainable. This is
+  // safe: COMBAT_LOOT_POOL, REGIONAL_LOOT_POOL, and LOOT_BY_TIER all clamp
+  // their lookup to tiers 1-4, so a tier-5 item is never pulled into a
+  // generic drop regardless of what its `source` string says.
+  "Widow's Lament": { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, effects: ["kingslayer"], source: "world_boss" },
+  Emberfall: { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, effects: ["momentum"], source: "contract" },
+  "Black Horizon": { slot: "mainhand", tier: 5, bonuses: { atk: 6, magic: 2 }, effects: ["spell_echo"], source: "hidden_dungeon" },
+  Dawnpiercer: { slot: "mainhand", tier: 5, bonuses: { atk: 7 }, effects: ["hunters_instinct"], source: "quest" },
+  Oathbreaker: { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, effects: ["last_stand"], source: "arena" },
+  "Winter's Bite": { slot: "mainhand", tier: 5, bonuses: { atk: 7 }, effects: ["iron_will"], source: "world_boss" },
+  "Seven Sorrows": { slot: "mainhand", tier: 5, bonuses: { atk: 6, knowledge: 2 }, effects: ["perfect_balance"], source: "exploration" },
+  "Leviathan's Folly": { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, effects: ["blood_debt"], source: "world_boss" },
+  Crownsplitter: { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, effects: ["overwhelming_force"], source: "ancient_vault" },
+  "Whisper of Ash": { slot: "mainhand", tier: 5, bonuses: { atk: 6, magic: 2 }, effects: ["rivers_favor"], source: "secret_quest" },
+
+  "Bulwark of Ages": { slot: "offhand", tier: 5, bonuses: { def: 8 }, effects: ["unbreakable"], source: "world_boss" },
+  "Eclipse Guard": { slot: "offhand", tier: 5, bonuses: { def: 6, magic: 2 }, effects: ["spell_echo"], source: "dungeon" },
+  "Last Bastion": { slot: "offhand", tier: 5, bonuses: { def: 8 }, effects: ["last_stand"], source: "quest" },
+  "Iron Promise": { slot: "offhand", tier: 5, bonuses: { def: 7 }, effects: ["perfect_balance"], source: "contract" },
+  "King's Wall": { slot: "offhand", tier: 5, bonuses: { def: 8 }, effects: ["kingslayer"], source: "exploration" },
+
+  "Crown of Embers": { slot: "helmet", tier: 5, bonuses: { magic: 8 }, effects: ["rivers_favor"], source: "quest" },
+  "Helm of Silent Stars": { slot: "helmet", tier: 5, bonuses: { def: 8 }, effects: ["iron_will"], source: "dungeon" },
+  "Warden's Vigil": { slot: "helmet", tier: 5, bonuses: { def: 6, knowledge: 2 }, effects: ["hunters_instinct"], source: "contract" },
+  "Ashen Halo": { slot: "helmet", tier: 5, bonuses: { magic: 8 }, effects: ["spell_echo"], source: "world_boss" },
+  "The Empty Crown": { slot: "helmet", tier: 5, bonuses: { def: 7 }, effects: ["last_stand"], source: "exploration" },
+
+  "Heartforge Plate": { slot: "chest", tier: 5, bonuses: { def: 8 }, effects: ["unbreakable"], source: "dungeon" },
+  "Mantle of the Last King": { slot: "chest", tier: 5, bonuses: { def: 6, knowledge: 2 }, effects: ["perfect_balance"], source: "quest" },
+  "Ashwalker Harness": { slot: "chest", tier: 5, bonuses: { def: 8 }, effects: ["blood_debt"], source: "contract" },
+  "Starwoven Vestments": { slot: "chest", tier: 5, bonuses: { magic: 8 }, effects: ["spell_echo"], source: "world_boss" },
+  // "Bastion Eternal" (Chest, Legendary, +8 Defense) was given with no
+  // Passive or Source column — registered with stats only pending that
+  // info, rather than guessing a passive for a Legendary item.
+  "Bastion Eternal": { slot: "chest", tier: 5, bonuses: { def: 8 } },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
