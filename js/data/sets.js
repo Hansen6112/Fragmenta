@@ -395,6 +395,15 @@ const SETS = {
       6: { effects: ["avatar_of_war"], description: "Avatar of War — once per combat, dropping below 25% Health grants 4 rounds of +50% Attack, 10% lifesteal, and expanded Riposte" },
     },
   },
+  "Regalia of the Endless Archive": {
+    theme: "Ithrien's gifts to those who never stop learning.",
+    god: "Ithrien",
+    bonuses: {
+      2: { effects: ["blessing_of_insight"], description: "Blessing of Insight — +20% Critical spell chance; enemy elemental weaknesses revealed at combat start" },
+      4: { effects: ["universal_understanding"], description: "Universal Understanding — every elemental cast randomly reduces another element's cooldown by 2" },
+      6: { effects: ["avatar_of_knowledge"], description: "Avatar of Knowledge — once per combat, dropping below 25% Health grants 4 rounds of free spellcasting, +50% Magic, and improved elemental matchups" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

@@ -1727,6 +1727,14 @@ const ITEM_DEFS = {
   "Ring of Conquest": { slot: "rings", tier: 8, bonuses: { atk: 10, knowledge: 6 }, effects: ["victors_momentum"], source: "monster", set: "Regalia of the Crimson Vanguard" },
   "Gauntlets of the Unyielding": { slot: "gloves", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["clash_of_steel"], source: "monster", set: "Regalia of the Crimson Vanguard" },
   "General's Standard": { slot: "trinkets", tier: 8, bonuses: { atk: 8, def: 8 }, effects: ["rally_the_line"], source: "monster", set: "Regalia of the Crimson Vanguard" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Endless Archive (Ithrien) ----
+  "Codex of Infinite Horizons": { slot: "mainhand", tier: 8, bonuses: { magic: 12, knowledge: 4 }, effects: ["endless_study"], source: "monster", set: "Regalia of the Endless Archive" },
+  "Librarian's Ward": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["prepared_response"], source: "monster", set: "Regalia of the Endless Archive" },
+  "Vestments of the First Scholar": { slot: "chest", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["expanding_mind"], source: "monster", set: "Regalia of the Endless Archive" },
+  "Ring of Boundless Inquiry": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["eureka"], source: "monster", set: "Regalia of the Endless Archive" },
+  "Gloves of Careful Script": { slot: "gloves", tier: 8, bonuses: { knowledge: 8, def: 8 }, effects: ["precision_formula"], source: "monster", set: "Regalia of the Endless Archive" },
+  "Scholar's Seal": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["archive_eternal"], source: "monster", set: "Regalia of the Endless Archive" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

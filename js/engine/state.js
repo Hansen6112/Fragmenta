@@ -32,6 +32,8 @@ class GameState {
     this.soulLedgerHealthBonus = 0; // Soul Ledger's chosen permanent +Health, uncapped
     this.soulLedgerMagicBonus = 0; // Soul Ledger's chosen permanent +Magic, uncapped
     this.soulLedgerDefBonus = 0; // Soul Ledger's chosen permanent +Defense, uncapped
+    this.archiveEternalSeen = []; // Archive Eternal's (Divine Regalia) whole-game list of recorded creature "species" keys
+    this.archiveEternalKnowledgeBonus = 0; // Archive Eternal's permanent +1 Knowledge per new species, uncapped
     this.stealthMod = 0;
     this.gold = 25;
     this.inventory = ["a traveler's cloak", "a half-empty waterskin", "a few days' rations"];
@@ -63,6 +65,8 @@ class GameState {
     this.soulLedgerHealthBonus = 0;
     this.soulLedgerMagicBonus = 0;
     this.soulLedgerDefBonus = 0;
+    this.archiveEternalSeen = [];
+    this.archiveEternalKnowledgeBonus = 0;
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
@@ -96,7 +100,7 @@ class GameState {
     this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n) + equipmentBonus(this, "def") + setStatBonus(this, "def") + (this.soulLedgerDefBonus || 0);
     this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0) + (this.soulLedgerHealthBonus || 0);
     this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0);
-    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0);
+    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0) + (this.archiveEternalKnowledgeBonus || 0);
     // The Empty Hand (Artifact): fighting with no Off-Hand equipped is a
     // flat +50%/+25% multiplier, applied last on top of every other atk/
     // def source above (growth, gear, sets).

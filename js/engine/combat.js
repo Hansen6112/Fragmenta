@@ -183,7 +183,17 @@ function effectiveMagic(state) {
   const combat = state.combat;
   const magicBuff = combat && combat.magicBuffTurns > 0 ? combat.magicBuffAmount || 0 : 0;
   const everyChoiceMagic = ((combat && combat.everyChoiceMagicStacks) || 0) * 2;
-  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic;
+  const endlessStudyMagic = (combat && combat.endlessStudyMagicBonus) || 0;
+  // Expanding Mind (Divine Regalia — Vestments of the First Scholar): a
+  // live formula off the CURRENT Knowledge stat (every 5 above 50 grants
+  // +1 Magic), not a stacking/triggered bonus like the others here.
+  // Avatar of Knowledge's (Endless Archive 6pc) "+25 Knowledge" feeds this
+  // formula specifically, rather than being threaded through every
+  // ability-unlock knowledgeReq check across the codebase for a single
+  // 4-round buff — a deliberate scope limit.
+  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.knowledgeBuffAmount) || 0);
+  const expandingMindMagic = hasEffect(state, "expanding_mind") ? Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5) : 0;
+  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic;
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -279,20 +289,77 @@ function foreseenStrikeDefMultiplier(state) {
 }
 
 // Minimal player-side critical hit system (Divine Regalia — Blessing of
-// Guidance / Avatar of Fate). Nothing in this engine crit before these
-// two effects, so it's scoped to exactly what they need: Blessing of
-// Guidance (2pc) is the ONLY source of any crit chance at all — a
-// one-shot +25% on the very first action of the fight (mirrors Hunter's
-// Instinct's actionCounter === 1 check). Avatar of Fate never grants
-// chance, only doubles the bonus (+50% -> +100%) if a crit happens to
-// land during its own 4-round window elsewhere.
-function critMultiplier(state) {
+// Guidance / Avatar of Fate / Blessing of Insight). Nothing in this
+// engine crit before Veylana's set, so it's scoped to exactly what these
+// effects need: Blessing of Guidance (Woven Thread 2pc) is a one-shot
+// +25% on the very first action of the fight (mirrors Hunter's Instinct's
+// actionCounter === 1 check); Blessing of Insight (Endless Archive 2pc)
+// is an unconditional +20% on every SPELL cast specifically (isSpell
+// param), stacking additively with Blessing of Guidance if a character
+// somehow has both. Avatar of Fate never grants chance, only doubles the
+// bonus (+50% -> +100%) if a crit happens to land during its own 4-round
+// window elsewhere.
+function critMultiplier(state, isSpell) {
   const combat = state.combat;
   if (!combat) return 1;
   let chance = 0;
-  if (hasSetTier(state, "Regalia of the Woven Thread", 2) && combat.actionCounter === 1) chance = 0.25;
+  if (hasSetTier(state, "Regalia of the Woven Thread", 2) && combat.actionCounter === 1) chance += 0.25;
+  if (isSpell && hasSetTier(state, "Regalia of the Endless Archive", 2)) chance += 0.2;
   if (chance <= 0 || Math.random() >= chance) return 1;
   return combat.avatarOfFateTurns > 0 ? 2.0 : 1.5;
+}
+
+// Precision Formula (Divine Regalia — Gloves of Careful Script): magic
+// attacks ignore 30% of the target's effective Defense (this engine has
+// no separate "Magic Resistance" stat — creature.def is the same field
+// both branches of rollPlayerDamage already read).
+function precisionFormulaMultiplier(state) {
+  return hasEffect(state, "precision_formula") ? 0.7 : 1;
+}
+
+// Avatar of Knowledge (Regalia of the Endless Archive 6pc): for its
+// 4-round window, elemental matchup penalties are ignored (floor to 1)
+// and advantages are flattened to exactly 1.5x (overriding Fragmenta
+// 6pc's own 1.5x the same way, and actually a slight boost over the
+// normal 1.3x otherwise).
+function avatarOfKnowledgeMatchupOverride(state, matchup) {
+  if (!state.combat || !(state.combat.avatarOfKnowledgeTurns > 0)) return matchup;
+  if (matchup < 1) return 1;
+  if (matchup > 1) return 1.5;
+  return matchup;
+}
+
+// Endless Study (Divine Regalia — Codex of Infinite Horizons): the FIRST
+// time each DISTINCT ability/tactic is used in a fight grants +2 Magic
+// permanently for that fight, capped at +20 (10 distinct actions) — more
+// than any single character actually has access to (at most ~5 fighter
+// tactics or ~4 mage elements), so the cap is generous headroom rather
+// than a real constraint. Called from every action's entry point
+// (playerAttack, useFeint/useDecoy/useAmbush/useDisarm, useElementAbility)
+// with its own distinguishing key.
+function applyEndlessStudy(state, actionKey) {
+  if (!hasEffect(state, "endless_study") || !state.combat) return [];
+  const combat = state.combat;
+  if (!combat.endlessStudyKeys) combat.endlessStudyKeys = [];
+  if (combat.endlessStudyKeys.includes(actionKey) || (combat.endlessStudyMagicBonus || 0) >= 20) return [];
+  combat.endlessStudyKeys.push(actionKey);
+  combat.endlessStudyMagicBonus = Math.min(20, (combat.endlessStudyMagicBonus || 0) + 2);
+  return [`Endless Study — a new technique, understood; +2 Magic (now +${combat.endlessStudyMagicBonus}).`];
+}
+
+// Prepared Response (Divine Regalia — Librarian's Ward): the enemy in
+// this engine only ever has ONE retaliation "ability" (its fixed physical
+// or elemental attack), so "an ability you've already witnessed" is
+// trivially true from the SECOND enemy retaliation onward — reduces that
+// and every later hit by 25%.
+function preparedResponseMultiplier(state) {
+  if (!hasEffect(state, "prepared_response") || !state.combat) return 1;
+  const combat = state.combat;
+  if (!combat.preparedResponseWitnessed) {
+    combat.preparedResponseWitnessed = true;
+    return 1;
+  }
+  return 0.75;
 }
 
 // Worthy Challenge (Divine Regalia — Warfather's Edge): "the enemy with
@@ -337,13 +404,14 @@ function rollPlayerDamage(state, creature, activeElement) {
   const executionMult = executionProtocolMultiplier(state);
   const echoMult = temporalEchoMultiplier(state);
   const foreseenDefMult = foreseenStrikeDefMultiplier(state);
-  const critMult = critMultiplier(state);
+  const isSpell = state.flags.isMage && state.primaryElement;
+  const critMult = critMultiplier(state, isSpell);
   const threadsMult = state.combat && state.combat.threadsOfConsequencePending ? 1.4 : 1;
   const worthyMult = worthyChallengeMultiplier(state);
   const valorMult = blessingOfValorMultiplier(state);
   const commandingDefMult = commandingPresenceDefMultiplier(state);
   let dmg;
-  if (state.flags.isMage && state.primaryElement) {
+  if (isSpell) {
     const magic = effectiveMagic(state);
     // Arcane Convergence (Artifact): rolls the base damage twice and keeps
     // the higher result — an "advantage" reroll rather than a flat
@@ -351,8 +419,8 @@ function rollPlayerDamage(state, creature, activeElement) {
     let base = randInt(magic - 2, magic + 2);
     if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
     const multiplier = 1 + magic / 40;
-    const matchup = elementMultiplier(state, activeElement, creature.element);
-    const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult;
+    const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
+    const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
     dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult) - Math.floor(effDef / 10));
   } else {
@@ -490,6 +558,10 @@ function beginTurn(state) {
   if (combat.avatarOfPassingTurns > 0) combat.avatarOfPassingTurns -= 1;
   if (combat.avatarOfFateTurns > 0) combat.avatarOfFateTurns -= 1;
   if (combat.avatarOfWarTurns > 0) combat.avatarOfWarTurns -= 1;
+  if (combat.avatarOfKnowledgeTurns > 0) {
+    combat.avatarOfKnowledgeTurns -= 1;
+    if (combat.avatarOfKnowledgeTurns === 0) combat.knowledgeBuffAmount = 0;
+  }
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
@@ -725,6 +797,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
     edmg = applyUnbrokenLine(state, edmg);
+    edmg = Math.round(edmg * preparedResponseMultiplier(state));
     const absorbLines1 = applyPlayerDamage(state, edmg);
     if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
@@ -741,6 +814,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
   edmg = applyUnbrokenLine(state, edmg);
+  edmg = Math.round(edmg * preparedResponseMultiplier(state));
   const absorbLines2 = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
@@ -914,6 +988,12 @@ function startCombat(state, creatureIdOrObject) {
     rallyTheLineUsed: false, // gates Rally the Line's (Divine Regalia) below-50%-HP +10/+10 burst
     avatarOfWarUsed: false, // gates Avatar of War's (Regalia of the Crimson Vanguard 6pc) below-25%-HP burst
     avatarOfWarTurns: 0, // Avatar of War's temporary lifesteal/expanded-Riposte duration remaining
+    endlessStudyKeys: [], // Endless Study's (Divine Regalia) list of distinct abilities/tactics already used this fight
+    endlessStudyMagicBonus: 0, // Endless Study's stacking +2 Magic per distinct action, capped at 20
+    preparedResponseWitnessed: false, // gates Prepared Response's (Divine Regalia) from-the-2nd-hit-onward reduction
+    avatarOfKnowledgeUsed: false, // gates Avatar of Knowledge's (Regalia of the Endless Archive 6pc) below-25%-HP burst
+    avatarOfKnowledgeTurns: 0, // Avatar of Knowledge's temporary no-cooldown-spells/matchup-override duration remaining
+    knowledgeBuffAmount: 0, // Avatar of Knowledge's +25 Knowledge, scoped to feed Expanding Mind's formula only
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -937,6 +1017,18 @@ function startCombat(state, creatureIdOrObject) {
       `Weaver's Insight unravels the moment: ${withThe(creature.name, false)} has ${creature.hp} Health, ${creature.def} Defense, ${creature.atk} Attack` +
         (statusBits.length ? ` (${statusBits.join(", ")})` : "") + "."
     );
+  }
+  // Blessing of Insight (Regalia of the Endless Archive 2pc): reveals
+  // which elements the enemy is weak against, at the start of combat.
+  // Only meaningful against elemental creatures — ELEMENT_MATCHUPS is a
+  // strict cycle, so exactly 2 elements always counter any given one.
+  if (hasSetTier(state, "Regalia of the Endless Archive", 2) && creature.element) {
+    const counters = Object.entries(ELEMENT_MATCHUPS)
+      .filter(([, m]) => m.strongVs.includes(creature.element))
+      .map(([el]) => ELEMENTS[el].name);
+    if (counters.length) {
+      lines.push(`Blessing of Insight reveals a weakness: ${withThe(creature.name, false)} is exposed to ${counters.join(" and ")}.`);
+    }
   }
   // Forest Guardian (Vaeloris 6pc): a Defense charge earned when Regrowth
   // activated after the PREVIOUS fight ended (Regrowth itself only ever
@@ -1089,6 +1181,29 @@ function checkAvatarOfWar(state) {
   return [`Avatar of War awakens — for 4 rounds, you fight like the battle itself.`];
 }
 
+// Avatar of Knowledge (Regalia of the Endless Archive 6pc): same below-
+// 25%-Health trigger as its sibling "Avatar of X" abilities. For 4
+// rounds: every spell costs no cooldown (see useElementAbility),
+// +50% Magic (approximated as a flat addend off base state.magic, the
+// same technique the other Avatars use), +25 Knowledge (scoped to feed
+// Expanding Mind's formula only — see effectiveMagic), elemental matchup
+// penalties ignored/advantages flattened to 1.5x (see
+// avatarOfKnowledgeMatchupOverride). Its "all attacks reveal hidden enemy
+// statistics" clause is folded into this same activation message, once,
+// rather than repeated on every subsequent attack.
+function checkAvatarOfKnowledge(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfKnowledgeUsed || !hasSetTier(state, "Regalia of the Endless Archive", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfKnowledgeUsed = true;
+  combat.avatarOfKnowledgeTurns = 4;
+  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 4);
+  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, Math.round(state.magic * 0.5));
+  combat.knowledgeBuffAmount = 25;
+  const creature = getCombatCreature(state);
+  return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${combat.hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -1149,6 +1264,26 @@ function applySoulLedger(state, creature) {
   return [];
 }
 
+// Archive Eternal (Divine Regalia — Scholar's Seal): the first time each
+// creature "species" is recorded, permanently grants +1 Knowledge —
+// whole-game, uncapped (naturally bounded by however many distinct
+// species/types actually exist). BESTIARY creatures use their stable
+// bestiary key (state.combat.creatureId) as the species identifier;
+// dynamically-generated creatures (enemy mages, whose own id/name is
+// randomized per instance) are bucketed by element instead — the closest
+// thing they have to a repeatable "type" — so this can't be farmed
+// infinitely by just fighting more enemy mages.
+function applyArchiveEternal(state, creature) {
+  if (!hasEffect(state, "archive_eternal") || !state.combat) return [];
+  const combat = state.combat;
+  const speciesKey = combat.creatureObj ? "enemy_mage_" + (creature.element || "unknown") : combat.creatureId;
+  if (!state.archiveEternalSeen) state.archiveEternalSeen = [];
+  if (state.archiveEternalSeen.includes(speciesKey)) return [];
+  state.archiveEternalSeen.push(speciesKey);
+  state.archiveEternalKnowledgeBonus = (state.archiveEternalKnowledgeBonus || 0) + 1;
+  return [`Archive Eternal — a new species recorded; +1 permanent Knowledge.`];
+}
+
 // Shared victory handling — gold, loot, XP, job progress, ending combat.
 function resolveKill(state, creature) {
   const out = [`${withThe(creature.name, true)} falls. ${creature.combatNotes || ""}`.trim()];
@@ -1198,6 +1333,7 @@ function resolveKill(state, creature) {
   if (hasEffect(state, "victors_momentum")) {
     state.flags.victorsMomentumStacks = (state.flags.victorsMomentumStacks || 0) + 3;
   }
+  out.push(...applyArchiveEternal(state, creature));
   state.combat = null;
   state.recomputeStats(true);
   out.push(...applyRegrowth(state));
@@ -1222,6 +1358,7 @@ function playerAttack(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...applyEndlessStudy(state, "attack"));
 
   // "Physical" here mirrors rollPlayerDamage's own branch check — a mage
   // with a primary element deals magic damage instead, so Opening
@@ -1249,7 +1386,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -1283,13 +1420,14 @@ function attemptFlee(state) {
   edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
   edmg = applyUnbrokenLine(state, edmg);
+  edmg = Math.round(edmg * preparedResponseMultiplier(state));
   const absorbLines = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1352,6 +1490,7 @@ function useFeint(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...applyEndlessStudy(state, "feint"));
   state.combat.nextAttackBonus = true;
   let feintMemory;
   if (applyPerfectTiming(state)) {
@@ -1380,7 +1519,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -1403,6 +1542,7 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...applyEndlessStudy(state, "decoy"));
   let decoyMemory;
   if (applyPerfectTiming(state)) {
     decoyMemory = { cooldown: 0, fired: false };
@@ -1448,6 +1588,7 @@ function useAmbush(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...applyEndlessStudy(state, "ambush"));
 
   const dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
   state.combat.hp -= dmg;
@@ -1484,6 +1625,7 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...applyEndlessStudy(state, "disarm"));
   let disarmMemory;
   if (applyPerfectTiming(state)) {
     disarmMemory = { cooldown: 0, fired: false };
@@ -1512,7 +1654,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -1544,16 +1686,19 @@ function useElementAbility(state, elementKey) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  // combat.spellCastCounter: an unconditional per-cast counter (every
+  // elemental ability, regardless of what's equipped), shared by
+  // Seedbearer (every 3rd) and Eureka (every 4th) below — the same
+  // "shared counter, independent consumers" pattern as combat.actionCounter.
+  state.combat.spellCastCounter = (state.combat.spellCastCounter || 0) + 1;
   // Seedbearer (Divine Regalia — Ring of Verdant Promise): every 3rd
   // elemental cast this fight restores 10% max Health, routed through
   // applyHeal like every other heal.
-  if (hasEffect(state, "seedbearer")) {
-    state.combat.spellCastCounter += 1;
-    if (state.combat.spellCastCounter % 3 === 0) {
-      const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
-      if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
-    }
+  if (hasEffect(state, "seedbearer") && state.combat.spellCastCounter % 3 === 0) {
+    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
+    if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
   }
+  out.push(...applyEndlessStudy(state, elementKey));
   // Conduit Mastery (Mythic): a flat, unconditional -1 to every elemental
   // cooldown, applied to the base cooldown before Novitiate/River's
   // Favor's free-cast check (which would otherwise get pushed back up
@@ -1571,7 +1716,29 @@ function useElementAbility(state, elementKey) {
     cooldown = Math.max(1, cooldown - 1);
     out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
   }
+  // Eureka (Divine Regalia — Ring of Boundless Inquiry): every 4th spell
+  // cast has no cooldown after resolving, overriding whatever was just
+  // computed above.
+  if (hasEffect(state, "eureka") && state.combat.spellCastCounter % 4 === 0) {
+    cooldown = 0;
+    out.push(`Eureka — the insight arrives before the cost does.`);
+  }
+  // Avatar of Knowledge (Regalia of the Endless Archive 6pc): for its
+  // 4-round window, every spell costs no cooldown at all.
+  if (state.combat.avatarOfKnowledgeTurns > 0) cooldown = 0;
   state.combat.cooldowns[elementKey] = cooldown;
+  // Universal Understanding (Regalia of the Endless Archive 4pc): every
+  // elemental cast randomly reduces the cooldown of another known,
+  // currently-cooling-down element by 2 (floor 0).
+  if (hasSetTier(state, "Regalia of the Endless Archive", 4)) {
+    const otherKnown = [state.primaryElement, state.secondaryElement, state.tertiaryElement]
+      .filter((el) => el && el !== elementKey && (state.combat.cooldowns[el] || 0) > 0);
+    if (otherKnown.length) {
+      const pick = otherKnown[Math.floor(Math.random() * otherKnown.length)];
+      state.combat.cooldowns[pick] = Math.max(0, state.combat.cooldowns[pick] - 2);
+      out.push(`Universal Understanding — the insight carries over; ${ELEMENT_ABILITIES[pick].name}'s cooldown eases.`);
+    }
+  }
 
   // Elemental synergy: casting the mage's OTHER known element right before
   // this one boosts this cast. Checked before lastElementUsed is updated,
@@ -1708,7 +1875,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
