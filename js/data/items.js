@@ -1743,6 +1743,14 @@ const ITEM_DEFS = {
   "Ring of Sacred Vows": { slot: "rings", tier: 8, bonuses: { health: 8, magic: 8 }, effects: ["faithful_heart"], source: "monster", set: "Regalia of the Eternal Heart" },
   "Cloak of Gentle Light": { slot: "cloak", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calming_presence"], source: "monster", set: "Regalia of the Eternal Heart" },
   "Bloom of Devotion": { slot: "trinkets", tier: 8, bonuses: { health: 10, knowledge: 6 }, effects: ["love_endures"], source: "monster", set: "Regalia of the Eternal Heart" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Laughing Gale (Nystros) ----
+  "Trickster's Cane": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["loaded_dice"], source: "monster", set: "Regalia of the Laughing Gale" },
+  "Coincatcher's Buckler": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["fortunes_favor"], source: "monster", set: "Regalia of the Laughing Gale" },
+  "Garments of the Wandering Breeze": { slot: "chest", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["winds_of_change"], source: "monster", set: "Regalia of the Laughing Gale" },
+  "Ring of Lucky Misfortune": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["unlikely_outcome"], source: "monster", set: "Regalia of the Laughing Gale" },
+  "Boots of the Wandering Wind": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["never_where_expected"], source: "monster", set: "Regalia of the Laughing Gale" },
+  "Gambler's Coin": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["double_or_nothing"], source: "monster", set: "Regalia of the Laughing Gale" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

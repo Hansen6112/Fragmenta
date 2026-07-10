@@ -83,7 +83,7 @@ function effectiveEnemyAtk(state, creature) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2;
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0);
 }
 
 // Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
@@ -191,10 +191,17 @@ function effectiveMagic(state) {
   // formula specifically, rather than being threaded through every
   // ability-unlock knowledgeReq check across the codebase for a single
   // 4-round buff — a deliberate scope limit.
-  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.knowledgeBuffAmount) || 0);
+  // Winds of Change (Divine Regalia — Garments of the Wandering Breeze) and
+  // Avatar of Chaos (Regalia of the Laughing Gale 6pc) both also feed
+  // Expanding Mind's Knowledge input, alongside Avatar of Knowledge above —
+  // the same deliberate scope limit (this formula only, not every
+  // knowledgeReq gate in the codebase).
+  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.knowledgeBuffAmount) || 0) + ((combat && combat.windsOfChangeKnowledge) || 0) + ((combat && combat.avatarOfChaosKnowledgeBonus) || 0);
   const expandingMindMagic = hasEffect(state, "expanding_mind") ? Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5) : 0;
   const unwaveringDevotionMagic = ((combat && combat.unwaveringDevotionStacks) || 0) * 2;
-  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic;
+  const windsOfChangeMagic = (combat && combat.windsOfChangeMagic) || 0;
+  const avatarOfChaosMagic = (combat && combat.avatarOfChaosMagicBonus) || 0;
+  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic;
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -334,11 +341,52 @@ function foreseenStrikeDefMultiplier(state) {
 function critMultiplier(state, isSpell) {
   const combat = state.combat;
   if (!combat) return 1;
+  // Unlikely Outcome (Divine Regalia — Ring of Lucky Misfortune): consumes
+  // its guaranteed-crit flag (set by applyLaughingGaleMissBonuses, below)
+  // ahead of every other chance-based source — a guarantee, not a chance.
+  if (combat.unlikelyOutcomeGuaranteedCrit) {
+    combat.unlikelyOutcomeGuaranteedCrit = false;
+    return combat.avatarOfFateTurns > 0 ? 2.0 : 1.5;
+  }
   let chance = 0;
   if (hasSetTier(state, "Regalia of the Woven Thread", 2) && combat.actionCounter === 1) chance += 0.25;
   if (isSpell && hasSetTier(state, "Regalia of the Endless Archive", 2)) chance += 0.2;
+  // Blessing of Fortune (Regalia of the Laughing Gale 2pc): +5% Critical
+  // Chance per successful crit this fight, capped at +25% (5 stacks) — the
+  // stack itself grows in rollPlayerDamage, right after this function's
+  // result is read for the current hit.
+  if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) chance += Math.min(combat.blessingOfFortuneCritStacks || 0, 5) * 0.05;
+  // Avatar of Chaos (Regalia of the Laughing Gale 6pc): doubles whatever
+  // crit chance is on offer for its 4-round window.
+  if (combat.avatarOfChaosTurns > 0) chance *= 2;
   if (chance <= 0 || Math.random() >= chance) return 1;
   return combat.avatarOfFateTurns > 0 ? 2.0 : 1.5;
+}
+
+// Loaded Dice (Divine Regalia — Trickster's Cane): a flat 20% chance per
+// attack/spell to land on one of two equally-likely extremes — half
+// damage or double damage — folded into rollPlayerDamage's multiplier
+// chain like every other damage multiplier here. The favorable (double)
+// outcome also counts as "a random effect favors you" for Twist of Fate
+// (Regalia of the Laughing Gale 4pc); that follow-up fires and heals/eases
+// a cooldown silently here, the same precedent Soul Leech/Avatar of War's
+// leech already set for roll-time side effects with no narration channel
+// of their own.
+function loadedDiceMultiplier(state) {
+  if (!hasEffect(state, "loaded_dice") || !state.combat) return 1;
+  if (Math.random() >= 0.2) return 1;
+  if (Math.random() < 0.5) {
+    applyTwistOfFate(state);
+    return 2.0;
+  }
+  return 0.5;
+}
+
+// Avatar of Chaos (Regalia of the Laughing Gale 6pc): for its 4-round
+// window, every hit's damage is randomized between 75% and 175% —
+// independent of, and stacking with, Loaded Dice's own occasional swing.
+function avatarOfChaosDamageMultiplier(state) {
+  return state.combat && state.combat.avatarOfChaosTurns > 0 ? 0.75 + Math.random() : 1;
 }
 
 // Precision Formula (Divine Regalia — Gloves of Careful Script): magic
@@ -496,6 +544,8 @@ function rollPlayerDamage(state, creature, activeElement) {
   const worthyMult = worthyChallengeMultiplier(state);
   const valorMult = blessingOfValorMultiplier(state);
   const commandingDefMult = commandingPresenceDefMultiplier(state);
+  const loadedDiceMult = loadedDiceMultiplier(state);
+  const chaosMult = avatarOfChaosDamageMultiplier(state);
   let dmg;
   if (isSpell) {
     const magic = effectiveMagic(state);
@@ -508,14 +558,14 @@ function rollPlayerDamage(state, creature, activeElement) {
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult) - Math.floor(effDef / 10));
   } else {
     const armorCrack = armorCrackAmount(state);
     const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
     const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
     const everyChoiceAtk = state.combat.everyChoiceAtkStacks || 0;
     const battleTemperedAtk = state.combat.battleTemperedAtkStacks || 0;
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk;
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0);
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
@@ -526,7 +576,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult));
   }
   state.combat.threadsOfConsequencePending = false;
   if (hasEffect(state, "momentum")) {
@@ -534,6 +584,21 @@ function rollPlayerDamage(state, creature, activeElement) {
   }
   if (hasEffect(state, "worthy_challenge")) {
     state.combat.worthyChallengeStacks = Math.min(10, (state.combat.worthyChallengeStacks || 0) + 1);
+  }
+  // Blessing of Fortune (Regalia of the Laughing Gale 2pc) and Avatar of
+  // Chaos (6pc): both key off THIS hit having just critted (critMult > 1,
+  // already read above) to grow their own effect for the NEXT hit — the
+  // same "read the stack before this roll, grow it after" ordering
+  // Momentum/Worthy Challenge use, and just as silent (no line) as those.
+  if (critMult > 1) {
+    if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
+      state.combat.blessingOfFortuneCritStacks = Math.min(5, (state.combat.blessingOfFortuneCritStacks || 0) + 1);
+    }
+    if (state.combat.avatarOfChaosTurns > 0) {
+      const stat = ["Atk", "Def", "Magic", "Knowledge"][Math.floor(Math.random() * 4)];
+      const field = "avatarOfChaos" + stat + "Bonus";
+      state.combat[field] = Math.min(30, (state.combat[field] || 0) + 10);
+    }
   }
   // Avatar of War (Regalia of the Crimson Vanguard 6pc): for its 4-round
   // window, all damage dealt heals 10% — silent like Soul Leech/Avatar of
@@ -649,6 +714,15 @@ function beginTurn(state) {
     if (combat.avatarOfKnowledgeTurns === 0) combat.knowledgeBuffAmount = 0;
   }
   if (combat.avatarOfDevotionTurns > 0) combat.avatarOfDevotionTurns -= 1;
+  if (combat.avatarOfChaosTurns > 0) {
+    combat.avatarOfChaosTurns -= 1;
+    if (combat.avatarOfChaosTurns === 0) {
+      combat.avatarOfChaosAtkBonus = 0;
+      combat.avatarOfChaosDefBonus = 0;
+      combat.avatarOfChaosMagicBonus = 0;
+      combat.avatarOfChaosKnowledgeBonus = 0;
+    }
+  }
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
@@ -666,6 +740,27 @@ function beginTurn(state) {
   // one ended.
   if (hasEffect(state, "unwavering_devotion") && (combat.unwaveringDevotionStacks || 0) < 10) {
     combat.unwaveringDevotionStacks = (combat.unwaveringDevotionStacks || 0) + 1;
+  }
+  // Winds of Change (Divine Regalia — Garments of the Wandering Breeze): at
+  // the start of every round, replace last round's random +6 stat bonus
+  // with a freshly rolled one (Attack/Defense/Magic/Knowledge, equally
+  // likely) — four mutually exclusive fields so exactly one is ever
+  // nonzero at a time, rather than an independent per-stack timer. Its
+  // re-roll always favors the player (there's no "no bonus" outcome), so
+  // it also counts as "a random effect favors you" for Twist of Fate.
+  if (hasEffect(state, "winds_of_change")) {
+    combat.windsOfChangeAtk = 0;
+    combat.windsOfChangeDef = 0;
+    combat.windsOfChangeMagic = 0;
+    combat.windsOfChangeKnowledge = 0;
+    const roll = Math.floor(Math.random() * 4);
+    const labels = ["Attack", "Defense", "Magic", "Knowledge"];
+    if (roll === 0) combat.windsOfChangeAtk = 6;
+    else if (roll === 1) combat.windsOfChangeDef = 6;
+    else if (roll === 2) combat.windsOfChangeMagic = 6;
+    else combat.windsOfChangeKnowledge = 6;
+    lines.push(`Winds of Change shifts — +6 ${labels[roll]} this round.`);
+    lines.push(...applyTwistOfFate(state));
   }
   if (combat.burn && combat.burn.turnsLeft > 0) {
     const creature = getCombatCreature(state);
@@ -833,6 +928,12 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     combat.enemyStunned = false;
     return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
   }
+  // Never Where Expected (Divine Regalia — Boots of the Wandering Wind): a
+  // flat 15% miss chance on EVERY enemy attack (not just the first, unlike
+  // Guardian Spirit/Guided Footsteps above), regardless of accuracy.
+  if (hasEffect(state, "never_where_expected") && Math.random() < 0.15) {
+    return { lines: [`Never Where Expected — it swings, and finds nothing there.`], damage: 0 };
+  }
   // Evasive Release's charges are a one-shot dodge chance, checked (and
   // consumed either way — "expires after triggering") before falling back
   // to Windcut/Blink's duration-based evasion window.
@@ -980,6 +1081,60 @@ function applyDodgeBlockNegateBonuses(state) {
   return lines;
 }
 
+// Resolves a cooldowns object key (a tactic id or an element id) to its
+// display name — TACTICS and ELEMENT_ABILITIES are both keyed by id with
+// their own .name, so this works for either a fighter's or a mage's
+// currently-cooling-down technique.
+function cooldownDisplayName(key) {
+  if (TACTICS[key]) return TACTICS[key].name;
+  if (ELEMENT_ABILITIES[key]) return ELEMENT_ABILITIES[key].name;
+  return key;
+}
+
+// Twist of Fate (Regalia of the Laughing Gale 4pc): whenever one of this
+// god's own random passives favors the player — Loaded Dice's double-
+// damage roll, Winds of Change's per-round reroll, or a miss triggering
+// Unlikely Outcome (see applyLaughingGaleMissBonuses below) — immediately
+// restore 5% max Health and knock a turn off a random currently-cooling-
+// down ability. Deliberately scoped to THIS set's own randomness rather
+// than the pre-existing generic crit/dodge systems from other gods' sets,
+// which would fire constantly and swamp the intended "chaos favors you"
+// flavor with unrelated procs.
+function applyTwistOfFate(state) {
+  if (!state.combat || !hasSetTier(state, "Regalia of the Laughing Gale", 4)) return [];
+  const combat = state.combat;
+  const lines = [];
+  const heal = Math.ceil(state.maxHealth * 0.05);
+  if (heal > 0) {
+    const { healed, lines: healLines } = applyHeal(state, heal);
+    if (healed > 0) lines.push(`Twist of Fate mends you for ${healed} health.`, ...healLines);
+  }
+  const cooling = Object.keys(combat.cooldowns).filter((k) => combat.cooldowns[k] > 0);
+  if (cooling.length) {
+    const key = cooling[Math.floor(Math.random() * cooling.length)];
+    combat.cooldowns[key] = Math.max(0, combat.cooldowns[key] - 1);
+    lines.push(`Twist of Fate eases ${cooldownDisplayName(key)}'s recovery by a turn.`);
+  }
+  return lines;
+}
+
+// Unlikely Outcome (Divine Regalia — Ring of Lucky Misfortune): whenever
+// an attack against the player fails to land — the same "retaliation
+// dealt zero damage" signal Every Choice Matters/Threads of Consequence
+// key off, above — the player's next attack is a guaranteed critical hit.
+// Called at the same 5 call sites as applyDodgeBlockNegateBonuses.
+function applyLaughingGaleMissBonuses(state) {
+  if (!state.combat) return [];
+  const combat = state.combat;
+  const lines = [];
+  if (hasEffect(state, "unlikely_outcome") && !combat.unlikelyOutcomeGuaranteedCrit) {
+    combat.unlikelyOutcomeGuaranteedCrit = true;
+    lines.push(`Unlikely Outcome — the miss steadies your hand; your next strike is a guaranteed critical hit.`);
+  }
+  lines.push(...applyTwistOfFate(state));
+  return lines;
+}
+
 function availableActionNames(state) {
   if (!state.combat) return [];
   if (state.flags.isMage) {
@@ -1111,6 +1266,18 @@ function startCombat(state, creatureIdOrObject) {
     avatarOfDevotionUsed: false, // gates Avatar of Devotion's (Regalia of the Eternal Heart 6pc) below-25%-HP burst
     avatarOfDevotionTurns: 0, // Avatar of Devotion's temporary doubled-healing/reduced-damage-taken duration remaining
     avatarOfDevotionSaveUsed: false, // gates Avatar of Devotion's once-during-the-effect post-cheat-death follow-up heal
+    blessingOfFortuneCritStacks: 0, // Blessing of Fortune's (Divine Regalia) stacking +5% Critical Chance per crit, capped at 5 (+25%)
+    unlikelyOutcomeGuaranteedCrit: false, // Unlikely Outcome's (Divine Regalia) next-attack guaranteed crit, set by a miss
+    windsOfChangeAtk: 0, // Winds of Change's (Divine Regalia) current round's random +6 Attack, if that's the stat rolled
+    windsOfChangeDef: 0, // Winds of Change's current round's random +6 Defense, if that's the stat rolled
+    windsOfChangeMagic: 0, // Winds of Change's current round's random +6 Magic, if that's the stat rolled
+    windsOfChangeKnowledge: 0, // Winds of Change's current round's random +6 Knowledge, if that's the stat rolled
+    avatarOfChaosUsed: false, // gates Avatar of Chaos's (Regalia of the Laughing Gale 6pc) below-25%-HP burst
+    avatarOfChaosTurns: 0, // Avatar of Chaos's temporary randomized-damage/doubled-crit-chance duration remaining
+    avatarOfChaosAtkBonus: 0, // Avatar of Chaos's stacking random +10 Attack per crit during its window, capped at 30
+    avatarOfChaosDefBonus: 0, // Avatar of Chaos's stacking random +10 Defense per crit during its window, capped at 30
+    avatarOfChaosMagicBonus: 0, // Avatar of Chaos's stacking random +10 Magic per crit during its window, capped at 30
+    avatarOfChaosKnowledgeBonus: 0, // Avatar of Chaos's stacking random +10 Knowledge per crit during its window, capped at 30
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -1361,6 +1528,29 @@ function checkAvatarOfDevotion(state) {
   return [`Avatar of Devotion awakens — for 4 rounds, your heart shields you as much as your steel does.`];
 }
 
+// Avatar of Chaos (Regalia of the Laughing Gale 6pc): the same below-25%-
+// Health once-per-fight trigger as its five sibling "Avatar of X"
+// abilities. For 4 rounds: every hit's damage swings 75%-175%
+// (avatarOfChaosDamageMultiplier), critical chance is doubled
+// (critMultiplier), and every crit grants a random +10 Attack/Defense/
+// Magic/Knowledge bonus (rollPlayerDamage) that persists for the rest of
+// the window rather than tracking each proc's own independent 2-round
+// timer — capped at +30 per stat, the same "permanent for the bounded
+// window, capped" simplification already used for Compassion's Grace/
+// Battle Tempered/Living Steel, since nothing here tracks multiple
+// simultaneous per-instance buff durations. Its "negative status effects
+// have a 50% chance to fail" clause is inert — the same reason as
+// Fortune's Favor (Divine Regalia — Coincatcher's Buckler): no negative-
+// status mechanic exists on the player side yet.
+function checkAvatarOfChaos(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfChaosUsed || !hasSetTier(state, "Regalia of the Laughing Gale", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfChaosUsed = true;
+  combat.avatarOfChaosTurns = applyBeneficialEffectBonuses(state, 4);
+  return [`Avatar of Chaos awakens — for 4 rounds, fortune bends entirely to your whims.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -1543,8 +1733,8 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1587,7 +1777,7 @@ function attemptFlee(state) {
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1679,8 +1869,8 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1727,7 +1917,7 @@ function useDecoy(state) {
   out.push(...applyPhysicalOnHitEffects(state, creature));
 
   out.push(`${withThe(creature.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
-  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
+  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1814,8 +2004,8 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -2035,8 +2225,8 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);

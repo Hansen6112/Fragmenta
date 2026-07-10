@@ -413,6 +413,15 @@ const SETS = {
       6: { effects: ["avatar_of_devotion"], description: "Avatar of Devotion — once per combat, dropping below 25% Health grants 4 rounds of doubled healing and 35% reduced damage taken, with a follow-up heal after any cheat-death save" },
     },
   },
+  "Regalia of the Laughing Gale": {
+    theme: "Nystros's gifts to those who court chance itself.",
+    god: "Nystros",
+    bonuses: {
+      2: { effects: ["blessing_of_fortune"], description: "Blessing of Fortune — every critical hit grants +5% Critical Chance, capped at +25%" },
+      4: { effects: ["twist_of_fate"], description: "Twist of Fate — whenever this set's own randomness favors you, restore 5% Health and ease a random cooldown by 1 turn" },
+      6: { effects: ["avatar_of_chaos"], description: "Avatar of Chaos — once per combat, dropping below 25% Health grants 4 rounds of randomized damage, doubled Critical Chance, and a random stat burst on every crit" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong
