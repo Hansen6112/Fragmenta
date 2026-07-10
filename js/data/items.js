@@ -977,7 +977,7 @@ const ITEM_DEFS = {
   "reinforced leather gloves": { slot: "gloves", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop" },
   "veteran's gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "monster" },
   "mason's stone gloves": { slot: "gloves", tier: 3, bonuses: { def: 3 }, effects: ["crushing_impact"], source: "job" },
-  "duel master's gloves": { slot: "gloves", tier: 4, bonuses: { atk: 4 }, effects: ["feinting_edge"], source: "contract" },
+  "duel master's gloves": { slot: "gloves", tier: 4, bonuses: { atk: 4 }, effects: ["feinting_edge"], source: "job", region: "sanguivorum" },
 
   // Boots
   "farmer's boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "shop" },
@@ -1162,7 +1162,7 @@ const ITEM_DEFS = {
   "a thraekor furnace helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
   "a norrvael watch helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["ambush_sense"], source: "monster", region: "norrvael" },
   "a sahrimor veiled helm": { slot: "helmet", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
-  "a silver laurel helm": { slot: "helmet", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+  "a silver laurel helm": { slot: "helmet", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "sanguivorum" },
 
   // Chest
   "a sanguivorum mail shirt": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
@@ -1170,7 +1170,7 @@ const ITEM_DEFS = {
   "a thraekor forge plate": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
   "a norrvael stormcoat": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
   "a sahrimor caravan coat": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
-  "a noble war harness": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["stalwart"], source: "contract" },
+  "a noble war harness": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["stalwart"], source: "contract", region: "sanguivorum" },
 
   // Gloves
   "legion sword gloves": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
@@ -1186,7 +1186,7 @@ const ITEM_DEFS = {
   "forge walker greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
   "cliff patrol boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "monster", region: "norrvael" },
   "caravan rider boots": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
-  "king's expedition boots": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["surefooted"], source: "contract" },
+  "king's expedition boots": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["trailwise"], source: "contract", region: "sanguivorum" },
 
   // Rings ("a legion officer's ring" already existed pre-batch and was
   // updated in place above rather than duplicated here)
@@ -1210,7 +1210,7 @@ const ITEM_DEFS = {
   "an ashfall traveler's mantle": { slot: "cloak", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
   "a stormwatch cape": { slot: "cloak", tier: 3, bonuses: { def: 2, magic: 1 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
   "a desert silk cloak": { slot: "cloak", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
-  "a noble court mantle": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+  "a noble court mantle": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "sanguivorum" },
 
   // Trinkets
   "a legion campaign token": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["tactical_memory"], source: "shop", region: "sanguivorum" },
@@ -1221,8 +1221,48 @@ const ITEM_DEFS = {
   "a desert sun coin": { slot: "trinkets", tier: 3, bonuses: { atk: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", region: "sahrimor" },
   "a river ferry bell": { slot: "trinkets", tier: 3, bonuses: { def: 2, magic: 1 }, effects: ["elemental_focus"], source: "shop" },
   "a black iron smith's mark": { slot: "trinkets", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["crushing_impact"], source: "contract", region: "thraekor" },
-  "a noble family seal": { slot: "trinkets", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job" },
+  "a noble family seal": { slot: "trinkets", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "sanguivorum" },
   "an ancient trade ledger": { slot: "trinkets", tier: 4, bonuses: { knowledge: 4 }, effects: ["merchants_eye"], source: "contract", region: "sahrimor" },
+
+  // ---- Sanguivorum regional items (nation explicitly specified this
+  // batch, to avoid any misattribution) ----
+  "a crimson border sword": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
+  "an iron drill pike": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["opening_reach"], source: "job", region: "sanguivorum" },
+  "a highland war axe": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "monster", region: "sanguivorum" },
+  "a blood oak longbow": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["patient_aim"], source: "contract", region: "sanguivorum" },
+  "a magistrate's ceremonial sword": { slot: "mainhand", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "sanguivorum" },
+  "a red banner greatsword": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["riposte"], source: "contract", region: "sanguivorum" },
+
+  "a blood oak shield": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "shop", region: "sanguivorum" },
+  "an iron-rim kite shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster", region: "sanguivorum" },
+  "a crimson guard bulwark": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["brace"], source: "contract", region: "sanguivorum" },
+
+  "a crimson war helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "shop", region: "sanguivorum" },
+  "a border captain's helm": { slot: "helmet", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["ambush_sense"], source: "job", region: "sanguivorum" },
+
+  "blood oak brigandine": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
+  "a highland breastplate": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "monster", region: "sanguivorum" },
+
+  "crimson sword gloves": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
+  "border rider gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "monster", region: "sanguivorum" },
+
+  "highland march boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, effects: ["trailwise"], source: "shop", region: "sanguivorum" },
+  "border patrol greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["surefooted"], source: "monster", region: "sanguivorum" },
+
+  "a magistrate's signet": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "sanguivorum" },
+  "a crimson noble ring": { slot: "rings", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["tactical_memory"], source: "shop", region: "sanguivorum" },
+  "a royal chancellor's seal": { slot: "rings", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "sanguivorum" },
+
+  "a medal of civic honor": { slot: "necklace", tier: 2, bonuses: { knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "sanguivorum" },
+  "a blood oak pendant": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "monster", region: "sanguivorum" },
+  "a royal court medallion": { slot: "necklace", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["merchants_eye"], source: "contract", region: "sanguivorum" },
+
+  "a crimson traveler's cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop", region: "sanguivorum" },
+  "a highland hunter's mantle": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", region: "sanguivorum" },
+
+  "a blood oak charm": { slot: "trinkets", tier: 2, bonuses: { health: 2 }, effects: ["regrowth"], source: "monster", region: "sanguivorum" },
+  "a border survey map": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "contract", region: "sanguivorum" },
+  "a crimson trade writ": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "shop", region: "sanguivorum" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
