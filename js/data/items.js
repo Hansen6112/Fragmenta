@@ -923,6 +923,111 @@ const ITEM_DEFS = {
   "a mantle of the faithful": { slot: "cloak", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["spell_ward"], source: "monster", set: "Divine" },
   "a blessed reliquary": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, effects: ["surging_conduit"], source: "monster", set: "Divine" },
   "a consecrated fragment": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "monster", set: "Divine" },
+
+  // ---- Generic regional items (no set) ----
+  // Main Hand
+  "a village blacksmith's sword": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "a hunter's skinning knife": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "a river ferryman's polearm": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, effects: ["opening_reach"], source: "monster" },
+  "an orchard billhook": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "a woodsman's hatchet": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "a marsh reed spear": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["opening_reach"], source: "monster" },
+  "a caravan guard saber": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "job" },
+  "an iron-banded mace": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["crushing_impact"], source: "shop" },
+  "a falconer's hunting spear": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "job" },
+  "a border militia sword": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "monster" },
+  "a cliff watch axe": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["armor_crack"], source: "monster" },
+  "a noble duelist's rapier": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["feinting_edge"], source: "job" },
+  "a river warden pike": { slot: "mainhand", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["opening_reach"], source: "contract" },
+  "a veteran huntsman's bow": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["patient_aim"], source: "contract" },
+  "a high magistrate's ceremonial blade": { slot: "mainhand", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job" },
+
+  // Off Hand
+  "an oak buckler": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a leather round shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a reed-woven shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "monster" },
+  "an iron-rim buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop" },
+  "a caravan escort's shield": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "job" },
+  "a river patrol shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "contract" },
+  "a hardened kite shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster" },
+  "a veteran's tower shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["brace"], source: "contract" },
+
+  // Helmets
+  "a boiled leather cap": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a plain hunter's hood": { slot: "helmet", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "a fur-lined helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["coldproof"], source: "shop" },
+  "a chain coif": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "monster" },
+  "a border watch helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["ambush_sense"], source: "monster" },
+  "a noble riding helm": { slot: "helmet", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job" },
+  "a silvered tournament helm": { slot: "helmet", tier: 4, bonuses: { def: 4 }, effects: ["riposte"], source: "contract" },
+
+  // Chest
+  "a quilted gambeson": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a hunter's leather coat": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a traveler's layered vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["trailwise"], source: "shop" },
+  "a riveted mail shirt": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "monster" },
+  "a caravan captain's vest": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job" },
+  "reinforced brigandine": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "monster" },
+  "a noble breastplate": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["guarded_strike"], source: "contract" },
+
+  // Gloves
+  "workman's gloves": { slot: "gloves", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "archer's finger wraps": { slot: "gloves", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "falconer's gloves": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "job" },
+  "reinforced leather gloves": { slot: "gloves", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "shop" },
+  "veteran's gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "monster" },
+  "mason's stone gloves": { slot: "gloves", tier: 3, bonuses: { def: 3 }, effects: ["crushing_impact"], source: "job" },
+  "duel master's gloves": { slot: "gloves", tier: 4, bonuses: { atk: 4 }, effects: ["feinting_edge"], source: "contract" },
+
+  // Boots
+  "farmer's boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "traveler's sandals": { slot: "boots", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "riding boots": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop" },
+  "reinforced march boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, effects: ["surefooted"], source: "monster" },
+  "ranger's trail boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "contract" },
+  "cliff climber's boots": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["surefooted"], source: "monster" },
+  "expedition boots": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["trailwise"], source: "contract" },
+
+  // Rings
+  "a brass family ring": { slot: "rings", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "an iron promise band": { slot: "rings", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a merchant's ledger ring": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, effects: ["merchants_eye"], source: "job" },
+  "an archer's silver band": { slot: "rings", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "monster" },
+  "a noble signet ring": { slot: "rings", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["tactical_memory"], source: "job" },
+  "a veteran's campaign ring": { slot: "rings", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "contract" },
+  "a magistrate's seal ring": { slot: "rings", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+
+  // Necklaces
+  "bone prayer beads": { slot: "necklace", tier: 1, bonuses: { magic: 1 }, source: "shop" },
+  "a hunter's tooth necklace": { slot: "necklace", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "a traveler's compass pendant": { slot: "necklace", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop" },
+  "a river stone charm": { slot: "necklace", tier: 2, bonuses: { magic: 2 }, effects: ["elemental_focus"], source: "monster" },
+  "a veteran's honor medal": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "contract" },
+  "a noble house chain": { slot: "necklace", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["tactical_memory"], source: "job" },
+  "a royal audience medallion": { slot: "necklace", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["merchants_eye"], source: "contract" },
+
+  // Cloaks
+  "a wool traveler's cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a hunter's hide cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster" },
+  "a rainproof oilskin cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, effects: ["trailwise"], source: "shop" },
+  "a scout's weather cloak": { slot: "cloak", tier: 2, bonuses: { knowledge: 2 }, effects: ["ambush_sense"], source: "monster" },
+  "a long road mantle": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "contract" },
+  "a fur-lined expedition cloak": { slot: "cloak", tier: 3, bonuses: { def: 3 }, effects: ["coldproof"], source: "monster" },
+  "an embroidered noble cloak": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job" },
+
+  // Trinkets
+  "a lucky copper coin": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "a rabbit's foot charm": { slot: "trinkets", tier: 1, bonuses: { health: 1 }, source: "monster" },
+  "a worn prayer token": { slot: "trinkets", tier: 1, bonuses: { magic: 1 }, source: "shop" },
+  "a carved antler charm": { slot: "trinkets", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "a merchant's wax seal": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["merchants_eye"], source: "job" },
+  "a hunter's trophy fang": { slot: "trinkets", tier: 2, bonuses: { atk: 2 }, effects: ["executioner"], source: "monster" },
+  "a stone mason's measuring line": { slot: "trinkets", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "shop" },
+  "a roadwarden's map scroll": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "contract" },
+  "a captain's signal whistle": { slot: "trinkets", tier: 3, bonuses: { atk: 3 }, effects: ["tactical_memory"], source: "job" },
+  "a silver compass": { slot: "trinkets", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "shop" },
+  "a blessed hearth icon": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "contract" },
+  "a master smith's hammer charm": { slot: "trinkets", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["crushing_impact"], source: "job" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
