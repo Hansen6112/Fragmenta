@@ -454,6 +454,14 @@ function cmdSkills(state) {
     if (!state.secondaryElement) {
       lines.push("");
       lines.push("A second element opens at level 15, alongside its own ability.");
+    } else {
+      lines.push("");
+      const combo = SYNERGY_COMBOS[pairKey(state.primaryElement, state.secondaryElement)];
+      if (combo) {
+        lines.push(`Synergy: casting either element right after the other triggers "${combo.name}" — ${combo.message("your target")}`);
+      } else {
+        lines.push(`Synergy: casting either element right after the other resonates for a +${Math.round((GENERIC_SYNERGY_MULTIPLIER - 1) * 100)}% bonus (no named combo discovered for this pairing yet).`);
+      }
     }
     return lines;
   }

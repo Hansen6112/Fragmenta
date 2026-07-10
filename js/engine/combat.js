@@ -11,6 +11,10 @@
  * damage through rollPlayerDamage/attackFlavorLine instead of the plain
  * attack-stat formula — magic-driven, elementally flavored, and scaled by
  * a multiplier tied to the Magic stat itself (see data/elements.js).
+ *
+ * Once a mage has two elements (level 15+), useElementAbility checks
+ * data/synergy.js for a bonus each cast, keyed off which element was used
+ * immediately before this one.
  */
 
 function randInt(min, max) {
@@ -182,6 +186,7 @@ function startCombat(state, creatureId) {
     defBuffAmount: 0, // Stoneskin's defense bonus
     evasionTurns: 0, // Windcut duration remaining
     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
+    lastElementUsed: null, // for elemental synergy — see data/synergy.js
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -414,16 +419,23 @@ function useElementAbility(state, elementKey) {
   }
   state.combat.cooldowns[elementKey] = a.cooldown;
 
+  // Elemental synergy: casting the mage's OTHER known element right before
+  // this one boosts this cast. Checked before lastElementUsed is updated,
+  // since the check is "what came before this."
+  const synergy = getSynergy(state, elementKey);
+  const dmgMult = synergy ? synergy.dmgMultiplier : 1;
+  state.combat.lastElementUsed = elementKey;
+
   switch (elementKey) {
     case "fire": {
-      const dmg = rollPlayerDamage(state, creature);
+      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
       state.combat.hp -= dmg;
       out.push(`${ELEMENTS.fire.verb(withThe(creature.name, false))} for ${dmg} damage, and the flame catches.`);
       state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 4)) };
       break;
     }
     case "water": {
-      const dmg = rollPlayerDamage(state, creature);
+      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
       state.combat.hp -= dmg;
       const heal = Math.round(dmg * 0.5);
       state.health = Math.min(state.maxHealth, state.health + heal);
@@ -432,23 +444,23 @@ function useElementAbility(state, elementKey) {
     }
     case "earth": {
       state.combat.defBuffTurns = 3;
-      state.combat.defBuffAmount = Math.max(3, Math.round(state.magic / 3));
+      state.combat.defBuffAmount = Math.max(3, Math.round((state.magic / 3) * dmgMult));
       out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
       break;
     }
     case "lightning": {
-      const dmg1 = rollPlayerDamage(state, creature);
+      const dmg1 = Math.round(rollPlayerDamage(state, creature) * dmgMult);
       state.combat.hp -= dmg1;
       out.push(`${ELEMENTS.lightning.verb(withThe(creature.name, false))} for ${dmg1} damage —`);
       if (state.combat.hp > 0) {
-        const dmg2 = rollPlayerDamage(state, creature);
+        const dmg2 = Math.round(rollPlayerDamage(state, creature) * dmgMult);
         state.combat.hp -= dmg2;
         out.push(`— and again, for ${dmg2} more before it can react.`);
       }
       break;
     }
     case "acid": {
-      const dmg = rollPlayerDamage(state, creature);
+      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
       state.combat.hp -= dmg;
       state.combat.corroded = true;
       state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 4;
@@ -456,25 +468,30 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "force": {
-      const dmg = rollPlayerDamage(state, creature);
+      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
       state.combat.hp -= dmg;
       state.combat.enemyStunned = true;
       out.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${dmg} damage — it reels, stunned.`);
       break;
     }
     case "transportation": {
-      const dmg = Math.round(rollPlayerDamage(state, creature) * 1.3);
+      const dmg = Math.round(rollPlayerDamage(state, creature) * 1.3 * dmgMult);
       state.combat.hp -= dmg;
       out.push(`${ELEMENTS.transportation.verb(withThe(creature.name, false))} for ${dmg} damage before it can track where you went.`);
       break;
     }
     case "air": {
-      const dmg = rollPlayerDamage(state, creature);
+      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
       state.combat.hp -= dmg;
       state.combat.evasionTurns = 2;
       out.push(`${ELEMENTS.air.verb(withThe(creature.name, false))} for ${dmg} damage, leaving you lighter on your feet.`);
       break;
     }
+  }
+
+  if (synergy) {
+    if (synergy.extraEffect) synergy.extraEffect(state, creature);
+    out.push(synergy.message(withThe(creature.name, false)));
   }
 
   if (state.combat.hp <= 0) {
