@@ -83,7 +83,7 @@ function effectiveEnemyAtk(state, creature) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0);
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2;
 }
 
 // Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
@@ -193,7 +193,8 @@ function effectiveMagic(state) {
   // 4-round buff — a deliberate scope limit.
   const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.knowledgeBuffAmount) || 0);
   const expandingMindMagic = hasEffect(state, "expanding_mind") ? Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5) : 0;
-  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic;
+  const unwaveringDevotionMagic = ((combat && combat.unwaveringDevotionStacks) || 0) * 2;
+  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic;
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -214,21 +215,52 @@ function applyHeal(state, amount) {
   if (amount <= 0) return { healed: 0, lines: [] };
   let amt = amount;
   if (hasEffect(state, "flourishing_soul")) amt = Math.round(amt * 1.5);
+  // Blessing of Compassion (Regalia of the Eternal Heart 2pc): +25%
+  // healing received, stacking multiplicatively with Flourishing Soul if
+  // a character somehow has both. Its "removes one minor negative status
+  // effect" clause is a no-op — nothing in this engine ever applies a
+  // negative status effect to the player (same reasoning as Immutable).
+  if (hasSetTier(state, "Regalia of the Eternal Heart", 2)) amt = Math.round(amt * 1.25);
+  const combat = state.combat;
+  // Avatar of Devotion (Regalia of the Eternal Heart 6pc): all healing
+  // doubled for its 4-round window, stacking multiplicatively on top of
+  // Flourishing Soul/Blessing of Compassion above.
+  if (combat && combat.avatarOfDevotionTurns > 0) amt = Math.round(amt * 2);
   const before = state.health;
   state.health = Math.min(state.maxHealth, state.health + amt);
   const healed = state.health - before;
   const lines = [];
   const overflow = amt - healed;
-  if (overflow > 0 && state.combat && hasSetTier(state, "Regalia of the First Bloom", 4)) {
+  if (overflow > 0 && combat && hasSetTier(state, "Regalia of the First Bloom", 4)) {
     const cap = Math.round(state.maxHealth * 0.3);
-    const beforeTemp = state.combat.tempHealth || 0;
-    state.combat.tempHealth = Math.min(cap, beforeTemp + overflow);
-    if (state.combat.tempHealth > beforeTemp) {
-      lines.push(`Overflowing Life — the excess crystallizes into ${state.combat.tempHealth - beforeTemp} Temporary Health.`);
+    const beforeTemp = combat.tempHealth || 0;
+    combat.tempHealth = Math.min(cap, beforeTemp + overflow);
+    if (combat.tempHealth > beforeTemp) {
+      lines.push(`Overflowing Life — the excess crystallizes into ${combat.tempHealth - beforeTemp} Temporary Health.`);
     }
   }
-  if (healed > 0 && state.combat && hasEffect(state, "living_current")) {
-    state.combat.livingCurrentStacks = Math.min(5, (state.combat.livingCurrentStacks || 0) + 1);
+  if (healed > 0 && combat && hasEffect(state, "living_current")) {
+    combat.livingCurrentStacks = Math.min(5, (combat.livingCurrentStacks || 0) + 1);
+  }
+  // Compassion's Grace (Divine Regalia — Roseheart Scepter): whenever you
+  // restore Health, also gain +2 Defense, capped +10 (5 stacks). The
+  // source text says "for 2 rounds," but this engine has no precedent for
+  // independent per-stack expiry (every other stacking bonus here —
+  // Living Steel, Every Choice Matters, Battle Tempered — is permanent
+  // for the rest of the fight once gained), so it's approximated the same
+  // way for consistency.
+  if (healed > 0 && combat && hasEffect(state, "compassions_grace")) {
+    combat.compassionsGraceDefStacks = Math.min(5, (combat.compassionsGraceDefStacks || 0) + 1);
+  }
+  // Avatar of Devotion: whenever you restore Health during its window,
+  // immediately gain +5 Attack/+5 Magic/+5 Defense for 2 rounds.
+  if (healed > 0 && combat && combat.avatarOfDevotionTurns > 0) {
+    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 2);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 5);
+    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 2);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 5);
+    combat.defBuffTurns = Math.max(combat.defBuffTurns, 2);
+    combat.defBuffAmount = Math.max(combat.defBuffAmount, 5);
   }
   return { healed, lines };
 }
@@ -362,6 +394,33 @@ function preparedResponseMultiplier(state) {
   return 0.75;
 }
 
+// Shared Burden (Divine Regalia — Heartward Embrace): the first time each
+// combat an incoming hit would exceed 30% of max Health, reduce that
+// specific hit by 40%. A one-shot magnitude-triggered reduction, checked
+// against the RAW incoming damage before this multiplier applies.
+function sharedBurdenMultiplier(state, dmg) {
+  if (!hasEffect(state, "shared_burden") || !state.combat) return 1;
+  const combat = state.combat;
+  if (combat.sharedBurdenUsed || dmg <= state.maxHealth * 0.3) return 1;
+  combat.sharedBurdenUsed = true;
+  return 0.6;
+}
+
+// Calming Presence (Divine Regalia — Cloak of Gentle Light): enemies deal
+// 10% less damage during the first three rounds of combat — reuses the
+// shared combat.actionCounter (already incremented once per action).
+function calmingPresenceMultiplier(state) {
+  return hasEffect(state, "calming_presence") && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter <= 3 ? 0.9 : 1;
+}
+
+// Avatar of Devotion (Regalia of the Eternal Heart 6pc): a flat 35% cut
+// to all incoming damage for its 4-round window, layered into the same
+// chain as Shield Wall/Master Duelist/Unbroken Line/Prepared Response/
+// Calming Presence above.
+function avatarOfDevotionDamageMultiplier(state) {
+  return state.combat && state.combat.avatarOfDevotionTurns > 0 ? 0.65 : 1;
+}
+
 // Worthy Challenge (Divine Regalia — Warfather's Edge): "the enemy with
 // the highest current Health" is trivially always THE enemy in this
 // engine's single-target combat model, so this is unconditional — every
@@ -391,6 +450,33 @@ function blessingOfValorMultiplier(state) {
 // Fate's equivalent clauses.
 function commandingPresenceDefMultiplier(state) {
   return hasSetTier(state, "Regalia of the Crimson Vanguard", 4) && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter % 3 === 0 ? 0 : 1;
+}
+
+// Faithful Heart (Divine Regalia — Ring of Sacred Vows) and Heartward
+// Bond (Regalia of the Eternal Heart 4pc) both hook into the same "a
+// beneficial (buff) effect was just granted" moment: Faithful Heart
+// extends its duration by 1 round, Heartward Bond piggybacks +2 Attack/
+// +2 Magic/+2 Defense for that same duration (via the shared atk/magic/
+// defBuffTurns/Amount fields, Math.max-composed the same way every other
+// temporary buff here already is — so this doesn't stack additively with
+// itself across multiple simultaneous buffs, the same simplification
+// those other buffs already make). Called at every place a temporary
+// combat buff duration is set (Hold the Line, Rooted Resolve, the Avatar
+// of X effects, Rally the Line, Endless Bloom's regen, Unbroken Line's
+// damage reduction), returning the possibly-extended duration for that
+// call site's own field.
+function applyBeneficialEffectBonuses(state, duration) {
+  const combat = state.combat;
+  const d = duration + (hasEffect(state, "faithful_heart") ? 1 : 0);
+  if (hasSetTier(state, "Regalia of the Eternal Heart", 4)) {
+    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, d);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 2);
+    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, d);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 2);
+    combat.defBuffTurns = Math.max(combat.defBuffTurns, d);
+    combat.defBuffAmount = Math.max(combat.defBuffAmount, 2);
+  }
+  return d;
 }
 
 function rollPlayerDamage(state, creature, activeElement) {
@@ -562,6 +648,7 @@ function beginTurn(state) {
     combat.avatarOfKnowledgeTurns -= 1;
     if (combat.avatarOfKnowledgeTurns === 0) combat.knowledgeBuffAmount = 0;
   }
+  if (combat.avatarOfDevotionTurns > 0) combat.avatarOfDevotionTurns -= 1;
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
@@ -570,6 +657,15 @@ function beginTurn(state) {
   if (hasEffect(state, "battle_tempered")) {
     if ((combat.battleTemperedAtkStacks || 0) < 10) combat.battleTemperedAtkStacks = (combat.battleTemperedAtkStacks || 0) + 1;
     if ((combat.battleTemperedDefStacks || 0) < 10) combat.battleTemperedDefStacks = (combat.battleTemperedDefStacks || 0) + 1;
+  }
+  // Unwavering Devotion (Divine Regalia — Vestments of Boundless
+  // Devotion): every round survived grants +2 Magic, capped +20 (10
+  // stacks) — Battle Tempered's exact shape, one stat instead of two.
+  // "Losing combat resets the effect" is automatically true here: every
+  // new fight starts this counter fresh at 0 regardless of how the last
+  // one ended.
+  if (hasEffect(state, "unwavering_devotion") && (combat.unwaveringDevotionStacks || 0) < 10) {
+    combat.unwaveringDevotionStacks = (combat.unwaveringDevotionStacks || 0) + 1;
   }
   if (combat.burn && combat.burn.turnsLeft > 0) {
     const creature = getCombatCreature(state);
@@ -618,35 +714,43 @@ function beginTurn(state) {
 function checkDeathPrevention(state) {
   if (state.health > 0) return null;
   const combat = state.combat;
+  let msg = null;
   if (hasSetTier(state, "Elder Bark", 6) && !combat.elderBarkSaveUsed) {
     combat.elderBarkSaveUsed = true;
     state.health = 1;
-    return `The oldest wood remembers you yet — you survive this at 1 Health.`;
-  }
-  if (hasEffect(state, "last_stand") && !combat.lastStandUsed) {
+    msg = `The oldest wood remembers you yet — you survive this at 1 Health.`;
+  } else if (hasEffect(state, "last_stand") && !combat.lastStandUsed) {
     combat.lastStandUsed = true;
     state.health = 1;
     combat.lastStandAtkBonus = (combat.lastStandAtkBonus || 0) + 5;
-    return `Last Stand — you refuse to fall. 1 Health, and +5 Attack for what's left of this fight.`;
-  }
-  // Between Worlds (Divine Regalia — Veil of the Ferryman): the same
-  // "leaves you at 1 Health" cheat-death shape as Last Stand above, but
-  // deliberately without its +5 Attack — a plain reprieve, nothing more.
-  if (hasEffect(state, "between_worlds") && !combat.betweenWorldsUsed) {
+    msg = `Last Stand — you refuse to fall. 1 Health, and +5 Attack for what's left of this fight.`;
+  } else if (hasEffect(state, "between_worlds") && !combat.betweenWorldsUsed) {
+    // Between Worlds (Divine Regalia — Veil of the Ferryman): the same
+    // "leaves you at 1 Health" cheat-death shape as Last Stand above, but
+    // deliberately without its +5 Attack — a plain reprieve, nothing more.
     combat.betweenWorldsUsed = true;
     state.health = 1;
-    return `Between Worlds — the Ferryman's veil catches you at the threshold. 1 Health, nothing more.`;
-  }
-  // Avatar of Fate's (Regalia of the Woven Thread 6pc) "once during the
-  // effect" 1-HP save — only available while its 4-round window is active
-  // (see checkAvatarOfFate), on top of (not instead of) the once-per-fight
-  // saves above.
-  if (hasSetTier(state, "Regalia of the Woven Thread", 6) && combat.avatarOfFateTurns > 0 && !combat.avatarOfFateSaveUsed) {
+    msg = `Between Worlds — the Ferryman's veil catches you at the threshold. 1 Health, nothing more.`;
+  } else if (hasSetTier(state, "Regalia of the Woven Thread", 6) && combat.avatarOfFateTurns > 0 && !combat.avatarOfFateSaveUsed) {
+    // Avatar of Fate's (Regalia of the Woven Thread 6pc) "once during the
+    // effect" 1-HP save — only available while its 4-round window is
+    // active (see checkAvatarOfFate), on top of (not instead of) the
+    // once-per-fight saves above.
     combat.avatarOfFateSaveUsed = true;
     state.health = 1;
-    return `Avatar of Fate — fate itself refuses to let you fall. 1 Health.`;
+    msg = `Avatar of Fate — fate itself refuses to let you fall. 1 Health.`;
   }
-  return null;
+  // Avatar of Devotion (Regalia of the Eternal Heart 6pc): "if reduced to
+  // 1 Health during the effect, immediately restore 20% max Health
+  // (once)" — a follow-up to WHICHEVER cheat-death save above just fired,
+  // not a save of its own. Checked once, regardless of which branch set
+  // health to 1.
+  if (msg && hasSetTier(state, "Regalia of the Eternal Heart", 6) && combat.avatarOfDevotionTurns > 0 && !combat.avatarOfDevotionSaveUsed) {
+    combat.avatarOfDevotionSaveUsed = true;
+    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.2));
+    if (healed > 0) msg += ` Avatar of Devotion answers in turn — mended for ${healed} health.${lines.length ? " " + lines.join(" ") : ""}`;
+  }
+  return msg;
 }
 
 // Resolves the enemy's retaliation for this turn, respecting Force's stun,
@@ -700,7 +804,7 @@ function applyUnbrokenLine(state, dmg) {
     combat.unbrokenLineHitCount = (combat.unbrokenLineHitCount || 0) + 1;
     if (combat.unbrokenLineHitCount >= 3) {
       combat.unbrokenLineHitCount = 0;
-      combat.damageReductionTurns = 2;
+      combat.damageReductionTurns = applyBeneficialEffectBonuses(state, 2);
     }
   }
   return reduced;
@@ -798,6 +902,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   edmg = applyMasterDuelist(state, edmg);
     edmg = applyUnbrokenLine(state, edmg);
     edmg = Math.round(edmg * preparedResponseMultiplier(state));
+    edmg = Math.round(edmg * calmingPresenceMultiplier(state));
+    edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+    edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
     const absorbLines1 = applyPlayerDamage(state, edmg);
     if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
@@ -815,6 +922,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   edmg = applyMasterDuelist(state, edmg);
   edmg = applyUnbrokenLine(state, edmg);
   edmg = Math.round(edmg * preparedResponseMultiplier(state));
+  edmg = Math.round(edmg * calmingPresenceMultiplier(state));
+  edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+  edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
   const absorbLines2 = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
@@ -994,6 +1104,13 @@ function startCombat(state, creatureIdOrObject) {
     avatarOfKnowledgeUsed: false, // gates Avatar of Knowledge's (Regalia of the Endless Archive 6pc) below-25%-HP burst
     avatarOfKnowledgeTurns: 0, // Avatar of Knowledge's temporary no-cooldown-spells/matchup-override duration remaining
     knowledgeBuffAmount: 0, // Avatar of Knowledge's +25 Knowledge, scoped to feed Expanding Mind's formula only
+    compassionsGraceDefStacks: 0, // Compassion's Grace's (Divine Regalia) stacking +2 Defense per heal, capped at 5 (+10)
+    sharedBurdenUsed: false, // gates Shared Burden's (Divine Regalia) once-per-fight big-hit reduction
+    unwaveringDevotionStacks: 0, // Unwavering Devotion's (Divine Regalia) every-round +2 Magic, capped at 10
+    loveEnduresUsed: false, // gates Love Endures' (Divine Regalia) below-20%-HP emergency heal
+    avatarOfDevotionUsed: false, // gates Avatar of Devotion's (Regalia of the Eternal Heart 6pc) below-25%-HP burst
+    avatarOfDevotionTurns: 0, // Avatar of Devotion's temporary doubled-healing/reduced-damage-taken duration remaining
+    avatarOfDevotionSaveUsed: false, // gates Avatar of Devotion's once-during-the-effect post-cheat-death follow-up heal
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -1002,7 +1119,7 @@ function startCombat(state, creatureIdOrObject) {
   // beginTurn the same way burn/bleed are.
   if (hasEffect(state, "endless_bloom")) {
     const healPerTurn = Math.ceil(state.maxHealth * 0.05);
-    if (healPerTurn > 0) state.combat.regen = { turnsLeft: 5, healPerTurn };
+    if (healPerTurn > 0) state.combat.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
   }
   // Weaver's Insight (Divine Regalia — Silver Thread of Veylana): reveal
   // the enemy's remaining Health, Defense, Attack, and any active status
@@ -1062,7 +1179,8 @@ function checkHoldTheLine(state) {
   if (!combat || combat.holdTheLineUsed || !hasSetTier(state, "Legion", 8)) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.3) return [];
   combat.holdTheLineUsed = true;
-  combat.defBuffTurns = Math.max(combat.defBuffTurns, 2);
+  const dur = applyBeneficialEffectBonuses(state, 2);
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
   combat.defBuffAmount = Math.max(combat.defBuffAmount, 6);
   return [`Hold the Line — your training snaps into place as your Health falls; +6 Defense for 2 turns.`];
 }
@@ -1076,9 +1194,27 @@ function checkRootedResolve(state) {
   if (!combat || combat.rootedResolveUsed || !hasEffect(state, "rooted_resolve")) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
   combat.rootedResolveUsed = true;
-  combat.defBuffTurns = Math.max(combat.defBuffTurns, 3);
+  const dur = applyBeneficialEffectBonuses(state, 3);
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
   combat.defBuffAmount = Math.max(combat.defBuffAmount, 8);
   return [`Rooted Resolve — you plant yourself as your Health falls; +8 Defense for 3 turns.`];
+}
+
+// Love Endures (Divine Regalia — Bloom of Devotion): the first time each
+// combat Health would fall below 20%, immediately restore 15% max
+// Health. Checked at the same call sites as the other threshold buffs —
+// all of which only ever run when state.health > 0, exactly matching the
+// source text's "does not prevent death from the triggering hit" (a
+// lethal hit is handled by checkDeathPrevention instead, and this never
+// gets checked at all in that case).
+function checkLoveEndures(state) {
+  const combat = state.combat;
+  if (!combat || combat.loveEnduresUsed || !hasEffect(state, "love_endures")) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.2) return [];
+  combat.loveEnduresUsed = true;
+  const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.15));
+  if (healed <= 0) return [];
+  return [`Love Endures — even now, it holds you up; mended for ${healed} health.`, ...lines];
 }
 
 // Rally the Line (Divine Regalia — General's Standard): the same below-
@@ -1091,9 +1227,10 @@ function checkRallyTheLine(state) {
   if (!combat || combat.rallyTheLineUsed || !hasEffect(state, "rally_the_line")) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
   combat.rallyTheLineUsed = true;
-  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 4);
+  const dur = applyBeneficialEffectBonuses(state, 4);
+  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
   combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 10);
-  combat.defBuffTurns = Math.max(combat.defBuffTurns, 4);
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
   combat.defBuffAmount = Math.max(combat.defBuffAmount, 10);
   return [`Rally the Line — your Health falls, and the line holds; +10 Attack, +10 Defense for 4 rounds.`];
 }
@@ -1112,11 +1249,12 @@ function checkAvatarOfBloom(state) {
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.avatarOfBloomUsed = true;
   const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.5));
-  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 3);
+  const dur = applyBeneficialEffectBonuses(state, 3);
+  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
   combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, Math.round(state.atk * 0.25));
-  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 3);
+  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
   combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, Math.round(state.magic * 0.25));
-  combat.defBuffTurns = Math.max(combat.defBuffTurns, 3);
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
   combat.defBuffAmount = Math.max(combat.defBuffAmount, Math.round(state.def * 0.25));
   return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
 }
@@ -1136,7 +1274,7 @@ function checkAvatarOfPassing(state) {
   if (!combat || combat.avatarOfPassingUsed || !hasSetTier(state, "Regalia of the Final Veil", 6)) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.avatarOfPassingUsed = true;
-  combat.avatarOfPassingTurns = 4;
+  combat.avatarOfPassingTurns = applyBeneficialEffectBonuses(state, 4);
   return [`Avatar of Passing awakens — for 4 rounds, the damage you deal returns to you as life.`];
 }
 
@@ -1154,7 +1292,7 @@ function checkAvatarOfFate(state) {
   if (!combat || combat.avatarOfFateUsed || !hasSetTier(state, "Regalia of the Woven Thread", 6)) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.avatarOfFateUsed = true;
-  combat.avatarOfFateTurns = 4;
+  combat.avatarOfFateTurns = applyBeneficialEffectBonuses(state, 4);
   return [`Avatar of Fate awakens — for 4 rounds, fate bends further in your favor.`];
 }
 
@@ -1175,8 +1313,9 @@ function checkAvatarOfWar(state) {
   if (!combat || combat.avatarOfWarUsed || !hasSetTier(state, "Regalia of the Crimson Vanguard", 6)) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.avatarOfWarUsed = true;
-  combat.avatarOfWarTurns = 4;
-  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 4);
+  const dur = applyBeneficialEffectBonuses(state, 4);
+  combat.avatarOfWarTurns = dur;
+  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
   combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, Math.round(state.atk * 0.5));
   return [`Avatar of War awakens — for 4 rounds, you fight like the battle itself.`];
 }
@@ -1196,12 +1335,30 @@ function checkAvatarOfKnowledge(state) {
   if (!combat || combat.avatarOfKnowledgeUsed || !hasSetTier(state, "Regalia of the Endless Archive", 6)) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.avatarOfKnowledgeUsed = true;
-  combat.avatarOfKnowledgeTurns = 4;
-  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 4);
+  const dur = applyBeneficialEffectBonuses(state, 4);
+  combat.avatarOfKnowledgeTurns = dur;
+  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
   combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, Math.round(state.magic * 0.5));
   combat.knowledgeBuffAmount = 25;
   const creature = getCombatCreature(state);
   return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${combat.hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
+}
+
+// Avatar of Devotion (Regalia of the Eternal Heart 6pc): same below-25%-
+// Health trigger as its sibling "Avatar of X" abilities. For 4 rounds:
+// healing doubled and damage taken cut 35% (see applyHeal/
+// avatarOfDevotionDamageMultiplier), every heal grants a +5/+5/+5 burst
+// (also in applyHeal), and a once-during-the-effect 20% heal if any
+// cheat-death save brings Health to 1 (see checkDeathPrevention). Its
+// "cannot be Charmed, Feared, or emotionally manipulated" clause is
+// trivially already true — no such mechanics exist on the player side.
+function checkAvatarOfDevotion(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfDevotionUsed || !hasSetTier(state, "Regalia of the Eternal Heart", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfDevotionUsed = true;
+  combat.avatarOfDevotionTurns = applyBeneficialEffectBonuses(state, 4);
+  return [`Avatar of Devotion awakens — for 4 rounds, your heart shields you as much as your steel does.`];
 }
 
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
@@ -1386,7 +1543,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -1421,13 +1578,16 @@ function attemptFlee(state) {
   edmg = applyMasterDuelist(state, edmg);
   edmg = applyUnbrokenLine(state, edmg);
   edmg = Math.round(edmg * preparedResponseMultiplier(state));
+  edmg = Math.round(edmg * calmingPresenceMultiplier(state));
+  edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+  edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
   const absorbLines = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1519,7 +1679,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -1654,7 +1814,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -1875,7 +2035,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);

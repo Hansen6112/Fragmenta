@@ -215,6 +215,19 @@ const EFFECT_DEFS = {
   blessing_of_insight: { name: "Blessing of Insight", category: "set", description: "Regalia of the Endless Archive (2pc). Critical spell chance increased by 20% (stacks additively with any other crit-chance source). Enemy elemental weaknesses are revealed at the start of combat." },
   universal_understanding: { name: "Universal Understanding", category: "set", description: "Regalia of the Endless Archive (4pc). Whenever you cast an elemental spell, randomly reduce the cooldown of another known, currently-cooling-down element by 2." },
   avatar_of_knowledge: { name: "Avatar of Knowledge", category: "set", description: "Regalia of the Endless Archive (6pc). Once per combat, the first time you drop below 25% Health: for 4 rounds, all spells cost no cooldown, +50% Magic, +25 Knowledge (feeds Expanding Mind's formula specifically, rather than being threaded through every ability-unlock gate in the codebase), elemental matchup penalties are ignored and advantages flatten to 1.5x, and hidden enemy statistics are revealed (folded into this same activation message rather than repeated on every attack)." },
+
+  // ---- Regalia of the Eternal Heart passives (Seressa) ----
+  compassions_grace: { name: "Compassion's Grace", category: "regalia", description: "Whenever you heal, gain +2 Defense, capped at +10 (5 stacks). Simplified to persist for the remainder of combat rather than decaying after 2 rounds per stack — the same 'permanent for the fight, capped' approximation already used for Living Steel, Every Choice Matters, and Battle Tempered, since nothing in this engine tracks independent per-stack durations." },
+  shared_burden: { name: "Shared Burden", category: "regalia", description: "The first time each combat you would take damage exceeding 30% of your max Health, reduce that hit by 40%." },
+  unwavering_devotion: { name: "Unwavering Devotion", category: "regalia", description: "Every round spent in combat grants +2 Magic, capped at +20 (10 rounds)." },
+  faithful_heart: { name: "Faithful Heart", category: "regalia", description: "All beneficial effects you grant yourself last 1 additional round." },
+  calming_presence: { name: "Calming Presence", category: "regalia", description: "During the first 3 rounds of combat, incoming damage is reduced by 10%." },
+  love_endures: { name: "Love Endures", category: "regalia", description: "Once per combat, if you would drop below 20% Health, immediately heal for 15% max Health." },
+
+  // ---- Regalia of the Eternal Heart set bonuses (Seressa) ----
+  blessing_of_compassion: { name: "Blessing of Compassion", category: "set", description: "Regalia of the Eternal Heart (2pc). All healing you receive is increased by 25%." },
+  heartward_bond: { name: "Heartward Bond", category: "set", description: "Regalia of the Eternal Heart (4pc). Whenever you grant yourself a beneficial effect, also gain +2 Attack, +2 Magic, and +2 Defense for its duration — piggybacking on the same applyBeneficialEffectBonuses() hook Faithful Heart uses, since both modify the same universe of buff-duration call sites." },
+  avatar_of_devotion: { name: "Avatar of Devotion", category: "set", description: "Regalia of the Eternal Heart (6pc). Once per combat, the first time you drop below 25% Health: for 4 rounds, healing you receive is doubled and damage you take is reduced by 35%, and once during the window (immediately following any cheat-death save that fires, from any source) you additionally heal for 20% max Health. Any heal received while active also bursts +5 Attack/+5 Magic/+5 Defense for 2 rounds." },
 };
 
 function getEffectDef(effectId) {

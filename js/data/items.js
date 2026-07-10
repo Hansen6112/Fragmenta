@@ -1735,6 +1735,14 @@ const ITEM_DEFS = {
   "Ring of Boundless Inquiry": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["eureka"], source: "monster", set: "Regalia of the Endless Archive" },
   "Gloves of Careful Script": { slot: "gloves", tier: 8, bonuses: { knowledge: 8, def: 8 }, effects: ["precision_formula"], source: "monster", set: "Regalia of the Endless Archive" },
   "Scholar's Seal": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["archive_eternal"], source: "monster", set: "Regalia of the Endless Archive" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Eternal Heart (Seressa) ----
+  "Roseheart Scepter": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["compassions_grace"], source: "monster", set: "Regalia of the Eternal Heart" },
+  "Heartward Embrace": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["shared_burden"], source: "monster", set: "Regalia of the Eternal Heart" },
+  "Vestments of Boundless Devotion": { slot: "chest", tier: 8, bonuses: { health: 12, magic: 4 }, effects: ["unwavering_devotion"], source: "monster", set: "Regalia of the Eternal Heart" },
+  "Ring of Sacred Vows": { slot: "rings", tier: 8, bonuses: { health: 8, magic: 8 }, effects: ["faithful_heart"], source: "monster", set: "Regalia of the Eternal Heart" },
+  "Cloak of Gentle Light": { slot: "cloak", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calming_presence"], source: "monster", set: "Regalia of the Eternal Heart" },
+  "Bloom of Devotion": { slot: "trinkets", tier: 8, bonuses: { health: 10, knowledge: 6 }, effects: ["love_endures"], source: "monster", set: "Regalia of the Eternal Heart" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

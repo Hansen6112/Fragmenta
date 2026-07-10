@@ -404,6 +404,15 @@ const SETS = {
       6: { effects: ["avatar_of_knowledge"], description: "Avatar of Knowledge — once per combat, dropping below 25% Health grants 4 rounds of free spellcasting, +50% Magic, and improved elemental matchups" },
     },
   },
+  "Regalia of the Eternal Heart": {
+    theme: "Seressa's gifts to those who love without limit.",
+    god: "Seressa",
+    bonuses: {
+      2: { effects: ["blessing_of_compassion"], description: "Blessing of Compassion — all healing received is increased by 25%" },
+      4: { effects: ["heartward_bond"], description: "Heartward Bond — granting yourself a beneficial effect also grants +2 Attack/+2 Magic/+2 Defense for its duration" },
+      6: { effects: ["avatar_of_devotion"], description: "Avatar of Devotion — once per combat, dropping below 25% Health grants 4 rounds of doubled healing and 35% reduced damage taken, with a follow-up heal after any cheat-death save" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong
