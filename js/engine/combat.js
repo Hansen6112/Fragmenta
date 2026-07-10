@@ -382,18 +382,12 @@ function beginTurn(state) {
   return lines;
 }
 
-// Divine Resurgence (Divine 6pc) and Elder Bark's plain 1-HP save both
-// prevent an otherwise-fatal hit, once each per fight — checked (in that
-// priority order) wherever state.health has just dropped to 0 or below,
+// Elder Bark's plain 1-HP save prevents an otherwise-fatal hit, once per
+// fight — checked wherever state.health has just dropped to 0 or below,
 // in place of the usual "Everything goes dark" line.
 function checkDeathPrevention(state) {
   if (state.health > 0) return null;
   const combat = state.combat;
-  if (hasSetTier(state, "Divine", 6) && !combat.divineResurgenceUsed) {
-    combat.divineResurgenceUsed = true;
-    state.health = Math.ceil(state.maxHealth * 0.25);
-    return `Divine Resurgence — the hit should have ended you. It didn't. (revived at 25% Health)`;
-  }
   if (hasSetTier(state, "Elder Bark", 6) && !combat.elderBarkSaveUsed) {
     combat.elderBarkSaveUsed = true;
     state.health = 1;
@@ -625,7 +619,6 @@ function startCombat(state, creatureIdOrObject) {
     surgingConduitUsesLeft: surgingConduitCharges(state), // Surging Conduit's per-fight charges (1, or 2 with Conduit Master/Fragmenta)
     noviceFreeCastUsed: false, // gates Novitiate 6pc's free first elemental cast
     holdTheLineUsed: false, // gates Legion 8pc's below-30%-HP defense burst
-    divineResurgenceUsed: false, // gates Divine 6pc's cheat-death
     elderBarkSaveUsed: false, // gates Elder Bark 6pc's 1-HP cheat-death
     forestGuardianBonus: 0, // Vaeloris 6pc — consumed charge from a prior fight's Regrowth
     actionCounter: 0, // Heartwood Vitality's every-third-action counter
@@ -648,14 +641,6 @@ function startCombat(state, creatureIdOrObject) {
   if (state.flags.forestGuardianCharge) {
     state.combat.forestGuardianBonus = 2;
     state.flags.forestGuardianCharge = false;
-  }
-  // Divine's 4pc set bonus: a flat heal at the moment any fight begins.
-  if (hasSetTier(state, "Divine", 4)) {
-    const heal = Math.ceil(state.maxHealth * 0.05);
-    if (heal > 0 && state.health < state.maxHealth) {
-      state.health = Math.min(state.maxHealth, state.health + heal);
-      lines.push(`Something ancient in your gear stirs — you heal ${heal} health as the fight begins.`);
-    }
   }
   // Unsettling: a flat chance the enemy starts the fight already weakened,
   // rolled once here rather than in playerAttack/etc. since it's a

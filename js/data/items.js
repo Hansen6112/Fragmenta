@@ -910,20 +910,6 @@ const ITEM_DEFS = {
   "a fragmenta majoris shard": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, effects: ["surging_conduit"], source: "monster", set: "Fragmenta" },
   "a fragmenta minoris fragment": { slot: "trinkets", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "monster", set: "Fragmenta" },
 
-  // ---- Divine set (12 items) ----
-  "a blessed relic blade": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["executioner"], source: "monster", set: "Divine" },
-  "a sanctified war spear": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["opening_reach"], source: "monster", set: "Divine" },
-  "a divine aegis": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["spell_ward"], source: "monster", set: "Divine" },
-  "a halo crown": { slot: "helmet", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["conduit_ease"], source: "monster", set: "Divine" },
-  "vestments of grace": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["regrowth"], source: "monster", set: "Divine" },
-  "hands of benediction": { slot: "gloves", tier: 4, bonuses: { atk: 2, magic: 2 }, effects: ["elemental_focus"], source: "monster", set: "Divine" },
-  "pilgrim's sandals": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", set: "Divine" },
-  "a ring of divine favor": { slot: "rings", tier: 4, bonuses: { magic: 4 }, effects: ["spell_ward"], source: "monster", set: "Divine" },
-  "a holy symbol of the twelve": { slot: "necklace", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "monster", set: "Divine" },
-  "a mantle of the faithful": { slot: "cloak", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["spell_ward"], source: "monster", set: "Divine" },
-  "a blessed reliquary": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, effects: ["surging_conduit"], source: "monster", set: "Divine" },
-  "a consecrated fragment": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "monster", set: "Divine" },
-
   // ---- Generic regional items (no set) ----
   // Main Hand
   "a village blacksmith's sword": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },

@@ -80,7 +80,6 @@ const EFFECT_DEFS = {
   storm_barrier: { name: "Storm Barrier", category: "set", description: "Stormwatch set (6pc). The first magical attack you receive each fight deals half damage." },
   carapace_adaptation: { name: "Carapace Adaptation", category: "set", description: "Queen Carapace set (6pc). Gain +3 Defense each time you're hit, up to +9, reset at the start of each fight." },
   bleed_exploitation: { name: "Bleed Exploitation", category: "set", description: "Bonecaller set (6pc). Deal 1.20x damage to an enemy currently affected by Bleed." },
-  divine_resurgence: { name: "Divine Resurgence", category: "set", description: "Divine set (6pc). Once per fight, surviving damage that would have killed you instead leaves you at 25% max Health." },
 
   // ---- Legendary-exclusive effects (data/items.js tier 5) ----
   // Passives reserved for Legendary-tier gear only — none appear on any

@@ -61,13 +61,12 @@
  * ---- One genuinely new mechanic per set, everything else reuses the
  * resolver-function pattern above ----
  * hold_the_line, vanguard_momentum, heartwood_vitality, storm_barrier,
- * carapace_adaptation, bleed_exploitation, and divine_resurgence are the
- * seven effects this batch actually required new code for (see
- * data/effects.js) — plus a few more bespoke one-shot mechanics that
- * weren't given a formal effect id (Legion 6pc/8pc, Siege Corps 6pc's
- * extra +Attack, White Watch 6pc's stacking Defense, Stonewarden 6pc's
- * first-hit reduction, Divine 4pc's combat-start heal) documented inline
- * at their hook in engine/combat.js.
+ * carapace_adaptation, and bleed_exploitation are the six effects this
+ * batch actually required new code for (see data/effects.js) — plus a few
+ * more bespoke one-shot mechanics that weren't given a formal effect id
+ * (Legion 6pc/8pc, Siege Corps 6pc's extra +Attack, White Watch 6pc's
+ * stacking Defense, Stonewarden 6pc's first-hit reduction) documented
+ * inline at their hook in engine/combat.js.
  */
 
 const SETS = {
@@ -356,14 +355,6 @@ const SETS = {
       2: { bonuses: { magic: 2 }, description: "+2 Magic" },
       4: { special: "fragmenta_surging_twice", description: "Surging Conduit triggers twice each fight" },
       6: { special: "fragmenta_matchups_150", description: "Elemental matchup strengths become 1.50x and weaknesses improve to 0.90x" },
-    },
-  },
-  Divine: {
-    theme: "Relics attributed to the murdered gods themselves.",
-    bonuses: {
-      2: { bonuses: { atk: 2, def: 2, health: 2, magic: 2, knowledge: 2 }, description: "+2 to all stats" },
-      4: { special: "divine_combat_start_heal", description: "Heal 5% max Health at the start of each fight" },
-      6: { effects: ["divine_resurgence"], description: "Divine Resurgence — once per fight, survive lethal damage at 25% max Health" },
     },
   },
 };
