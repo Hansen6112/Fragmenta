@@ -1185,7 +1185,7 @@ const ITEM_DEFS = {
   "canopy walker boots": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "vaeloris" },
   "forge walker greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
   "cliff patrol boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "monster", region: "norrvael" },
-  "caravan rider boots": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
+  "caravan rider boots": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["surefooted"], source: "job", region: "sahrimor" },
   "king's expedition boots": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["trailwise"], source: "contract", region: "sanguivorum" },
 
   // Rings ("a legion officer's ring" already existed pre-batch and was
@@ -1446,6 +1446,71 @@ const ITEM_DEFS = {
   "an officer's logbook": { slot: "trinkets", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "norrvael" },
   "a frozen tide pearl": { slot: "trinkets", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["elemental_focus"], source: "contract", region: "norrvael" },
   "a northern star compass": { slot: "trinkets", tier: 4, bonuses: { knowledge: 4 }, effects: ["trailwise"], source: "contract", region: "norrvael" },
+
+  // ---- Sahrimor regional items ----
+  // "Desert Silk Cloak" collided with an existing region:sahrimor item of
+  // the same name but a meaningfully different tier/bonus/effect/source,
+  // so it's renamed below rather than silently downgrading that item.
+  // "Caravan Rider Boots" matched an existing item's tier/bonus/source
+  // exactly (only effect differed) and was updated in place instead.
+  "a river merchant's scimitar": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["feinting_edge"], source: "shop", region: "sahrimor" },
+  "an oasis guard spear": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["opening_reach"], source: "monster", region: "sahrimor" },
+  "a brass-edged khopesh": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "job", region: "sahrimor" },
+  "a caravan master's saber": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "shop", region: "sahrimor" },
+  "a sunsteel falchion": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["guarded_strike"], source: "monster", region: "sahrimor" },
+  "a dune rider lance": { slot: "mainhand", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["opening_reach"], source: "contract", region: "sahrimor" },
+  "an ivory-hilt rapier": { slot: "mainhand", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["feinting_edge"], source: "job", region: "sahrimor" },
+  "a golden crescent blade": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["riposte"], source: "contract", region: "sahrimor" },
+  "a sapphire caravan pike": { slot: "mainhand", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["opening_reach"], source: "contract", region: "sahrimor" },
+  "a sunfire war scimitar": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["executioner"], source: "contract", region: "sahrimor" },
+
+  "a brass round shield": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "shop", region: "sahrimor" },
+  "an oasis defender shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster", region: "sahrimor" },
+  "a silk-wrapped buckler": { slot: "offhand", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a gilded caravan shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["brace"], source: "contract", region: "sahrimor" },
+
+  "a desert veil hood": { slot: "helmet", tier: 2, bonuses: { knowledge: 2 }, effects: ["heatproof"], source: "shop", region: "sahrimor" },
+  "a brass desert helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "monster", region: "sahrimor" },
+  "a caravan captain's turban": { slot: "helmet", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a sunlord's circlet": { slot: "helmet", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "sahrimor" },
+
+  "layered desert robes": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "sahrimor" },
+  "a merchant guard coat": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", region: "sahrimor" },
+  "sunwoven brigandine": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["guarded_strike"], source: "job", region: "sahrimor" },
+  "a golden caravan harness": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["stalwart"], source: "contract", region: "sahrimor" },
+
+  "silk riding gloves": { slot: "gloves", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "sahrimor" },
+  "caravan guard gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["guarded_strike"], source: "monster", region: "sahrimor" },
+  "jewelcrafter's gloves": { slot: "gloves", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["elemental_focus"], source: "job", region: "sahrimor" },
+  "golden duelist gloves": { slot: "gloves", tier: 4, bonuses: { atk: 4 }, effects: ["feinting_edge"], source: "contract", region: "sahrimor" },
+
+  "sandwalker sandals": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["heatproof"], source: "shop", region: "sahrimor" },
+  "oasis traveler boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "monster", region: "sahrimor" },
+  "dunestrider greaves": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["trailwise"], source: "contract", region: "sahrimor" },
+
+  "a brass merchant's ring": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, effects: ["merchants_eye"], source: "shop", region: "sahrimor" },
+  "a sapphire trade band": { slot: "rings", tier: 3, bonuses: { knowledge: 3 }, effects: ["tactical_memory"], source: "job", region: "sahrimor" },
+  "a desert ruby ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, effects: ["elemental_focus"], source: "monster", region: "sahrimor" },
+  "a sultan's signet": { slot: "rings", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["merchants_eye"], source: "contract", region: "sahrimor" },
+
+  "a brass sun pendant": { slot: "necklace", tier: 2, bonuses: { magic: 2 }, effects: ["elemental_focus"], source: "shop", region: "sahrimor" },
+  "a caravan compass": { slot: "necklace", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "monster", region: "sahrimor" },
+  "a merchant prince's chain": { slot: "necklace", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a sapphire sun medallion": { slot: "necklace", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "sahrimor" },
+
+  "a desert silk shawl": { slot: "cloak", tier: 2, bonuses: { knowledge: 2 }, effects: ["heatproof"], source: "shop", region: "sahrimor" },
+  "a caravan mantle": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", region: "sahrimor" },
+  "a golden oasis cloak": { slot: "cloak", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a sunwoven royal mantle": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "sahrimor" },
+
+  "a caravan coin": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["merchants_eye"], source: "shop", region: "sahrimor" },
+  "an oasis water charm": { slot: "trinkets", tier: 2, bonuses: { health: 2 }, effects: ["regrowth"], source: "monster", region: "sahrimor" },
+  "a brass astrolabe": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
+  "a desert sunstone": { slot: "trinkets", tier: 3, bonuses: { magic: 3 }, effects: ["elemental_focus"], source: "monster", region: "sahrimor" },
+  "a merchant's ledger seal": { slot: "trinkets", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["tactical_memory"], source: "contract", region: "sahrimor" },
+  "jeweled trade weights": { slot: "trinkets", tier: 4, bonuses: { knowledge: 2, magic: 2 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
+  "a golden scarab": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "contract", region: "sahrimor" },
+  "a royal trade charter": { slot: "trinkets", tier: 4, bonuses: { knowledge: 4 }, effects: ["tactical_memory"], source: "contract", region: "sahrimor" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
