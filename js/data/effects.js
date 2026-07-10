@@ -74,6 +74,13 @@ const EFFECT_DEFS = {
   master_merchant: { name: "Master Merchant", category: "set", description: "Sahrimor set (6pc). Completed job/contract gold rewards +10%. Applies once regardless of how many set pieces you have." },
   marsh_survivor: { name: "Marsh Survivor", category: "set", description: "Lizardfolk set (6pc). Incoming Bleed damage -50% (rounded down, minimum 1). Currently inert — Bleed (Deep Cut) only ever afflicts the enemy, never the player." },
   dragonslayer: { name: "Dragonslayer", category: "set", description: "Drake Hunter set (6pc). Deal 1.20x damage against creatures tagged draven (Drake, Dragon) — a final multiplier applied after all other damage calculations." },
+  hold_the_line: { name: "Hold the Line", category: "set", description: "Legion set (8pc). The first time your Health falls below 30% each fight, immediately gain +6 Defense for 2 turns." },
+  vanguard_momentum: { name: "Vanguard Momentum", category: "set", description: "Contract Hunter set (6pc). After defeating an enemy, gain +1 Attack for the remainder of that fight (stacks to +5, resets each new fight)." },
+  heartwood_vitality: { name: "Heartwood Vitality", category: "set", description: "Heartwood set (6pc). Every third combat action you take, restore 2% of max Health." },
+  storm_barrier: { name: "Storm Barrier", category: "set", description: "Stormwatch set (6pc). The first magical attack you receive each fight deals half damage." },
+  carapace_adaptation: { name: "Carapace Adaptation", category: "set", description: "Queen Carapace set (6pc). Gain +3 Defense each time you're hit, up to +9, reset at the start of each fight." },
+  bleed_exploitation: { name: "Bleed Exploitation", category: "set", description: "Bonecaller set (6pc). Deal 1.20x damage to an enemy currently affected by Bleed." },
+  divine_resurgence: { name: "Divine Resurgence", category: "set", description: "Divine set (6pc). Once per fight, surviving damage that would have killed you instead leaves you at 25% max Health." },
 };
 
 function getEffectDef(effectId) {

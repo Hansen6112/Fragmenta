@@ -403,12 +403,14 @@ function equipmentBonus(state, statKey) {
 // Whether/what a defeated creature drops, scaled to its own tier (bestiary
 // tiers run 0-5; clamped to 1-4 so nothing above Masterwork ever drops
 // from a normal kill — see file header on Legendary). Chance climbs with
-// danger: 16% at tier 1 up to 40% at tier 4.
-function rollCreatureLoot(creature) {
+// danger: 16% at tier 1 up to 40% at tier 4. Master Appraiser's 6pc set
+// bonus raises that chance by 20% (relative).
+function rollCreatureLoot(state, creature) {
   const tier = Math.max(1, Math.min(4, creature.tier || 1));
   const pool = COMBAT_LOOT_POOL[tier];
   if (!pool || !pool.length) return null;
-  const dropChance = 0.08 + tier * 0.08;
+  let dropChance = 0.08 + tier * 0.08;
+  if (hasSetTier(state, "Master Appraiser", 6)) dropChance *= 1.2;
   if (Math.random() >= dropChance) return null;
   return pool[Math.floor(Math.random() * pool.length)];
 }

@@ -15,6 +15,13 @@
  * Once a mage has two elements (level 15+), useElementAbility checks
  * data/synergy.js for a bonus each cast, keyed off which element was used
  * immediately before this one.
+ *
+ * A large layer of equipment-set bonuses (data/sets.js) hooks into nearly
+ * every function below — where a set bonus is just "take the strongest
+ * override of an existing number," the resolver lives in sets.js
+ * (crushingImpactMultiplier, spellWardMultiplier, etc.) and this file
+ * just calls it; where it's a genuinely new mechanic, it's implemented
+ * inline here with a comment naming which set grants it.
  */
 
 function randInt(min, max) {
@@ -55,13 +62,24 @@ function effectiveEnemyAtk(state, creature) {
   return Math.max(1, creature.atk - (state.combat.enemyAtkPenalty || 0));
 }
 
-// Earth's Stoneskin adds a temporary universal defense bonus, and Evasive
-// Guard adds a permanent-for-the-fight bonus each time an evasion effect
-// triggers (capped at +3) — everything that computes damage taken should
-// go through this instead of state.def.
+// Earth's Stoneskin adds a temporary universal defense bonus; Evasive
+// Guard and Queen Carapace's carapace_adaptation each add a permanent-
+// for-the-fight bonus (capped +3 and +9 respectively) whenever their
+// trigger fires — everything that computes damage taken should go
+// through this instead of state.def.
 function effectivePlayerDef(state) {
-  const buff = state.combat.defBuffTurns > 0 ? state.combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (state.combat.evasiveGuardBonus || 0) + (state.combat.forestGuardianBonus || 0);
+  const combat = state.combat;
+  const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0);
+}
+
+// River Warden's 6pc set bonus (+2 Magic per "resist," max +8) is a
+// combat-scoped bonus to the Magic stat itself, so it needs its own
+// accessor the same way Defense has effectivePlayerDef — only
+// rollPlayerDamage's magic-branch math reads this, not burn/heal/
+// Stoneskin amounts (a narrower scope than a real stat change, by design).
+function effectiveMagic(state) {
+  return state.magic + ((state.combat && state.combat.riverWardenMagicBonus) || 0);
 }
 
 // Legion's Shield Wall (4pc): a flat -10% on ALL incoming damage, applied
@@ -73,31 +91,14 @@ function applyShieldWall(state, dmg) {
   return Math.round(dmg * 0.9);
 }
 
-// Mages deal magic-driven damage instead of attack-driven: magic barely
-// touches physical defense (def/10 vs. def/3 for a physical hit), a
-// multiplier tied to the Magic stat itself makes a mage's damage compound
-// as they grow rather than scale linearly like a fighter's, and Acid's
-// Corrode applies a lasting defense penalty to the target on top of that.
-// activeElement (the element flavoring THIS cast) also gets checked against
-// the target's own element, if it has one (an enemy mage), via
-// data/matchups.js — fighters and non-elemental creatures are untouched by
-// this since one side is always missing an element.
 // Executioner (finisher damage vs. a badly wounded target) is checked
 // once here since it applies uniformly to physical and magic damage
-// alike — everything else in this function is physical-only. Drake
-// Hunter's 4pc set bonus widens the threshold from 30% to 40% HP.
+// alike — everything else in rollPlayerDamage is physical-only.
+// executionerThreshold (data/sets.js) resolves which sets widen it.
 function executionerMultiplier(state) {
   if (!hasEffect(state, "executioner")) return 1;
   const combat = state.combat;
-  const threshold = hasSetTier(state, "Drake Hunter", 4) ? 0.4 : 0.3;
-  return combat.hp <= combat.maxHp * threshold ? 1.2 : 1;
-}
-
-// Legion's Disciplined Formation (6pc) stacks +2 Attack per successful
-// Feint for the rest of the fight — folded in here rather than into
-// state.atk directly so it never survives past the current combat.
-function effectiveAtk(state) {
-  return state.atk + ((state.combat && state.combat.disciplinedFormationBonus) || 0);
+  return combat.hp <= combat.maxHp * executionerThreshold(state) ? 1.2 : 1;
 }
 
 // Dragonslayer (Drake Hunter 6pc): a final multiplier against creatures
@@ -109,24 +110,43 @@ function dragonslayerMultiplier(state, creature) {
   return hasSetTier(state, "Drake Hunter", 6) ? 1.2 : 1;
 }
 
+// Bleed Exploitation (Bonecaller 6pc): +20% damage while the TARGET is
+// currently bleeding (state.combat.bleed is the Deep Cut DoT the player
+// already inflicted on it).
+function bleedExploitationMultiplier(state) {
+  if (!state.combat || !state.combat.bleed) return 1;
+  return hasSetTier(state, "Bonecaller", 6) ? 1.2 : 1;
+}
+
+// Siege Corps's 6pc set bonus grants a one-shot +2 Attack "next turn"
+// whenever Brace fires (see useFeint/useElementAbility's earth case) —
+// consumed by whichever physical damage roll comes next, wherever that is.
+function consumeSiegeCorpsAtkCharge(state) {
+  if (!state.combat || !state.combat.siegeCorpsAtkCharge) return 0;
+  state.combat.siegeCorpsAtkCharge = 0;
+  return 2;
+}
+
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
   const execMult = executionerMultiplier(state);
   const dragonMult = dragonslayerMultiplier(state, creature);
+  const bleedMult = bleedExploitationMultiplier(state);
   if (state.flags.isMage && state.primaryElement) {
-    const base = randInt(state.magic - 2, state.magic + 2);
-    const multiplier = 1 + state.magic / 40;
-    const matchup = elementMultiplier(activeElement, creature.element);
+    const magic = effectiveMagic(state);
+    const base = randInt(magic - 2, magic + 2);
+    const multiplier = 1 + magic / 40;
+    const matchup = elementMultiplier(state, activeElement, creature.element);
     const effDef = Math.max(0, creature.def - defPenalty);
-    return Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult) - Math.floor(effDef / 10));
+    return Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult) - Math.floor(effDef / 10));
   }
-  const armorCrack = hasEffect(state, "armor_crack") ? 2 : 0;
+  const armorCrack = armorCrackAmount(state);
   const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
-  const atk = effectiveAtk(state);
-  const crushBase = hasSetTier(state, "Thraekor", 6) ? 1.35 : 1.2;
+  const atk = state.atk + consumeSiegeCorpsAtkCharge(state);
+  const crushBase = crushingImpactMultiplier(state);
   const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
   const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
-  return Math.max(1, Math.round(base * crushMult * execMult * dragonMult));
+  return Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult));
 }
 
 // Picks which element flavors this particular hit — alternates between
@@ -152,10 +172,11 @@ function applyOpeningReach(state, dmg) {
 // Deep Cut (Bleed) and Hamstring both roll off any successful physical
 // hit — shared by playerAttack, Decoy, Ambush, and Disarm's normal-hit
 // component (not elemental abilities, which aren't physical attacks).
+// deepCutChance (data/sets.js) resolves Bonecaller's higher proc chance.
 function applyPhysicalOnHitEffects(state, creature) {
   const lines = [];
   const combat = state.combat;
-  if (hasEffect(state, "deep_cut") && Math.random() < 0.2) {
+  if (hasEffect(state, "deep_cut") && Math.random() < deepCutChance(state)) {
     combat.bleed = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.atk / 6)) };
     lines.push(`${withThe(creature.name, true)} is left bleeding.`);
   }
@@ -177,6 +198,19 @@ function attackFlavorLine(state, creature, dmg, activeElement) {
     return `${el.verb(withThe(creature.name, false))} for ${dmg} damage.`;
   }
   return `You strike ${withThe(creature.name, false)} for ${dmg} damage.`;
+}
+
+// Heartwood Vitality (Heartwood 6pc): every third combat action the
+// player takes, heal 2% max Health. Counts any action that reaches
+// beginTurn (i.e. actually executes), not rejected/invalid attempts.
+function applyHeartwoodVitality(state) {
+  const combat = state.combat;
+  combat.actionCounter += 1;
+  if (!hasSetTier(state, "Heartwood", 6) || combat.actionCounter % 3 !== 0) return [];
+  const heal = Math.ceil(state.maxHealth * 0.02);
+  if (heal <= 0) return [];
+  state.health = Math.min(state.maxHealth, state.health + heal);
+  return [`Heartwood Vitality mends you for ${heal} health.`];
 }
 
 // Ages cooldowns and status-effect durations by one turn, and applies any
@@ -208,7 +242,28 @@ function beginTurn(state) {
     combat.bleed.turnsLeft -= 1;
     if (combat.bleed.turnsLeft <= 0) combat.bleed = null;
   }
+  lines.push(...applyHeartwoodVitality(state));
   return lines;
+}
+
+// Divine Resurgence (Divine 6pc) and Elder Bark's plain 1-HP save both
+// prevent an otherwise-fatal hit, once each per fight — checked (in that
+// priority order) wherever state.health has just dropped to 0 or below,
+// in place of the usual "Everything goes dark" line.
+function checkDeathPrevention(state) {
+  if (state.health > 0) return null;
+  const combat = state.combat;
+  if (hasSetTier(state, "Divine", 6) && !combat.divineResurgenceUsed) {
+    combat.divineResurgenceUsed = true;
+    state.health = Math.ceil(state.maxHealth * 0.25);
+    return `Divine Resurgence — the hit should have ended you. It didn't. (revived at 25% Health)`;
+  }
+  if (hasSetTier(state, "Elder Bark", 6) && !combat.elderBarkSaveUsed) {
+    combat.elderBarkSaveUsed = true;
+    state.health = 1;
+    return `The oldest wood remembers you yet — you survive this at 1 Health.`;
+  }
+  return null;
 }
 
 // Resolves the enemy's retaliation for this turn, respecting Force's stun,
@@ -218,7 +273,10 @@ function beginTurn(state) {
 // magic instead of a physical attack stat, and their element is checked
 // against the player's own active element (if any) through the same
 // matchup table used for the player's own casts — so the strengths/
-// weaknesses run both directions.
+// weaknesses run both directions (state is deliberately NOT passed to
+// elementMultiplier here, since the enemy is the attacker in this call —
+// Fragmenta's set bonus only strengthens the PLAYER's own outgoing matchup
+// advantage, never the enemy's).
 //
 // Returns { lines, damage } instead of just lines — callers use `damage`
 // to check for Riposte (which fires on a zero-damage retaliation). `extraDef`
@@ -243,28 +301,49 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   }
   if (evasionRolled) {
     if (hasEffect(state, "evasive_guard")) combat.evasiveGuardBonus = Math.min(3, combat.evasiveGuardBonus + 1);
+    if (creature.element && hasSetTier(state, "River Warden", 6)) {
+      combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
+    }
     return { lines: [`You slip past ${withThe(creature.name, false)}'s counter entirely.`], damage: 0 };
   }
   if (creature.element) {
-    const defenderElement = state.flags.isMage ? state.primaryElement : null;
-    const matchup = elementMultiplier(creature.element, defenderElement);
+    const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
     const base = randInt(creature.magic - 2, creature.magic + 2);
-    const coldBonus = creature.element === "water" && hasEffect(state, "coldproof") ? 2 : 0;
+    const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
     const def = effectivePlayerDef(state) + bonusDef + coldBonus;
     let edmg = Math.max(0, Math.round(base * matchup) - Math.floor(def / 10));
-    if (hasEffect(state, "spell_ward")) edmg = Math.round(edmg * 0.9);
+    const swMult = spellWardMultiplier(state);
+    if (swMult < 1) {
+      edmg = Math.round(edmg * swMult);
+      if (hasSetTier(state, "River Warden", 6)) combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
+    }
+    if (edmg > 0 && !combat.stormBarrierUsed) {
+      combat.stormBarrierUsed = true;
+      if (hasSetTier(state, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
+    }
+    if (edmg > 0 && !combat.firstHitTakenUsed) {
+      combat.firstHitTakenUsed = true;
+      if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+    }
     edmg = applyShieldWall(state, edmg);
     state.health -= edmg;
+    if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`];
-    if (state.health <= 0) lines.push(`Everything goes dark.`);
+    if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
     return { lines, damage: edmg };
   }
   const atk = effectiveEnemyAtk(state, creature);
-  const edmg = applyShieldWall(state, Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef));
+  let edmg = Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef);
+  if (edmg > 0 && !combat.firstHitTakenUsed) {
+    combat.firstHitTakenUsed = true;
+    if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+  }
+  edmg = applyShieldWall(state, edmg);
   state.health -= edmg;
+  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`];
-  if (state.health <= 0) lines.push(`Everything goes dark.`);
+  if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
   return { lines, damage: edmg };
 }
 
@@ -272,13 +351,18 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
 // zero damage (stunned, evaded, Decoy, or reduced to 0 by defense). Called
 // by every action that either goes through resolveEnemyRetaliation (when
 // its returned damage is 0) or otherwise guarantees a damage-free counter
-// (Decoy, which doesn't call resolveEnemyRetaliation at all).
+// (Decoy, which doesn't call resolveEnemyRetaliation at all). White
+// Watch's 4pc set bonus raises the multiplier from 0.5x to 0.75x; its 6pc
+// grants a stacking +2 Defense for the rest of the fight each time this fires.
 function maybeRiposte(state, creature) {
   if (!hasEffect(state, "riposte")) return [];
   if (!state.combat || state.combat.hp <= 0) return [];
-  const dmg = Math.round(rollPlayerDamage(state, creature) * 0.5);
+  const dmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state));
   state.combat.hp -= dmg;
   const lines = [`You seize the opening — a free riposte for ${dmg} damage.`];
+  if (hasSetTier(state, "White Watch", 6)) {
+    state.combat.whiteWatchRiposteDefBonus = (state.combat.whiteWatchRiposteDefBonus || 0) + 2;
+  }
   if (state.combat.hp <= 0) lines.push(...resolveKill(state, creature));
   return lines;
 }
@@ -346,15 +430,25 @@ function startCombat(state, creatureIdOrObject) {
     evasionTurns: 0, // Windcut duration remaining
     evasionCharges: 0, // Evasive Release's one-shot dodge charges
     evasiveGuardBonus: 0, // Evasive Guard's permanent-per-fight def, capped +3
+    queenCarapaceBonus: 0, // Carapace Adaptation's stacking def, capped +9
+    whiteWatchRiposteDefBonus: 0, // White Watch 6pc — stacking def per Riposte
+    riverWardenMagicBonus: 0, // River Warden 6pc — stacking magic, capped +8
+    siegeCorpsAtkCharge: 0, // Siege Corps 6pc — one-shot +2 atk after Brace
     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
     bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
     lastElementUsed: null, // for elemental synergy — see data/synergy.js
     firstPhysicalAttackDone: false, // gates Opening Reach
+    firstHitTakenUsed: false, // gates Stonewarden 6pc's first-hit reduction
+    stormBarrierUsed: false, // gates Stormwatch 6pc's first-magical-hit reduction
     hamstringApplied: false, // gates Hamstring (once per target per fight)
     tacticalMemoryUsed: false, // gates Tactical Memory (once per fight)
-    surgingConduitUsed: false, // gates Surging Conduit (once per fight)
-    disciplinedFormationBonus: 0, // Legion 6pc — stacking +2 atk per successful Feint
+    surgingConduitUsesLeft: surgingConduitCharges(state), // Surging Conduit's per-fight charges (1, or 2 with Conduit Master/Fragmenta)
+    noviceFreeCastUsed: false, // gates Novitiate 6pc's free first elemental cast
+    holdTheLineUsed: false, // gates Legion 8pc's below-30%-HP defense burst
+    divineResurgenceUsed: false, // gates Divine 6pc's cheat-death
+    elderBarkSaveUsed: false, // gates Elder Bark 6pc's 1-HP cheat-death
     forestGuardianBonus: 0, // Vaeloris 6pc — consumed charge from a prior fight's Regrowth
+    actionCounter: 0, // Heartwood Vitality's every-third-action counter
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -365,6 +459,14 @@ function startCombat(state, creatureIdOrObject) {
   if (state.flags.forestGuardianCharge) {
     state.combat.forestGuardianBonus = 2;
     state.flags.forestGuardianCharge = false;
+  }
+  // Divine's 4pc set bonus: a flat heal at the moment any fight begins.
+  if (hasSetTier(state, "Divine", 4)) {
+    const heal = Math.ceil(state.maxHealth * 0.05);
+    if (heal > 0 && state.health < state.maxHealth) {
+      state.health = Math.min(state.maxHealth, state.health + heal);
+      lines.push(`Something ancient in your gear stirs — you heal ${heal} health as the fight begins.`);
+    }
   }
   // Unsettling: a flat chance the enemy starts the fight already weakened,
   // rolled once here rather than in playerAttack/etc. since it's a
@@ -381,23 +483,48 @@ function startCombat(state, creatureIdOrObject) {
   return lines;
 }
 
+// Hold the Line (Legion 8pc): the first time the player's Health drops
+// below 30% each fight, an immediate +6 Defense for 2 turns. Checked
+// anywhere player Health just changed downward, since it's a reactive
+// safety net rather than tied to a specific action.
+function checkHoldTheLine(state) {
+  const combat = state.combat;
+  if (!combat || combat.holdTheLineUsed || !hasSetTier(state, "Legion", 8)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.3) return [];
+  combat.holdTheLineUsed = true;
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, 2);
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, 6);
+  return [`Hold the Line — your training snaps into place as your Health falls; +6 Defense for 2 turns.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
-// don't stack per the effect's own description.
-// Vaeloris's 4pc (Nature's Grace, 5%->10% heal) and 6pc (Forest Guardian)
-// both key off Regrowth actually activating. Forest Guardian's +2 Defense
-// can't apply to "the current fight" since Regrowth only ever fires after
-// combat has already ended (a kill or a successful flee) — so it's
-// queued as a one-shot charge consumed at the start of the player's next
-// fight instead (see startCombat).
+// don't stack per the effect's own description. regrowthHealPct (data/
+// sets.js) resolves which sets raise it from 5% to 10%. Vaeloris's 6pc
+// (Forest Guardian) queues a Defense charge for the player's NEXT fight,
+// since Regrowth only ever fires after combat has already ended.
 function applyRegrowth(state) {
   if (!hasEffect(state, "regrowth")) return [];
-  const pct = hasSetTier(state, "Vaeloris", 4) ? 0.1 : 0.05;
-  const heal = Math.ceil(state.maxHealth * pct);
+  const heal = Math.ceil(state.maxHealth * regrowthHealPct(state));
   if (heal <= 0) return [];
   state.health = Math.min(state.maxHealth, state.health + heal);
   if (hasSetTier(state, "Vaeloris", 6)) state.flags.forestGuardianCharge = true;
   return [`Regrowth mends you for ${heal} health.`];
+}
+
+// Vanguard Momentum (Contract Hunter 6pc): +1 Attack per kill, stacking
+// to +5. Since every BESTIARY encounter is its own fully separate fight
+// in this engine (no back-to-back multi-wave combat exists), "for the
+// remainder of combat" is approximated as a charge that persists across
+// fights until the player rests (see parser.js cmdRest) rather than
+// resetting the instant this kill's combat object is torn down.
+function applyVanguardMomentum(state) {
+  if (!hasSetTier(state, "Contract Hunter", 6)) return [];
+  const before = state.flags.vanguardMomentumStacks || 0;
+  if (before >= 5) return [];
+  state.flags.vanguardMomentumStacks = before + 1;
+  state.recomputeStats(true);
+  return [`Vanguard Momentum — the fight sharpens you; +1 Attack (${before + 1}/5 this streak).`];
 }
 
 // Shared victory handling — gold, loot, XP, job progress, ending combat.
@@ -407,13 +534,14 @@ function resolveKill(state, creature) {
   const goldFound = Math.round(randInt(1, 4) * (creature.tier + 1) * bounty);
   state.gold += goldFound;
   out.push(`You find ${goldFound} gold on/near the creature.`);
-  const loot = rollCreatureLoot(creature);
+  const loot = rollCreatureLoot(state, creature);
   if (loot) {
     state.inventory.push(loot);
     out.push(`It was also carrying ${formatItemLine(loot)}.`);
   }
   state.combat = null;
   out.push(...applyRegrowth(state));
+  out.push(...applyVanguardMomentum(state));
   out.push(...state.gainXp(xpFromKill(creature)));
   out.push(...checkJobProgressOnKill(state, creature));
   return out;
@@ -459,6 +587,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
+  if (state.health > 0) out.push(...checkHoldTheLine(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -482,10 +611,21 @@ function attemptFlee(state) {
     return out;
   }
 
-  const edmg = applyShieldWall(state, Math.max(0, randInt(effectiveEnemyAtk(state, creature) - 1, effectiveEnemyAtk(state, creature) + 1) - effectivePlayerDef(state)));
+  const combat = state.combat;
+  let edmg = Math.max(0, randInt(effectiveEnemyAtk(state, creature) - 1, effectiveEnemyAtk(state, creature) + 1) - effectivePlayerDef(state));
+  if (edmg > 0 && !combat.firstHitTakenUsed) {
+    combat.firstHitTakenUsed = true;
+    if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+  }
+  edmg = applyShieldWall(state, edmg);
   state.health -= edmg;
+  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`);
-  if (state.health <= 0) out.push(`Everything goes dark.`);
+  if (state.health <= 0) {
+    out.push(checkDeathPrevention(state) || `Everything goes dark.`);
+  } else {
+    out.push(...checkHoldTheLine(state));
+  }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -494,18 +634,26 @@ function attemptFlee(state) {
 // ---- Fighter tactics (non-mage only — mages use useElementAbility) ----
 
 // Tactical Memory: once per fight, the first tactic-cooldown assignment
-// that rolls successfully (20% chance, re-rolled on each qualifying use
-// until one hits) gets cut by 1 turn (minimum 1). Shared by Feint, Decoy,
-// and Disarm — Ambush has no cooldown to shorten.
+// that rolls successfully (tacticalMemoryChance — 20% base, 50% with
+// Examiner 6pc/First Kingdom 4pc — re-rolled on each qualifying use until
+// one hits) gets cut by 1 turn (minimum 1). Shared by Feint, Decoy, and
+// Disarm — Ambush has no cooldown to shorten.
 function applyTacticalMemory(state, cooldown) {
   if (!cooldown || state.combat.tacticalMemoryUsed || !hasEffect(state, "tactical_memory")) {
     return { cooldown, fired: false };
   }
-  if (Math.random() < 0.2) {
+  if (Math.random() < tacticalMemoryChance(state)) {
     state.combat.tacticalMemoryUsed = true;
     return { cooldown: Math.max(1, cooldown - 1), fired: true };
   }
   return { cooldown, fired: false };
+}
+
+// First Kingdom's 6pc set bonus is a flat, unconditional -1 to every
+// tactic's cooldown, applied before Tactical Memory's probabilistic
+// reduction (both can apply to the same cast).
+function applyFirstKingdomCooldown(cooldown) {
+  return Math.max(1, cooldown - 1);
 }
 
 function useFeint(state) {
@@ -525,19 +673,28 @@ function useFeint(state) {
     return out;
   }
   state.combat.nextAttackBonus = true;
-  const baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
+  let baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
+  if (hasSetTier(state, "First Kingdom", 6)) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
   const memory = applyTacticalMemory(state, baseCooldown);
   state.combat.cooldowns.feint = memory.cooldown;
 
   out.push(`You feint — ${withThe(creature.name, false)} doesn't bite, but your next strike will land hard.`);
   if (memory.fired) out.push(`Old instincts kick in — Feint recovers faster this time.`);
+  // Legion's Disciplined Formation (6pc, redefined): a one-shot +3
+  // Defense against THIS same retaliation, functionally identical to
+  // Brace — the two stack if somehow both are active.
+  let braceBonus = 0;
+  if (hasEffect(state, "brace")) braceBonus += braceDefBonus(state);
   if (hasSetTier(state, "Legion", 6)) {
-    state.combat.disciplinedFormationBonus += 2;
-    out.push(`Disciplined Formation — your training holds; +2 Attack for the rest of this fight.`);
+    braceBonus += 3;
+    out.push(`Disciplined Formation — your training holds; +3 Defense against the counter.`);
   }
-  const braceBonus = hasEffect(state, "brace") ? 3 : 0;
+  if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
+    state.combat.siegeCorpsAtkCharge = 2;
+  }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
+  if (state.health > 0) out.push(...checkHoldTheLine(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -559,7 +716,9 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  const memory = applyTacticalMemory(state, t.cooldown);
+  let baseCooldown = t.cooldown;
+  if (hasSetTier(state, "First Kingdom", 6)) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+  const memory = applyTacticalMemory(state, baseCooldown);
   state.combat.cooldowns.decoy = memory.cooldown;
 
   out.push(`You plant a decoy — ${withThe(creature.name, false)} takes the bait.`);
@@ -597,8 +756,7 @@ function useAmbush(state) {
     return out;
   }
 
-  const ambushMult = hasEffect(state, "ambush_mastery") ? 1.55 : 1.4;
-  const dmg = Math.round(rollPlayerDamage(state, creature) * ambushMult);
+  const dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
   state.combat.hp -= dmg;
   out.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`);
 
@@ -633,7 +791,9 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  const memory = applyTacticalMemory(state, t.cooldown);
+  let baseCooldown = t.cooldown;
+  if (hasSetTier(state, "First Kingdom", 6)) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+  const memory = applyTacticalMemory(state, baseCooldown);
   state.combat.cooldowns.disarm = memory.cooldown;
   state.combat.disarmed = true;
   state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3;
@@ -653,6 +813,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
+  if (state.health > 0) out.push(...checkHoldTheLine(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -679,12 +840,15 @@ function useElementAbility(state, elementKey) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  // Conduit Ease rolls fresh on every cast (unlike Tactical Memory's
-  // once-per-fight tactic equivalent). Kabal's 6pc set (River Mastery)
-  // doubles the chance from 20% to 40%.
+  // Novitiate's 6pc set bonus: the first elemental cast of the fight
+  // costs no cooldown at all, taking priority over Conduit Ease's
+  // probabilistic reduction (which only matters once this charge is spent).
   let cooldown = a.cooldown;
-  const conduitEaseChance = hasSetTier(state, "Kabal", 6) ? 0.4 : 0.2;
-  if (hasEffect(state, "conduit_ease") && Math.random() < conduitEaseChance) {
+  if (hasSetTier(state, "Novitiate", 6) && !state.combat.noviceFreeCastUsed) {
+    state.combat.noviceFreeCastUsed = true;
+    cooldown = 0;
+    out.push(`First casting's free — the conduit hasn't tired yet.`);
+  } else if (hasEffect(state, "conduit_ease") && Math.random() < conduitEaseChance(state)) {
     cooldown = Math.max(1, cooldown - 1);
     out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
   }
@@ -697,15 +861,14 @@ function useElementAbility(state, elementKey) {
   const dmgMult = synergy ? synergy.dmgMultiplier : 1;
   state.combat.lastElementUsed = elementKey;
 
-  // Elemental Focus (every cast, boosted from 1.08x to 1.15x by Kabal's
-  // 4pc set) and Surging Conduit (first cast of the fight only) layer on
-  // top of synergy as a separate multiplier — kept apart from dmgMult
-  // because Stoneskin (earth) deals no damage and gets flat Defense
-  // instead of either bonus.
+  // Elemental Focus and Surging Conduit (now potentially 2 charges a
+  // fight, via Conduit Master 6pc/Fragmenta 4pc) layer on top of synergy
+  // as a separate multiplier — kept apart from dmgMult because Stoneskin
+  // (earth) deals no damage and gets flat Defense instead of either bonus.
   const focusActive = hasEffect(state, "elemental_focus");
-  const focusMult = hasSetTier(state, "Kabal", 4) ? 1.15 : 1.08;
-  const surgeActive = hasEffect(state, "surging_conduit") && !state.combat.surgingConduitUsed;
-  if (surgeActive) state.combat.surgingConduitUsed = true;
+  const focusMult = elementalFocusMultiplier(state);
+  const surgeActive = hasEffect(state, "surging_conduit") && state.combat.surgingConduitUsesLeft > 0;
+  if (surgeActive) state.combat.surgingConduitUsesLeft -= 1;
   let elementalDmgMult = dmgMult;
   if (focusActive) elementalDmgMult *= focusMult;
   if (surgeActive) elementalDmgMult *= 1.2;
@@ -721,7 +884,7 @@ function useElementAbility(state, elementKey) {
     case "water": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
-      const heal = Math.round(dmg * 0.5);
+      const heal = Math.round(dmg * waterHealPct(state));
       state.health = Math.min(state.maxHealth, state.health + heal);
       out.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${dmg} damage, and the backwash mends you for ${heal}.`);
       break;
@@ -733,6 +896,12 @@ function useElementAbility(state, elementKey) {
       state.combat.defBuffTurns = 3;
       state.combat.defBuffAmount = defBonus;
       out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
+      // Brace's bonuses (Stonewarden's +5 instead of +3, Siege Corps's
+      // next-turn +2 Attack) apply here too, since Stoneskin is the
+      // mage's own "no-damage action."
+      if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
+        state.combat.siegeCorpsAtkCharge = 2;
+      }
       break;
     }
     case "lightning": {
@@ -786,9 +955,10 @@ function useElementAbility(state, elementKey) {
     return out;
   }
 
-  const braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? 3 : 0;
+  let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
+  if (state.health > 0) out.push(...checkHoldTheLine(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);

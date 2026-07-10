@@ -113,13 +113,20 @@ const SYNERGY_COMBOS = {
 
 const GENERIC_SYNERGY_MULTIPLIER = 1.25;
 
-function genericSynergy(elementA, elementB) {
+// Pre-Kabal's 6pc set bonus raises the generic (uncurated-pair) synergy
+// bonus from 25% to 40% — curated named combos (SYNERGY_COMBOS) are
+// untouched, since each of those already has its own hand-picked value.
+function genericSynergyMultiplier(state) {
+  return hasSetTier(state, "Pre-Kabal", 6) ? 1.4 : GENERIC_SYNERGY_MULTIPLIER;
+}
+
+function genericSynergy(state, elementA, elementB) {
   const nameA = ELEMENTS[elementA].name;
   const nameB = ELEMENTS[elementB].name;
   return {
     name: null,
     message: () => `Your mastery of ${nameA} and ${nameB} resonates — this cast lands harder.`,
-    dmgMultiplier: GENERIC_SYNERGY_MULTIPLIER,
+    dmgMultiplier: genericSynergyMultiplier(state),
     extraEffect: null,
   };
 }
@@ -135,5 +142,5 @@ function getSynergy(state, elementKey) {
   const known = [state.primaryElement, state.secondaryElement].filter(Boolean);
   if (!known.includes(prev) || !known.includes(elementKey)) return null;
   const key = pairKey(elementKey, prev);
-  return SYNERGY_COMBOS[key] || genericSynergy(elementKey, prev);
+  return SYNERGY_COMBOS[key] || genericSynergy(state, elementKey, prev);
 }

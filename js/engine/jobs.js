@@ -58,10 +58,10 @@ function resolveJob(state, job) {
   const kindLabel = job.kind === "guild" ? "Contract" : "Job";
   lines.push(`${kindLabel} complete: ${job.title}!`);
 
-  // Master Merchant (Sahrimor 6pc set bonus): +10% gold on every completed
-  // job/contract — a set-granted bonus, not an item's own effect, so this
-  // is a direct hasSetTier check rather than hasEffect.
-  const goldReward = hasSetTier(state, "Sahrimor", 6) ? Math.round(job.rewardGold * 1.1) : job.rewardGold;
+  // Several set bonuses boost job/contract gold — jobGoldMultiplier (data/
+  // sets.js) is the single place that combines them (some apply to
+  // everything, some only to guild contracts specifically).
+  const goldReward = Math.round(job.rewardGold * jobGoldMultiplier(state, job));
   state.gold += goldReward;
   const repParts = [];
   for (const [fid, amt] of Object.entries(job.rewardRep || {})) {

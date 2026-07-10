@@ -488,6 +488,13 @@ function cmdRest(state) {
   state.health += healed;
   const lines = [`You rest for a day at ${loc.name}. Recovered ${healed} health.`, `It is now day ${state.day}.`];
 
+  // Vanguard Momentum (Contract Hunter 6pc) persists across fights but
+  // decays on rest, approximating its "combat only" wording.
+  if (state.flags.vanguardMomentumStacks) {
+    state.flags.vanguardMomentumStacks = 0;
+    state.recomputeStats(true);
+  }
+
   const hunt = checkKabalHunt(state, state.location);
   if (hunt) {
     lines.push("Rest doesn't mean safety, not for you.");
