@@ -1556,10 +1556,52 @@ const ITEM_DEFS = {
   "Mantle of the Last King": { slot: "chest", tier: 5, bonuses: { def: 6, knowledge: 2 }, effects: ["perfect_balance"], source: "quest" },
   "Ashwalker Harness": { slot: "chest", tier: 5, bonuses: { def: 8 }, effects: ["blood_debt"], source: "contract" },
   "Starwoven Vestments": { slot: "chest", tier: 5, bonuses: { magic: 8 }, effects: ["spell_echo"], source: "world_boss" },
-  // "Bastion Eternal" (Chest, Legendary, +8 Defense) was given with no
-  // Passive or Source column — registered with stats only pending that
-  // info, rather than guessing a passive for a Legendary item.
-  "Bastion Eternal": { slot: "chest", tier: 5, bonuses: { def: 8 } },
+  "Bastion Eternal": { slot: "chest", tier: 5, bonuses: { def: 8 }, effects: ["last_stand"], source: "ancient_vault" },
+
+  // ---- Legendary Gloves ----
+  "Bloodbound Grips": { slot: "gloves", tier: 5, bonuses: { atk: 8 }, effects: ["blood_debt"], source: "world_boss" },
+  "Hands of the Seventh Duel": { slot: "gloves", tier: 5, bonuses: { atk: 6, knowledge: 2 }, effects: ["master_duelist"], source: "arena" },
+  "Emberfist Gauntlets": { slot: "gloves", tier: 5, bonuses: { atk: 8 }, effects: ["momentum"], source: "ancient_vault" },
+  "Winter's Grasp": { slot: "gloves", tier: 5, bonuses: { def: 8 }, effects: ["iron_will"], source: "dungeon" },
+  "Riverwoven Handwraps": { slot: "gloves", tier: 5, bonuses: { magic: 6, def: 2 }, effects: ["rivers_favor"], source: "hidden_quest" },
+
+  // ---- Legendary Boots ----
+  "Horizon Walkers": { slot: "boots", tier: 5, bonuses: { def: 8 }, effects: ["hunters_instinct"], source: "exploration" },
+  "King's Last March": { slot: "boots", tier: 5, bonuses: { def: 6, knowledge: 2 }, effects: ["last_stand"], source: "quest" },
+  "Silent Crossing": { slot: "boots", tier: 5, bonuses: { knowledge: 8 }, effects: ["perfect_balance"], source: "hidden_dungeon" },
+  Stormstriders: { slot: "boots", tier: 5, bonuses: { def: 6, magic: 2 }, effects: ["iron_will"], source: "world_boss" },
+  "Ashen Footfalls": { slot: "boots", tier: 5, bonuses: { def: 8 }, effects: ["momentum"], source: "contract" },
+
+  // ---- Legendary Rings ----
+  "Ring of Endless Resolve": { slot: "rings", tier: 5, bonuses: { def: 8 }, effects: ["unbreakable"], source: "ancient_vault" },
+  "Sovereign's Accord": { slot: "rings", tier: 5, bonuses: { knowledge: 6, def: 2 }, effects: ["perfect_balance"], source: "quest" },
+  "Crimson Covenant": { slot: "rings", tier: 5, bonuses: { atk: 8 }, effects: ["blood_debt"], source: "world_boss" },
+  "Whispering Circle": { slot: "rings", tier: 5, bonuses: { magic: 8 }, effects: ["spell_echo"], source: "exploration" },
+  "The Ninth Seal": { slot: "rings", tier: 5, bonuses: { magic: 6, knowledge: 2 }, effects: ["rivers_favor"], source: "secret_quest" },
+
+  // ---- Legendary Necklaces ----
+  "Chain of Forgotten Kings": { slot: "necklace", tier: 5, bonuses: { def: 6, knowledge: 2 }, effects: ["kingslayer"], source: "ancient_vault" },
+  "Heart of the Phoenix": { slot: "necklace", tier: 5, bonuses: { magic: 8 }, effects: ["last_stand"], source: "world_boss" },
+  "Pendant of Silent Waters": { slot: "necklace", tier: 5, bonuses: { magic: 8 }, effects: ["rivers_favor"], source: "hidden_quest" },
+  "Warlord's Medal": { slot: "necklace", tier: 5, bonuses: { atk: 8 }, effects: ["hunters_instinct"], source: "arena" },
+  "The Broken Compass": { slot: "necklace", tier: 5, bonuses: { knowledge: 8 }, effects: ["perfect_balance"], source: "exploration" },
+
+  // ---- Legendary Cloaks ----
+  "Nightfall Mantle": { slot: "cloak", tier: 5, bonuses: { def: 6, magic: 2 }, effects: ["spell_echo"], source: "dungeon" },
+  "Cloak of the First Hunt": { slot: "cloak", tier: 5, bonuses: { knowledge: 8 }, effects: ["hunters_instinct"], source: "exploration" },
+  "Banner of No Kingdom": { slot: "cloak", tier: 5, bonuses: { def: 8 }, effects: ["last_stand"], source: "quest" },
+  "Veil of Falling Stars": { slot: "cloak", tier: 5, bonuses: { magic: 8 }, effects: ["rivers_favor"], source: "world_boss" },
+  "The Wanderer's Horizon": { slot: "cloak", tier: 5, bonuses: { def: 6, knowledge: 2 }, effects: ["momentum"], source: "hidden_dungeon" },
+
+  // ---- Legendary Trinkets ----
+  "Coin of the Last Emperor": { slot: "trinkets", tier: 5, bonuses: { knowledge: 8 }, effects: ["perfect_balance"], source: "ancient_vault" },
+  "The Black Feather": { slot: "trinkets", tier: 5, bonuses: { atk: 6, knowledge: 2 }, effects: ["hunters_instinct"], source: "exploration" },
+  "Everburning Ember": { slot: "trinkets", tier: 5, bonuses: { magic: 8 }, effects: ["spell_echo"], source: "world_boss" },
+  "Oathstone Fragment": { slot: "trinkets", tier: 5, bonuses: { def: 6, magic: 2 }, effects: ["unbreakable"], source: "hidden_quest" },
+  "Echo of the First Bell": { slot: "trinkets", tier: 5, bonuses: { magic: 8 }, effects: ["rivers_favor"], source: "ancient_vault" },
+  "Soldier's Final Letter": { slot: "trinkets", tier: 5, bonuses: { atk: 8 }, effects: ["last_stand"], source: "quest" },
+  "Glass Eye of the Watcher": { slot: "trinkets", tier: 5, bonuses: { magic: 6, knowledge: 2 }, effects: ["kingslayer"], source: "dungeon" },
+  "Ashes of Victory": { slot: "trinkets", tier: 5, bonuses: { atk: 8 }, effects: ["blood_debt"], source: "arena" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
