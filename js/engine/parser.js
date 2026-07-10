@@ -33,6 +33,14 @@ const VERB_SYNONYMS = {
   decoy: ["decoy"],
   ambush: ["ambush"],
   disarm: ["disarm"],
+  ignite: ["ignite"],
+  torrent: ["torrent"],
+  stoneskin: ["stoneskin"],
+  flurry: ["flurry"],
+  corrode: ["corrode"],
+  concuss: ["concuss"],
+  blink: ["blink"],
+  windcut: ["windcut"],
   skills: ["skills", "tactics"],
   choose: ["choose", "attune", "focus"],
 };
@@ -74,6 +82,7 @@ async function handleInput(rawInput, state) {
     if (verb === "decoy") return useDecoy(state);
     if (verb === "ambush") return useAmbush(state);
     if (verb === "disarm") return useDisarm(state);
+    if (ELEMENT_VERB_TO_KEY[verb]) return useElementAbility(state, ELEMENT_VERB_TO_KEY[verb]);
     if (verb === "leave" && BESTIARY[state.combat.creatureId].friendly) {
       const name = state.combat.name;
       state.combat = null;
@@ -89,7 +98,7 @@ async function handleInput(rawInput, state) {
     }
     if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "skills" && verb !== "choose") {
       const friendly = BESTIARY[state.combat.creatureId].friendly;
-      const usable = friendly ? [] : unlockedTactics(state).filter((id) => tacticAvailable(state, id)).map((id) => TACTICS[id].name.toLowerCase());
+      const usable = friendly ? [] : availableActionNames(state);
       const options = ["fight", "flee", ...usable, ...(friendly ? ["talk", "leave"] : [])];
       return [`You're in the middle of an encounter. (${options.join(" / ")})`];
     }
@@ -144,6 +153,14 @@ async function handleInput(rawInput, state) {
     case "decoy":
     case "ambush":
     case "disarm":
+    case "ignite":
+    case "torrent":
+    case "stoneskin":
+    case "flurry":
+    case "corrode":
+    case "concuss":
+    case "blink":
+    case "windcut":
       return [`Nothing to ${verb} outside a fight. Try 'explore' if you're looking for one.`];
     case "help":
       return cmdHelp();
@@ -421,18 +438,31 @@ function cmdReputation(state) {
 }
 
 function cmdSkills(state) {
+  if (state.flags.isMage && state.primaryElement) {
+    const lines = [
+      `== Elemental Abilities == (Knowledge: ${state.knowledge})`,
+      `Primary: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? `   Secondary: ${ELEMENTS[state.secondaryElement].name}` : ""}`,
+      "",
+    ];
+    const elementKeys = [state.primaryElement, state.secondaryElement].filter(Boolean);
+    for (const key of elementKeys) {
+      const a = ELEMENT_ABILITIES[key];
+      const unlocked = state.knowledge >= a.knowledgeReq;
+      const status = unlocked ? "unlocked" : `locked — needs Knowledge ${a.knowledgeReq}`;
+      lines.push(`- ${a.name} [${ELEMENTS[key].name}] (${status}): ${a.description}`);
+    }
+    if (!state.secondaryElement) {
+      lines.push("");
+      lines.push("A second element opens at level 15, alongside its own ability.");
+    }
+    return lines;
+  }
+
   const lines = [`== Tactics == (Knowledge: ${state.knowledge})`];
   for (const [id, t] of Object.entries(TACTICS)) {
     const unlocked = state.knowledge >= t.knowledgeReq;
     const status = unlocked ? "unlocked" : `locked — needs Knowledge ${t.knowledgeReq}`;
     lines.push(`- ${t.name} (${status}): ${t.description}`);
-  }
-  if (state.flags.isMage && state.primaryElement) {
-    lines.push("");
-    lines.push(
-      `== Magic == Primary: ${ELEMENTS[state.primaryElement].name}` +
-        (state.secondaryElement ? `, Secondary: ${ELEMENTS[state.secondaryElement].name}` : "")
-    );
   }
   return lines;
 }
@@ -616,11 +646,13 @@ function cmdHelp() {
     "Work: board (city job board), accept <number>, contracts (guild-only,",
     "at Nocturne/Vorseth), sign <number>. Bounty jobs resolve the moment",
     "you win a big enough fight; courier jobs resolve the moment you arrive.",
-    "Tactics: skills (list what Knowledge has unlocked). In a fight, use",
-    "feint/decoy/ambush/disarm alongside fight/flee once you've unlocked them.",
-    "Mages fight through their chosen element instead of raw attack; at",
-    "level 15 use 'choose boost' or 'choose <element>' to deepen your magic",
-    "or open a second element.",
+    "Tactics: skills (list what Knowledge has unlocked). Fighters/scouts use",
+    "feint/decoy/ambush/disarm alongside fight/flee once unlocked. Mages",
+    "fight through their chosen element instead, and get their own signature",
+    "ability in place of those tactics (ignite/torrent/stoneskin/flurry/",
+    "corrode/concuss/blink/windcut — whichever matches your element).",
+    "At level 15, mages use 'choose boost' for permanent +Magic, or",
+    "'choose <element>' to open a second element and its ability.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];
