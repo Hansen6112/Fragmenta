@@ -93,10 +93,10 @@ async function handleInput(rawInput, state) {
     }
     if (verb === "talk" && getCombatCreature(state).friendly) {
       state.combat = null;
-      state.health = Math.min(state.maxHealth, state.health + 6);
+      const { healed } = applyHeal(state, 6);
       return [
         "It tilts its great bark-covered head toward you. No words — just a sound like creaking wood, structured, patient.",
-        "Warmth spreads through a wound you didn't realize still ached. You heal 6 health.",
+        `Warmth spreads through a wound you didn't realize still ached. You heal ${healed} health.`,
       ];
     }
     if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose") {
@@ -504,8 +504,7 @@ function cmdRest(state) {
   }
   state.day += 1;
   const friendly = reputationFor(state, loc.nation) === "friendly";
-  const healed = Math.min(state.maxHealth - state.health, friendly ? 12 : 8);
-  state.health += healed;
+  const { healed } = applyHeal(state, friendly ? 12 : 8);
   const lines = [`You rest for a day at ${loc.name}. Recovered ${healed} health.`, `It is now day ${state.day}.`];
 
   // Vanguard Momentum (Contract Hunter 6pc) persists across fights but

@@ -46,8 +46,8 @@
  * for whichever items get authored with one.
  */
 
-const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic", 7: "Artifact" };
-const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10, 7: 12 };
+const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic", 7: "Artifact", 8: "Divine Regalia" };
+const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10, 7: 12, 8: 14 };
 const STAT_LABELS = { atk: "Attack", def: "Defense", health: "Health", magic: "Magic", knowledge: "Knowledge" };
 
 const ITEM_DEFS = {
@@ -1687,6 +1687,22 @@ const ITEM_DEFS = {
   "Pocket of Holding": { slot: "trinkets", tier: 7, bonuses: { knowledge: 12 }, effects: ["dual_focus"], source: "puzzle_dungeon" },
   "Chronicle of Every Victory": { slot: "trinkets", tier: 7, bonuses: { atk: 8, def: 4 }, effects: ["perfect_recall"], source: "hidden_archive" },
   "The Empty Palm": { slot: "trinkets", tier: 7, bonuses: { atk: 12 }, effects: ["empty_hand"], source: "secret_encounter" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the First Bloom (Aelthyr) ----
+  // A new tier above Artifact: one full 6-piece set per god, each piece a
+  // named artifact with its own item-level passive on top of the set's
+  // shared 2/4/6pc bonuses (SETS["Regalia of the First Bloom"] in
+  // data/sets.js). Still functionally inert to the generic loot systems,
+  // same tier-1-4 clamp as every other tier above Masterwork. Source isn't
+  // broken out per-piece the way Legendary/Mythic/Artifact items were —
+  // these are presented as a cohesive drop set, so "monster" (the same
+  // convention every earlier gear SET used) covers all six.
+  "Dawnbloom Branch": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["living_current"], source: "monster", set: "Regalia of the First Bloom" },
+  "Verdant Aegis": { slot: "offhand", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["rooted_resolve"], source: "monster", set: "Regalia of the First Bloom" },
+  "Raiment of Endless Spring": { slot: "chest", tier: 8, bonuses: { health: 12, magic: 4 }, effects: ["flourishing_soul"], source: "monster", set: "Regalia of the First Bloom" },
+  "Ring of Verdant Promise": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["seedbearer"], source: "monster", set: "Regalia of the First Bloom" },
+  "Sandals of Living Roots": { slot: "boots", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["natures_persistence"], source: "monster", set: "Regalia of the First Bloom" },
+  "Seed of First Dawn": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["endless_bloom"], source: "monster", set: "Regalia of the First Bloom" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

@@ -150,6 +150,19 @@ const EFFECT_DEFS = {
   titans_endurance: { name: "Titan's Endurance", category: "artifact", description: "Defense can never fall below its base value. Currently inert — nothing in this engine ever reduces the player's base Defense; every combat modifier is an additive bonus layered on top of it, never a subtraction from it." },
   river_harmony: { name: "River Harmony", category: "artifact", description: "Elemental synergy bonuses activate on every cast, regardless of what (if anything) was cast right before it." },
   empty_hand: { name: "The Empty Hand", category: "artifact", description: "Fighting with no Off-Hand equipped grants +50% Attack and +25% Defense." },
+
+  // ---- Divine Regalia (per-god item passives, data/items.js tier 8) ----
+  living_current: { name: "Living Current", category: "regalia", description: "Whenever you restore Health, gain +2 Magic until the end of combat (stacks up to +10)." },
+  rooted_resolve: { name: "Rooted Resolve", category: "regalia", description: "The first time your Health falls below 50% each combat, immediately gain +8 Defense for 3 rounds." },
+  flourishing_soul: { name: "Flourishing Soul", category: "regalia", description: "Healing you receive from any source is increased by 50%." },
+  seedbearer: { name: "Seedbearer", category: "regalia", description: "Every 3rd elemental cast restores 10% of your maximum Health." },
+  natures_persistence: { name: "Nature's Persistence", category: "regalia", description: "The first crowd-control effect (Stun, Disarm, etc.) applied to you each combat is ignored. Currently inert — nothing in this engine applies crowd control to the player; enemies have no abilities or actions of their own yet. Expected to come alive once enemies are reworked with their own stats/abilities/actions." },
+  endless_bloom: { name: "Endless Bloom", category: "regalia", description: "At the start of every combat, gain Regeneration equal to 5% of your maximum Health per round for 5 rounds." },
+
+  // ---- Regalia of the First Bloom set bonuses (Aelthyr) ----
+  blessing_of_renewal: { name: "Blessing of Renewal", category: "set", description: "Regalia of the First Bloom (2pc). Restore 3% of maximum Health at the start of every round." },
+  overflowing_life: { name: "Overflowing Life", category: "set", description: "Regalia of the First Bloom (4pc). Whenever you're healed beyond full Health, the excess becomes Temporary Health (capped at 30% of maximum Health)." },
+  avatar_of_bloom: { name: "Avatar of Bloom", category: "set", description: "Regalia of the First Bloom (6pc). Once per combat, the first time you drop below 25% Health: instantly restore 50% max Health, cleanse negative status effects (currently a no-op — see Nature's Persistence), and gain +25% Attack/Magic/Defense for 3 rounds." },
 };
 
 function getEffectDef(effectId) {

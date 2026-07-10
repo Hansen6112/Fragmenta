@@ -357,6 +357,17 @@ const SETS = {
       6: { special: "fragmenta_matchups_150", description: "Elemental matchup strengths become 1.50x and weaknesses improve to 0.90x" },
     },
   },
+
+  // ---- Divine Regalia (tier 8) — one 6-piece set per god ----
+  "Regalia of the First Bloom": {
+    theme: "Aelthyr's gifts to those who tend rather than take.",
+    god: "Aelthyr",
+    bonuses: {
+      2: { effects: ["blessing_of_renewal"], description: "Blessing of Renewal — restore 3% max Health at the start of every round" },
+      4: { effects: ["overflowing_life"], description: "Overflowing Life — healing beyond full Health becomes Temporary Health, up to 30% max Health" },
+      6: { effects: ["avatar_of_bloom"], description: "Avatar of Bloom — once per combat, dropping below 25% Health instantly heals 50% max Health, cleanses negative status effects, and grants +25% Attack/Magic/Defense for 3 rounds" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

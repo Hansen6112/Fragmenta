@@ -180,7 +180,46 @@ function temporalEchoMultiplier(state) {
 // rollPlayerDamage's magic-branch math reads this, not burn/heal/
 // Stoneskin amounts (a narrower scope than a real stat change, by design).
 function effectiveMagic(state) {
-  return state.magic + ((state.combat && state.combat.riverWardenMagicBonus) || 0);
+  const combat = state.combat;
+  const magicBuff = combat && combat.magicBuffTurns > 0 ? combat.magicBuffAmount || 0 : 0;
+  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff;
+}
+
+// Central heal entry point (Divine Regalia): every place that restores the
+// player's Health — Regrowth, Blood Debt, Soul Leech, Heartwood Vitality,
+// Water's self-heal, Endless Bloom, Blessing of Renewal, resting, and
+// talking down a friendly creature — routes through here instead of
+// touching state.health directly, so Flourishing Soul's +50% healing-
+// received and Living Current's per-heal Magic stack apply uniformly
+// everywhere, and Overflowing Life's overflow-to-Temporary-Health
+// conversion lives in one place instead of being reimplemented at each
+// call site. Does NOT cover the Elder Bark/Last Stand cheat-death resets
+// (those set Health to 1 from a lethal hit — a survival mechanic, not a
+// restorative heal, so they're deliberately left as direct assignments).
+// Returns the actual amount healed (after Flourishing Soul, clamped to
+// max) so the caller's own flavor line can report the real number, plus
+// any extra lines (Overflowing Life's conversion message) to append.
+function applyHeal(state, amount) {
+  if (amount <= 0) return { healed: 0, lines: [] };
+  let amt = amount;
+  if (hasEffect(state, "flourishing_soul")) amt = Math.round(amt * 1.5);
+  const before = state.health;
+  state.health = Math.min(state.maxHealth, state.health + amt);
+  const healed = state.health - before;
+  const lines = [];
+  const overflow = amt - healed;
+  if (overflow > 0 && state.combat && hasSetTier(state, "Regalia of the First Bloom", 4)) {
+    const cap = Math.round(state.maxHealth * 0.3);
+    const beforeTemp = state.combat.tempHealth || 0;
+    state.combat.tempHealth = Math.min(cap, beforeTemp + overflow);
+    if (state.combat.tempHealth > beforeTemp) {
+      lines.push(`Overflowing Life — the excess crystallizes into ${state.combat.tempHealth - beforeTemp} Temporary Health.`);
+    }
+  }
+  if (healed > 0 && state.combat && hasEffect(state, "living_current")) {
+    state.combat.livingCurrentStacks = Math.min(5, (state.combat.livingCurrentStacks || 0) + 1);
+  }
+  return { healed, lines };
 }
 
 // Legion's Shield Wall (4pc): a flat -10% on ALL incoming damage, applied
@@ -254,7 +293,8 @@ function rollPlayerDamage(state, creature, activeElement) {
   } else {
     const armorCrack = armorCrackAmount(state);
     const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0);
+    const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff;
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
@@ -278,7 +318,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   if (hasEffect(state, "soul_leech") && state.health < state.maxHealth) {
     const leechPct = masterOfArmsDoubles(state, "soul_leech") ? 0.2 : 0.1;
     const leech = Math.round(dmg * leechPct);
-    if (leech > 0) state.health = Math.min(state.maxHealth, state.health + leech);
+    applyHeal(state, leech);
   }
   return dmg;
 }
@@ -344,8 +384,8 @@ function applyHeartwoodVitality(state) {
   if (!hasSetTier(state, "Heartwood", 6) || combat.actionCounter % 3 !== 0) return [];
   const heal = Math.ceil(state.maxHealth * 0.02);
   if (heal <= 0) return [];
-  state.health = Math.min(state.maxHealth, state.health + heal);
-  return [`Heartwood Vitality mends you for ${heal} health.`];
+  const { healed, lines } = applyHeal(state, heal);
+  return [`Heartwood Vitality mends you for ${healed} health.`, ...lines];
 }
 
 // Ages cooldowns and status-effect durations by one turn, and applies any
@@ -362,6 +402,8 @@ function beginTurn(state) {
     if (combat.cooldowns[key] > 0) combat.cooldowns[key] -= 1;
   }
   if (combat.defBuffTurns > 0) combat.defBuffTurns -= 1;
+  if (combat.atkBuffTurns > 0) combat.atkBuffTurns -= 1;
+  if (combat.magicBuffTurns > 0) combat.magicBuffTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   if (combat.burn && combat.burn.turnsLeft > 0) {
     const creature = getCombatCreature(state);
@@ -376,6 +418,28 @@ function beginTurn(state) {
     lines.push(`${withThe(creature.name, true)} is still bleeding for ${combat.bleed.dmgPerTurn} damage.`);
     combat.bleed.turnsLeft -= 1;
     if (combat.bleed.turnsLeft <= 0) combat.bleed = null;
+  }
+  // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
+  // Regeneration HoT set up once at combat start (see startCombat),
+  // ticked here identically in shape to burn/bleed but healing instead of
+  // damaging — routed through applyHeal so Flourishing Soul/Overflowing
+  // Life/Living Current all still apply to it.
+  if (combat.regen && combat.regen.turnsLeft > 0) {
+    const { healed, lines: healLines } = applyHeal(state, combat.regen.healPerTurn);
+    if (healed > 0) lines.push(`Endless Bloom mends you for ${healed} health.`, ...healLines);
+    combat.regen.turnsLeft -= 1;
+    if (combat.regen.turnsLeft <= 0) combat.regen = null;
+  }
+  // Blessing of Renewal (Regalia of the First Bloom 2pc): an unconditional
+  // 3% max Health heal at the start of every round, for as long as the set
+  // bonus is active — no duration or once-per-fight gate, unlike Endless
+  // Bloom above.
+  if (hasSetTier(state, "Regalia of the First Bloom", 2)) {
+    const heal = Math.ceil(state.maxHealth * 0.03);
+    if (heal > 0) {
+      const { healed, lines: healLines } = applyHeal(state, heal);
+      if (healed > 0) lines.push(`Blessing of Renewal mends you for ${healed} health.`, ...healLines);
+    }
   }
   lines.push(...applyHeartwoodVitality(state));
   lines.push(...applyLivingSteel(state));
@@ -418,6 +482,25 @@ function checkDeathPrevention(state) {
 // to check for Riposte (which fires on a zero-damage retaliation). `extraDef`
 // is an optional one-shot Defense bonus for THIS call only (Guarded Strike,
 // Brace) — it never persists beyond this single retaliation.
+// Overflowing Life's (Regalia of the First Bloom 4pc) Temporary Health
+// buffer absorbs incoming damage before real Health does — a shield-style
+// layer, consumed here once rather than reimplemented at each of the 3
+// places an enemy hit actually reduces the player's Health.
+function applyPlayerDamage(state, dmg) {
+  if (dmg <= 0) return [];
+  const combat = state.combat;
+  let remaining = dmg;
+  const lines = [];
+  if (combat && combat.tempHealth > 0) {
+    const absorbed = Math.min(combat.tempHealth, remaining);
+    combat.tempHealth -= absorbed;
+    remaining -= absorbed;
+    if (absorbed > 0) lines.push(`Your Temporary Health absorbs ${absorbed} of it.`);
+  }
+  state.health -= remaining;
+  return lines;
+}
+
 function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
@@ -499,10 +582,10 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     }
     edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
-    state.health -= edmg;
+    const absorbLines1 = applyPlayerDamage(state, edmg);
     if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
-    const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`];
+    const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`, ...absorbLines1];
     if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
     return { lines, damage: edmg };
   }
@@ -514,9 +597,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   }
   edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
-  state.health -= edmg;
+  const absorbLines2 = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
-  const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`];
+  const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
   if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
   return { lines, damage: edmg };
 }
@@ -631,9 +714,26 @@ function startCombat(state, creatureIdOrObject) {
     livingSteelBonus: 0, // Living Steel's (Mythic) stacking atk/def bonus, capped at 5
     weaponAttackCounter: 0, // Echoing Arsenal's (Artifact) every-5th-physical-attack counter
     mirrorSoulUsed: false, // gates Mirror Soul's (Artifact) first-hostile-spell reflection
+    rootedResolveUsed: false, // gates Rooted Resolve's (Divine Regalia) below-50%-HP defense burst
+    avatarOfBloomUsed: false, // gates Avatar of Bloom's (Regalia of the First Bloom 6pc) below-25%-HP full burst
+    atkBuffTurns: 0, // Avatar of Bloom's temporary +Attack duration remaining
+    atkBuffAmount: 0,
+    magicBuffTurns: 0, // Avatar of Bloom's temporary +Magic duration remaining
+    magicBuffAmount: 0,
+    livingCurrentStacks: 0, // Living Current's (Divine Regalia) stacking +2 Magic per heal, capped at +10 (5 stacks)
+    tempHealth: 0, // Overflowing Life's (Regalia of the First Bloom 4pc) overflow-heal buffer, capped at 30% max Health
+    spellCastCounter: 0, // Seedbearer's (Divine Regalia) every-3rd-cast counter
+    regen: null, // Endless Bloom's (Divine Regalia) Regeneration HoT: { turnsLeft, healPerTurn }
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
+  // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
+  // Regeneration HoT set up at the moment any fight begins, ticked in
+  // beginTurn the same way burn/bleed are.
+  if (hasEffect(state, "endless_bloom")) {
+    const healPerTurn = Math.ceil(state.maxHealth * 0.05);
+    if (healPerTurn > 0) state.combat.regen = { turnsLeft: 5, healPerTurn };
+  }
   // Forest Guardian (Vaeloris 6pc): a Defense charge earned when Regrowth
   // activated after the PREVIOUS fight ended (Regrowth itself only ever
   // fires once combat is already over, so this is how its +2 Defense
@@ -671,6 +771,43 @@ function checkHoldTheLine(state) {
   return [`Hold the Line — your training snaps into place as your Health falls; +6 Defense for 2 turns.`];
 }
 
+// Rooted Resolve (Divine Regalia — Verdant Aegis): the first time the
+// player's Health drops below 50% each fight, an immediate +8 Defense for
+// 3 turns. Same shape as Hold the Line, just a different item-level
+// effect instead of a set tier, and checked at the same call sites.
+function checkRootedResolve(state) {
+  const combat = state.combat;
+  if (!combat || combat.rootedResolveUsed || !hasEffect(state, "rooted_resolve")) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
+  combat.rootedResolveUsed = true;
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, 3);
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, 8);
+  return [`Rooted Resolve — you plant yourself as your Health falls; +8 Defense for 3 turns.`];
+}
+
+// Avatar of Bloom (Regalia of the First Bloom 6pc): once per fight, the
+// first time the player's Health drops below 25%, an instant 50% max
+// Health heal (routed through applyHeal like every other heal, so
+// Flourishing Soul/Overflowing Life/Living Current all still apply), a
+// status cleanse (currently a no-op — nothing in this engine ever applies
+// a negative status effect to the player; see Immutable/Nature's
+// Persistence), and +25% Attack/Magic/Defense for 3 turns. Checked at the
+// same call sites as Hold the Line/Rooted Resolve.
+function checkAvatarOfBloom(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfBloomUsed || !hasSetTier(state, "Regalia of the First Bloom", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfBloomUsed = true;
+  const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.5));
+  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 3);
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, Math.round(state.atk * 0.25));
+  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 3);
+  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, Math.round(state.magic * 0.25));
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, 3);
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, Math.round(state.def * 0.25));
+  return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -681,9 +818,9 @@ function applyRegrowth(state) {
   if (!hasEffect(state, "regrowth")) return [];
   const heal = Math.ceil(state.maxHealth * regrowthHealPct(state));
   if (heal <= 0) return [];
-  state.health = Math.min(state.maxHealth, state.health + heal);
+  const { healed, lines } = applyHeal(state, heal);
   if (hasSetTier(state, "Vaeloris", 6)) state.flags.forestGuardianCharge = true;
-  return [`Regrowth mends you for ${heal} health.`];
+  return [`Regrowth mends you for ${healed} health.`, ...lines];
 }
 
 // Vanguard Momentum (Contract Hunter 6pc): +1 Attack per kill, stacking
@@ -717,8 +854,8 @@ function resolveKill(state, creature) {
     const healPct = masterOfArmsDoubles(state, "blood_debt") ? 0.4 : 0.2;
     const heal = Math.ceil(state.maxHealth * healPct);
     if (heal > 0 && state.health < state.maxHealth) {
-      state.health = Math.min(state.maxHealth, state.health + heal);
-      out.push(`Blood Debt repaid — you're mended for ${heal} health.`);
+      const { healed, lines } = applyHeal(state, heal);
+      out.push(`Blood Debt repaid — you're mended for ${healed} health.`, ...lines);
     }
   }
   // Battle Scholar (Artifact): +1 Knowledge, permanently, after every kill —
@@ -782,7 +919,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -814,13 +951,13 @@ function attemptFlee(state) {
   }
   edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
-  state.health -= edmg;
+  const absorbLines = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
-  out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`);
+  out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -911,7 +1048,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1042,7 +1179,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1072,6 +1209,16 @@ function useElementAbility(state, elementKey) {
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
     return out;
+  }
+  // Seedbearer (Divine Regalia — Ring of Verdant Promise): every 3rd
+  // elemental cast this fight restores 10% max Health, routed through
+  // applyHeal like every other heal.
+  if (hasEffect(state, "seedbearer")) {
+    state.combat.spellCastCounter += 1;
+    if (state.combat.spellCastCounter % 3 === 0) {
+      const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
+      if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
+    }
   }
   // Conduit Mastery (Mythic): a flat, unconditional -1 to every elemental
   // cooldown, applied to the base cooldown before Novitiate/River's
@@ -1134,8 +1281,8 @@ function useElementAbility(state, elementKey) {
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
       const heal = Math.round(dmg * waterHealPct(state));
-      state.health = Math.min(state.maxHealth, state.health + heal);
-      out.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${dmg} damage, and the backwash mends you for ${heal}.`);
+      const { healed, lines: healLines } = applyHeal(state, heal);
+      out.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${dmg} damage, and the backwash mends you for ${healed}.`, ...healLines);
       break;
     }
     case "earth": {
@@ -1227,7 +1374,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
