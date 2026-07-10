@@ -1191,7 +1191,7 @@ const ITEM_DEFS = {
   // Rings ("a legion officer's ring" already existed pre-batch and was
   // updated in place above rather than duplicated here)
   "a living vine ring": { slot: "rings", tier: 2, bonuses: { magic: 2 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
-  "a forge master's band": { slot: "rings", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a forge master's band": { slot: "rings", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "job", region: "thraekor" },
   "a stormglass ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
   "a merchant prince's band": { slot: "rings", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job", region: "sahrimor" },
   "a royal chancellor's signet": { slot: "rings", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
@@ -1323,6 +1323,66 @@ const ITEM_DEFS = {
   "an elder bloom": { slot: "trinkets", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["elemental_focus"], source: "contract", region: "vaeloris" },
   "a spirit vine cutting": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "job", region: "vaeloris" },
   "a worldroot sprout": { slot: "trinkets", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["elemental_focus"], source: "contract", region: "vaeloris" },
+
+  // ---- Thraekor regional items ----
+  "a black-iron hatchet": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["crushing_impact"], source: "shop", region: "thraekor" },
+  "a basalt war pick": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["armor_crack"], source: "monster", region: "thraekor" },
+  "a forge clan axe": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "shop", region: "thraekor" },
+  "an embersteel longsword": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["guarded_strike"], source: "job", region: "thraekor" },
+  "a furnace hammer": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "monster", region: "thraekor" },
+  "an obsidian cleaver": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "contract", region: "thraekor" },
+  "a runic forge spear": { slot: "mainhand", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["opening_reach"], source: "contract", region: "thraekor" },
+  "a molten edge greatsword": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["armor_crack"], source: "contract", region: "thraekor" },
+  "an ashen king's hammer": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["crushing_impact"], source: "job", region: "thraekor" },
+  "a hearthfire war axe": { slot: "mainhand", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["guarded_strike"], source: "contract", region: "thraekor" },
+
+  "a forge buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "shop", region: "thraekor" },
+  "a basalt shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "monster", region: "thraekor" },
+  "an iron hearth shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "job", region: "thraekor" },
+  "a runebound bulwark": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["brace"], source: "contract", region: "thraekor" },
+
+  "a forge helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a clan iron helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster", region: "thraekor" },
+  "a basalt faceguard": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "job", region: "thraekor" },
+  "a runesmith's crown": { slot: "helmet", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "thraekor" },
+
+  "forge apron mail": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "an iron clan hauberk": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster", region: "thraekor" },
+  "basalt plate": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "job", region: "thraekor" },
+  "an embersteel harness": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["heatproof"], source: "contract", region: "thraekor" },
+
+  "smith's hammer gloves": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["crushing_impact"], source: "shop", region: "thraekor" },
+  "riveted gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "monster", region: "thraekor" },
+  "furnace grip gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["armor_crack"], source: "job", region: "thraekor" },
+  "master smith's hands": { slot: "gloves", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["crushing_impact"], source: "contract", region: "thraekor" },
+
+  "iron forge boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "deep mine boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["surefooted"], source: "monster", region: "thraekor" },
+  "basalt walker greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "job", region: "thraekor" },
+  "magma trail greaves": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["heatproof"], source: "contract", region: "thraekor" },
+
+  "an iron clan ring": { slot: "rings", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a runesmith's ring": { slot: "rings", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["elemental_focus"], source: "monster", region: "thraekor" },
+  "an emberstone signet": { slot: "rings", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["tactical_memory"], source: "contract", region: "thraekor" },
+
+  "a hammer pendant": { slot: "necklace", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a forge chain": { slot: "necklace", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "job", region: "thraekor" },
+  "a clan ancestor torque": { slot: "necklace", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["tactical_memory"], source: "monster", region: "thraekor" },
+  "a molten core pendant": { slot: "necklace", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["heatproof"], source: "contract", region: "thraekor" },
+
+  "an ashwoven mantle": { slot: "cloak", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a sootcloak": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", region: "thraekor" },
+  "a furnace traveler's cloak": { slot: "cloak", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "job", region: "thraekor" },
+  "a runesmith's mantle": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "thraekor" },
+
+  "a forge ember charm": { slot: "trinkets", tier: 2, bonuses: { def: 2 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
+  "a basalt totem": { slot: "trinkets", tier: 2, bonuses: { atk: 2 }, effects: ["crushing_impact"], source: "monster", region: "thraekor" },
+  "an iron clan token": { slot: "trinkets", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "job", region: "thraekor" },
+  "a runesmith's chisel": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["tactical_memory"], source: "monster", region: "thraekor" },
+  "an embersteel ingot": { slot: "trinkets", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["armor_crack"], source: "contract", region: "thraekor" },
+  "a hearthstone": { slot: "trinkets", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "job", region: "thraekor" },
+  "a living coal": { slot: "trinkets", tier: 4, bonuses: { magic: 2, def: 2 }, effects: ["elemental_focus"], source: "contract", region: "thraekor" },
+  "an ancient forge rune": { slot: "trinkets", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "thraekor" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
