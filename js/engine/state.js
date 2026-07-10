@@ -28,6 +28,7 @@ class GameState {
     this.stealthMod = 0;
     this.gold = 25;
     this.inventory = ["a traveler's cloak", "a half-empty waterskin", "a few days' rations"];
+    this.equipment = [];
     this.day = 1;
     this.flags = {};
     this.visited = new Set();
@@ -51,6 +52,7 @@ class GameState {
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
+    this.equipment = [];
     this.flags = { ...bg.flags };
     this.nation = bg.nation || this.deriveNationFromLocation(bg.startLocation);
     this.location = bg.startLocation;
@@ -141,6 +143,7 @@ class GameState {
       stealthMod: this.stealthMod,
       gold: this.gold,
       inventory: this.inventory,
+      equipment: this.equipment,
       day: this.day,
       flags: this.flags,
       visited: Array.from(this.visited),
@@ -155,6 +158,7 @@ class GameState {
     const s = new GameState();
     Object.assign(s, data);
     s.visited = new Set(data.visited || []);
+    s.equipment = data.equipment || [];
     s.combat = null;
     return s;
   }

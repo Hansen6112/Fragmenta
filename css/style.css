@@ -120,14 +120,16 @@ body {
   font-size: 0.95rem;
 }
 
-#inventory-panel {
+#inventory-panel,
+#equipment-panel {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
   font-size: 0.95rem;
 }
 
-#inventory-panel[hidden] {
+#inventory-panel[hidden],
+#equipment-panel[hidden] {
   display: none;
 }
 

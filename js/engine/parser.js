@@ -12,6 +12,9 @@ const VERB_SYNONYMS = {
   inventory: ["inventory", "i", "inv", "items"],
   take: ["take", "get", "grab", "pickup", "pick"],
   drop: ["drop", "discard"],
+  equip: ["equip", "wear", "wield"],
+  unequip: ["unequip", "unwear", "unwield", "remove"],
+  equipment: ["equipment", "gear", "worn"],
   examine: ["examine", "x", "inspect", "study"],
   talk: ["talk", "speak", "ask", "greet"],
   rest: ["rest", "sleep", "camp"],
@@ -96,7 +99,7 @@ async function handleInput(rawInput, state) {
         "Warmth spreads through a wound you didn't realize still ached. You heal 6 health.",
       ];
     }
-    if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "skills" && verb !== "choose") {
+    if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose") {
       const friendly = getCombatCreature(state).friendly;
       const usable = friendly ? [] : availableActionNames(state);
       const options = ["fight", "flee", ...usable, ...(friendly ? ["talk", "leave"] : [])];
@@ -117,6 +120,12 @@ async function handleInput(rawInput, state) {
       return cmdTake(arg, state);
     case "drop":
       return cmdDrop(arg, state);
+    case "equip":
+      return cmdEquip(arg, state);
+    case "unequip":
+      return cmdUnequip(arg, state);
+    case "equipment":
+      return cmdEquipment(state);
     case "examine":
       return cmdExamine(arg, state);
     case "talk":
@@ -323,6 +332,29 @@ function cmdDrop(arg, state) {
   loc.items = loc.items || [];
   loc.items.push(item);
   return [`You leave ${item} behind.`];
+}
+
+function cmdEquipment(state) {
+  if (state.equipment.length === 0) return ["You have nothing equipped."];
+  return ["You have equipped:", ...state.equipment.map((i) => `  - ${i}`)];
+}
+
+function cmdEquip(arg, state) {
+  if (!arg) return ["Equip what?"];
+  const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(arg));
+  if (idx < 0) return [`You aren't carrying "${arg}".`];
+  const item = state.inventory.splice(idx, 1)[0];
+  state.equipment.push(item);
+  return [`You equip ${item}.`];
+}
+
+function cmdUnequip(arg, state) {
+  if (!arg) return ["Unequip what?"];
+  const idx = state.equipment.findIndex((i) => i.toLowerCase().includes(arg));
+  if (idx < 0) return [`You don't have "${arg}" equipped.`];
+  const item = state.equipment.splice(idx, 1)[0];
+  state.inventory.push(item);
+  return [`You unequip ${item}.`];
 }
 
 function cmdExamine(arg, state) {
@@ -654,7 +686,8 @@ function cmdExplore(state) {
 function cmdHelp() {
   return [
     "Commands: look, go <place>, map, inventory, take <item>, drop <item>,",
-    "examine <thing>, talk [to whom], rest, status (or level), explore,",
+    "equip <item>, unequip <item>, equipment, examine <thing>, talk [to whom],",
+    "rest, status (or level), explore,",
     "lore [topic], quests, reputation, fight, flee, save, help.",
     "You gain XP from kills, jobs, and contracts, and level up automatically",
     "(1-25) — each background grows differently: a fighter's levels favor",

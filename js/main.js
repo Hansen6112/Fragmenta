@@ -4,6 +4,7 @@
 
 const logEl = document.getElementById("log");
 const invPanel = document.getElementById("inventory-panel");
+const equipPanel = document.getElementById("equipment-panel");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
 const input = document.getElementById("input");
@@ -30,25 +31,20 @@ function printEcho(text) {
   print(text, "echo");
 }
 
-// Item names are stored as plain repeated strings (see cmdTake); the tab
-// aggregates matching names into a count instead of listing duplicates.
-function renderInventory() {
-  invPanel.innerHTML = "";
-  const gold = document.createElement("p");
-  gold.className = "inv-gold";
-  gold.textContent = `Gold: ${state ? state.gold : 0}`;
-  invPanel.appendChild(gold);
-
-  if (!state || state.inventory.length === 0) {
+// Item names are stored as plain repeated strings (see cmdTake/cmdEquip);
+// every item panel aggregates matching names into a count instead of
+// listing duplicates as separate rows.
+function renderItemList(panel, items, emptyText) {
+  panel.innerHTML = "";
+  if (!items || items.length === 0) {
     const empty = document.createElement("p");
     empty.className = "inv-empty";
-    empty.textContent = state ? "You're carrying nothing." : "Your journey hasn't begun yet.";
-    invPanel.appendChild(empty);
+    empty.textContent = emptyText;
+    panel.appendChild(empty);
     return;
   }
-
   const counts = new Map();
-  for (const item of state.inventory) {
+  for (const item of items) {
     counts.set(item, (counts.get(item) || 0) + 1);
   }
   const list = document.createElement("ul");
@@ -66,7 +62,24 @@ function renderInventory() {
     }
     list.appendChild(li);
   }
-  invPanel.appendChild(list);
+  panel.appendChild(list);
+}
+
+function renderInventory() {
+  const gold = document.createElement("p");
+  gold.className = "inv-gold";
+  gold.textContent = `Gold: ${state ? state.gold : 0}`;
+  renderItemList(invPanel, state ? state.inventory : [], state ? "You're carrying nothing." : "Your journey hasn't begun yet.");
+  invPanel.insertBefore(gold, invPanel.firstChild);
+}
+
+function renderEquipment() {
+  renderItemList(equipPanel, state ? state.equipment : [], state ? "You have nothing equipped." : "Your journey hasn't begun yet.");
+}
+
+function renderActiveTab() {
+  if (activeTab === "inventory") renderInventory();
+  if (activeTab === "equipment") renderEquipment();
 }
 
 function switchTab(tab) {
@@ -78,7 +91,8 @@ function switchTab(tab) {
   });
   logEl.hidden = tab !== "story";
   invPanel.hidden = tab !== "inventory";
-  if (tab === "inventory") renderInventory();
+  equipPanel.hidden = tab !== "equipment";
+  renderActiveTab();
 }
 
 tabButtons.forEach((btn) => {
@@ -221,7 +235,7 @@ form.addEventListener("submit", async (e) => {
       }
     }
   } finally {
-    if (activeTab === "inventory") renderInventory();
+    renderActiveTab();
     input.disabled = gameOver;
     if (!gameOver) input.focus();
   }
