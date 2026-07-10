@@ -70,7 +70,53 @@ function effectiveEnemyAtk(state, creature) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0);
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state);
+}
+
+// Perfect Balance (Legendary): whenever base Attack and Defense are within
+// 2 points of each other, +2 to both during combat. Checked against the
+// character's raw stats, not already-boosted combat values, so the bonus
+// can't recursively push itself in or out of range.
+function perfectBalanceBonus(state) {
+  if (!hasEffect(state, "perfect_balance")) return 0;
+  return Math.abs(state.atk - state.def) <= 2 ? 2 : 0;
+}
+
+// Kingslayer (Legendary): +25% damage against Elite/Boss-equivalent
+// creatures. The bestiary has no formal Elite/Boss field, so this uses
+// the closest existing proxy: tier 4+ (Extreme/Catastrophic threat) or a
+// unique/named creature.
+function kingslayerMultiplier(state, creature) {
+  if (!hasEffect(state, "kingslayer")) return 1;
+  return (creature.tier || 0) >= 4 || creature.unique ? 1.25 : 1;
+}
+
+// Hunter's Instinct (Legendary): +30% damage on the very first action of
+// each fight. combat.actionCounter is incremented by beginTurn() before
+// any damage roll happens, so a value of 1 here means "this is the first
+// action that's executed this fight."
+function huntersInstinctMultiplier(state) {
+  if (!hasEffect(state, "hunters_instinct")) return 1;
+  return state.combat && state.combat.actionCounter === 1 ? 1.3 : 1;
+}
+
+// Momentum (Legendary): each of the player's own damage rolls this fight
+// stacks +10% onto the next one, capped at +50% (5 stacks) — incremented
+// once per rollPlayerDamage call, so normal attacks, Ambush, Disarm,
+// elemental abilities, and Riposte all build the same stack. Reset by
+// startCombat.
+function momentumMultiplier(state) {
+  if (!hasEffect(state, "momentum")) return 1;
+  const stacks = (state.combat && state.combat.momentumStacks) || 0;
+  return 1 + Math.min(stacks, 5) * 0.1;
+}
+
+// Master Duelist (Legendary): enemy counterattacks (physical or
+// elemental) deal 25% less damage — applied alongside Shield Wall at
+// every point the player actually takes retaliation damage.
+function applyMasterDuelist(state, dmg) {
+  if (!hasEffect(state, "master_duelist")) return dmg;
+  return Math.round(dmg * 0.75);
 }
 
 // River Warden's 6pc set bonus (+2 Magic per "resist," max +8) is a
@@ -132,21 +178,30 @@ function rollPlayerDamage(state, creature, activeElement) {
   const execMult = executionerMultiplier(state);
   const dragonMult = dragonslayerMultiplier(state, creature);
   const bleedMult = bleedExploitationMultiplier(state);
+  const kingMult = kingslayerMultiplier(state, creature);
+  const instinctMult = huntersInstinctMultiplier(state);
+  const momentumMult = momentumMultiplier(state);
+  let dmg;
   if (state.flags.isMage && state.primaryElement) {
     const magic = effectiveMagic(state);
     const base = randInt(magic - 2, magic + 2);
     const multiplier = 1 + magic / 40;
     const matchup = elementMultiplier(state, activeElement, creature.element);
     const effDef = Math.max(0, creature.def - defPenalty);
-    return Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult) - Math.floor(effDef / 10));
+  } else {
+    const armorCrack = armorCrackAmount(state);
+    const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0);
+    const crushBase = crushingImpactMultiplier(state);
+    const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
+    const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult));
   }
-  const armorCrack = armorCrackAmount(state);
-  const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
-  const atk = state.atk + consumeSiegeCorpsAtkCharge(state);
-  const crushBase = crushingImpactMultiplier(state);
-  const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
-  const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
-  return Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult));
+  if (hasEffect(state, "momentum")) {
+    state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
+  }
+  return dmg;
 }
 
 // Picks which element flavors this particular hit — alternates between
@@ -263,6 +318,12 @@ function checkDeathPrevention(state) {
     state.health = 1;
     return `The oldest wood remembers you yet — you survive this at 1 Health.`;
   }
+  if (hasEffect(state, "last_stand") && !combat.lastStandUsed) {
+    combat.lastStandUsed = true;
+    state.health = 1;
+    combat.lastStandAtkBonus = (combat.lastStandAtkBonus || 0) + 5;
+    return `Last Stand — you refuse to fall. 1 Health, and +5 Attack for what's left of this fight.`;
+  }
   return null;
 }
 
@@ -326,6 +387,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
       if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
     }
     edmg = applyShieldWall(state, edmg);
+  edmg = applyMasterDuelist(state, edmg);
     state.health -= edmg;
     if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
@@ -340,6 +402,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
   }
   edmg = applyShieldWall(state, edmg);
+  edmg = applyMasterDuelist(state, edmg);
   state.health -= edmg;
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`];
@@ -449,6 +512,9 @@ function startCombat(state, creatureIdOrObject) {
     elderBarkSaveUsed: false, // gates Elder Bark 6pc's 1-HP cheat-death
     forestGuardianBonus: 0, // Vaeloris 6pc — consumed charge from a prior fight's Regrowth
     actionCounter: 0, // Heartwood Vitality's every-third-action counter
+    lastStandUsed: false, // gates Last Stand's (Legendary) 1-HP cheat-death
+    lastStandAtkBonus: 0, // Last Stand's +5 Attack, granted once triggered
+    momentumStacks: 0, // Momentum's (Legendary) stacking damage bonus, capped at 5
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -539,6 +605,13 @@ function resolveKill(state, creature) {
     state.inventory.push(loot);
     out.push(`It was also carrying ${formatItemLine(loot)}.`);
   }
+  if (hasEffect(state, "blood_debt")) {
+    const heal = Math.ceil(state.maxHealth * 0.2);
+    if (heal > 0 && state.health < state.maxHealth) {
+      state.health = Math.min(state.maxHealth, state.health + heal);
+      out.push(`Blood Debt repaid — you're mended for ${heal} health.`);
+    }
+  }
   state.combat = null;
   out.push(...applyRegrowth(state));
   out.push(...applyVanguardMomentum(state));
@@ -618,6 +691,7 @@ function attemptFlee(state) {
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
   }
   edmg = applyShieldWall(state, edmg);
+  edmg = applyMasterDuelist(state, edmg);
   state.health -= edmg;
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`);
@@ -844,7 +918,7 @@ function useElementAbility(state, elementKey) {
   // costs no cooldown at all, taking priority over Conduit Ease's
   // probabilistic reduction (which only matters once this charge is spent).
   let cooldown = a.cooldown;
-  if (hasSetTier(state, "Novitiate", 6) && !state.combat.noviceFreeCastUsed) {
+  if ((hasSetTier(state, "Novitiate", 6) || hasEffect(state, "rivers_favor")) && !state.combat.noviceFreeCastUsed) {
     state.combat.noviceFreeCastUsed = true;
     cooldown = 0;
     out.push(`First casting's free — the conduit hasn't tired yet.`);
@@ -873,10 +947,15 @@ function useElementAbility(state, elementKey) {
   if (focusActive) elementalDmgMult *= focusMult;
   if (surgeActive) elementalDmgMult *= 1.2;
 
+  // Spell Echo (Legendary) totals whatever damage this cast actually dealt
+  // (0 for Stoneskin, which deals none) so it has something to repeat at
+  // half power after the switch below.
+  let castDamageDealt = 0;
   switch (elementKey) {
     case "fire": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
+      castDamageDealt += dmg;
       out.push(`${ELEMENTS.fire.verb(withThe(creature.name, false))} for ${dmg} damage, and the flame catches.`);
       state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 4)) };
       break;
@@ -884,6 +963,7 @@ function useElementAbility(state, elementKey) {
     case "water": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
+      castDamageDealt += dmg;
       const heal = Math.round(dmg * waterHealPct(state));
       state.health = Math.min(state.maxHealth, state.health + heal);
       out.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${dmg} damage, and the backwash mends you for ${heal}.`);
@@ -907,10 +987,12 @@ function useElementAbility(state, elementKey) {
     case "lightning": {
       const dmg1 = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg1;
+      castDamageDealt += dmg1;
       out.push(`${ELEMENTS.lightning.verb(withThe(creature.name, false))} for ${dmg1} damage —`);
       if (state.combat.hp > 0) {
         const dmg2 = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
         state.combat.hp -= dmg2;
+        castDamageDealt += dmg2;
         out.push(`— and again, for ${dmg2} more before it can react.`);
       }
       break;
@@ -918,6 +1000,7 @@ function useElementAbility(state, elementKey) {
     case "acid": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
+      castDamageDealt += dmg;
       state.combat.corroded = true;
       state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 4;
       out.push(`${ELEMENTS.acid.verb(withThe(creature.name, false))} for ${dmg} damage — its defenses will be weaker against you for the rest of this fight.`);
@@ -926,6 +1009,7 @@ function useElementAbility(state, elementKey) {
     case "force": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
+      castDamageDealt += dmg;
       state.combat.enemyStunned = true;
       out.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${dmg} damage — it reels, stunned.`);
       break;
@@ -933,12 +1017,14 @@ function useElementAbility(state, elementKey) {
     case "transportation": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * 1.3 * elementalDmgMult);
       state.combat.hp -= dmg;
+      castDamageDealt += dmg;
       out.push(`${ELEMENTS.transportation.verb(withThe(creature.name, false))} for ${dmg} damage before it can track where you went.`);
       break;
     }
     case "air": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
+      castDamageDealt += dmg;
       state.combat.evasionTurns = 2;
       out.push(`${ELEMENTS.air.verb(withThe(creature.name, false))} for ${dmg} damage, leaving you lighter on your feet.`);
       break;
@@ -948,6 +1034,16 @@ function useElementAbility(state, elementKey) {
   if (synergy) {
     if (synergy.extraEffect) synergy.extraEffect(state, creature);
     out.push(synergy.message(withThe(creature.name, false)));
+  }
+
+  // Spell Echo (Legendary): a flat 20% chance for this cast's damage to
+  // immediately repeat at half power, checked once per cast regardless of
+  // how many hits it already landed (so Lightning's double-strike doesn't
+  // get two independent rolls).
+  if (state.combat.hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < 0.2) {
+    const echoDmg = Math.max(1, Math.round(castDamageDealt * 0.5));
+    state.combat.hp -= echoDmg;
+    out.push(`The spell echoes — a second casting lands for ${echoDmg} damage.`);
   }
 
   if (state.combat.hp <= 0) {

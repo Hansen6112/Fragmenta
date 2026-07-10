@@ -81,6 +81,29 @@ const EFFECT_DEFS = {
   carapace_adaptation: { name: "Carapace Adaptation", category: "set", description: "Queen Carapace set (6pc). Gain +3 Defense each time you're hit, up to +9, reset at the start of each fight." },
   bleed_exploitation: { name: "Bleed Exploitation", category: "set", description: "Bonecaller set (6pc). Deal 1.20x damage to an enemy currently affected by Bleed." },
   divine_resurgence: { name: "Divine Resurgence", category: "set", description: "Divine set (6pc). Once per fight, surviving damage that would have killed you instead leaves you at 25% max Health." },
+
+  // ---- Legendary-exclusive effects (data/items.js tier 5) ----
+  // Passives reserved for Legendary-tier gear only — none appear on any
+  // lower tier. Three describe mechanics with no existing analog in the
+  // game (an Elite/Boss creature classification for Kingslayer works off
+  // creature.tier>=4 / creature.unique as the closest proxy and IS live;
+  // Unbreakable and Iron Will need a player-facing Defense-reduction/stun
+  // mechanic that doesn't exist anywhere yet, and Overwhelming Force is
+  // explicitly designed for multi-enemy fights, which this engine doesn't
+  // have — all three are registered and inert until those systems exist,
+  // same policy as the inert effects above.
+  kingslayer: { name: "Kingslayer", category: "legendary", description: "Deal +25% damage against Elite and Boss enemies (creature tier 4+, or a unique/named creature)." },
+  last_stand: { name: "Last Stand", category: "legendary", description: "The first time you would die each fight, survive at 1 Health and gain +5 Attack for the remainder of the fight." },
+  rivers_favor: { name: "River's Favor", category: "legendary", description: "Your first elemental ability each fight has no cooldown." },
+  unbreakable: { name: "Unbreakable", category: "legendary", description: "Ignore the first Defense reduction applied to you each fight. Currently inert — nothing in the game yet reduces the player's Defense." },
+  blood_debt: { name: "Blood Debt", category: "legendary", description: "Each enemy killed restores 20% of your max Health." },
+  perfect_balance: { name: "Perfect Balance", category: "legendary", description: "Whenever your Attack and Defense are within 2 points of each other, gain +2 to both during combat." },
+  momentum: { name: "Momentum", category: "legendary", description: "Consecutive attacks deal +10% more damage each, up to +50%. Resets at the start of each fight." },
+  spell_echo: { name: "Spell Echo", category: "legendary", description: "20% chance for an elemental ability's damage to immediately repeat at 50% power." },
+  hunters_instinct: { name: "Hunter's Instinct", category: "legendary", description: "Deal +30% damage on your first action of each fight." },
+  iron_will: { name: "Iron Will", category: "legendary", description: "Immune to Stun effects. Currently inert — nothing in the game yet stuns the player." },
+  overwhelming_force: { name: "Overwhelming Force", category: "legendary", description: "Excess damage beyond a kill carries over to another enemy. Currently inert — this engine only ever has one enemy per fight; future-proofed for multi-enemy combat." },
+  master_duelist: { name: "Master Duelist", category: "legendary", description: "Enemy counterattacks (physical and elemental alike) deal 25% less damage." },
 };
 
 function getEffectDef(effectId) {
