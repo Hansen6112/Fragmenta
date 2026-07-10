@@ -96,7 +96,7 @@ const ITEM_DEFS = {
   "a sahrimor trade dagger": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "monster" },
   "a well-balanced arming sword": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
   "a dwarven mining pick, honed for war": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
-  "a lizardfolk bone-spear": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, source: "monster", set: "Lizardfolk" },
+  "a lizardfolk bone-spear": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, source: "monster" },
   "an ash-tempered war-axe": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, source: "monster" },
   "a Kabal-forged conduit blade": { slot: "mainhand", tier: 4, bonuses: { magic: 4 }, source: "monster" },
 
@@ -107,13 +107,13 @@ const ITEM_DEFS = {
   "a dwarven ironclad buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "a Vaeloris bark-shield, still faintly alive": { slot: "offhand", tier: 3, bonuses: { def: 3 }, source: "monster" },
   "a sahrimori sun-round shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, source: "monster" },
-  "a drake-scale kite shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, source: "monster", set: "Drake Hunter" },
+  "a drake-scale kite shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, source: "monster" },
 
   // Helmet
   "a dented iron skullcap": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster" },
   "a woven desert shemagh": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster" },
   "a legion centurion's helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster" },
-  "a lizardfolk bone-crest helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", set: "Lizardfolk" },
+  "a lizardfolk bone-crest helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "an ash-forged war helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, source: "monster" },
   "a mist-silver circlet": { slot: "helmet", tier: 3, bonuses: { magic: 3 }, source: "monster" },
   "a Kabal conduit-crowned helm": { slot: "helmet", tier: 4, bonuses: { magic: 4 }, source: "monster" },
@@ -125,14 +125,14 @@ const ITEM_DEFS = {
   "a scaled lizardfolk hide vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "an ash-tempered chestplate": { slot: "chest", tier: 3, bonuses: { def: 3 }, source: "monster" },
   "a mist-veil robe, cool to the touch": { slot: "chest", tier: 3, bonuses: { magic: 3 }, source: "monster" },
-  "a drake-scale cuirass": { slot: "chest", tier: 4, bonuses: { def: 4 }, source: "monster", set: "Drake Hunter" },
+  "a drake-scale cuirass": { slot: "chest", tier: 4, bonuses: { def: 4 }, source: "monster" },
 
   // Gloves
   "worn leather gloves": { slot: "gloves", tier: 1, bonuses: { def: 1 }, source: "monster" },
   "a pair of desert wrap-cloths": { slot: "gloves", tier: 1, bonuses: { atk: 1 }, source: "monster" },
   "reinforced legion vambraces": { slot: "gloves", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "dwarven forge-gauntlets": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, source: "monster" },
-  "lizardfolk claw-guards": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, source: "monster", set: "Lizardfolk" },
+  "lizardfolk claw-guards": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, source: "monster" },
   "ash-runed gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, source: "monster" },
   "conduit-threaded gloves, warm to the touch": { slot: "gloves", tier: 4, bonuses: { magic: 4 }, source: "monster" },
 
@@ -151,7 +151,7 @@ const ITEM_DEFS = {
   "a merchant's brass seal-ring": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, source: "monster" },
   "a legion officer's ring": { slot: "rings", tier: 2, bonuses: { atk: 2 }, source: "monster" },
   "a Kabal apprentice's warded ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, source: "monster" },
-  "a lizardfolk bone ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, source: "monster", set: "Lizardfolk" },
+  "a lizardfolk bone ring": { slot: "rings", tier: 3, bonuses: { magic: 3 }, source: "monster" },
   "a conduit-set ring, faintly humming": { slot: "rings", tier: 4, bonuses: { magic: 4 }, source: "monster" },
 
   // Necklace
@@ -160,7 +160,7 @@ const ITEM_DEFS = {
   "a merchant's coin necklace": { slot: "necklace", tier: 2, bonuses: { knowledge: 2 }, source: "monster" },
   "a dwarven clan-chain": { slot: "necklace", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "a Kabal novitiate's warded pendant": { slot: "necklace", tier: 3, bonuses: { magic: 3 }, source: "monster" },
-  "a drake-tooth necklace": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, source: "monster", set: "Drake Hunter" },
+  "a drake-tooth necklace": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, source: "monster" },
   "an amethyst conduit pendant": { slot: "necklace", tier: 4, bonuses: { magic: 4 }, source: "monster" },
 
   // Cloak
@@ -170,7 +170,7 @@ const ITEM_DEFS = {
   "a dwarven ash-cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "a Vaeloris leaf-cloak, near invisible in the canopy": { slot: "cloak", tier: 3, bonuses: { knowledge: 3 }, source: "monster" },
   "a mist-touched traveling cloak": { slot: "cloak", tier: 3, bonuses: { magic: 3 }, source: "monster" },
-  "a drakeskin cloak, warm against any cold": { slot: "cloak", tier: 4, bonuses: { def: 4 }, source: "monster", set: "Drake Hunter" },
+  "a drakeskin cloak, warm against any cold": { slot: "cloak", tier: 4, bonuses: { def: 4 }, source: "monster" },
 
   // Trinkets
   "a lucky river stone": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, source: "monster" },
@@ -178,7 +178,7 @@ const ITEM_DEFS = {
   "a merchant's lucky coin": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, source: "monster" },
   "a dwarven luck-rune": { slot: "trinkets", tier: 2, bonuses: { def: 2 }, source: "monster" },
   "a Kabal-blessed focus stone": { slot: "trinkets", tier: 3, bonuses: { magic: 3 }, source: "monster" },
-  "a lizardfolk totem charm": { slot: "trinkets", tier: 3, bonuses: { health: 3 }, source: "monster", set: "Lizardfolk" },
+  "a lizardfolk totem charm": { slot: "trinkets", tier: 3, bonuses: { health: 3 }, source: "monster" },
   "a fragment of warded glass, humming faintly": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, source: "monster" },
 
   // ---- batch 2: weapons/armor with effects, across all slots and sources ----
@@ -213,7 +213,7 @@ const ITEM_DEFS = {
   // Completes the Drake Hunter set (data/sets.js) — its other pieces
   // (cuirass/shield/necklace/cloak) are all flat-stat, no-effect
   // Masterwork drake gear too, so this matches that pattern.
-  "a drakebone hunting bow, fletched with shed scale": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, source: "monster", set: "Drake Hunter" },
+  "a drakebone hunting bow, fletched with shed scale": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, source: "monster" },
 
   // Off Hand
   "a hide-covered round shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "shop" },
@@ -249,7 +249,7 @@ const ITEM_DEFS = {
   "a quilted legion gambeson": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "shop" },
   "a Vaeloris reed-woven vest": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "shop" },
   "a Sahrimori caravan coat": { slot: "chest", tier: 1, bonuses: { knowledge: 1 }, source: "shop", set: "Sahrimor" },
-  "a lizardfolk scale jerkin": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["corrosionproof"], source: "monster", set: "Lizardfolk" },
+  "a lizardfolk scale jerkin": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["corrosionproof"], source: "monster" },
   "a legion officer's mail coat": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "job" },
   "a dwarven forge apron lined with rings": { slot: "chest", tier: 2, bonuses: { atk: 1, def: 1 }, effects: ["heatproof"], source: "monster" },
   "a Vaeloris ranger's leafweave coat": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "contract", set: "Vaeloris" },
@@ -288,7 +288,7 @@ const ITEM_DEFS = {
   "legion relay boots bearing official seals": { slot: "boots", tier: 4, bonuses: { knowledge: 4 }, effects: ["trailwise", "ambush_sense"], source: "contract" },
   "Vaeloris shadowleaf boots": { slot: "boots", tier: 4, bonuses: { knowledge: 3, def: 1 }, effects: ["ambush_mastery"], source: "monster", set: "Vaeloris" },
   "Norrvael mist-crossing greaves": { slot: "boots", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["evasive_guard"], source: "contract", set: "Norrvael" },
-  "boots made from pale drake hide": { slot: "boots", tier: 4, bonuses: { def: 3, atk: 1 }, effects: ["coldproof", "surefooted"], source: "monster", set: "Drake Hunter" },
+  "boots made from pale drake hide": { slot: "boots", tier: 4, bonuses: { def: 3, atk: 1 }, effects: ["coldproof", "surefooted"], source: "monster" },
 
   // Rings
   "a stamped iron service ring": { slot: "rings", tier: 1, bonuses: { def: 1 }, source: "monster" },
@@ -350,7 +350,7 @@ const ITEM_DEFS = {
   "a fragment of living bark that closes around cuts": { slot: "trinkets", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "monster" },
   "a perfectly measured capsule of elemental dust": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, effects: ["surging_conduit"], source: "contract" },
   "an intact construct-control seal with no registered owner": { slot: "trinkets", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["unsettling", "tactical_memory"], source: "monster" },
-  "a drake's shed eye-scale, polished into a lens": { slot: "trinkets", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["ambush_sense", "patient_aim"], source: "monster", set: "Drake Hunter" },
+  "a drake's shed eye-scale, polished into a lens": { slot: "trinkets", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["ambush_sense", "patient_aim"], source: "monster" },
 
   // ---- Siege Corps set (14 items) ----
   "a siege engineer's war pick": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["armor_crack"], source: "contract", set: "Siege Corps" },
@@ -763,6 +763,82 @@ const ITEM_DEFS = {
   "a white mantle": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["ambush_mastery"], source: "contract", set: "White Watch" },
   "a watch captain's badge": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["tactical_memory"], source: "monster", set: "White Watch" },
   "a silver whistle": { slot: "trinkets", tier: 3, bonuses: { atk: 2, knowledge: 1 }, effects: ["ambush_sense"], source: "monster", set: "White Watch" },
+
+  // ---- Lizardfolk set (16 items; the earlier 6 monster-drop Lizardfolk
+  // items predating this table were untagged back to ordinary loot rather
+  // than left as excess duplicates, matching the Legion precedent) ----
+  "a bone fang spear": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["opening_reach"], source: "monster", set: "Lizardfolk" },
+  "a marsh cleaver": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "monster", set: "Lizardfolk" },
+  "a spine club": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["crushing_impact"], source: "monster", set: "Lizardfolk" },
+  "a scale buckler": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["corrosionproof"], source: "monster", set: "Lizardfolk" },
+  "a bone guard shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["stalwart"], source: "monster", set: "Lizardfolk" },
+  "a crest helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["corrosionproof"], source: "monster", set: "Lizardfolk" },
+  "a marsh scale harness": { slot: "chest", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["corrosionproof"], source: "monster", set: "Lizardfolk" },
+  "clawguard gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "monster", set: "Lizardfolk" },
+  "marsh stalker boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["surefooted"], source: "monster", set: "Lizardfolk" },
+  "a bone totem ring": { slot: "rings", tier: 3, bonuses: { health: 2, magic: 1 }, effects: ["corrosionproof"], source: "monster", set: "Lizardfolk" },
+  "a swamp hunter band": { slot: "rings", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "monster", set: "Lizardfolk" },
+  "a fang trophy necklace": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "monster", set: "Lizardfolk" },
+  "a marshhide cloak": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["ambush_sense"], source: "monster", set: "Lizardfolk" },
+  "a preserved venom sac": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, effects: ["elemental_focus"], source: "monster", set: "Lizardfolk" },
+  "a carved totem charm": { slot: "trinkets", tier: 3, bonuses: { health: 3 }, effects: ["corrosionproof"], source: "monster", set: "Lizardfolk" },
+  "an ancient marsh idol": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "monster", set: "Lizardfolk" },
+
+  // ---- Drake Hunter set (16 items; the earlier 7 monster-drop Drake
+  // Hunter items predating this table were untagged back to ordinary loot,
+  // same reasoning as Lizardfolk above) ----
+  "a drakebone greatsword": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["executioner"], source: "monster", set: "Drake Hunter" },
+  "a drakefang spear": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["opening_reach"], source: "monster", set: "Drake Hunter" },
+  "a scale cleaver": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["armor_crack"], source: "monster", set: "Drake Hunter" },
+  "a drake scale shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["heatproof"], source: "monster", set: "Drake Hunter" },
+  "a drakehide buckler": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster", set: "Drake Hunter" },
+  "a drake skull helm": { slot: "helmet", tier: 4, bonuses: { def: 4 }, effects: ["heatproof"], source: "monster", set: "Drake Hunter" },
+  "a drake scale cuirass": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["heatproof"], source: "monster", set: "Drake Hunter" },
+  "talon gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "monster", set: "Drake Hunter" },
+  "drakehide boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["surefooted"], source: "monster", set: "Drake Hunter" },
+  "a scale band": { slot: "rings", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "monster", set: "Drake Hunter" },
+  "a hunter's trophy ring": { slot: "rings", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "monster", set: "Drake Hunter" },
+  "a drake tooth necklace": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "monster", set: "Drake Hunter" },
+  "a drakehide mantle": { slot: "cloak", tier: 4, bonuses: { def: 3, atk: 1 }, effects: ["heatproof"], source: "monster", set: "Drake Hunter" },
+  "a polished drake fang": { slot: "trinkets", tier: 4, bonuses: { atk: 4 }, effects: ["armor_crack"], source: "monster", set: "Drake Hunter" },
+  "a drake eye lens": { slot: "trinkets", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["ambush_sense"], source: "monster", set: "Drake Hunter" },
+  "a hardened heart scale": { slot: "trinkets", tier: 4, bonuses: { def: 2, health: 2 }, effects: ["heatproof"], source: "monster", set: "Drake Hunter" },
+
+  // ---- Queen Carapace set (16 items) ----
+  "a serrated carapace blade": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "monster", set: "Queen Carapace" },
+  "a queen spine lance": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["opening_reach"], source: "monster", set: "Queen Carapace" },
+  "a chitin crusher": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["crushing_impact"], source: "monster", set: "Queen Carapace" },
+  "a layered carapace shield": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["corrosionproof"], source: "monster", set: "Queen Carapace" },
+  "a hive guard buckler": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "monster", set: "Queen Carapace" },
+  "a queen carapace helm": { slot: "helmet", tier: 4, bonuses: { def: 4 }, effects: ["corrosionproof"], source: "monster", set: "Queen Carapace" },
+  "layered carapace armor": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["corrosionproof"], source: "monster", set: "Queen Carapace" },
+  "chitin claw gloves": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "monster", set: "Queen Carapace" },
+  "hive walker boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["surefooted"], source: "monster", set: "Queen Carapace" },
+  "a resin band": { slot: "rings", tier: 3, bonuses: { def: 3 }, effects: ["corrosionproof"], source: "monster", set: "Queen Carapace" },
+  "a hive queen ring": { slot: "rings", tier: 3, bonuses: { def: 2, health: 1 }, effects: ["stalwart"], source: "monster", set: "Queen Carapace" },
+  "a queen mandible pendant": { slot: "necklace", tier: 3, bonuses: { def: 3 }, effects: ["corrosionproof"], source: "monster", set: "Queen Carapace" },
+  "a carapace mantle": { slot: "cloak", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster", set: "Queen Carapace" },
+  "a royal resin core": { slot: "trinkets", tier: 4, bonuses: { def: 4 }, effects: ["corrosionproof"], source: "monster", set: "Queen Carapace" },
+  "a hardened egg fragment": { slot: "trinkets", tier: 4, bonuses: { def: 2, health: 2 }, effects: ["regrowth"], source: "monster", set: "Queen Carapace" },
+  "a luminous carapace shard": { slot: "trinkets", tier: 4, bonuses: { magic: 2, def: 2 }, effects: ["spell_ward"], source: "monster", set: "Queen Carapace" },
+
+  // ---- Elder Bark set (16 items) ----
+  "an elder bark staff": { slot: "mainhand", tier: 4, bonuses: { magic: 4 }, effects: ["regrowth"], source: "job", set: "Elder Bark" },
+  "a living branch spear": { slot: "mainhand", tier: 3, bonuses: { atk: 2, magic: 1 }, effects: ["opening_reach"], source: "job", set: "Elder Bark" },
+  "a grovekeeper bow": { slot: "mainhand", tier: 4, bonuses: { atk: 3, knowledge: 1 }, effects: ["patient_aim"], source: "job", set: "Elder Bark" },
+  "a living bark shield": { slot: "offhand", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "a rootwoven guard": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "an elder crown": { slot: "helmet", tier: 4, bonuses: { magic: 4 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "living bark plate": { slot: "chest", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "rootwoven gloves": { slot: "gloves", tier: 3, bonuses: { def: 2, health: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "ancient root boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "job", set: "Elder Bark" },
+  "a living seed ring": { slot: "rings", tier: 3, bonuses: { health: 2, magic: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "an elderwood band": { slot: "rings", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "job", set: "Elder Bark" },
+  "a warden vine pendant": { slot: "necklace", tier: 3, bonuses: { health: 2, def: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "an elder canopy cloak": { slot: "cloak", tier: 4, bonuses: { knowledge: 3, magic: 1 }, effects: ["ambush_sense"], source: "job", set: "Elder Bark" },
+  "an ancient seed": { slot: "trinkets", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "a heartwood core": { slot: "trinkets", tier: 4, bonuses: { health: 4 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "a living sap crystal": { slot: "trinkets", tier: 4, bonuses: { magic: 2, health: 2 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
