@@ -21,6 +21,15 @@ function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// Combat targets are either a static BESTIARY entry (creatureId is a
+// string key) or a dynamically generated one, like an enemy mage
+// (creatureId is that object's own id, and the full object is stashed on
+// state.combat.creatureObj since it isn't in BESTIARY to look up).
+function getCombatCreature(state) {
+  if (!state.combat) return null;
+  return state.combat.creatureObj || BESTIARY[state.combat.creatureId];
+}
+
 // Creature names that are already articled ("The Turned") or proper nouns
 // ("Druith, the Ancient") shouldn't get a second "A"/"An"/"the" stuck in front.
 function isSelfArticled(name) {
@@ -58,13 +67,18 @@ function effectivePlayerDef(state) {
 // multiplier tied to the Magic stat itself makes a mage's damage compound
 // as they grow rather than scale linearly like a fighter's, and Acid's
 // Corrode applies a lasting defense penalty to the target on top of that.
-function rollPlayerDamage(state, creature) {
+// activeElement (the element flavoring THIS cast) also gets checked against
+// the target's own element, if it has one (an enemy mage), via
+// data/matchups.js — fighters and non-elemental creatures are untouched by
+// this since one side is always missing an element.
+function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
   if (state.flags.isMage && state.primaryElement) {
     const base = randInt(state.magic - 2, state.magic + 2);
     const multiplier = 1 + state.magic / 40;
+    const matchup = elementMultiplier(activeElement, creature.element);
     const effDef = Math.max(0, creature.def - defPenalty);
-    return Math.max(1, Math.round(base * multiplier) - Math.floor(effDef / 10));
+    return Math.max(1, Math.round(base * multiplier * matchup) - Math.floor(effDef / 10));
   }
   const effDef = Math.max(0, creature.def - defPenalty);
   return Math.max(1, randInt(state.atk - 2, state.atk + 2) - Math.floor(effDef / 3));
@@ -77,9 +91,13 @@ function pickElement(state) {
   return state.primaryElement;
 }
 
-function attackFlavorLine(state, creature, dmg) {
+// activeElement must be the SAME value already passed to rollPlayerDamage
+// for this hit — computing it independently here risked picking a different
+// element for the flavor text than the one the damage roll (and any
+// matchup multiplier) was actually based on.
+function attackFlavorLine(state, creature, dmg, activeElement) {
   if (state.flags.isMage && state.primaryElement) {
-    const el = ELEMENTS[pickElement(state)];
+    const el = ELEMENTS[activeElement || pickElement(state)];
     return `${el.verb(withThe(creature.name, false))} for ${dmg} damage.`;
   }
   return `You strike ${withThe(creature.name, false)} for ${dmg} damage.`;
@@ -100,7 +118,7 @@ function beginTurn(state) {
   if (combat.defBuffTurns > 0) combat.defBuffTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   if (combat.burn && combat.burn.turnsLeft > 0) {
-    const creature = BESTIARY[combat.creatureId];
+    const creature = getCombatCreature(state);
     combat.hp -= combat.burn.dmgPerTurn;
     lines.push(`The flames still burn ${withThe(creature.name, false)} for ${combat.burn.dmgPerTurn} damage.`);
     combat.burn.turnsLeft -= 1;
@@ -112,6 +130,10 @@ function beginTurn(state) {
 // Resolves the enemy's retaliation for this turn, respecting Force's stun
 // and Air's evasion window, and Earth's defense buff. Shared by every
 // action that lets the enemy hit back on a normal (non-fatal) turn.
+// Enemy mages (creature.element set) counter with magic instead of a
+// physical attack stat, and their element is checked against the player's
+// own active element (if any) through the same matchup table used for the
+// player's own casts — so the strengths/weaknesses run both directions.
 function resolveEnemyRetaliation(state, creature, atkSpread) {
   const combat = state.combat;
   if (combat.enemyStunned) {
@@ -120,6 +142,17 @@ function resolveEnemyRetaliation(state, creature, atkSpread) {
   }
   if (combat.evasionTurns > 0 && Math.random() < 0.5) {
     return [`You slip past ${withThe(creature.name, false)}'s counter entirely.`];
+  }
+  if (creature.element) {
+    const defenderElement = state.flags.isMage ? state.primaryElement : null;
+    const matchup = elementMultiplier(creature.element, defenderElement);
+    const base = randInt(creature.magic - 2, creature.magic + 2);
+    const edmg = Math.max(0, Math.round(base * matchup) - Math.floor(effectivePlayerDef(state) / 10));
+    state.health -= edmg;
+    const elName = ELEMENTS[creature.element].name.toLowerCase();
+    const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`];
+    if (state.health <= 0) lines.push(`Everything goes dark.`);
+    return lines;
   }
   const atk = effectiveEnemyAtk(state, creature);
   const edmg = Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state));
@@ -168,10 +201,15 @@ function tacticsLine(state) {
   return `(fight / flee / ${usable.join(" / ")})`;
 }
 
-function startCombat(state, creatureId) {
-  const creature = BESTIARY[creatureId];
+// creatureIdOrObject is either a BESTIARY key (string) or a dynamically
+// generated combat target like an enemy mage (a full object, with its own
+// .id) — see data/enemymages.js generateEnemyMage.
+function startCombat(state, creatureIdOrObject) {
+  const isDynamic = typeof creatureIdOrObject === "object";
+  const creature = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject];
   state.combat = {
-    creatureId,
+    creatureId: isDynamic ? creature.id : creatureIdOrObject,
+    creatureObj: isDynamic ? creature : null,
     name: creature.name,
     hp: creature.hp,
     maxHp: creature.hp,
@@ -213,7 +251,7 @@ function resolveKill(state, creature) {
 
 function playerAttack(state) {
   if (!state.combat) return ["There's nothing here to fight."];
-  const creature = BESTIARY[state.combat.creatureId];
+  const creature = getCombatCreature(state);
   if (creature.friendly) {
     return [`${withThe(creature.name, true)} has done you no harm. Attacking it seems both unwise and unkind.`];
   }
@@ -225,14 +263,15 @@ function playerAttack(state) {
     return out;
   }
 
-  let dmg = rollPlayerDamage(state, creature);
+  const activeElement = state.flags.isMage && state.primaryElement ? pickElement(state) : null;
+  let dmg = rollPlayerDamage(state, creature, activeElement);
   if (state.combat.nextAttackBonus) {
     dmg = Math.round(dmg * 1.6);
     state.combat.nextAttackBonus = false;
     out.push("Your feint pays off —");
   }
   state.combat.hp -= dmg;
-  out.push(attackFlavorLine(state, creature, dmg));
+  out.push(attackFlavorLine(state, creature, dmg, activeElement));
 
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -247,7 +286,7 @@ function playerAttack(state) {
 
 function attemptFlee(state) {
   if (!state.combat) return ["There's nothing to flee from."];
-  const creature = BESTIARY[state.combat.creatureId];
+  const creature = getCombatCreature(state);
 
   const chance = 0.6 - creature.tier * 0.08 + (state.stealthMod || 0);
   if (Math.random() < chance) {
@@ -276,7 +315,7 @@ function attemptFlee(state) {
 function useFeint(state) {
   if (!state.combat) return ["There's nothing here to feint at."];
   if (state.flags.isMage) return ["Feinting isn't how your magic works. Try your element's ability instead."];
-  const creature = BESTIARY[state.combat.creatureId];
+  const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. A feint would be wasted.`];
   const t = TACTICS.feint;
   if (state.knowledge < t.knowledgeReq) return [`You don't know how to feint yet. (needs Knowledge ${t.knowledgeReq}+)`];
@@ -301,7 +340,7 @@ function useFeint(state) {
 function useDecoy(state) {
   if (!state.combat) return ["There's nothing here to use that on."];
   if (state.flags.isMage) return ["Decoys aren't how your magic works. Try your element's ability instead."];
-  const creature = BESTIARY[state.combat.creatureId];
+  const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
   const t = TACTICS.decoy;
   if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
@@ -334,7 +373,7 @@ function useDecoy(state) {
 function useAmbush(state) {
   if (!state.combat) return ["There's nothing here to ambush."];
   if (state.flags.isMage) return ["Ambush isn't how your magic works. Try your element's ability instead."];
-  const creature = BESTIARY[state.combat.creatureId];
+  const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} hasn't given you a reason to ambush it.`];
   const t = TACTICS.ambush;
   if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
@@ -364,7 +403,7 @@ function useAmbush(state) {
 function useDisarm(state) {
   if (!state.combat) return ["There's nothing here to disarm."];
   if (state.flags.isMage) return ["Disarm isn't how your magic works. Try your element's ability instead."];
-  const creature = BESTIARY[state.combat.creatureId];
+  const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't armed against you. Nothing to disarm.`];
   const t = TACTICS.disarm;
   if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
@@ -402,7 +441,7 @@ function useDisarm(state) {
 function useElementAbility(state, elementKey) {
   const a = ELEMENT_ABILITIES[elementKey];
   if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
-  const creature = BESTIARY[state.combat.creatureId];
+  const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. Save it.`];
   if (elementKey !== state.primaryElement && elementKey !== state.secondaryElement) {
     return [`You haven't opened yourself to ${ELEMENTS[elementKey].name}.`];
@@ -428,14 +467,14 @@ function useElementAbility(state, elementKey) {
 
   switch (elementKey) {
     case "fire": {
-      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
       state.combat.hp -= dmg;
       out.push(`${ELEMENTS.fire.verb(withThe(creature.name, false))} for ${dmg} damage, and the flame catches.`);
       state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 4)) };
       break;
     }
     case "water": {
-      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
       state.combat.hp -= dmg;
       const heal = Math.round(dmg * 0.5);
       state.health = Math.min(state.maxHealth, state.health + heal);
@@ -449,18 +488,18 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "lightning": {
-      const dmg1 = Math.round(rollPlayerDamage(state, creature) * dmgMult);
+      const dmg1 = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
       state.combat.hp -= dmg1;
       out.push(`${ELEMENTS.lightning.verb(withThe(creature.name, false))} for ${dmg1} damage —`);
       if (state.combat.hp > 0) {
-        const dmg2 = Math.round(rollPlayerDamage(state, creature) * dmgMult);
+        const dmg2 = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
         state.combat.hp -= dmg2;
         out.push(`— and again, for ${dmg2} more before it can react.`);
       }
       break;
     }
     case "acid": {
-      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
       state.combat.hp -= dmg;
       state.combat.corroded = true;
       state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 4;
@@ -468,20 +507,20 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "force": {
-      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
       state.combat.hp -= dmg;
       state.combat.enemyStunned = true;
       out.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${dmg} damage — it reels, stunned.`);
       break;
     }
     case "transportation": {
-      const dmg = Math.round(rollPlayerDamage(state, creature) * 1.3 * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * 1.3 * dmgMult);
       state.combat.hp -= dmg;
       out.push(`${ELEMENTS.transportation.verb(withThe(creature.name, false))} for ${dmg} damage before it can track where you went.`);
       break;
     }
     case "air": {
-      const dmg = Math.round(rollPlayerDamage(state, creature) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
       state.combat.hp -= dmg;
       state.combat.evasionTurns = 2;
       out.push(`${ELEMENTS.air.verb(withThe(creature.name, false))} for ${dmg} damage, leaving you lighter on your feet.`);

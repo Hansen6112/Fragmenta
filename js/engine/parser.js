@@ -83,12 +83,12 @@ async function handleInput(rawInput, state) {
     if (verb === "ambush") return useAmbush(state);
     if (verb === "disarm") return useDisarm(state);
     if (ELEMENT_VERB_TO_KEY[verb]) return useElementAbility(state, ELEMENT_VERB_TO_KEY[verb]);
-    if (verb === "leave" && BESTIARY[state.combat.creatureId].friendly) {
+    if (verb === "leave" && getCombatCreature(state).friendly) {
       const name = state.combat.name;
       state.combat = null;
       return [`You leave ${withThe(name, false)} in peace.`];
     }
-    if (verb === "talk" && BESTIARY[state.combat.creatureId].friendly) {
+    if (verb === "talk" && getCombatCreature(state).friendly) {
       state.combat = null;
       state.health = Math.min(state.maxHealth, state.health + 6);
       return [
@@ -97,7 +97,7 @@ async function handleInput(rawInput, state) {
       ];
     }
     if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "skills" && verb !== "choose") {
-      const friendly = BESTIARY[state.combat.creatureId].friendly;
+      const friendly = getCombatCreature(state).friendly;
       const usable = friendly ? [] : availableActionNames(state);
       const options = ["fight", "flee", ...usable, ...(friendly ? ["talk", "leave"] : [])];
       return [`You're in the middle of an encounter. (${options.join(" / ")})`];
@@ -245,15 +245,20 @@ function executeTravel(state, path, totalDays) {
     const repMod = reputationFor(state, legLoc.nation) === "hostile" ? 0.05 : 0;
     const chance = Math.max(0, Math.min(0.5, legDanger * 0.07 + repMod - (state.stealthMod || 0) * 0.3));
     if (Math.random() < chance) {
-      const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
-      const pool = creaturesForTags(tags, legLoc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
-      if (pool.length) {
-        const creatureId = pool[Math.floor(Math.random() * pool.length)];
+      let combatant = null;
+      if (Math.random() < ENEMY_MAGE_CHANCE) {
+        combatant = generateEnemyMage(legLoc.nation, legDanger);
+      } else {
+        const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
+        const pool = creaturesForTags(tags, legLoc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
+        if (pool.length) combatant = pool[Math.floor(Math.random() * pool.length)];
+      }
+      if (combatant) {
         state.day += totalDays;
         state.location = path[i];
         state.visit(path[i]);
         lines.push(`Along the way, near ${legLoc.name}:`);
-        lines.push(...startCombat(state, creatureId));
+        lines.push(...startCombat(state, combatant));
         return lines;
       }
     }
@@ -616,6 +621,9 @@ function cmdExplore(state) {
   const encounterChance = Math.max(0.05, 0.35 - (state.stealthMod || 0));
   const roll = Math.random();
   if (roll < encounterChance) {
+    if (Math.random() < ENEMY_MAGE_CHANCE) {
+      return startCombat(state, generateEnemyMage(loc.nation, loc.danger || 1));
+    }
     const pool = creaturesForTags(tags, loc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
     if (pool.length) {
       const creatureId = pool[Math.floor(Math.random() * pool.length)];
