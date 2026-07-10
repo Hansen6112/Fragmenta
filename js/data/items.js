@@ -1751,6 +1751,18 @@ const ITEM_DEFS = {
   "Ring of Lucky Misfortune": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["unlikely_outcome"], source: "monster", set: "Regalia of the Laughing Gale" },
   "Boots of the Wandering Wind": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["never_where_expected"], source: "monster", set: "Regalia of the Laughing Gale" },
   "Gambler's Coin": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["double_or_nothing"], source: "monster", set: "Regalia of the Laughing Gale" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Eternal Bastion (Xalaxar) ----
+  // "Ageless Bulwark" replaces the source text's "Bulwark of Ages" — that
+  // exact name is already taken by an existing Legendary-tier offhand item
+  // (js/data/items.js, tier 5, "unbreakable"), and ITEM_DEFS keys must be
+  // unique.
+  "Foundation's Hammer": { slot: "mainhand", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["stones_patience"], source: "monster", set: "Regalia of the Eternal Bastion" },
+  "Ageless Bulwark": { slot: "offhand", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["unyielding_wall"], source: "monster", set: "Regalia of the Eternal Bastion" },
+  "Stonewarden Plate": { slot: "chest", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["bedrock"], source: "monster", set: "Regalia of the Eternal Bastion" },
+  "Ring of Immutable Law": { slot: "rings", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["ordered_mind"], source: "monster", set: "Regalia of the Eternal Bastion" },
+  "Stillwarden Greaves": { slot: "boots", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["grounded"], source: "monster", set: "Regalia of the Eternal Bastion" },
+  "Keystone of Endurance": { slot: "trinkets", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["lasting_foundation"], source: "monster", set: "Regalia of the Eternal Bastion" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

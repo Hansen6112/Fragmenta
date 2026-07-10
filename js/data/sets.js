@@ -422,6 +422,15 @@ const SETS = {
       6: { effects: ["avatar_of_chaos"], description: "Avatar of Chaos — once per combat, dropping below 25% Health grants 4 rounds of randomized damage, doubled Critical Chance, and a random stat burst on every crit" },
     },
   },
+  "Regalia of the Eternal Bastion": {
+    theme: "Xalaxar's gifts to those who do not break.",
+    god: "Xalaxar",
+    bonuses: {
+      2: { effects: ["blessing_of_stone"], description: "Blessing of Stone — 15% Damage Reduction whenever Health is above 50%" },
+      4: { effects: ["walls_endure"], description: "Walls Endure — each hit taken grants +1 Defense, capped at +20, resetting after combat" },
+      6: { effects: ["avatar_of_endurance"], description: "Avatar of Endurance — once per combat, dropping below 25% Health grants 4 rounds of halved damage taken, +50% healing received, and a stat burst on every hit taken" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

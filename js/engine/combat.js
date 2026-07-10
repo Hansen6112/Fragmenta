@@ -83,7 +83,7 @@ function effectiveEnemyAtk(state, creature) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0);
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0);
 }
 
 // Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
@@ -233,6 +233,10 @@ function applyHeal(state, amount) {
   // doubled for its 4-round window, stacking multiplicatively on top of
   // Flourishing Soul/Blessing of Compassion above.
   if (combat && combat.avatarOfDevotionTurns > 0) amt = Math.round(amt * 2);
+  // Avatar of Endurance (Regalia of the Eternal Bastion 6pc): +50% healing
+  // received for its 4-round window, stacking multiplicatively on top of
+  // everything above.
+  if (combat && combat.avatarOfEnduranceTurns > 0) amt = Math.round(amt * 1.5);
   const before = state.health;
   state.health = Math.min(state.maxHealth, state.health + amt);
   const healed = state.health - before;
@@ -469,6 +473,38 @@ function avatarOfDevotionDamageMultiplier(state) {
   return state.combat && state.combat.avatarOfDevotionTurns > 0 ? 0.65 : 1;
 }
 
+// Blessing of Stone (Regalia of the Eternal Bastion 2pc): 15% Damage
+// Reduction whenever current Health is above 50% max — a live, unconditional
+// check against the CURRENT Health at the moment the hit lands (not a
+// once-per-fight or stacking effect), layered into the same chain as
+// Avatar of Devotion above.
+function blessingOfStoneMultiplier(state) {
+  return hasSetTier(state, "Regalia of the Eternal Bastion", 2) && state.health > state.maxHealth * 0.5 ? 0.85 : 1;
+}
+
+// Avatar of Endurance (Regalia of the Eternal Bastion 6pc): a flat 50% cut
+// to all incoming damage for its 4-round window — the strongest of the
+// eight "Avatar of X" damage-reduction effects, fitting for the most
+// defensively-themed god's own capstone.
+function avatarOfEnduranceDamageMultiplier(state) {
+  return state.combat && state.combat.avatarOfEnduranceTurns > 0 ? 0.5 : 1;
+}
+
+// Unyielding Wall (Divine Regalia — Bulwark of Ages): the first hit that
+// would exceed 25% of max Health instead deals exactly 25%, usable again
+// every 3 rounds (unlike Shared Burden's once-per-fight gate) — a direct
+// damage-value cap rather than a percentage multiplier, so it's applied
+// as the very last step in the chain, on the fully-mitigated damage value.
+function applyUnyieldingWall(state, dmg) {
+  if (!hasEffect(state, "unyielding_wall") || !state.combat) return dmg;
+  const combat = state.combat;
+  if ((combat.unyieldingWallCooldown || 0) > 0) return dmg;
+  const cap = Math.round(state.maxHealth * 0.25);
+  if (dmg <= cap) return dmg;
+  combat.unyieldingWallCooldown = 3;
+  return cap;
+}
+
 // Worthy Challenge (Divine Regalia — Warfather's Edge): "the enemy with
 // the highest current Health" is trivially always THE enemy in this
 // engine's single-target combat model, so this is unconditional — every
@@ -565,7 +601,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
     const everyChoiceAtk = state.combat.everyChoiceAtkStacks || 0;
     const battleTemperedAtk = state.combat.battleTemperedAtkStacks || 0;
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0);
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0) + (state.combat.avatarOfEnduranceAtkBonus || 0);
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
@@ -723,6 +759,14 @@ function beginTurn(state) {
       combat.avatarOfChaosKnowledgeBonus = 0;
     }
   }
+  if (combat.avatarOfEnduranceTurns > 0) {
+    combat.avatarOfEnduranceTurns -= 1;
+    if (combat.avatarOfEnduranceTurns === 0) {
+      combat.avatarOfEnduranceAtkBonus = 0;
+      combat.avatarOfEnduranceDefBonus = 0;
+    }
+  }
+  if (combat.unyieldingWallCooldown > 0) combat.unyieldingWallCooldown -= 1;
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
@@ -800,6 +844,18 @@ function beginTurn(state) {
   }
   lines.push(...applyHeartwoodVitality(state));
   lines.push(...applyLivingSteel(state));
+  // Lasting Foundation (Divine Regalia — Keystone of Endurance): at the end
+  // of every third combat round, restore 10% max Health — reuses the same
+  // combat.actionCounter Heartwood Vitality/Calming Presence already read,
+  // checked right after applyHeartwoodVitality has incremented it for
+  // this round.
+  if (hasEffect(state, "lasting_foundation") && combat.actionCounter % 3 === 0) {
+    const lastingFoundationHeal = Math.ceil(state.maxHealth * 0.1);
+    if (lastingFoundationHeal > 0) {
+      const { healed, lines: healLines } = applyHeal(state, lastingFoundationHeal);
+      if (healed > 0) lines.push(`Lasting Foundation mends you for ${healed} health.`, ...healLines);
+    }
+  }
   return lines;
 }
 
@@ -880,6 +936,24 @@ function applyPlayerDamage(state, dmg) {
     if (absorbed > 0) lines.push(`Your Temporary Health absorbs ${absorbed} of it.`);
   }
   state.health -= remaining;
+  // Walls Endure (Regalia of the Eternal Bastion 4pc): +1 Defense every
+  // time damage is actually taken (the raw pre-absorption amount, gated by
+  // this function's own dmg > 0 check above — an attack connected, whether
+  // or not Temporary Health cushioned the real Health loss), capped at
+  // +20. "Resets after combat" is automatic — a fresh fight always starts
+  // this at 0 via startCombat's initializer.
+  if (combat && hasSetTier(state, "Regalia of the Eternal Bastion", 4)) {
+    combat.wallsEndureDefStacks = Math.min(20, (combat.wallsEndureDefStacks || 0) + 1);
+  }
+  // Avatar of Endurance (Regalia of the Eternal Bastion 6pc): during its
+  // 4-round window, every hit taken also grants +2 Attack/+2 Defense,
+  // capped at +20/+20 for the window's duration — silent, the same
+  // "roll/hit-time side effect with no narration channel" precedent Soul
+  // Leech/Momentum/Blessing of Fortune's stack growth already established.
+  if (combat && combat.avatarOfEnduranceTurns > 0) {
+    combat.avatarOfEnduranceAtkBonus = Math.min(20, (combat.avatarOfEnduranceAtkBonus || 0) + 2);
+    combat.avatarOfEnduranceDefBonus = Math.min(20, (combat.avatarOfEnduranceDefBonus || 0) + 2);
+  }
   return lines;
 }
 
@@ -1005,7 +1079,10 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     edmg = Math.round(edmg * preparedResponseMultiplier(state));
     edmg = Math.round(edmg * calmingPresenceMultiplier(state));
     edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+    edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
+    edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
     edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
+    edmg = applyUnyieldingWall(state, edmg);
     const absorbLines1 = applyPlayerDamage(state, edmg);
     if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
@@ -1025,7 +1102,10 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   edmg = Math.round(edmg * preparedResponseMultiplier(state));
   edmg = Math.round(edmg * calmingPresenceMultiplier(state));
   edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+  edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
+  edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
   edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
+  edmg = applyUnyieldingWall(state, edmg);
   const absorbLines2 = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
@@ -1278,6 +1358,12 @@ function startCombat(state, creatureIdOrObject) {
     avatarOfChaosDefBonus: 0, // Avatar of Chaos's stacking random +10 Defense per crit during its window, capped at 30
     avatarOfChaosMagicBonus: 0, // Avatar of Chaos's stacking random +10 Magic per crit during its window, capped at 30
     avatarOfChaosKnowledgeBonus: 0, // Avatar of Chaos's stacking random +10 Knowledge per crit during its window, capped at 30
+    unyieldingWallCooldown: 0, // Unyielding Wall's (Divine Regalia) once-every-3-rounds recharge, in rounds remaining
+    wallsEndureDefStacks: 0, // Walls Endure's (Divine Regalia) stacking +1 Defense per hit taken, capped at 20
+    avatarOfEnduranceUsed: false, // gates Avatar of Endurance's (Regalia of the Eternal Bastion 6pc) below-25%-HP burst
+    avatarOfEnduranceTurns: 0, // Avatar of Endurance's temporary halved-damage-taken/boosted-healing duration remaining
+    avatarOfEnduranceAtkBonus: 0, // Avatar of Endurance's stacking +2 Attack per hit taken during its window, capped at 20
+    avatarOfEnduranceDefBonus: 0, // Avatar of Endurance's stacking +2 Defense per hit taken during its window, capped at 20
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -1551,6 +1637,24 @@ function checkAvatarOfChaos(state) {
   return [`Avatar of Chaos awakens — for 4 rounds, fortune bends entirely to your whims.`];
 }
 
+// Avatar of Endurance (Regalia of the Eternal Bastion 6pc): the same
+// below-25%-Health once-per-fight trigger as its seven sibling "Avatar of
+// X" abilities. For 4 rounds: damage taken is halved
+// (avatarOfEnduranceDamageMultiplier) and healing received is +50%
+// (applyHeal), and every hit taken during the window grants +2 Attack/+2
+// Defense, capped at +20/+20 (applyPlayerDamage). Its "immune to Defense
+// reduction" and "immune to forced movement/knockback/displacement"
+// clauses are trivially already true — the same reason as Bedrock/
+// Grounded below: no such mechanics exist on the player side yet.
+function checkAvatarOfEndurance(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfEnduranceUsed || !hasSetTier(state, "Regalia of the Eternal Bastion", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfEnduranceUsed = true;
+  combat.avatarOfEnduranceTurns = applyBeneficialEffectBonuses(state, 4);
+  return [`Avatar of Endurance awakens — for 4 rounds, you become an unmoving wall.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -1733,7 +1837,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -1770,14 +1874,17 @@ function attemptFlee(state) {
   edmg = Math.round(edmg * preparedResponseMultiplier(state));
   edmg = Math.round(edmg * calmingPresenceMultiplier(state));
   edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+  edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
+  edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
   edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
+  edmg = applyUnyieldingWall(state, edmg);
   const absorbLines = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1869,7 +1976,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2004,7 +2111,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2225,7 +2332,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
