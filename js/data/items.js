@@ -30,6 +30,12 @@
  * reserved for two hand-authored guild-contract capstone rewards (the
  * difficulty-5 Mugamiir Safor and Magma-Hearth contracts), so it stays
  * rare and story-tied rather than a normal drop.
+ *
+ * An entry may also carry an `effects: [...]` array of ids from
+ * data/effects.js — a separate, non-tier-scaled layer of fixed-magnitude
+ * behavioral traits (see that file). None of the items below use it yet;
+ * it's plumbed through equipmentBonus's sibling, hasEffect(), and ready
+ * for whichever items get authored with one.
  */
 
 const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary" };

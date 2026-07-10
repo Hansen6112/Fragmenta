@@ -55,11 +55,13 @@ function effectiveEnemyAtk(state, creature) {
   return Math.max(1, creature.atk - (state.combat.enemyAtkPenalty || 0));
 }
 
-// Earth's Stoneskin adds a temporary universal defense bonus; everything
-// that computes damage taken should go through this instead of state.def.
+// Earth's Stoneskin adds a temporary universal defense bonus, and Evasive
+// Guard adds a permanent-for-the-fight bonus each time an evasion effect
+// triggers (capped at +3) — everything that computes damage taken should
+// go through this instead of state.def.
 function effectivePlayerDef(state) {
   const buff = state.combat.defBuffTurns > 0 ? state.combat.defBuffAmount || 0 : 0;
-  return state.def + buff;
+  return state.def + buff + (state.combat.evasiveGuardBonus || 0);
 }
 
 // Mages deal magic-driven damage instead of attack-driven: magic barely
@@ -71,17 +73,30 @@ function effectivePlayerDef(state) {
 // the target's own element, if it has one (an enemy mage), via
 // data/matchups.js — fighters and non-elemental creatures are untouched by
 // this since one side is always missing an element.
+// Executioner (finisher damage vs. a badly wounded target) is checked
+// once here since it applies uniformly to physical and magic damage
+// alike — everything else in this function is physical-only.
+function executionerMultiplier(state) {
+  if (!hasEffect(state, "executioner")) return 1;
+  const combat = state.combat;
+  return combat.hp <= combat.maxHp * 0.3 ? 1.2 : 1;
+}
+
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
+  const execMult = executionerMultiplier(state);
   if (state.flags.isMage && state.primaryElement) {
     const base = randInt(state.magic - 2, state.magic + 2);
     const multiplier = 1 + state.magic / 40;
     const matchup = elementMultiplier(activeElement, creature.element);
     const effDef = Math.max(0, creature.def - defPenalty);
-    return Math.max(1, Math.round(base * multiplier * matchup) - Math.floor(effDef / 10));
+    return Math.max(1, Math.round(base * multiplier * matchup * execMult) - Math.floor(effDef / 10));
   }
-  const effDef = Math.max(0, creature.def - defPenalty);
-  return Math.max(1, randInt(state.atk - 2, state.atk + 2) - Math.floor(effDef / 3));
+  const armorCrack = hasEffect(state, "armor_crack") ? 2 : 0;
+  const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
+  const crushMult = hasEffect(state, "crushing_impact") && effDef > state.atk ? 1.2 : 1;
+  const base = randInt(state.atk - 2, state.atk + 2) - Math.floor(effDef / 3);
+  return Math.max(1, Math.round(base * crushMult * execMult));
 }
 
 // Picks which element flavors this particular hit — alternates between
@@ -89,6 +104,36 @@ function rollPlayerDamage(state, creature, activeElement) {
 function pickElement(state) {
   if (state.secondaryElement && Math.random() < 0.5) return state.secondaryElement;
   return state.primaryElement;
+}
+
+// Opening Reach: the FIRST normal physical attack of the fight hits
+// harder. The flag is consumed by the first qualifying attack regardless
+// of whether the effect is equipped (it's a fact about the fight, not the
+// gear) — Ambush/Blink/elemental abilities never call this, so an opening
+// Ambush doesn't burn the bonus before a later normal attack gets it.
+function applyOpeningReach(state, dmg) {
+  if (state.combat.firstPhysicalAttackDone) return dmg;
+  state.combat.firstPhysicalAttackDone = true;
+  if (!hasEffect(state, "opening_reach")) return dmg;
+  return Math.round(dmg * 1.15);
+}
+
+// Deep Cut (Bleed) and Hamstring both roll off any successful physical
+// hit — shared by playerAttack, Decoy, Ambush, and Disarm's normal-hit
+// component (not elemental abilities, which aren't physical attacks).
+function applyPhysicalOnHitEffects(state, creature) {
+  const lines = [];
+  const combat = state.combat;
+  if (hasEffect(state, "deep_cut") && Math.random() < 0.2) {
+    combat.bleed = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.atk / 6)) };
+    lines.push(`${withThe(creature.name, true)} is left bleeding.`);
+  }
+  if (hasEffect(state, "hamstring") && !combat.hamstringApplied) {
+    combat.hamstringApplied = true;
+    combat.enemyAtkPenalty = (combat.enemyAtkPenalty || 0) + 1;
+    lines.push(`Your strike catches the tendon — ${withThe(creature.name, false)}'s attacks are weaker for the rest of this fight.`);
+  }
+  return lines;
 }
 
 // activeElement must be the SAME value already passed to rollPlayerDamage
@@ -104,11 +149,12 @@ function attackFlavorLine(state, creature, dmg, activeElement) {
 }
 
 // Ages cooldowns and status-effect durations by one turn, and applies any
-// active burn damage (Fire's Ignite). Called at the start of whichever
-// combat action actually executes (not on rejected/invalid attempts, which
-// don't consume a turn). Returns lines for anything that happened (burn
-// tick), and the caller must check state.combat.hp afterward — burn alone
-// can finish a creature off before the player's own action resolves.
+// active burn/bleed damage (Fire's Ignite; Deep Cut). Called at the start
+// of whichever combat action actually executes (not on rejected/invalid
+// attempts, which don't consume a turn). Returns lines for anything that
+// happened, and the caller must check state.combat.hp afterward — burn or
+// bleed alone can finish a creature off before the player's own action
+// resolves. Burn and Bleed tick independently and don't interact.
 function beginTurn(state) {
   const combat = state.combat;
   const lines = [];
@@ -124,41 +170,84 @@ function beginTurn(state) {
     combat.burn.turnsLeft -= 1;
     if (combat.burn.turnsLeft <= 0) combat.burn = null;
   }
+  if (combat.bleed && combat.bleed.turnsLeft > 0) {
+    const creature = getCombatCreature(state);
+    combat.hp -= combat.bleed.dmgPerTurn;
+    lines.push(`${withThe(creature.name, true)} is still bleeding for ${combat.bleed.dmgPerTurn} damage.`);
+    combat.bleed.turnsLeft -= 1;
+    if (combat.bleed.turnsLeft <= 0) combat.bleed = null;
+  }
   return lines;
 }
 
-// Resolves the enemy's retaliation for this turn, respecting Force's stun
-// and Air's evasion window, and Earth's defense buff. Shared by every
-// action that lets the enemy hit back on a normal (non-fatal) turn.
-// Enemy mages (creature.element set) counter with magic instead of a
-// physical attack stat, and their element is checked against the player's
-// own active element (if any) through the same matchup table used for the
-// player's own casts — so the strengths/weaknesses run both directions.
-function resolveEnemyRetaliation(state, creature, atkSpread) {
+// Resolves the enemy's retaliation for this turn, respecting Force's stun,
+// Air's evasion window/Evasive Release's one-shot charges, and Earth's
+// defense buff. Shared by every action that lets the enemy hit back on a
+// normal (non-fatal) turn. Enemy mages (creature.element set) counter with
+// magic instead of a physical attack stat, and their element is checked
+// against the player's own active element (if any) through the same
+// matchup table used for the player's own casts — so the strengths/
+// weaknesses run both directions.
+//
+// Returns { lines, damage } instead of just lines — callers use `damage`
+// to check for Riposte (which fires on a zero-damage retaliation). `extraDef`
+// is an optional one-shot Defense bonus for THIS call only (Guarded Strike,
+// Brace) — it never persists beyond this single retaliation.
+function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   const combat = state.combat;
+  const bonusDef = extraDef || 0;
   if (combat.enemyStunned) {
     combat.enemyStunned = false;
-    return [`${withThe(creature.name, true)} is still reeling and doesn't attack.`];
+    return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
   }
-  if (combat.evasionTurns > 0 && Math.random() < 0.5) {
-    return [`You slip past ${withThe(creature.name, false)}'s counter entirely.`];
+  // Evasive Release's charges are a one-shot dodge chance, checked (and
+  // consumed either way — "expires after triggering") before falling back
+  // to Windcut/Blink's duration-based evasion window.
+  let evasionRolled = false;
+  if (combat.evasionCharges > 0) {
+    combat.evasionCharges -= 1;
+    evasionRolled = Math.random() < 0.5;
+  } else if (combat.evasionTurns > 0) {
+    evasionRolled = Math.random() < 0.5;
+  }
+  if (evasionRolled) {
+    if (hasEffect(state, "evasive_guard")) combat.evasiveGuardBonus = Math.min(3, combat.evasiveGuardBonus + 1);
+    return { lines: [`You slip past ${withThe(creature.name, false)}'s counter entirely.`], damage: 0 };
   }
   if (creature.element) {
     const defenderElement = state.flags.isMage ? state.primaryElement : null;
     const matchup = elementMultiplier(creature.element, defenderElement);
     const base = randInt(creature.magic - 2, creature.magic + 2);
-    const edmg = Math.max(0, Math.round(base * matchup) - Math.floor(effectivePlayerDef(state) / 10));
+    const coldBonus = creature.element === "water" && hasEffect(state, "coldproof") ? 2 : 0;
+    const def = effectivePlayerDef(state) + bonusDef + coldBonus;
+    let edmg = Math.max(0, Math.round(base * matchup) - Math.floor(def / 10));
+    if (hasEffect(state, "spell_ward")) edmg = Math.round(edmg * 0.9);
     state.health -= edmg;
     const elName = ELEMENTS[creature.element].name.toLowerCase();
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`];
     if (state.health <= 0) lines.push(`Everything goes dark.`);
-    return lines;
+    return { lines, damage: edmg };
   }
   const atk = effectiveEnemyAtk(state, creature);
-  const edmg = Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state));
+  const edmg = Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef);
   state.health -= edmg;
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`];
   if (state.health <= 0) lines.push(`Everything goes dark.`);
+  return { lines, damage: edmg };
+}
+
+// Riposte: a free follow-up hit whenever the enemy's retaliation dealt
+// zero damage (stunned, evaded, Decoy, or reduced to 0 by defense). Called
+// by every action that either goes through resolveEnemyRetaliation (when
+// its returned damage is 0) or otherwise guarantees a damage-free counter
+// (Decoy, which doesn't call resolveEnemyRetaliation at all).
+function maybeRiposte(state, creature) {
+  if (!hasEffect(state, "riposte")) return [];
+  if (!state.combat || state.combat.hp <= 0) return [];
+  const dmg = Math.round(rollPlayerDamage(state, creature) * 0.5);
+  state.combat.hp -= dmg;
+  const lines = [`You seize the opening — a free riposte for ${dmg} damage.`];
+  if (state.combat.hp <= 0) lines.push(...resolveKill(state, creature));
   return lines;
 }
 
@@ -223,17 +312,42 @@ function startCombat(state, creatureIdOrObject) {
     defBuffTurns: 0, // Stoneskin duration remaining
     defBuffAmount: 0, // Stoneskin's defense bonus
     evasionTurns: 0, // Windcut duration remaining
+    evasionCharges: 0, // Evasive Release's one-shot dodge charges
+    evasiveGuardBonus: 0, // Evasive Guard's permanent-per-fight def, capped +3
     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
+    bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
     lastElementUsed: null, // for elemental synergy — see data/synergy.js
+    firstPhysicalAttackDone: false, // gates Opening Reach
+    hamstringApplied: false, // gates Hamstring (once per target per fight)
+    tacticalMemoryUsed: false, // gates Tactical Memory (once per fight)
+    surgingConduitUsed: false, // gates Surging Conduit (once per fight)
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
+  // Unsettling: a flat chance the enemy starts the fight already weakened,
+  // rolled once here rather than in playerAttack/etc. since it's a
+  // combat-start effect, not a per-action one.
+  if (!creature.friendly && hasEffect(state, "unsettling") && Math.random() < 0.2) {
+    state.combat.enemyAtkPenalty += 2;
+    lines.push(`Something about you unsettles it before the fight even starts — its guard is already down.`);
+  }
   if (creature.friendly) {
     lines.push(`It does not seem hostile. (try: talk, examine, or leave)`);
   } else {
     lines.push(tacticsLine(state) || "(fight / flee)");
   }
   return lines;
+}
+
+// Regrowth: a flat post-combat heal, whether combat ended by winning or by
+// fleeing successfully — presence-only (hasEffect), so multiple copies
+// don't stack per the effect's own description.
+function applyRegrowth(state) {
+  if (!hasEffect(state, "regrowth")) return [];
+  const heal = Math.ceil(state.maxHealth * 0.05);
+  if (heal <= 0) return [];
+  state.health = Math.min(state.maxHealth, state.health + heal);
+  return [`Regrowth mends you for ${heal} health.`];
 }
 
 // Shared victory handling — gold, loot, XP, job progress, ending combat.
@@ -249,6 +363,7 @@ function resolveKill(state, creature) {
     out.push(`It was also carrying ${formatItemLine(loot)}.`);
   }
   state.combat = null;
+  out.push(...applyRegrowth(state));
   out.push(...state.gainXp(xpFromKill(creature)));
   out.push(...checkJobProgressOnKill(state, creature));
   return out;
@@ -268,10 +383,17 @@ function playerAttack(state) {
     return out;
   }
 
-  const activeElement = state.flags.isMage && state.primaryElement ? pickElement(state) : null;
+  // "Physical" here mirrors rollPlayerDamage's own branch check — a mage
+  // with a primary element deals magic damage instead, so Opening
+  // Reach/Deep Cut/Hamstring/Guarded Strike (all physical-attack effects)
+  // don't apply to that basic attack.
+  const isPhysical = !(state.flags.isMage && state.primaryElement);
+  const activeElement = isPhysical ? null : pickElement(state);
   let dmg = rollPlayerDamage(state, creature, activeElement);
+  if (isPhysical) dmg = applyOpeningReach(state, dmg);
   if (state.combat.nextAttackBonus) {
-    dmg = Math.round(dmg * 1.6);
+    const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
+    dmg = Math.round(dmg * feintMult);
     state.combat.nextAttackBonus = false;
     out.push("Your feint pays off —");
   }
@@ -282,8 +404,12 @@ function playerAttack(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  if (isPhysical) out.push(...applyPhysicalOnHitEffects(state, creature));
 
-  out.push(...resolveEnemyRetaliation(state, creature, 2));
+  const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
+  const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
+  out.push(...retaliation.lines);
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -296,7 +422,7 @@ function attemptFlee(state) {
   const chance = 0.6 - creature.tier * 0.08 + (state.stealthMod || 0);
   if (Math.random() < chance) {
     state.combat = null;
-    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`];
+    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...applyRegrowth(state)];
   }
 
   const out = beginTurn(state);
@@ -317,11 +443,27 @@ function attemptFlee(state) {
 
 // ---- Fighter tactics (non-mage only — mages use useElementAbility) ----
 
+// Tactical Memory: once per fight, the first tactic-cooldown assignment
+// that rolls successfully (20% chance, re-rolled on each qualifying use
+// until one hits) gets cut by 1 turn (minimum 1). Shared by Feint, Decoy,
+// and Disarm — Ambush has no cooldown to shorten.
+function applyTacticalMemory(state, cooldown) {
+  if (!cooldown || state.combat.tacticalMemoryUsed || !hasEffect(state, "tactical_memory")) {
+    return { cooldown, fired: false };
+  }
+  if (Math.random() < 0.2) {
+    state.combat.tacticalMemoryUsed = true;
+    return { cooldown: Math.max(1, cooldown - 1), fired: true };
+  }
+  return { cooldown, fired: false };
+}
+
 function useFeint(state) {
   if (!state.combat) return ["There's nothing here to feint at."];
   if (state.flags.isMage) return ["Feinting isn't how your magic works. Try your element's ability instead."];
   const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. A feint would be wasted.`];
+  if (state.combat.nextAttackBonus) return [`You're already coiled for a strike — feint again once you've used it.`];
   const t = TACTICS.feint;
   if (state.knowledge < t.knowledgeReq) return [`You don't know how to feint yet. (needs Knowledge ${t.knowledgeReq}+)`];
   if ((state.combat.cooldowns.feint || 0) > 0) return [`Feint is still recovering — ${state.combat.cooldowns.feint} more turn(s).`];
@@ -333,10 +475,16 @@ function useFeint(state) {
     return out;
   }
   state.combat.nextAttackBonus = true;
-  state.combat.cooldowns.feint = t.cooldown;
+  const baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
+  const memory = applyTacticalMemory(state, baseCooldown);
+  state.combat.cooldowns.feint = memory.cooldown;
 
   out.push(`You feint — ${withThe(creature.name, false)} doesn't bite, but your next strike will land hard.`);
-  out.push(...resolveEnemyRetaliation(state, creature, 2));
+  if (memory.fired) out.push(`Old instincts kick in — Feint recovers faster this time.`);
+  const braceBonus = hasEffect(state, "brace") ? 3 : 0;
+  const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
+  out.push(...retaliation.lines);
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -357,10 +505,12 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  state.combat.cooldowns.decoy = t.cooldown;
+  const memory = applyTacticalMemory(state, t.cooldown);
+  state.combat.cooldowns.decoy = memory.cooldown;
 
   out.push(`You plant a decoy — ${withThe(creature.name, false)} takes the bait.`);
-  const dmg = rollPlayerDamage(state, creature);
+  if (memory.fired) out.push(`Old instincts kick in — Decoy recovers faster this time.`);
+  let dmg = applyOpeningReach(state, rollPlayerDamage(state, creature));
   state.combat.hp -= dmg;
   out.push(attackFlavorLine(state, creature, dmg) + " (while it's distracted)");
 
@@ -368,8 +518,10 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...applyPhysicalOnHitEffects(state, creature));
 
   out.push(`${withThe(creature.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
+  out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -391,13 +543,19 @@ function useAmbush(state) {
     return out;
   }
 
-  const dmg = Math.round(rollPlayerDamage(state, creature) * 1.4);
+  const ambushMult = hasEffect(state, "ambush_mastery") ? 1.55 : 1.4;
+  const dmg = Math.round(rollPlayerDamage(state, creature) * ambushMult);
   state.combat.hp -= dmg;
   out.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`);
 
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
     return out;
+  }
+  out.push(...applyPhysicalOnHitEffects(state, creature));
+  if (hasEffect(state, "evasive_release")) {
+    state.combat.evasionCharges += 1;
+    out.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
   }
 
   const tl = tacticsLine(state);
@@ -421,12 +579,14 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  state.combat.cooldowns.disarm = t.cooldown;
+  const memory = applyTacticalMemory(state, t.cooldown);
+  state.combat.cooldowns.disarm = memory.cooldown;
   state.combat.disarmed = true;
   state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3;
 
   out.push(`You disarm ${withThe(creature.name, false)} — its attacks will be noticeably weaker for the rest of this fight.`);
-  const dmg = Math.round(rollPlayerDamage(state, creature) * 0.7);
+  if (memory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
+  let dmg = applyOpeningReach(state, Math.round(rollPlayerDamage(state, creature) * 0.7));
   state.combat.hp -= dmg;
   out.push(`You still land a hit for ${dmg} damage.`);
 
@@ -434,8 +594,12 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...applyPhysicalOnHitEffects(state, creature));
 
-  out.push(...resolveEnemyRetaliation(state, creature, 2));
+  const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
+  const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
+  out.push(...retaliation.lines);
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -461,7 +625,14 @@ function useElementAbility(state, elementKey) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  state.combat.cooldowns[elementKey] = a.cooldown;
+  // Conduit Ease rolls fresh on every cast (unlike Tactical Memory's
+  // once-per-fight tactic equivalent).
+  let cooldown = a.cooldown;
+  if (hasEffect(state, "conduit_ease") && Math.random() < 0.2) {
+    cooldown = Math.max(1, cooldown - 1);
+    out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
+  }
+  state.combat.cooldowns[elementKey] = cooldown;
 
   // Elemental synergy: casting the mage's OTHER known element right before
   // this one boosts this cast. Checked before lastElementUsed is updated,
@@ -470,16 +641,27 @@ function useElementAbility(state, elementKey) {
   const dmgMult = synergy ? synergy.dmgMultiplier : 1;
   state.combat.lastElementUsed = elementKey;
 
+  // Elemental Focus (every cast) and Surging Conduit (first cast of the
+  // fight only) layer on top of synergy as a separate multiplier — kept
+  // apart from dmgMult because Stoneskin (earth) deals no damage and gets
+  // flat Defense instead of either bonus.
+  const focusActive = hasEffect(state, "elemental_focus");
+  const surgeActive = hasEffect(state, "surging_conduit") && !state.combat.surgingConduitUsed;
+  if (surgeActive) state.combat.surgingConduitUsed = true;
+  let elementalDmgMult = dmgMult;
+  if (focusActive) elementalDmgMult *= 1.08;
+  if (surgeActive) elementalDmgMult *= 1.2;
+
   switch (elementKey) {
     case "fire": {
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       out.push(`${ELEMENTS.fire.verb(withThe(creature.name, false))} for ${dmg} damage, and the flame catches.`);
       state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 4)) };
       break;
     }
     case "water": {
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       const heal = Math.round(dmg * 0.5);
       state.health = Math.min(state.maxHealth, state.health + heal);
@@ -487,24 +669,27 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "earth": {
+      let defBonus = Math.max(3, Math.round((state.magic / 3) * dmgMult));
+      if (focusActive) defBonus += 1;
+      if (surgeActive) defBonus += 3;
       state.combat.defBuffTurns = 3;
-      state.combat.defBuffAmount = Math.max(3, Math.round((state.magic / 3) * dmgMult));
+      state.combat.defBuffAmount = defBonus;
       out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
       break;
     }
     case "lightning": {
-      const dmg1 = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
+      const dmg1 = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg1;
       out.push(`${ELEMENTS.lightning.verb(withThe(creature.name, false))} for ${dmg1} damage —`);
       if (state.combat.hp > 0) {
-        const dmg2 = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
+        const dmg2 = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
         state.combat.hp -= dmg2;
         out.push(`— and again, for ${dmg2} more before it can react.`);
       }
       break;
     }
     case "acid": {
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       state.combat.corroded = true;
       state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 4;
@@ -512,20 +697,20 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "force": {
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       state.combat.enemyStunned = true;
       out.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${dmg} damage — it reels, stunned.`);
       break;
     }
     case "transportation": {
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * 1.3 * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * 1.3 * elementalDmgMult);
       state.combat.hp -= dmg;
       out.push(`${ELEMENTS.transportation.verb(withThe(creature.name, false))} for ${dmg} damage before it can track where you went.`);
       break;
     }
     case "air": {
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * dmgMult);
+      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       state.combat.evasionTurns = 2;
       out.push(`${ELEMENTS.air.verb(withThe(creature.name, false))} for ${dmg} damage, leaving you lighter on your feet.`);
@@ -543,7 +728,10 @@ function useElementAbility(state, elementKey) {
     return out;
   }
 
-  out.push(...resolveEnemyRetaliation(state, creature, 2));
+  const braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? 3 : 0;
+  const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
+  out.push(...retaliation.lines);
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
