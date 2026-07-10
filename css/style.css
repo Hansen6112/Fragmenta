@@ -83,6 +83,34 @@ body {
   min-height: 60vh;
 }
 
+#tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  padding: 0.55rem 0.5rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 #log {
   flex: 1;
   overflow-y: auto;
@@ -90,6 +118,51 @@ body {
   white-space: pre-wrap;
   line-height: 1.5;
   font-size: 0.95rem;
+}
+
+#inventory-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  font-size: 0.95rem;
+}
+
+#inventory-panel[hidden] {
+  display: none;
+}
+
+.inv-gold {
+  color: var(--accent);
+  font-weight: bold;
+  margin: 0 0 0.85rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.inv-empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.inv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inv-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.inv-list li:last-child {
+  border-bottom: none;
+}
+
+.inv-count {
+  color: var(--text-dim);
 }
 
 #log p {

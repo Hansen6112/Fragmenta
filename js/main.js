@@ -3,10 +3,13 @@
  */
 
 const logEl = document.getElementById("log");
+const invPanel = document.getElementById("inventory-panel");
+const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
 const input = document.getElementById("input");
 
 let state = null;
+let activeTab = "story";
 let bootStage = "ask_load"; // ask_load -> ask_name -> ask_background -> [ask_element] -> playing
 let pendingName = "";
 let pendingBgKey = "";
@@ -26,6 +29,61 @@ function printLines(lines, cls) {
 function printEcho(text) {
   print(text, "echo");
 }
+
+// Item names are stored as plain repeated strings (see cmdTake); the tab
+// aggregates matching names into a count instead of listing duplicates.
+function renderInventory() {
+  invPanel.innerHTML = "";
+  const gold = document.createElement("p");
+  gold.className = "inv-gold";
+  gold.textContent = `Gold: ${state ? state.gold : 0}`;
+  invPanel.appendChild(gold);
+
+  if (!state || state.inventory.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "inv-empty";
+    empty.textContent = state ? "You're carrying nothing." : "Your journey hasn't begun yet.";
+    invPanel.appendChild(empty);
+    return;
+  }
+
+  const counts = new Map();
+  for (const item of state.inventory) {
+    counts.set(item, (counts.get(item) || 0) + 1);
+  }
+  const list = document.createElement("ul");
+  list.className = "inv-list";
+  for (const [item, count] of counts) {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = item;
+    li.appendChild(name);
+    if (count > 1) {
+      const badge = document.createElement("span");
+      badge.className = "inv-count";
+      badge.textContent = `x${count}`;
+      li.appendChild(badge);
+    }
+    list.appendChild(li);
+  }
+  invPanel.appendChild(list);
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  tabButtons.forEach((btn) => {
+    const isActive = btn.dataset.tab === tab;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  logEl.hidden = tab !== "story";
+  invPanel.hidden = tab !== "inventory";
+  if (tab === "inventory") renderInventory();
+}
+
+tabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
 
 function boot() {
   print("FRAGMENTA", "title");
@@ -163,6 +221,7 @@ form.addEventListener("submit", async (e) => {
       }
     }
   } finally {
+    if (activeTab === "inventory") renderInventory();
     input.disabled = gameOver;
     if (!gameOver) input.focus();
   }
