@@ -25,6 +25,14 @@
  *   - "contract" — a specific hand-authored guild contract, one-off
  *   - "monster"  — the general random combat-kill loot table (see
  *                  COMBAT_LOOT_POOL / rollCreatureLoot below)
+ *   - "shop"     — reserved for a future shop/buy-sell system. Tagged for
+ *                  when that exists; not obtainable today.
+ *   - "faction"  — reserved for a future reputation/faction-reward system.
+ *                  Tagged for when that exists; not obtainable today.
+ * "contract" items beyond the two Legendary capstones below are similarly
+ * reserved (tagged for a future hand-authored contract) rather than
+ * auto-attached to one of the existing six guild contracts, which already
+ * have their own loot assigned.
  *
  * Tier 5 (Legendary, +8) is never in the "monster" or "job" pools — it's
  * reserved for two hand-authored guild-contract capstone rewards (the
@@ -172,6 +180,173 @@ const ITEM_DEFS = {
   "a Kabal-blessed focus stone": { slot: "trinkets", tier: 3, bonuses: { magic: 3 }, source: "monster" },
   "a lizardfolk totem charm": { slot: "trinkets", tier: 3, bonuses: { health: 3 }, source: "monster" },
   "a fragment of warded glass, humming faintly": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, source: "monster" },
+
+  // ---- batch 2: weapons/armor with effects, across all slots and sources ----
+  // Common-tier entries here carry no effect (flavor-only bonus, same as
+  // batch 1) — effects start appearing at Fine and up.
+
+  // Main Hand
+  "a plainsman's utility blade": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "a Sanguivorum infantry spear": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "a Vaeloris hunting knife": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "a Sahrimori caravan saber": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "a Thraekor splitting axe": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "a Norrvael boarding sword": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "a legion arming spear, weighted for formation fighting": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["opening_reach"], source: "job" },
+  "an elven thornwood bow": { slot: "mainhand", tier: 2, bonuses: { atk: 1, knowledge: 1 }, effects: ["patient_aim"], source: "monster" },
+  "a Kharzun canyon pick": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["armor_crack"], source: "contract" },
+  "a desert duelist's shamshir": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["feinting_edge"], source: "job" },
+  "a Norrvael watchman's poleaxe": { slot: "mainhand", tier: 2, bonuses: { atk: 1, def: 1 }, effects: ["guarded_strike"], source: "monster" },
+  "a lizardfolk marsh-hunting spear": { slot: "mainhand", tier: 2, bonuses: { atk: 1, knowledge: 1 }, effects: ["opening_reach"], source: "monster" },
+  "a legion veteran's gladius": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "contract" },
+  "a Vaeloris heartwood longbow": { slot: "mainhand", tier: 3, bonuses: { atk: 2, knowledge: 1 }, effects: ["patient_aim"], source: "job" },
+  "an ash-weighted dwarven maul": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "monster" },
+  "a Sahrimori serpent-blade": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "contract" },
+  "a Norrvael storm-rider lance": { slot: "mainhand", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["opening_reach"], source: "job" },
+  "a swamp-forged bone billhook": { slot: "mainhand", tier: 3, bonuses: { atk: 2, knowledge: 1 }, effects: ["hamstring"], source: "monster" },
+  "a legion commander's spatha": { slot: "mainhand", tier: 4, bonuses: { atk: 3, knowledge: 1 }, effects: ["tactical_memory"], source: "contract" },
+  "a black-ash executioner's axe": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["executioner"], source: "monster" },
+  "a mistwood recurve bow strung with silver sinew": { slot: "mainhand", tier: 4, bonuses: { atk: 3, magic: 1 }, effects: ["patient_aim", "evasive_release"], source: "contract" },
+  "a Kabal dueling focus shaped as a narrow blade": { slot: "mainhand", tier: 4, bonuses: { magic: 3, atk: 1 }, effects: ["conduit_ease"], source: "faction" },
+  "a Thraekor forge-hammer bearing an intact clan mark": { slot: "mainhand", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["crushing_impact", "stalwart"], source: "contract" },
+  "a glass-edged saber from the Black Sands": { slot: "mainhand", tier: 4, bonuses: { atk: 3, magic: 1 }, effects: ["deep_cut", "unsettling"], source: "monster" },
+
+  // Off Hand
+  "a hide-covered round shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a legion recruit's rectangular shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a bundle of roughly fletched hunting arrows": { slot: "offhand", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "a Sahrimori parrying dagger": { slot: "offhand", tier: 2, bonuses: { atk: 1, def: 1 }, effects: ["riposte"], source: "job" },
+  "a Vaeloris woven-root buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "monster" },
+  "a Norrvael steel-rimmed shield": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["guarded_strike"], source: "monster" },
+  "a legion tower shield scarred by siege stones": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "contract" },
+  "a blackwood quiver of broadhead arrows": { slot: "offhand", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "monster" },
+  "a dwarven furnace shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "job" },
+  "a mist-lacquered Norrvael targe": { slot: "offhand", tier: 3, bonuses: { def: 2, magic: 1 }, effects: ["evasive_guard"], source: "monster" },
+  "a Vaeloris living-root greatshield": { slot: "offhand", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["regrowth"], source: "contract" },
+  "a legion command scutum with a preserved standard-hook": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["brace", "tactical_memory"], source: "contract" },
+  "a quiver of drakebone armor-piercing arrows": { slot: "offhand", tier: 4, bonuses: { atk: 4 }, effects: ["armor_crack"], source: "monster" },
+  "a Kabal ward-disc inscribed on both faces": { slot: "offhand", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["spell_ward"], source: "faction" },
+
+  // Helmet
+  "a quilted travel coif": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a broad desert headwrap": { slot: "helmet", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "a legion auxiliary helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "monster" },
+  "a Vaeloris pathfinder's hood": { slot: "helmet", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "job" },
+  "a dwarven quarry helm with cheek guards": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["concussion_guard"], source: "monster" },
+  "a Norrvael mist-watch visor": { slot: "helmet", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["ambush_sense"], source: "contract" },
+  "a Sahrimori caravan master's veil": { slot: "helmet", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job" },
+  "an ashglass-faced war helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "monster" },
+  "a Kabal examiner's silver circlet": { slot: "helmet", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["conduit_ease"], source: "faction" },
+  "a legion strategist's crested helm": { slot: "helmet", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract" },
+  "a Norrvael stormglass helm": { slot: "helmet", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["spell_ward"], source: "monster" },
+  "a queen-carapace helm, faintly luminous": { slot: "helmet", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["corrosionproof"], source: "contract" },
+
+  // Chest
+  "a quilted legion gambeson": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a Vaeloris reed-woven vest": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a Sahrimori caravan coat": { slot: "chest", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "a lizardfolk scale jerkin": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["corrosionproof"], source: "monster" },
+  "a legion officer's mail coat": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "job" },
+  "a dwarven forge apron lined with rings": { slot: "chest", tier: 2, bonuses: { atk: 1, def: 1 }, effects: ["heatproof"], source: "monster" },
+  "a Vaeloris ranger's leafweave coat": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "contract" },
+  "a Norrvael cliff-guard cuirass": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["brace"], source: "monster" },
+  "a Sahrimori night-traveler's layered robe": { slot: "chest", tier: 3, bonuses: { knowledge: 2, def: 1 }, effects: ["surefooted"], source: "job" },
+  "a Kabal field-investigator's coat": { slot: "chest", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["ambush_sense"], source: "faction" },
+  "a black-iron Thraekor lamellar coat": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["heatproof", "stalwart"], source: "contract" },
+  "a Vaeloris elderbark breastplate": { slot: "chest", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["regrowth"], source: "monster" },
+  "a Norrvael storm-rider harness": { slot: "chest", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["evasive_guard"], source: "contract" },
+  "a Kabal river-thread vestment": { slot: "chest", tier: 4, bonuses: { magic: 4 }, effects: ["conduit_ease"], source: "faction" },
+  "a luminous queen-carapace cuirass": { slot: "chest", tier: 4, bonuses: { def: 3, magic: 1 }, effects: ["corrosionproof", "spell_ward"], source: "contract" },
+
+  // Gloves
+  "fingerless bowman's gloves": { slot: "gloves", tier: 1, bonuses: { atk: 1 }, source: "shop" },
+  "padded laborer's gauntlets": { slot: "gloves", tier: 1, bonuses: { def: 1 }, source: "monster" },
+  "a legion swordsman's bracers": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["feinting_edge"], source: "job" },
+  "a Sahrimori negotiator's silk gloves": { slot: "gloves", tier: 2, bonuses: { knowledge: 2 }, effects: ["merchants_eye"], source: "job" },
+  "Vaeloris climbing wraps": { slot: "gloves", tier: 2, bonuses: { def: 1, knowledge: 1 }, effects: ["surefooted"], source: "monster" },
+  "Norrvael chain-backed gloves": { slot: "gloves", tier: 3, bonuses: { def: 2, atk: 1 }, effects: ["riposte"], source: "monster" },
+  "Thraekor hammer-gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "job" },
+  "acid-cured lizardfolk handguards": { slot: "gloves", tier: 3, bonuses: { def: 3 }, effects: ["corrosionproof"], source: "monster" },
+  "Kabal gesture-thread gloves": { slot: "gloves", tier: 4, bonuses: { magic: 3, knowledge: 1 }, effects: ["conduit_ease"], source: "faction" },
+  "legion duelist's articulated gauntlet": { slot: "gloves", tier: 4, bonuses: { atk: 3, def: 1 }, effects: ["riposte", "feinting_edge"], source: "contract" },
+  "living-vine gloves that tighten over wounds": { slot: "gloves", tier: 4, bonuses: { def: 2, health: 2 }, effects: ["regrowth"], source: "monster" },
+  "black-glass forge mitts": { slot: "gloves", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["heatproof", "crushing_impact"], source: "contract" },
+
+  // Boots
+  "hobnailed road boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "swamp-wrapped footguards": { slot: "boots", tier: 1, bonuses: { knowledge: 1 }, source: "monster" },
+  "Sanguivorum courier boots": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "job" },
+  "Vaeloris root-grip boots": { slot: "boots", tier: 2, bonuses: { def: 1, knowledge: 1 }, effects: ["surefooted"], source: "monster" },
+  "Sahrimori night-walking sandals": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["heatproof"], source: "shop" },
+  "Norrvael cliff boots with iron toes": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["surefooted"], source: "monster" },
+  "Thraekor ash-strider greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "contract" },
+  "marsh-stalker's silent boots": { slot: "boots", tier: 3, bonuses: { knowledge: 2, atk: 1 }, effects: ["ambush_mastery"], source: "monster" },
+  "legion relay boots bearing official seals": { slot: "boots", tier: 4, bonuses: { knowledge: 4 }, effects: ["trailwise", "ambush_sense"], source: "contract" },
+  "Vaeloris shadowleaf boots": { slot: "boots", tier: 4, bonuses: { knowledge: 3, def: 1 }, effects: ["ambush_mastery"], source: "monster" },
+  "Norrvael mist-crossing greaves": { slot: "boots", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["evasive_guard"], source: "contract" },
+  "boots made from pale drake hide": { slot: "boots", tier: 4, bonuses: { def: 3, atk: 1 }, effects: ["coldproof", "surefooted"], source: "monster" },
+
+  // Rings
+  "a stamped iron service ring": { slot: "rings", tier: 1, bonuses: { def: 1 }, source: "monster" },
+  "a tiny bone ring carved with route marks": { slot: "rings", tier: 1, bonuses: { knowledge: 1 }, source: "monster" },
+  "a guild appraiser's brass loop": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, effects: ["merchants_eye"], source: "job" },
+  "a legion dueling ring": { slot: "rings", tier: 2, bonuses: { atk: 2 }, effects: ["feinting_edge"], source: "job" },
+  "a Vaeloris seed-ring": { slot: "rings", tier: 3, bonuses: { health: 2, magic: 1 }, effects: ["regrowth"], source: "monster" },
+  "a Thraekor oath-ring of black iron": { slot: "rings", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "contract" },
+  "a Norrvael stormglass ring": { slot: "rings", tier: 3, bonuses: { magic: 2, def: 1 }, effects: ["spell_ward"], source: "monster" },
+  "a Kabal tactical signet": { slot: "rings", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["tactical_memory"], source: "faction" },
+  "an acid-clouded ring cut from monster shell": { slot: "rings", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["corrosionproof"], source: "monster" },
+  "a rotating Sahrimori contract-ring": { slot: "rings", tier: 4, bonuses: { knowledge: 4 }, effects: ["merchants_eye", "trailwise"], source: "contract" },
+  "a Kabal river-calibration ring": { slot: "rings", tier: 4, bonuses: { magic: 4 }, effects: ["elemental_focus"], source: "faction" },
+  "a blood-dark legion champion's ring": { slot: "rings", tier: 4, bonuses: { atk: 4 }, effects: ["executioner"], source: "monster" },
+
+  // Necklace
+  "an iron soldier's identification chain": { slot: "necklace", tier: 1, bonuses: { def: 1 }, source: "monster" },
+  "a string of polished route stones": { slot: "necklace", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "a Vaeloris herbalist's seed cord": { slot: "necklace", tier: 2, bonuses: { health: 1, knowledge: 1 }, effects: ["regrowth"], source: "job" },
+  "a Sahrimori water-counter's pendant": { slot: "necklace", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "contract" },
+  "a dwarven forge-chain bearing a cooling rune": { slot: "necklace", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "monster" },
+  "a legion victory torc": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "contract" },
+  "a Norrvael mist-pearl necklace": { slot: "necklace", tier: 3, bonuses: { magic: 2, def: 1 }, effects: ["evasive_guard"], source: "monster" },
+  "a Kabal elemental calibration pendant": { slot: "necklace", tier: 3, bonuses: { magic: 3 }, effects: ["elemental_focus"], source: "faction" },
+  "a living-heartwood torque": { slot: "necklace", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "monster" },
+  "a storm-rider's drakebone gorget": { slot: "necklace", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["stalwart", "coldproof"], source: "contract" },
+  "an eight-stone Kabal river necklace": { slot: "necklace", tier: 4, bonuses: { magic: 4 }, effects: ["elemental_focus"], source: "faction" },
+  "a black-glass execution chain": { slot: "necklace", tier: 4, bonuses: { atk: 3, magic: 1 }, effects: ["executioner", "unsettling"], source: "monster" },
+
+  // Cloak
+  "a waxed rain cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "shop" },
+  "a reversible hunter's mantle": { slot: "cloak", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "a legion scout's grey cloak": { slot: "cloak", tier: 2, bonuses: { def: 1, knowledge: 1 }, effects: ["ambush_sense"], source: "job" },
+  "a Sahrimori sand-shedding mantle": { slot: "cloak", tier: 2, bonuses: { knowledge: 2 }, effects: ["heatproof"], source: "shop" },
+  "a Vaeloris moss-lined cape": { slot: "cloak", tier: 2, bonuses: { health: 1, def: 1 }, effects: ["regrowth"], source: "monster" },
+  "a Norrvael cliff-watch cloak": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["coldproof"], source: "contract" },
+  "a Thraekor ashfall mantle": { slot: "cloak", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "monster" },
+  "a swamp guide's insect-oiled cloak": { slot: "cloak", tier: 3, bonuses: { knowledge: 2, def: 1 }, effects: ["corrosionproof"], source: "job" },
+  "a legion infiltrator's dark field cloak": { slot: "cloak", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["ambush_mastery"], source: "contract" },
+  "a Vaeloris shifting-canopy mantle": { slot: "cloak", tier: 4, bonuses: { knowledge: 3, magic: 1 }, effects: ["evasive_guard", "trailwise"], source: "monster" },
+  "a Norrvael storm-cloak sewn with drake sinew": { slot: "cloak", tier: 4, bonuses: { def: 3, atk: 1 }, effects: ["coldproof", "stalwart"], source: "contract" },
+  "a Kabal veil-agent's warded cloak": { slot: "cloak", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["spell_ward", "ambush_sense"], source: "faction" },
+
+  // Trinkets
+  "a bent legion ration token": { slot: "trinkets", tier: 1, bonuses: { health: 1 }, source: "monster" },
+  "a small pouch of marked trail pebbles": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, source: "shop" },
+  "a chipped dwarven hammer charm": { slot: "trinkets", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "a vial of harmless luminous beetle fluid": { slot: "trinkets", tier: 1, bonuses: { magic: 1 }, source: "monster" },
+  "a Sahrimori water-route tablet": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "job" },
+  "a Vaeloris pressed healing leaf": { slot: "trinkets", tier: 2, bonuses: { health: 2 }, effects: ["regrowth"], source: "monster" },
+  "a legion officer's broken command whistle": { slot: "trinkets", tier: 2, bonuses: { atk: 1, knowledge: 1 }, effects: ["tactical_memory"], source: "monster" },
+  "a Kabal elemental notation card": { slot: "trinkets", tier: 2, bonuses: { magic: 2 }, effects: ["elemental_focus"], source: "faction" },
+  "a Thraekor cooling stone": { slot: "trinkets", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "contract" },
+  "a Norrvael storm-rider's saddle charm": { slot: "trinkets", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["stalwart"], source: "job" },
+  "a lizardfolk venom-testing needle": { slot: "trinkets", tier: 3, bonuses: { knowledge: 2, def: 1 }, effects: ["corrosionproof"], source: "monster" },
+  "a sealed vial of elemental residue": { slot: "trinkets", tier: 3, bonuses: { magic: 3 }, effects: ["elemental_focus"], source: "monster" },
+  "a Mugamiir Safor master appraiser's lens": { slot: "trinkets", tier: 4, bonuses: { knowledge: 4 }, effects: ["merchants_eye", "ambush_sense"], source: "contract" },
+  "a legionary's last battlefield standard-knot": { slot: "trinkets", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["stalwart", "executioner"], source: "job" },
+  "a fragment of living bark that closes around cuts": { slot: "trinkets", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "monster" },
+  "a perfectly measured capsule of elemental dust": { slot: "trinkets", tier: 4, bonuses: { magic: 4 }, effects: ["surging_conduit"], source: "contract" },
+  "an intact construct-control seal with no registered owner": { slot: "trinkets", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["unsettling", "tactical_memory"], source: "monster" },
+  "a drake's shed eye-scale, polished into a lens": { slot: "trinkets", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["ambush_sense", "patient_aim"], source: "monster" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

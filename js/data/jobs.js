@@ -111,9 +111,24 @@ const COURIER_FLAVOR = {
 // instead — see engine/jobs.js resolveJob.
 const LOOT_BY_TIER = {
   1: ["a handful of copper coins tied in cloth", "a decent whetstone", "a spare bootlace, oddly well-made"],
-  2: ["a well-oiled dagger", "a pouch of dried rations", "a small vial of minor healing draught"],
-  3: ["a finely made traveler's cloak", "a small pouch of uncut gemstones", "a well-balanced hand-axe"],
-  4: ["a masterwork weapon component, unassembled", "a vial of something faintly luminous", "an engraved signet of no house you recognize"],
+  2: [
+    "a well-oiled dagger", "a pouch of dried rations", "a small vial of minor healing draught",
+    "a legion arming spear, weighted for formation fighting", "a desert duelist's shamshir",
+    "a Sahrimori parrying dagger", "a Vaeloris pathfinder's hood", "a legion officer's mail coat",
+    "a legion swordsman's bracers", "a Sahrimori negotiator's silk gloves", "Sanguivorum courier boots",
+    "a guild appraiser's brass loop", "a legion dueling ring", "a Vaeloris herbalist's seed cord",
+    "a legion scout's grey cloak", "a Sahrimori water-route tablet",
+  ],
+  3: [
+    "a finely made traveler's cloak", "a small pouch of uncut gemstones", "a well-balanced hand-axe",
+    "a Vaeloris heartwood longbow", "a Norrvael storm-rider lance", "a dwarven furnace shield",
+    "a Sahrimori caravan master's veil", "a Sahrimori night-traveler's layered robe",
+    "Thraekor hammer-gauntlets", "a swamp guide's insect-oiled cloak", "a Norrvael storm-rider's saddle charm",
+  ],
+  4: [
+    "a masterwork weapon component, unassembled", "a vial of something faintly luminous", "an engraved signet of no house you recognize",
+    "a legionary's last battlefield standard-knot",
+  ],
   5: ["a relic fragment of uncertain origin", "an item that hums faintly and makes you uneasy to carry", "a shard of something that was clearly never meant to be found"],
 };
 
