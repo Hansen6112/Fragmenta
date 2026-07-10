@@ -4,6 +4,11 @@
  * `fight`/`flee` plus a small Knowledge-gated actions layer (data/
  * tactics.js — Feint, Decoy, Ambush, Disarm). Creature `tier` (0-5)
  * drives how hard the fight is.
+ *
+ * Mage-flagged characters (isMage, once they've picked an element) deal
+ * damage through rollPlayerDamage/attackFlavorLine instead of the plain
+ * attack-stat formula — magic-driven, elementally flavored, and scaled by
+ * a multiplier tied to the Magic stat itself (see data/elements.js).
  */
 
 function randInt(min, max) {
@@ -33,6 +38,34 @@ function withThe(name, capitalize) {
 // damage should go through this instead of reading creature.atk directly.
 function effectiveEnemyAtk(state, creature) {
   return Math.max(1, creature.atk - (state.combat.enemyAtkPenalty || 0));
+}
+
+// Mages deal magic-driven damage instead of attack-driven: magic barely
+// touches physical defense (def/10 vs. def/3 for a physical hit), and a
+// multiplier tied to the Magic stat itself makes a mage's damage compound
+// as they grow rather than scale linearly like a fighter's.
+function rollPlayerDamage(state, creature) {
+  if (state.flags.isMage && state.primaryElement) {
+    const base = randInt(state.magic - 2, state.magic + 2);
+    const multiplier = 1 + state.magic / 40;
+    return Math.max(1, Math.round(base * multiplier) - Math.floor(creature.def / 10));
+  }
+  return Math.max(1, randInt(state.atk - 2, state.atk + 2) - Math.floor(creature.def / 3));
+}
+
+// Picks which element flavors this particular hit — alternates between
+// primary/secondary once a second element is unlocked at level 15.
+function pickElement(state) {
+  if (state.secondaryElement && Math.random() < 0.5) return state.secondaryElement;
+  return state.primaryElement;
+}
+
+function attackFlavorLine(state, creature, dmg) {
+  if (state.flags.isMage && state.primaryElement) {
+    const el = ELEMENTS[pickElement(state)];
+    return `${el.verb(withThe(creature.name, false))} for ${dmg} damage.`;
+  }
+  return `You strike ${withThe(creature.name, false)} for ${dmg} damage.`;
 }
 
 // Ages every active tactic cooldown by one turn. Called at the start of
@@ -112,14 +145,14 @@ function playerAttack(state) {
   state.combat.turnTaken = true;
 
   const out = [];
-  let dmg = Math.max(1, randInt(state.atk - 2, state.atk + 2) - Math.floor(creature.def / 3));
+  let dmg = rollPlayerDamage(state, creature);
   if (state.combat.nextAttackBonus) {
     dmg = Math.round(dmg * 1.6);
     state.combat.nextAttackBonus = false;
     out.push("Your feint pays off —");
   }
   state.combat.hp -= dmg;
-  out.push(`You strike ${withThe(creature.name, false)} for ${dmg} damage.`);
+  out.push(attackFlavorLine(state, creature, dmg));
 
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -193,9 +226,9 @@ function useDecoy(state) {
   state.combat.cooldowns.decoy = t.cooldown;
 
   const out = [`You plant a decoy — ${withThe(creature.name, false)} takes the bait.`];
-  const dmg = Math.max(1, randInt(state.atk - 2, state.atk + 2) - Math.floor(creature.def / 3));
+  const dmg = rollPlayerDamage(state, creature);
   state.combat.hp -= dmg;
-  out.push(`You strike ${withThe(creature.name, false)} for ${dmg} damage while it's distracted.`);
+  out.push(attackFlavorLine(state, creature, dmg) + " (while it's distracted)");
 
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -219,7 +252,7 @@ function useAmbush(state) {
   tickCooldowns(state.combat);
   state.combat.turnTaken = true;
 
-  const dmg = Math.max(1, randInt(state.atk, state.atk + 4) - Math.floor(creature.def / 3));
+  const dmg = Math.round(rollPlayerDamage(state, creature) * 1.4);
   state.combat.hp -= dmg;
   const out = [`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`];
 
@@ -249,7 +282,7 @@ function useDisarm(state) {
   state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3;
 
   const out = [`You disarm ${withThe(creature.name, false)} — its attacks will be noticeably weaker for the rest of this fight.`];
-  const dmg = Math.max(1, randInt(state.atk - 3, state.atk) - Math.floor(creature.def / 3));
+  const dmg = Math.round(rollPlayerDamage(state, creature) * 0.7);
   state.combat.hp -= dmg;
   out.push(`You still land a hit for ${dmg} damage.`);
 

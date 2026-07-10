@@ -34,6 +34,7 @@ const VERB_SYNONYMS = {
   ambush: ["ambush"],
   disarm: ["disarm"],
   skills: ["skills", "tactics"],
+  choose: ["choose", "attune", "focus"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -86,7 +87,7 @@ async function handleInput(rawInput, state) {
         "Warmth spreads through a wound you didn't realize still ached. You heal 6 health.",
       ];
     }
-    if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "skills") {
+    if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "skills" && verb !== "choose") {
       const friendly = BESTIARY[state.combat.creatureId].friendly;
       const usable = friendly ? [] : unlockedTactics(state).filter((id) => tacticAvailable(state, id)).map((id) => TACTICS[id].name.toLowerCase());
       const options = ["fight", "flee", ...usable, ...(friendly ? ["talk", "leave"] : [])];
@@ -137,6 +138,8 @@ async function handleInput(rawInput, state) {
       return cmdSign(arg, state);
     case "skills":
       return cmdSkills(state);
+    case "choose":
+      return cmdChoose(arg, state);
     case "feint":
     case "decoy":
     case "ambush":
@@ -382,11 +385,16 @@ function cmdStatus(state) {
     state.level >= LEVEL_CAP
       ? "XP: max level reached"
       : `XP: ${state.xp}/${xpToNextLevel(state.level)} to next level`;
+  const elementLine =
+    state.flags.isMage && state.primaryElement
+      ? `Element: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? ` / ${ELEMENTS[state.secondaryElement].name}` : ""}`
+      : null;
   return [
     `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}`,
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
     `Magic: ${state.magic}   Knowledge: ${state.knowledge}`,
+    ...(elementLine ? [elementLine] : []),
     xpLine,
     `Gold: ${state.gold}`,
     `Fragmenta shards found: ${state.knownFragments}`,
@@ -419,7 +427,39 @@ function cmdSkills(state) {
     const status = unlocked ? "unlocked" : `locked — needs Knowledge ${t.knowledgeReq}`;
     lines.push(`- ${t.name} (${status}): ${t.description}`);
   }
+  if (state.flags.isMage && state.primaryElement) {
+    lines.push("");
+    lines.push(
+      `== Magic == Primary: ${ELEMENTS[state.primaryElement].name}` +
+        (state.secondaryElement ? `, Secondary: ${ELEMENTS[state.secondaryElement].name}` : "")
+    );
+  }
   return lines;
+}
+
+function cmdChoose(arg, state) {
+  if (!state.flags.pendingLevel15Choice) {
+    return ["There's nothing to choose right now."];
+  }
+  const a = (arg || "").toLowerCase().trim();
+  if (a === "boost" || a === "primary" || a === "deepen") {
+    state.magicBoost = (state.magicBoost || 0) + 6;
+    state.recomputeStats(true);
+    state.flags.pendingLevel15Choice = false;
+    state.flags.level15ChoiceMade = true;
+    return [`You turn everything inward. Your command of ${ELEMENTS[state.primaryElement].name} deepens permanently. (+6 Magic)`];
+  }
+  const key = findElement(a);
+  if (!key) {
+    return [`Choose 'boost' to deepen your primary element, or a second element: ${elementList().join(", ")}.`];
+  }
+  if (key === state.primaryElement) {
+    return ["That's already your primary element. Choose a different one, or 'boost'."];
+  }
+  state.secondaryElement = key;
+  state.flags.pendingLevel15Choice = false;
+  state.flags.level15ChoiceMade = true;
+  return [`You've bent your will to a second discipline: ${ELEMENTS[key].name}. Your strikes will now draw from both, unpredictably.`];
 }
 
 function codexUnlocked(entry, state) {
@@ -578,6 +618,9 @@ function cmdHelp() {
     "you win a big enough fight; courier jobs resolve the moment you arrive.",
     "Tactics: skills (list what Knowledge has unlocked). In a fight, use",
     "feint/decoy/ambush/disarm alongside fight/flee once you've unlocked them.",
+    "Mages fight through their chosen element instead of raw attack; at",
+    "level 15 use 'choose boost' or 'choose <element>' to deepen your magic",
+    "or open a second element.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];

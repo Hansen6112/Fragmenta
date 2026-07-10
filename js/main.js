@@ -7,8 +7,9 @@ const form = document.getElementById("input-form");
 const input = document.getElementById("input");
 
 let state = null;
-let bootStage = "ask_load"; // ask_load -> ask_name -> ask_background -> playing
+let bootStage = "ask_load"; // ask_load -> ask_name -> ask_background -> [ask_element] -> playing
 let pendingName = "";
+let pendingBgKey = "";
 
 function print(text, cls) {
   const p = document.createElement("p");
@@ -43,16 +44,21 @@ function startNewGame() {
   print("Before the road, a name. What shall we call you?", "system");
 }
 
-function beginCharacter(bgKey, name) {
+function beginCharacter(bgKey, name, elementKey) {
   state = new GameState();
   state.playerName = name;
   state.applyBackground(bgKey);
+  if (elementKey) state.primaryElement = elementKey;
   state.visit(state.location);
   bootStage = "playing";
 
   printLines(INTRO_TEXT.split("\n\n"));
   print("");
   print(BACKGROUNDS[bgKey].intro);
+  if (elementKey) {
+    print("");
+    print(`Your magic has always leaned one way: ${ELEMENTS[elementKey].name}. ${ELEMENTS[elementKey].description}`);
+  }
   print("");
   printLines(cmdLook(state));
   print("");
@@ -101,7 +107,33 @@ async function handleBootInput(raw) {
       print(`Not a background anyone's heard of. Try a number (1-${keys.length}) or a name.`, "system");
       return;
     }
+    if (BACKGROUNDS[key].flags && BACKGROUNDS[key].flags.isMage) {
+      pendingBgKey = key;
+      bootStage = "ask_element";
+      print(`Before anything else — what has your magic always leaned toward?`, "system");
+      Object.values(ELEMENTS).forEach((el, i) => {
+        print(`  ${i + 1}. ${el.name} — ${el.description}`, "system");
+      });
+      print("(type a number, or a name — you can open a second element later, at level 15)", "system");
+      return;
+    }
     beginCharacter(key, pendingName);
+    return;
+  }
+  if (bootStage === "ask_element") {
+    const keys = Object.keys(ELEMENTS);
+    const asNumber = parseInt(text, 10);
+    let key = null;
+    if (!isNaN(asNumber) && keys[asNumber - 1]) {
+      key = keys[asNumber - 1];
+    } else {
+      key = findElement(text);
+    }
+    if (!key) {
+      print(`Not an element anyone's ever channeled. Try a number (1-${keys.length}) or a name.`, "system");
+      return;
+    }
+    beginCharacter(pendingBgKey, pendingName, key);
     return;
   }
 }

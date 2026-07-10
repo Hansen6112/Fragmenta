@@ -22,6 +22,9 @@ class GameState {
     this.health = BASE_HEALTH;
     this.magic = BASE_MAGIC;
     this.knowledge = BASE_KNOWLEDGE;
+    this.magicBoost = 0; // permanent bonus from the level-15 "deepen primary" choice
+    this.primaryElement = null;
+    this.secondaryElement = null;
     this.stealthMod = 0;
     this.gold = 25;
     this.inventory = ["a traveler's cloak", "a half-empty waterskin", "a few days' rations"];
@@ -42,6 +45,9 @@ class GameState {
     this.background = bgKey;
     this.level = 1;
     this.xp = 0;
+    this.magicBoost = 0;
+    this.primaryElement = null;
+    this.secondaryElement = null;
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
@@ -69,7 +75,7 @@ class GameState {
     this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n);
     this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n);
     this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n);
-    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n);
+    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0);
     this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n);
     if (healOnGain) {
       this.health += Math.max(0, this.maxHealth - oldMaxHealth);
@@ -91,6 +97,13 @@ class GameState {
       this.level += 1;
       this.recomputeStats(true);
       lines.push(`*** Level up! You are now level ${this.level}. ***`);
+      if (this.level === 15 && this.flags.isMage && this.primaryElement && !this.flags.level15ChoiceMade) {
+        this.flags.pendingLevel15Choice = true;
+        lines.push(
+          `You've reached a threshold few mages ever feel coming. Deepen your mastery of ${ELEMENTS[this.primaryElement].name} ` +
+            `(type 'choose boost'), or open yourself to a second element (type 'choose <element>': ${elementList().join(", ")}).`
+        );
+      }
     }
     return lines;
   }
@@ -122,6 +135,9 @@ class GameState {
       maxHealth: this.maxHealth,
       magic: this.magic,
       knowledge: this.knowledge,
+      magicBoost: this.magicBoost,
+      primaryElement: this.primaryElement,
+      secondaryElement: this.secondaryElement,
       stealthMod: this.stealthMod,
       gold: this.gold,
       inventory: this.inventory,
