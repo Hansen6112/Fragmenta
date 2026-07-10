@@ -46,8 +46,8 @@
  * for whichever items get authored with one.
  */
 
-const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary" };
-const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8 };
+const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic" };
+const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10 };
 const STAT_LABELS = { atk: "Attack", def: "Defense", health: "Health", magic: "Magic", knowledge: "Knowledge" };
 
 const ITEM_DEFS = {
@@ -1602,6 +1602,31 @@ const ITEM_DEFS = {
   "Soldier's Final Letter": { slot: "trinkets", tier: 5, bonuses: { atk: 8 }, effects: ["last_stand"], source: "quest" },
   "Glass Eye of the Watcher": { slot: "trinkets", tier: 5, bonuses: { magic: 6, knowledge: 2 }, effects: ["kingslayer"], source: "dungeon" },
   "Ashes of Victory": { slot: "trinkets", tier: 5, bonuses: { atk: 8 }, effects: ["blood_debt"], source: "arena" },
+
+  // ---- Mythic (tier 6) items ----
+  // Same Title Case / no-article naming departure as Legendary, one step
+  // further up. "hidden_temple" joins the Legendary batch's narrative
+  // source labels (world_boss, dungeon, quest, ancient_vault, secret_quest)
+  // — still safe, since COMBAT_LOOT_POOL/REGIONAL_LOOT_POOL/LOOT_BY_TIER
+  // all clamp their lookups to tiers 1-4, so tier 6 is exactly as inert to
+  // the generic loot systems as tier 5 already is.
+  Eclipse: { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, effects: ["execution_protocol"], source: "world_boss" },
+  "River's End": { slot: "mainhand", tier: 6, bonuses: { magic: 8, knowledge: 2 }, effects: ["twin_rivers"], source: "hidden_temple" },
+  Sovereign: { slot: "mainhand", tier: 6, bonuses: { atk: 9 }, effects: ["living_steel"], source: "ancient_vault" },
+  "Night Requiem": { slot: "mainhand", tier: 6, bonuses: { atk: 8, magic: 2 }, effects: ["temporal_echo"], source: "secret_quest" },
+  Ashmaker: { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, effects: ["second_wind"], source: "world_boss" },
+
+  "Aegis Eternal": { slot: "offhand", tier: 6, bonuses: { def: 10 }, effects: ["guardian_spirit"], source: "ancient_vault" },
+  "Mirror of Rivers": { slot: "offhand", tier: 6, bonuses: { def: 8, magic: 2 }, effects: ["adaptive_ward"], source: "hidden_temple" },
+  "Bastion Prime": { slot: "offhand", tier: 6, bonuses: { def: 9 }, effects: ["living_steel"], source: "quest" },
+
+  "Crown of Horizons": { slot: "helmet", tier: 6, bonuses: { knowledge: 10 }, effects: ["master_strategist"], source: "quest" },
+  "Mindfire Circlet": { slot: "helmet", tier: 6, bonuses: { magic: 10 }, effects: ["arcane_overflow"], source: "world_boss" },
+  "Helm of Endless Resolve": { slot: "helmet", tier: 6, bonuses: { def: 9 }, effects: ["guardian_spirit"], source: "ancient_vault" },
+
+  "Eternity Plate": { slot: "chest", tier: 6, bonuses: { def: 10 }, effects: ["living_steel"], source: "dungeon" },
+  "Vestments of the River Sage": { slot: "chest", tier: 6, bonuses: { magic: 10 }, effects: ["conduit_mastery"], source: "hidden_temple" },
+  "Mantle of the Unyielding": { slot: "chest", tier: 6, bonuses: { def: 8, health: 2 }, effects: ["soul_leech"], source: "quest" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
