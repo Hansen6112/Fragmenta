@@ -182,7 +182,8 @@ function temporalEchoMultiplier(state) {
 function effectiveMagic(state) {
   const combat = state.combat;
   const magicBuff = combat && combat.magicBuffTurns > 0 ? combat.magicBuffAmount || 0 : 0;
-  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff;
+  const everyChoiceMagic = ((combat && combat.everyChoiceMagicStacks) || 0) * 2;
+  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic;
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -267,6 +268,33 @@ function consumeSiegeCorpsAtkCharge(state) {
   return 2;
 }
 
+// Foreseen Strike (Divine Regalia — Loom of Destinies): every 3rd action
+// (any physical attack or elemental cast — shares combat.actionCounter,
+// already incremented once per action by beginTurn) ignores 50% of the
+// target's effective Defense. Its "cannot miss" clause is trivially
+// already true — the player's own attacks in this engine always deal at
+// least 1 damage, with no miss/failure state to bypass.
+function foreseenStrikeDefMultiplier(state) {
+  return hasEffect(state, "foreseen_strike") && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter % 3 === 0 ? 0.5 : 1;
+}
+
+// Minimal player-side critical hit system (Divine Regalia — Blessing of
+// Guidance / Avatar of Fate). Nothing in this engine crit before these
+// two effects, so it's scoped to exactly what they need: Blessing of
+// Guidance (2pc) is the ONLY source of any crit chance at all — a
+// one-shot +25% on the very first action of the fight (mirrors Hunter's
+// Instinct's actionCounter === 1 check). Avatar of Fate never grants
+// chance, only doubles the bonus (+50% -> +100%) if a crit happens to
+// land during its own 4-round window elsewhere.
+function critMultiplier(state) {
+  const combat = state.combat;
+  if (!combat) return 1;
+  let chance = 0;
+  if (hasSetTier(state, "Regalia of the Woven Thread", 2) && combat.actionCounter === 1) chance = 0.25;
+  if (chance <= 0 || Math.random() >= chance) return 1;
+  return combat.avatarOfFateTurns > 0 ? 2.0 : 1.5;
+}
+
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
   const execMult = executionerMultiplier(state);
@@ -277,6 +305,9 @@ function rollPlayerDamage(state, creature, activeElement) {
   const momentumMult = momentumMultiplier(state);
   const executionMult = executionProtocolMultiplier(state);
   const echoMult = temporalEchoMultiplier(state);
+  const foreseenDefMult = foreseenStrikeDefMultiplier(state);
+  const critMult = critMultiplier(state);
+  const threadsMult = state.combat && state.combat.threadsOfConsequencePending ? 1.4 : 1;
   let dmg;
   if (state.flags.isMage && state.primaryElement) {
     const magic = effectiveMagic(state);
@@ -287,14 +318,15 @@ function rollPlayerDamage(state, creature, activeElement) {
     if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
     const multiplier = 1 + magic / 40;
     const matchup = elementMultiplier(state, activeElement, creature.element);
-    const effDef = Math.max(0, creature.def - defPenalty);
+    const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult;
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult) - Math.floor(effDef / 10));
   } else {
     const armorCrack = armorCrackAmount(state);
-    const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
+    const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult;
     const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff;
+    const everyChoiceAtk = state.combat.everyChoiceAtkStacks || 0;
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2;
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
@@ -305,8 +337,9 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult));
   }
+  state.combat.threadsOfConsequencePending = false;
   if (hasEffect(state, "momentum")) {
     state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
   }
@@ -411,6 +444,7 @@ function beginTurn(state) {
   if (combat.atkBuffTurns > 0) combat.atkBuffTurns -= 1;
   if (combat.magicBuffTurns > 0) combat.magicBuffTurns -= 1;
   if (combat.avatarOfPassingTurns > 0) combat.avatarOfPassingTurns -= 1;
+  if (combat.avatarOfFateTurns > 0) combat.avatarOfFateTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   if (combat.burn && combat.burn.turnsLeft > 0) {
     const creature = getCombatCreature(state);
@@ -478,6 +512,15 @@ function checkDeathPrevention(state) {
     state.health = 1;
     return `Between Worlds — the Ferryman's veil catches you at the threshold. 1 Health, nothing more.`;
   }
+  // Avatar of Fate's (Regalia of the Woven Thread 6pc) "once during the
+  // effect" 1-HP save — only available while its 4-round window is active
+  // (see checkAvatarOfFate), on top of (not instead of) the once-per-fight
+  // saves above.
+  if (hasSetTier(state, "Regalia of the Woven Thread", 6) && combat.avatarOfFateTurns > 0 && !combat.avatarOfFateSaveUsed) {
+    combat.avatarOfFateSaveUsed = true;
+    state.health = 1;
+    return `Avatar of Fate — fate itself refuses to let you fall. 1 Health.`;
+  }
   return null;
 }
 
@@ -525,6 +568,15 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   if (hasEffect(state, "guardian_spirit") && !combat.guardianSpiritUsed) {
     combat.guardianSpiritUsed = true;
     return { lines: [`Guardian Spirit turns the first blow aside completely.`], damage: 0 };
+  }
+  // Guided Footsteps (Divine Regalia — Boots of the Hidden Path): a
+  // softer, probabilistic Guardian Spirit — 75% instead of a guarantee,
+  // same "first enemy attack only" gate.
+  if (hasEffect(state, "guided_footsteps") && !combat.guidedFootstepsUsed) {
+    combat.guidedFootstepsUsed = true;
+    if (Math.random() < 0.75) {
+      return { lines: [`Guided Footsteps — you're already a step from where it lands.`], damage: 0 };
+    }
   }
   if (combat.enemyStunned) {
     combat.enemyStunned = false;
@@ -639,6 +691,30 @@ function maybeRiposte(state, creature) {
   return lines;
 }
 
+// Every Choice Matters (Divine Regalia — Ring of Unbroken Consequence)
+// and Threads of Consequence (Regalia of the Woven Thread 4pc) both key
+// off the same "the enemy's retaliation this turn dealt zero damage"
+// signal Riposte already uses (dodge, stun, Decoy, or reduced to 0 by
+// Defense) — called at the same 5 call sites as maybeRiposte.
+function applyDodgeBlockNegateBonuses(state) {
+  if (!state.combat) return [];
+  const combat = state.combat;
+  const lines = [];
+  if (hasEffect(state, "every_choice_matters")) {
+    const atkStacks = combat.everyChoiceAtkStacks || 0;
+    if (atkStacks < 5) {
+      combat.everyChoiceAtkStacks = atkStacks + 1;
+      combat.everyChoiceMagicStacks = (combat.everyChoiceMagicStacks || 0) + 1;
+      lines.push(`Every Choice Matters — the near miss sharpens you; +2 Attack, +2 Magic (now +${(atkStacks + 1) * 2}/+${(atkStacks + 1) * 2}).`);
+    }
+  }
+  if (hasSetTier(state, "Regalia of the Woven Thread", 4) && !combat.threadsOfConsequencePending) {
+    combat.threadsOfConsequencePending = true;
+    lines.push(`Threads of Consequence — your next strike will land harder for it.`);
+  }
+  return lines;
+}
+
 function availableActionNames(state) {
   if (!state.combat) return [];
   if (state.flags.isMage) {
@@ -742,6 +818,13 @@ function startCombat(state, creatureIdOrObject) {
     betweenWorldsUsed: false, // gates Between Worlds' (Divine Regalia) 1-HP cheat-death
     avatarOfPassingUsed: false, // gates Avatar of Passing's (Regalia of the Final Veil 6pc) below-25%-HP burst
     avatarOfPassingTurns: 0, // Avatar of Passing's temporary 30%-damage-dealt-as-healing duration remaining
+    guidedFootstepsUsed: false, // gates Guided Footsteps' (Divine Regalia) 75%-chance first-attack miss
+    everyChoiceAtkStacks: 0, // Every Choice Matters' (Divine Regalia) stacking +2 Attack per dodge/block/negate, capped at 5 (+10)
+    everyChoiceMagicStacks: 0, // Every Choice Matters' stacking +2 Magic, capped at 5 (+10)
+    threadsOfConsequencePending: false, // Threads of Consequence's (Regalia of the Woven Thread 4pc) next-attack +40% bonus
+    avatarOfFateUsed: false, // gates Avatar of Fate's (Regalia of the Woven Thread 6pc) below-25%-HP burst
+    avatarOfFateTurns: 0, // Avatar of Fate's temporary doubled-crit-bonus duration remaining
+    avatarOfFateSaveUsed: false, // gates Avatar of Fate's once-during-the-effect 1-HP cheat-death
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -751,6 +834,20 @@ function startCombat(state, creatureIdOrObject) {
   if (hasEffect(state, "endless_bloom")) {
     const healPerTurn = Math.ceil(state.maxHealth * 0.05);
     if (healPerTurn > 0) state.combat.regen = { turnsLeft: 5, healPerTurn };
+  }
+  // Weaver's Insight (Divine Regalia — Silver Thread of Veylana): reveal
+  // the enemy's remaining Health, Defense, Attack, and any active status
+  // at the start of combat. Its "future bosses reveal hidden phases one
+  // turn earlier" clause is explicitly forward-looking (the user's own
+  // wording) — nothing to build for that yet.
+  if (hasEffect(state, "weavers_insight")) {
+    const statusBits = [];
+    if (creature.element) statusBits.push(`${ELEMENTS[creature.element].name} affinity`);
+    if (creature.unique) statusBits.push("unique");
+    lines.push(
+      `Weaver's Insight unravels the moment: ${withThe(creature.name, false)} has ${creature.hp} Health, ${creature.def} Defense, ${creature.atk} Attack` +
+        (statusBits.length ? ` (${statusBits.join(", ")})` : "") + "."
+    );
   }
   // Forest Guardian (Vaeloris 6pc): a Defense charge earned when Regrowth
   // activated after the PREVIOUS fight ended (Regrowth itself only ever
@@ -843,6 +940,24 @@ function checkAvatarOfPassing(state) {
   combat.avatarOfPassingUsed = true;
   combat.avatarOfPassingTurns = 4;
   return [`Avatar of Passing awakens — for 4 rounds, the damage you deal returns to you as life.`];
+}
+
+// Avatar of Fate (Regalia of the Woven Thread 6pc): same below-25%-Health
+// trigger as its sibling "Avatar of X" 6pc abilities (no threshold of its
+// own was given, so this mirrors theirs for consistency). Grants 4 rounds
+// of doubled crit bonus (see critMultiplier) and a once-during-the-effect
+// 1-HP save (see checkDeathPrevention). Its "every attack cannot miss"
+// and "enemy dodge/block/evasion ignored" clauses are trivially already
+// true — no miss state exists on the player's attacks, and nothing in
+// this engine ever lets an enemy dodge/block the player's attack in the
+// first place.
+function checkAvatarOfFate(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfFateUsed || !hasSetTier(state, "Regalia of the Woven Thread", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfFateUsed = true;
+  combat.avatarOfFateTurns = 4;
+  return [`Avatar of Fate awakens — for 4 rounds, fate bends further in your favor.`];
 }
 
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
@@ -988,8 +1103,8 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1026,7 +1141,7 @@ function attemptFlee(state) {
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1117,8 +1232,8 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1163,7 +1278,7 @@ function useDecoy(state) {
   out.push(...applyPhysicalOnHitEffects(state, creature));
 
   out.push(`${withThe(creature.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
-  out.push(...maybeRiposte(state, creature));
+  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1248,8 +1363,8 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1443,8 +1558,8 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;

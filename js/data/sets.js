@@ -377,6 +377,15 @@ const SETS = {
       6: { effects: ["avatar_of_passing"], description: "Avatar of Passing — once per combat, dropping below 25% Health grants 4 rounds where all damage dealt heals you for 30%" },
     },
   },
+  "Regalia of the Woven Thread": {
+    theme: "Veylana's gifts to those who read fate before it lands.",
+    god: "Veylana",
+    bonuses: {
+      2: { effects: ["blessing_of_guidance"], description: "Blessing of Guidance — the first attack or spell each combat gains +25% Critical Chance" },
+      4: { effects: ["threads_of_consequence"], description: "Threads of Consequence — whenever an enemy misses you, your next attack deals 40% additional damage" },
+      6: { effects: ["avatar_of_fate"], description: "Avatar of Fate — once per combat, dropping below 25% Health grants 4 rounds of doubled Critical Damage and a one-time 1-HP save" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

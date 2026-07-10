@@ -1711,6 +1711,14 @@ const ITEM_DEFS = {
   "Ring of Last Breath": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["passing_whisper"], source: "monster", set: "Regalia of the Final Veil" },
   "Gravewalker's Sandals": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calm_beyond_fear"], source: "monster", set: "Regalia of the Final Veil" },
   "Coin of the Ferryman": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["soul_ledger"], source: "monster", set: "Regalia of the Final Veil" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Woven Thread (Veylana) ----
+  "Loom of Destinies": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["foreseen_strike"], source: "monster", set: "Regalia of the Woven Thread" },
+  "Threadkeeper's Spindle": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["redirected_fate"], source: "monster", set: "Regalia of the Woven Thread" },
+  "Robes of the Infinite Tapestry": { slot: "chest", tier: 8, bonuses: { knowledge: 10, def: 6 }, effects: ["threads_intertwined"], source: "monster", set: "Regalia of the Woven Thread" },
+  "Ring of Unbroken Consequence": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["every_choice_matters"], source: "monster", set: "Regalia of the Woven Thread" },
+  "Boots of the Hidden Path": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["guided_footsteps"], source: "monster", set: "Regalia of the Woven Thread" },
+  "Silver Thread of Veylana": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["weavers_insight"], source: "monster", set: "Regalia of the Woven Thread" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
