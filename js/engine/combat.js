@@ -505,6 +505,131 @@ function applyUnyieldingWall(state, dmg) {
   return cap;
 }
 
+// Momentum Unbound (Divine Regalia — Galecaller): +5% damage per stack,
+// capped at +30% (6 stacks). The source text says each stack lasts "2
+// rounds," but this engine has no precedent for independent per-stack
+// expiry (every other stacking bonus here — Living Steel, Every Choice
+// Matters, Battle Tempered, Compassion's Grace — is permanent for the
+// rest of the fight once gained), so it's approximated the same way for
+// consistency. Stacks are grown in applyActionTypeTracking below.
+function momentumUnboundMultiplier(state) {
+  if (!hasEffect(state, "momentum_unbound") || !state.combat) return 1;
+  return 1 + Math.min(state.combat.momentumUnboundStacks || 0, 6) * 0.05;
+}
+
+// Momentum Unbound (Divine Regalia — Galecaller) and Ever Forward
+// (Regalia of the Endless Horizon 4pc) both track the same broad
+// 3-category action-type signal ("attack", "tactic", or "elemental" —
+// never a finer-grained key than that, unlike Wanderer's Reward/Endless
+// Study below, which key off the SPECIFIC ability used instead of its
+// category). Called at the same 6 action-entry points as
+// applyEndlessStudy, right alongside it, with the same category string
+// every one of those call sites already passes for that purpose.
+function applyActionTypeTracking(state, actionType) {
+  if (!state.combat) return [];
+  const combat = state.combat;
+  const lines = [];
+  if (hasEffect(state, "momentum_unbound") && combat.lastActionType && combat.lastActionType !== actionType && (combat.momentumUnboundStacks || 0) < 6) {
+    combat.momentumUnboundStacks = (combat.momentumUnboundStacks || 0) + 1;
+    lines.push(`Momentum Unbound builds — the shift in rhythm adds +5% damage (now +${combat.momentumUnboundStacks * 5}%).`);
+  }
+  combat.lastActionType = actionType;
+  combat.actionTypeHistory = [...(combat.actionTypeHistory || []), actionType].slice(-3);
+  if (hasSetTier(state, "Regalia of the Endless Horizon", 4) && combat.actionTypeHistory.length === 3 && new Set(combat.actionTypeHistory).size === 3) {
+    const dur = applyBeneficialEffectBonuses(state, 3);
+    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 10);
+    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 10);
+    lines.push(`Ever Forward — three strides, three shapes; +10 Attack, +10 Magic for ${dur} rounds.`);
+  }
+  return lines;
+}
+
+// Wanderer's Reward (Divine Regalia — Ring of Far Horizons): whenever the
+// SPECIFIC ability/tactic used (the same granular actionKey Endless Study
+// already keys off, not the broad 3-category type applyActionTypeTracking
+// above uses) hasn't been used in either of the previous two turns, gain
+// +4 Attack/+4 Magic for 2 rounds. Reads the rolling window BEFORE this
+// action joins it, so the current action never counts as its own
+// "previous" use. "An ability" is read to include the plain Attack too —
+// the same generic actionKey Endless Study already treats uniformly.
+function applyWanderersReward(state, actionKey) {
+  if (!hasEffect(state, "wanderers_reward") || !state.combat) return [];
+  const combat = state.combat;
+  const recent = combat.recentActionKeys || [];
+  const lines = [];
+  if (!recent.includes(actionKey)) {
+    const dur = applyBeneficialEffectBonuses(state, 2);
+    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 4);
+    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 4);
+    lines.push(`Wanderer's Reward — new ground, new strength; +4 Attack, +4 Magic for ${dur} rounds.`);
+  }
+  combat.recentActionKeys = [actionKey, ...recent].slice(0, 2);
+  return lines;
+}
+
+// Trailblazer (Divine Regalia — Feather of the First Wind) and Avatar of
+// Freedom (Regalia of the Endless Horizon 6pc) share the same "ignore
+// this action's non-cooldown activation restrictions" bypass — Avatar of
+// Freedom grants it for its whole 4-round window, Trailblazer grants it
+// once (consumed by consumeTrailblazer below, right after the first
+// Ability/Tactic that actually goes on to resolve). Read at every
+// restriction gate EXCEPT cooldowns, per both effects' own wording
+// ("cooldowns still apply normally").
+function activationRestrictionsBypassed(state) {
+  const combat = state.combat;
+  if (!combat) return false;
+  if (combat.avatarOfFreedomTurns > 0) return true;
+  return hasEffect(state, "trailblazer") && !combat.trailblazerUsed;
+}
+
+// Consumes Trailblazer's one-time bypass, unconditionally, the moment any
+// Ability/Tactic actually resolves — whether or not the bypass was
+// actually needed for that particular use, the same "first use, no matter
+// what" consumption Perfect Timing (Mythic) already established.
+function consumeTrailblazer(state) {
+  if (state.combat && hasEffect(state, "trailblazer") && !state.combat.trailblazerUsed) {
+    state.combat.trailblazerUsed = true;
+  }
+}
+
+// Open Road (Divine Regalia — Wayfinder's Compass) and Blessing of
+// Freedom's (Regalia of the Endless Horizon 2pc) heal-on-evade both key
+// off the same "the enemy's retaliation this turn dealt zero damage"
+// signal Every Choice Matters/Threads of Consequence/Unlikely Outcome
+// already use — called at the same 5 call sites as
+// applyDodgeBlockNegateBonuses. Unlike Twist of Fate (Regalia of the
+// Laughing Gale), which was deliberately scoped to only that set's OWN
+// randomness to avoid overtriggering off unrelated procs, Aethyra's whole
+// theme IS broad evasion itself, so both of these fire off any dodge/
+// miss/block/negate/evasion, regardless of which effect actually caused it.
+function applyEndlessHorizonEvasionBonuses(state) {
+  if (!state.combat) return [];
+  const combat = state.combat;
+  const lines = [];
+  if (hasEffect(state, "open_road")) {
+    let eased = false;
+    for (const key of Object.keys(combat.cooldowns)) {
+      if (combat.cooldowns[key] > 0) {
+        combat.cooldowns[key] -= 1;
+        eased = true;
+      }
+    }
+    if (eased) lines.push(`Open Road — the path clears; every active cooldown eases by a turn.`);
+  }
+  if (hasSetTier(state, "Regalia of the Endless Horizon", 2)) {
+    const heal = Math.ceil(state.maxHealth * 0.05);
+    if (heal > 0) {
+      const { healed, lines: healLines } = applyHeal(state, heal);
+      if (healed > 0) lines.push(`Blessing of Freedom mends you for ${healed} health.`, ...healLines);
+    }
+  }
+  return lines;
+}
+
 // Worthy Challenge (Divine Regalia — Warfather's Edge): "the enemy with
 // the highest current Health" is trivially always THE enemy in this
 // engine's single-target combat model, so this is unconditional — every
@@ -582,6 +707,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   const commandingDefMult = commandingPresenceDefMultiplier(state);
   const loadedDiceMult = loadedDiceMultiplier(state);
   const chaosMult = avatarOfChaosDamageMultiplier(state);
+  const momentumUnboundMult = momentumUnboundMultiplier(state);
   let dmg;
   if (isSpell) {
     const magic = effectiveMagic(state);
@@ -594,7 +720,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult) - Math.floor(effDef / 10));
   } else {
     const armorCrack = armorCrackAmount(state);
     const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
@@ -612,7 +738,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult));
   }
   state.combat.threadsOfConsequencePending = false;
   if (hasEffect(state, "momentum")) {
@@ -736,8 +862,13 @@ function applyHeartwoodVitality(state) {
 function beginTurn(state) {
   const combat = state.combat;
   const lines = [];
+  // Avatar of Freedom (Regalia of the Endless Horizon 6pc): all cooldowns
+  // recover twice as fast for its 4-round window — read BEFORE its own
+  // decrement further below, so the window's final round still gets the
+  // faster recovery.
+  const cooldownDecrement = combat.avatarOfFreedomTurns > 0 ? 2 : 1;
   for (const key of Object.keys(combat.cooldowns)) {
-    if (combat.cooldowns[key] > 0) combat.cooldowns[key] -= 1;
+    if (combat.cooldowns[key] > 0) combat.cooldowns[key] = Math.max(0, combat.cooldowns[key] - cooldownDecrement);
   }
   if (combat.defBuffTurns > 0) combat.defBuffTurns -= 1;
   if (combat.atkBuffTurns > 0) combat.atkBuffTurns -= 1;
@@ -766,6 +897,7 @@ function beginTurn(state) {
       combat.avatarOfEnduranceDefBonus = 0;
     }
   }
+  if (combat.avatarOfFreedomTurns > 0) combat.avatarOfFreedomTurns -= 1;
   if (combat.unyieldingWallCooldown > 0) combat.unyieldingWallCooldown -= 1;
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
@@ -1008,6 +1140,19 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   if (hasEffect(state, "never_where_expected") && Math.random() < 0.15) {
     return { lines: [`Never Where Expected — it swings, and finds nothing there.`], damage: 0 };
   }
+  // Blessing of Freedom (Regalia of the Endless Horizon 2pc): a flat 15%
+  // evasion chance on every enemy attack — its own independent roll,
+  // stacking with Never Where Expected/Guardian Spirit/Guided Footsteps if
+  // a character somehow has several of these miss-chance sources at once.
+  if (hasSetTier(state, "Regalia of the Endless Horizon", 2) && Math.random() < 0.15) {
+    return { lines: [`Blessing of Freedom carries you clear of the blow.`], damage: 0 };
+  }
+  // Avatar of Freedom (Regalia of the Endless Horizon 6pc): an additional,
+  // independent 50% evasion chance for its 4-round window — stacks with
+  // Blessing of Freedom's 15% above rather than replacing it.
+  if (combat.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
+    return { lines: [`Avatar of Freedom carries you beyond its reach entirely.`], damage: 0 };
+  }
   // Evasive Release's charges are a one-shot dodge chance, checked (and
   // consumed either way — "expires after triggering") before falling back
   // to Windcut/Blink's duration-based evasion window.
@@ -1231,17 +1376,22 @@ function availableActionNames(state) {
 function tacticAvailable(state, tacticId) {
   if (!state.combat) return false;
   const t = TACTICS[tacticId];
-  if (state.knowledge < t.knowledgeReq) return false;
-  if (tacticId === "ambush") return !state.combat.turnTaken;
-  if (tacticId === "disarm" && state.combat.disarmed) return false;
+  // Trailblazer (Divine Regalia) / Avatar of Freedom (Regalia of the
+  // Endless Horizon 6pc): both bypass every gate here except cooldown —
+  // kept consistent with the actual useX functions' own bypassed checks.
+  const bypass = activationRestrictionsBypassed(state);
+  if (state.knowledge < t.knowledgeReq && !bypass) return false;
+  if (tacticId === "ambush") return bypass || !state.combat.turnTaken;
+  if (tacticId === "disarm" && state.combat.disarmed && !bypass) return false;
   return (state.combat.cooldowns[tacticId] || 0) <= 0;
 }
 
 function elementAbilityAvailable(state, elementKey) {
   if (!state.combat) return false;
   const a = ELEMENT_ABILITIES[elementKey];
-  if (state.knowledge < a.knowledgeReq) return false;
-  if (elementKey === "acid" && state.combat.corroded) return false;
+  const bypass = activationRestrictionsBypassed(state);
+  if (state.knowledge < a.knowledgeReq && !bypass) return false;
+  if (elementKey === "acid" && state.combat.corroded && !bypass) return false;
   return (state.combat.cooldowns[elementKey] || 0) <= 0;
 }
 
@@ -1364,6 +1514,14 @@ function startCombat(state, creatureIdOrObject) {
     avatarOfEnduranceTurns: 0, // Avatar of Endurance's temporary halved-damage-taken/boosted-healing duration remaining
     avatarOfEnduranceAtkBonus: 0, // Avatar of Endurance's stacking +2 Attack per hit taken during its window, capped at 20
     avatarOfEnduranceDefBonus: 0, // Avatar of Endurance's stacking +2 Defense per hit taken during its window, capped at 20
+    momentumUnboundStacks: 0, // Momentum Unbound's (Divine Regalia) stacking +5% damage per action-type switch, capped at 6 (+30%)
+    lastActionType: null, // Momentum Unbound's previous-turn action type ("attack"/"tactic"/"elemental"), for detecting a switch
+    actionTypeHistory: [], // Ever Forward's (Regalia of the Endless Horizon 4pc) rolling window of the last 3 action types
+    recentActionKeys: [], // Wanderer's Reward's (Divine Regalia) rolling window of the last 2 specific ability/tactic keys used
+    trailblazerUsed: false, // gates Trailblazer's (Divine Regalia) first-Ability-or-Tactic activation-restriction bypass
+    swiftPassageReady: false, // Swift Passage's (Divine Regalia) queued free-cooldown charge from the previous fight's kill
+    avatarOfFreedomUsed: false, // gates Avatar of Freedom's (Regalia of the Endless Horizon 6pc) below-25%-HP burst
+    avatarOfFreedomTurns: 0, // Avatar of Freedom's temporary evasion/cooldown-speed/restriction-bypass duration remaining
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -1407,6 +1565,14 @@ function startCombat(state, creatureIdOrObject) {
   if (state.flags.forestGuardianCharge) {
     state.combat.forestGuardianBonus = 2;
     state.flags.forestGuardianCharge = false;
+  }
+  // Swift Passage (Divine Regalia — Windstep Boots): transfers the charge
+  // queued in resolveKill (see there) onto this fresh combat object —
+  // consumed by the next Ability/Tactic's own cooldown assignment (Feint/
+  // Decoy/Disarm/useElementAbility; Ambush has no cooldown to zero).
+  if (state.flags.swiftPassageCharge) {
+    state.combat.swiftPassageReady = true;
+    state.flags.swiftPassageCharge = false;
   }
   // Unsettling: a flat chance the enemy starts the fight already weakened,
   // rolled once here rather than in playerAttack/etc. since it's a
@@ -1655,6 +1821,29 @@ function checkAvatarOfEndurance(state) {
   return [`Avatar of Endurance awakens — for 4 rounds, you become an unmoving wall.`];
 }
 
+// Avatar of Freedom (Regalia of the Endless Horizon 6pc): the ninth
+// "Avatar of X" once-per-fight below-25%-Health trigger. For 4 rounds:
+// cooldowns recover twice as fast (beginTurn) and every Ability/Tactic's
+// non-cooldown activation restrictions can be ignored (see
+// activationRestrictionsBypassed), plus its own independent 50% evasion
+// roll (resolveEnemyRetaliation, stacking with Blessing of Freedom's 15%
+// since both are separate rolls). Its "immune to all control effects"
+// clause is inert — the same reason as every other CC-immunity effect so
+// far (no enemy-applied control mechanic exists yet; deferred to the
+// promised enemy rework). Its "first failed attack each round is
+// automatically rerolled" clause is also a no-op — the player's own
+// attacks in this engine always deal at least 1 damage, with no miss/
+// failure state on the player's side for a reroll to ever have anything
+// to act on.
+function checkAvatarOfFreedom(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfFreedomUsed || !hasSetTier(state, "Regalia of the Endless Horizon", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfFreedomUsed = true;
+  combat.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, 4);
+  return [`Avatar of Freedom awakens — for 4 rounds, nothing can hold you.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -1784,6 +1973,16 @@ function resolveKill(state, creature) {
   if (hasEffect(state, "victors_momentum")) {
     state.flags.victorsMomentumStacks = (state.flags.victorsMomentumStacks || 0) + 3;
   }
+  // Swift Passage (Divine Regalia — Windstep Boots): defeating an enemy
+  // queues a charge that grants the next Ability or Tactic used a free
+  // cooldown — since a kill always ends this engine's single-enemy fight,
+  // that "next" use only ever happens in the PLAYER's next fight, the same
+  // "queue a charge for the next fight" pattern Forest Guardian (Vaeloris
+  // 6pc) already established (see startCombat, where the charge is
+  // transferred onto the fresh combat object).
+  if (hasEffect(state, "swift_passage")) {
+    state.flags.swiftPassageCharge = true;
+  }
   out.push(...applyArchiveEternal(state, creature));
   state.combat = null;
   state.recomputeStats(true);
@@ -1809,7 +2008,7 @@ function playerAttack(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "attack"));
+  out.push(...applyEndlessStudy(state, "attack"), ...applyWanderersReward(state, "attack"), ...applyActionTypeTracking(state, "attack"));
 
   // "Physical" here mirrors rollPlayerDamage's own branch check — a mage
   // with a primary element deals magic damage instead, so Opening
@@ -1837,8 +2036,8 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1884,7 +2083,7 @@ function attemptFlee(state) {
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1934,7 +2133,7 @@ function useFeint(state) {
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. A feint would be wasted.`];
   if (state.combat.nextAttackBonus) return [`You're already coiled for a strike — feint again once you've used it.`];
   const t = TACTICS.feint;
-  if (state.knowledge < t.knowledgeReq) return [`You don't know how to feint yet. (needs Knowledge ${t.knowledgeReq}+)`];
+  if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know how to feint yet. (needs Knowledge ${t.knowledgeReq}+)`];
   // Perfect Recall (Artifact): the gate itself is skipped entirely, rather
   // than zeroing state.combat.cooldowns.feint — cooldowns still accrue
   // normally underneath (so losing the effect mid-fight falls back to
@@ -1947,10 +2146,14 @@ function useFeint(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "feint"));
+  out.push(...applyEndlessStudy(state, "feint"), ...applyWanderersReward(state, "feint"), ...applyActionTypeTracking(state, "tactic"));
+  consumeTrailblazer(state);
   state.combat.nextAttackBonus = true;
   let feintMemory;
   if (applyPerfectTiming(state)) {
+    feintMemory = { cooldown: 0, fired: false };
+  } else if (state.combat.swiftPassageReady) {
+    state.combat.swiftPassageReady = false;
     feintMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
@@ -1976,8 +2179,8 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1990,7 +2193,7 @@ function useDecoy(state) {
   const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
   const t = TACTICS.decoy;
-  if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
+  if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
   if ((state.combat.cooldowns.decoy || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
 
   const out = beginTurn(state);
@@ -1999,9 +2202,13 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "decoy"));
+  out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"));
+  consumeTrailblazer(state);
   let decoyMemory;
   if (applyPerfectTiming(state)) {
+    decoyMemory = { cooldown: 0, fired: false };
+  } else if (state.combat.swiftPassageReady) {
+    state.combat.swiftPassageReady = false;
     decoyMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
@@ -2024,7 +2231,7 @@ function useDecoy(state) {
   out.push(...applyPhysicalOnHitEffects(state, creature));
 
   out.push(`${withThe(creature.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
-  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
+  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -2036,8 +2243,9 @@ function useAmbush(state) {
   const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} hasn't given you a reason to ambush it.`];
   const t = TACTICS.ambush;
-  if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if (state.combat.turnTaken) return [`The moment's passed — ambush only works as your opening move.`];
+  const ambushBypass = activationRestrictionsBypassed(state);
+  if (state.knowledge < t.knowledgeReq && !ambushBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
+  if (state.combat.turnTaken && !ambushBypass) return [`The moment's passed — ambush only works as your opening move.`];
 
   const out = beginTurn(state);
   state.combat.turnTaken = true;
@@ -2045,7 +2253,8 @@ function useAmbush(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "ambush"));
+  out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"));
+  consumeTrailblazer(state);
 
   const dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
   state.combat.hp -= dmg;
@@ -2072,8 +2281,9 @@ function useDisarm(state) {
   const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't armed against you. Nothing to disarm.`];
   const t = TACTICS.disarm;
-  if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if (state.combat.disarmed) return [`It's already lost whatever you could have disarmed.`];
+  const disarmBypass = activationRestrictionsBypassed(state);
+  if (state.knowledge < t.knowledgeReq && !disarmBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
+  if (state.combat.disarmed && !disarmBypass) return [`It's already lost whatever you could have disarmed.`];
   if ((state.combat.cooldowns.disarm || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
 
   const out = beginTurn(state);
@@ -2082,9 +2292,13 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "disarm"));
+  out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"));
+  consumeTrailblazer(state);
   let disarmMemory;
   if (applyPerfectTiming(state)) {
+    disarmMemory = { cooldown: 0, fired: false };
+  } else if (state.combat.swiftPassageReady) {
+    state.combat.swiftPassageReady = false;
     disarmMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
@@ -2111,8 +2325,8 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -2130,11 +2344,17 @@ function useElementAbility(state, elementKey) {
   // gate entirely — usable by any class, mage or not, regardless of which
   // elements (if any) are actually known.
   const worldWalkerBypass = elementKey === "transportation" && hasEffect(state, "world_walker");
-  if (!worldWalkerBypass && elementKey !== state.primaryElement && elementKey !== state.secondaryElement && elementKey !== state.tertiaryElement) {
+  // Trailblazer (Divine Regalia — Feather of the First Wind) and Avatar of
+  // Freedom (Regalia of the Endless Horizon 6pc): "Blink ignores
+  // conditional requirements" is one of the item's own stated examples,
+  // generalized here to the known-element gate for ANY element, not just
+  // the transportation element World Walker already special-cases above.
+  const elementalBypass = activationRestrictionsBypassed(state);
+  if (!worldWalkerBypass && !elementalBypass && elementKey !== state.primaryElement && elementKey !== state.secondaryElement && elementKey !== state.tertiaryElement) {
     return [`You haven't opened yourself to ${ELEMENTS[elementKey].name}.`];
   }
-  if (state.knowledge < a.knowledgeReq) return [`You don't have the Knowledge for that yet. (needs Knowledge ${a.knowledgeReq}+)`];
-  if (elementKey === "acid" && state.combat.corroded) return [`It's already lost whatever defenses you could corrode.`];
+  if (state.knowledge < a.knowledgeReq && !elementalBypass) return [`You don't have the Knowledge for that yet. (needs Knowledge ${a.knowledgeReq}+)`];
+  if (elementKey === "acid" && state.combat.corroded && !elementalBypass) return [`It's already lost whatever defenses you could corrode.`];
   if ((state.combat.cooldowns[elementKey] || 0) > 0) return [`${a.name} is still recovering — ${state.combat.cooldowns[elementKey]} more turn(s).`];
 
   const out = beginTurn(state);
@@ -2155,7 +2375,8 @@ function useElementAbility(state, elementKey) {
     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
     if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
   }
-  out.push(...applyEndlessStudy(state, elementKey));
+  out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"));
+  consumeTrailblazer(state);
   // Conduit Mastery (Mythic): a flat, unconditional -1 to every elemental
   // cooldown, applied to the base cooldown before Novitiate/River's
   // Favor's free-cast check (which would otherwise get pushed back up
@@ -2183,6 +2404,13 @@ function useElementAbility(state, elementKey) {
   // Avatar of Knowledge (Regalia of the Endless Archive 6pc): for its
   // 4-round window, every spell costs no cooldown at all.
   if (state.combat.avatarOfKnowledgeTurns > 0) cooldown = 0;
+  // Swift Passage (Divine Regalia — Windstep Boots): the queued charge
+  // from a prior fight's kill (see resolveKill/startCombat) overrides
+  // whatever was just computed above, one time.
+  if (state.combat.swiftPassageReady) {
+    state.combat.swiftPassageReady = false;
+    cooldown = 0;
+  }
   state.combat.cooldowns[elementKey] = cooldown;
   // Universal Understanding (Regalia of the Endless Archive 4pc): every
   // elemental cast randomly reduces the cooldown of another known,
@@ -2332,8 +2560,8 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);

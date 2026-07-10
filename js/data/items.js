@@ -1763,6 +1763,14 @@ const ITEM_DEFS = {
   "Ring of Immutable Law": { slot: "rings", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["ordered_mind"], source: "monster", set: "Regalia of the Eternal Bastion" },
   "Stillwarden Greaves": { slot: "boots", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["grounded"], source: "monster", set: "Regalia of the Eternal Bastion" },
   "Keystone of Endurance": { slot: "trinkets", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["lasting_foundation"], source: "monster", set: "Regalia of the Eternal Bastion" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Endless Horizon (Aethyra) ----
+  "Galecaller": { slot: "mainhand", tier: 8, bonuses: { atk: 10, magic: 6 }, effects: ["momentum_unbound"], source: "monster", set: "Regalia of the Endless Horizon" },
+  "Wayfinder's Compass": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["open_road"], source: "monster", set: "Regalia of the Endless Horizon" },
+  "Mantle of Wandering Skies": { slot: "chest", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["unbound_spirit"], source: "monster", set: "Regalia of the Endless Horizon" },
+  "Ring of Far Horizons": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["wanderers_reward"], source: "monster", set: "Regalia of the Endless Horizon" },
+  "Windstep Boots": { slot: "boots", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["swift_passage"], source: "monster", set: "Regalia of the Endless Horizon" },
+  "Feather of the First Wind": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["trailblazer"], source: "monster", set: "Regalia of the Endless Horizon" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

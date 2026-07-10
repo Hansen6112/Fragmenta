@@ -431,6 +431,15 @@ const SETS = {
       6: { effects: ["avatar_of_endurance"], description: "Avatar of Endurance — once per combat, dropping below 25% Health grants 4 rounds of halved damage taken, +50% healing received, and a stat burst on every hit taken" },
     },
   },
+  "Regalia of the Endless Horizon": {
+    theme: "Aethyra's gifts to those who never stop moving.",
+    god: "Aethyra",
+    bonuses: {
+      2: { effects: ["blessing_of_freedom"], description: "Blessing of Freedom — 15% Evasion chance; evading an attack restores 5% Health" },
+      4: { effects: ["ever_forward"], description: "Ever Forward — three different action types in a row grants +10 Attack/+10 Magic for 3 rounds" },
+      6: { effects: ["avatar_of_freedom"], description: "Avatar of Freedom — once per combat, dropping below 25% Health grants 4 rounds of +50% Evasion, doubled cooldown recovery, and unrestricted Ability/Tactic use" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong
