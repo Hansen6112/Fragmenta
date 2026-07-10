@@ -70,7 +70,19 @@ function effectiveEnemyAtk(state, creature) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state);
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0);
+}
+
+// Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
+// capped at +5/+5. Reuses combat.actionCounter (already incremented by
+// applyHeartwoodVitality/beginTurn), so it fires on the exact same
+// cadence Heartwood Vitality does. The Attack half is added directly in
+// rollPlayerDamage's atk line; the Defense half lives in effectivePlayerDef.
+function applyLivingSteel(state) {
+  const combat = state.combat;
+  if (!hasEffect(state, "living_steel") || combat.actionCounter % 3 !== 0 || combat.livingSteelBonus >= 5) return [];
+  combat.livingSteelBonus += 1;
+  return [`Living Steel hardens further — +1 Attack, +1 Defense (now +${combat.livingSteelBonus}/+${combat.livingSteelBonus}).`];
 }
 
 // Perfect Balance (Legendary): whenever base Attack and Defense are within
@@ -117,6 +129,31 @@ function momentumMultiplier(state) {
 function applyMasterDuelist(state, dmg) {
   if (!hasEffect(state, "master_duelist")) return dmg;
   return Math.round(dmg * 0.75);
+}
+
+// Arcane Overflow (Mythic): elemental ability damage rolls get an
+// additional flat 1.5x — mage-only, folded into rollPlayerDamage's magic
+// branch alongside the other multipliers.
+function arcaneOverflowMultiplier(state) {
+  return hasEffect(state, "arcane_overflow") ? 1.5 : 1;
+}
+
+// Execution Protocol (Mythic): a harsher, independent Executioner —
+// 2x damage (not 1.2x) at 20% Health (not 30/40%). Stacks multiplicatively
+// with Executioner if a character somehow has both.
+function executionProtocolMultiplier(state) {
+  if (!hasEffect(state, "execution_protocol") || !state.combat) return 1;
+  return state.combat.hp <= state.combat.maxHp * 0.2 ? 2 : 1;
+}
+
+// Temporal Echo (Mythic): every 5th combat action deals double damage.
+// Reuses combat.actionCounter (already incremented once per action by
+// beginTurn before any damage roll happens), so this folds into the same
+// multiplication chain as Momentum/Hunter's Instinct rather than needing
+// its own "replay the action" logic.
+function temporalEchoMultiplier(state) {
+  if (!hasEffect(state, "temporal_echo") || !state.combat) return 1;
+  return state.combat.actionCounter > 0 && state.combat.actionCounter % 5 === 0 ? 2 : 1;
 }
 
 // River Warden's 6pc set bonus (+2 Magic per "resist," max +8) is a
@@ -181,6 +218,8 @@ function rollPlayerDamage(state, creature, activeElement) {
   const kingMult = kingslayerMultiplier(state, creature);
   const instinctMult = huntersInstinctMultiplier(state);
   const momentumMult = momentumMultiplier(state);
+  const executionMult = executionProtocolMultiplier(state);
+  const echoMult = temporalEchoMultiplier(state);
   let dmg;
   if (state.flags.isMage && state.primaryElement) {
     const magic = effectiveMagic(state);
@@ -188,18 +227,27 @@ function rollPlayerDamage(state, creature, activeElement) {
     const multiplier = 1 + magic / 40;
     const matchup = elementMultiplier(state, activeElement, creature.element);
     const effDef = Math.max(0, creature.def - defPenalty);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult) - Math.floor(effDef / 10));
+    const overflowMult = arcaneOverflowMultiplier(state);
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult) - Math.floor(effDef / 10));
   } else {
     const armorCrack = armorCrackAmount(state);
     const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0);
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0);
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult));
   }
   if (hasEffect(state, "momentum")) {
     state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
+  }
+  // Soul Leech (Mythic): heals 10% of every hit's damage, silently (this
+  // function only returns a number, no message line) — consistent with
+  // Momentum/Kingslayer/Hunter's Instinct also affecting the roll without
+  // their own narration.
+  if (hasEffect(state, "soul_leech") && state.health < state.maxHealth) {
+    const leech = Math.round(dmg * 0.1);
+    if (leech > 0) state.health = Math.min(state.maxHealth, state.health + leech);
   }
   return dmg;
 }
@@ -298,6 +346,7 @@ function beginTurn(state) {
     if (combat.bleed.turnsLeft <= 0) combat.bleed = null;
   }
   lines.push(...applyHeartwoodVitality(state));
+  lines.push(...applyLivingSteel(state));
   return lines;
 }
 
@@ -346,6 +395,13 @@ function checkDeathPrevention(state) {
 function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
+  // Guardian Spirit (Mythic): the very first enemy attack each fight is a
+  // guaranteed miss, checked before anything else (stun, evasion) since
+  // it's a harder guarantee than either.
+  if (hasEffect(state, "guardian_spirit") && !combat.guardianSpiritUsed) {
+    combat.guardianSpiritUsed = true;
+    return { lines: [`Guardian Spirit turns the first blow aside completely.`], damage: 0 };
+  }
   if (combat.enemyStunned) {
     combat.enemyStunned = false;
     return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
@@ -373,6 +429,17 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
     const def = effectivePlayerDef(state) + bonusDef + coldBonus;
     let edmg = Math.max(0, Math.round(base * matchup) - Math.floor(def / 10));
+    // Adaptive Ward (Mythic): the first elemental hit taken each fight
+    // establishes resistance to that element for the rest of the fight;
+    // this triggering hit isn't itself reduced, only subsequent hits of
+    // the same element are (halved, stacking with Spell Ward and friends).
+    if (hasEffect(state, "adaptive_ward")) {
+      if (!combat.adaptiveWardElement) {
+        combat.adaptiveWardElement = creature.element;
+      } else if (creature.element === combat.adaptiveWardElement) {
+        edmg = Math.round(edmg * 0.5);
+      }
+    }
     const swMult = spellWardMultiplier(state);
     if (swMult < 1) {
       edmg = Math.round(edmg * swMult);
@@ -515,6 +582,10 @@ function startCombat(state, creatureIdOrObject) {
     lastStandUsed: false, // gates Last Stand's (Legendary) 1-HP cheat-death
     lastStandAtkBonus: 0, // Last Stand's +5 Attack, granted once triggered
     momentumStacks: 0, // Momentum's (Legendary) stacking damage bonus, capped at 5
+    guardianSpiritUsed: false, // gates Guardian Spirit's (Mythic) auto-miss on the first enemy attack
+    adaptiveWardElement: null, // Adaptive Ward's (Mythic) locked-in resisted element, once the first elemental hit lands
+    perfectTimingUsed: false, // gates Perfect Timing's (Mythic) free first tactic
+    livingSteelBonus: 0, // Living Steel's (Mythic) stacking atk/def bonus, capped at 5
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -723,9 +794,20 @@ function applyTacticalMemory(state, cooldown) {
   return { cooldown, fired: false };
 }
 
-// First Kingdom's 6pc set bonus is a flat, unconditional -1 to every
-// tactic's cooldown, applied before Tactical Memory's probabilistic
-// reduction (both can apply to the same cast).
+// Perfect Timing (Mythic): the first tactic used each fight ignores its
+// cooldown entirely — takes priority over First Kingdom/Master
+// Strategist's flat reduction and Tactical Memory's probabilistic one,
+// both moot once the cooldown is already 0.
+function applyPerfectTiming(state) {
+  if (!hasEffect(state, "perfect_timing") || state.combat.perfectTimingUsed) return false;
+  state.combat.perfectTimingUsed = true;
+  return true;
+}
+
+// First Kingdom's 6pc set bonus and Master Strategist (Mythic) are both a
+// flat, unconditional -1 to every tactic's cooldown, applied before
+// Tactical Memory's probabilistic reduction (both can apply to the same
+// cast) — every call site checks either source before calling this.
 function applyFirstKingdomCooldown(cooldown) {
   return Math.max(1, cooldown - 1);
 }
@@ -747,13 +829,19 @@ function useFeint(state) {
     return out;
   }
   state.combat.nextAttackBonus = true;
-  let baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
-  if (hasSetTier(state, "First Kingdom", 6)) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
-  const memory = applyTacticalMemory(state, baseCooldown);
-  state.combat.cooldowns.feint = memory.cooldown;
+  let feintMemory;
+  if (applyPerfectTiming(state)) {
+    feintMemory = { cooldown: 0, fired: false };
+  } else {
+    let baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
+    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+    feintMemory = applyTacticalMemory(state, baseCooldown);
+  }
+  state.combat.cooldowns.feint = feintMemory.cooldown;
 
   out.push(`You feint — ${withThe(creature.name, false)} doesn't bite, but your next strike will land hard.`);
-  if (memory.fired) out.push(`Old instincts kick in — Feint recovers faster this time.`);
+  if (feintMemory.cooldown === 0 && !feintMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
+  if (feintMemory.fired) out.push(`Old instincts kick in — Feint recovers faster this time.`);
   // Legion's Disciplined Formation (6pc, redefined): a one-shot +3
   // Defense against THIS same retaliation, functionally identical to
   // Brace — the two stack if somehow both are active.
@@ -790,13 +878,19 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  let baseCooldown = t.cooldown;
-  if (hasSetTier(state, "First Kingdom", 6)) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
-  const memory = applyTacticalMemory(state, baseCooldown);
-  state.combat.cooldowns.decoy = memory.cooldown;
+  let decoyMemory;
+  if (applyPerfectTiming(state)) {
+    decoyMemory = { cooldown: 0, fired: false };
+  } else {
+    let baseCooldown = t.cooldown;
+    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+    decoyMemory = applyTacticalMemory(state, baseCooldown);
+  }
+  state.combat.cooldowns.decoy = decoyMemory.cooldown;
 
   out.push(`You plant a decoy — ${withThe(creature.name, false)} takes the bait.`);
-  if (memory.fired) out.push(`Old instincts kick in — Decoy recovers faster this time.`);
+  if (decoyMemory.cooldown === 0 && !decoyMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
+  if (decoyMemory.fired) out.push(`Old instincts kick in — Decoy recovers faster this time.`);
   let dmg = applyOpeningReach(state, rollPlayerDamage(state, creature));
   state.combat.hp -= dmg;
   out.push(attackFlavorLine(state, creature, dmg) + " (while it's distracted)");
@@ -865,15 +959,21 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  let baseCooldown = t.cooldown;
-  if (hasSetTier(state, "First Kingdom", 6)) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
-  const memory = applyTacticalMemory(state, baseCooldown);
-  state.combat.cooldowns.disarm = memory.cooldown;
+  let disarmMemory;
+  if (applyPerfectTiming(state)) {
+    disarmMemory = { cooldown: 0, fired: false };
+  } else {
+    let baseCooldown = t.cooldown;
+    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+    disarmMemory = applyTacticalMemory(state, baseCooldown);
+  }
+  state.combat.cooldowns.disarm = disarmMemory.cooldown;
   state.combat.disarmed = true;
   state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3;
 
   out.push(`You disarm ${withThe(creature.name, false)} — its attacks will be noticeably weaker for the rest of this fight.`);
-  if (memory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
+  if (disarmMemory.cooldown === 0 && !disarmMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
+  if (disarmMemory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
   let dmg = applyOpeningReach(state, Math.round(rollPlayerDamage(state, creature) * 0.7));
   state.combat.hp -= dmg;
   out.push(`You still land a hit for ${dmg} damage.`);
@@ -914,10 +1014,15 @@ function useElementAbility(state, elementKey) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  // Conduit Mastery (Mythic): a flat, unconditional -1 to every elemental
+  // cooldown, applied to the base cooldown before Novitiate/River's
+  // Favor's free-cast check (which would otherwise get pushed back up
+  // from 0) and before Conduit Ease's probabilistic reduction.
+  let cooldown = a.cooldown;
+  if (hasEffect(state, "conduit_mastery")) cooldown = Math.max(1, cooldown - 1);
   // Novitiate's 6pc set bonus: the first elemental cast of the fight
   // costs no cooldown at all, taking priority over Conduit Ease's
   // probabilistic reduction (which only matters once this charge is spent).
-  let cooldown = a.cooldown;
   if ((hasSetTier(state, "Novitiate", 6) || hasEffect(state, "rivers_favor")) && !state.combat.noviceFreeCastUsed) {
     state.combat.noviceFreeCastUsed = true;
     cooldown = 0;
@@ -932,7 +1037,12 @@ function useElementAbility(state, elementKey) {
   // this one boosts this cast. Checked before lastElementUsed is updated,
   // since the check is "what came before this."
   const synergy = getSynergy(state, elementKey);
-  const dmgMult = synergy ? synergy.dmgMultiplier : 1;
+  let dmgMult = synergy ? synergy.dmgMultiplier : 1;
+  // Twin Rivers (Mythic): unlike curated synergy pairs, this rewards ANY
+  // back-to-back elemental cast this fight, stacking with a real synergy
+  // bonus if one also applies. Checked before lastElementUsed updates,
+  // same "what came before this" ordering as the synergy check above.
+  if (hasEffect(state, "twin_rivers") && state.combat.lastElementUsed) dmgMult *= 1.4;
   state.combat.lastElementUsed = elementKey;
 
   // Elemental Focus and Surging Conduit (now potentially 2 charges a

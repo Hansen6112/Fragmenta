@@ -104,6 +104,26 @@ const EFFECT_DEFS = {
   iron_will: { name: "Iron Will", category: "legendary", description: "Immune to Stun effects. Currently inert — nothing in the game yet stuns the player." },
   overwhelming_force: { name: "Overwhelming Force", category: "legendary", description: "Excess damage beyond a kill carries over to another enemy. Currently inert — this engine only ever has one enemy per fight; future-proofed for multi-enemy combat." },
   master_duelist: { name: "Master Duelist", category: "legendary", description: "Enemy counterattacks (physical and elemental alike) deal 25% less damage." },
+
+  // ---- Mythic-exclusive effects (data/items.js tier 6) ----
+  // Build-defining passives reserved for Mythic-tier gear. Second Wind is
+  // the one inert entry: it describes gaining an extra action after
+  // defeating an enemy mid-combat, but this engine ends a fight the
+  // instant its one enemy dies (no multi-wave/multi-enemy encounters
+  // exist), so there is never a moment for that extra action to happen —
+  // same "no matching system yet" policy as Overwhelming Force.
+  second_wind: { name: "Second Wind", category: "mythic", description: "Once per combat, immediately gain another action after defeating an enemy. Currently inert — this engine ends a fight the instant its one enemy dies; there's no multi-enemy encounter for the extra action to happen in." },
+  arcane_overflow: { name: "Arcane Overflow", category: "mythic", description: "Elemental ability damage rolls are boosted an additional 50%." },
+  conduit_mastery: { name: "Conduit Mastery", category: "mythic", description: "Every elemental ability's cooldown is reduced by 1 turn (minimum 1), applied before Conduit Ease/Novitiate's free-cast logic." },
+  perfect_timing: { name: "Perfect Timing", category: "mythic", description: "Your first tactic (Feint/Decoy/Disarm) each fight ignores its cooldown entirely." },
+  living_steel: { name: "Living Steel", category: "mythic", description: "Gain +1 Attack and +1 Defense every 3rd combat action, up to +5/+5. Resets each fight." },
+  soul_leech: { name: "Soul Leech", category: "mythic", description: "Every hit you land restores 10% of the damage dealt as Health." },
+  temporal_echo: { name: "Temporal Echo", category: "mythic", description: "Every 5th combat action deals double damage." },
+  adaptive_ward: { name: "Adaptive Ward", category: "mythic", description: "The first elemental hit you take each fight grants resistance to that element for the rest of the fight (later hits of that element deal 50% damage)." },
+  twin_rivers: { name: "Twin Rivers", category: "mythic", description: "Any elemental cast made right after another one this fight deals +40% damage, regardless of whether the pairing has a curated or generic synergy bonus." },
+  execution_protocol: { name: "Execution Protocol", category: "mythic", description: "Deal 2x damage to any target at or below 20% of its maximum Health." },
+  guardian_spirit: { name: "Guardian Spirit", category: "mythic", description: "The first enemy attack each fight automatically misses." },
+  master_strategist: { name: "Master Strategist", category: "mythic", description: "Every tactic's cooldown is reduced by 1 turn — the same flat reduction First Kingdom's 6pc set bonus grants, from an item effect instead." },
 };
 
 function getEffectDef(effectId) {
