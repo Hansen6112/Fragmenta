@@ -83,7 +83,7 @@ function effectiveEnemyAtk(state, creature) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0);
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0);
 }
 
 // Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
@@ -295,6 +295,37 @@ function critMultiplier(state) {
   return combat.avatarOfFateTurns > 0 ? 2.0 : 1.5;
 }
 
+// Worthy Challenge (Divine Regalia — Warfather's Edge): "the enemy with
+// the highest current Health" is trivially always THE enemy in this
+// engine's single-target combat model, so this is unconditional — every
+// attack stacks +5% permanent damage for the rest of the fight, capped at
+// +50% (10 stacks). Reads the stack BEFORE this hit (Momentum's own
+// pattern), incremented after the roll below.
+function worthyChallengeMultiplier(state) {
+  if (!hasEffect(state, "worthy_challenge") || !state.combat) return 1;
+  return 1 + Math.min(state.combat.worthyChallengeStacks || 0, 10) * 0.05;
+}
+
+// Blessing of Valor (Regalia of the Crimson Vanguard 2pc): the opening
+// attack of the fight deals +30% damage — same actionCounter === 1 gate
+// as Hunter's Instinct/critMultiplier. Its "restore 15% Health if it
+// defeats the target" clause lives in resolveKill instead, since only
+// resolveKill knows the hit was lethal.
+function blessingOfValorMultiplier(state) {
+  return hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.actionCounter === 1 ? 1.3 : 1;
+}
+
+// Commanding Presence (Regalia of the Crimson Vanguard 4pc): every 3rd
+// attack fully ignores the target's Defense (a stronger version of
+// Foreseen Strike's 50% ignore — the two stack multiplicatively if a
+// character somehow has both, which still just zeroes effective Defense
+// either way). Its "cannot miss"/"cannot be blocked" clauses are
+// trivially already true, the same reasoning as Foreseen Strike/Avatar of
+// Fate's equivalent clauses.
+function commandingPresenceDefMultiplier(state) {
+  return hasSetTier(state, "Regalia of the Crimson Vanguard", 4) && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter % 3 === 0 ? 0 : 1;
+}
+
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
   const execMult = executionerMultiplier(state);
@@ -308,6 +339,9 @@ function rollPlayerDamage(state, creature, activeElement) {
   const foreseenDefMult = foreseenStrikeDefMultiplier(state);
   const critMult = critMultiplier(state);
   const threadsMult = state.combat && state.combat.threadsOfConsequencePending ? 1.4 : 1;
+  const worthyMult = worthyChallengeMultiplier(state);
+  const valorMult = blessingOfValorMultiplier(state);
+  const commandingDefMult = commandingPresenceDefMultiplier(state);
   let dmg;
   if (state.flags.isMage && state.primaryElement) {
     const magic = effectiveMagic(state);
@@ -318,15 +352,16 @@ function rollPlayerDamage(state, creature, activeElement) {
     if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
     const multiplier = 1 + magic / 40;
     const matchup = elementMultiplier(state, activeElement, creature.element);
-    const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult;
+    const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult;
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult) - Math.floor(effDef / 10));
   } else {
     const armorCrack = armorCrackAmount(state);
-    const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult;
+    const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
     const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
     const everyChoiceAtk = state.combat.everyChoiceAtkStacks || 0;
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2;
+    const battleTemperedAtk = state.combat.battleTemperedAtkStacks || 0;
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk;
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
@@ -337,11 +372,20 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult));
   }
   state.combat.threadsOfConsequencePending = false;
   if (hasEffect(state, "momentum")) {
     state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
+  }
+  if (hasEffect(state, "worthy_challenge")) {
+    state.combat.worthyChallengeStacks = Math.min(10, (state.combat.worthyChallengeStacks || 0) + 1);
+  }
+  // Avatar of War (Regalia of the Crimson Vanguard 6pc): for its 4-round
+  // window, all damage dealt heals 10% — silent like Soul Leech/Avatar of
+  // Passing above.
+  if (state.combat && state.combat.avatarOfWarTurns > 0) {
+    applyHeal(state, Math.round(dmg * 0.1));
   }
   // Soul Leech (Mythic): heals 10% of every hit's damage (20% if Master of
   // Arms doubles it from the Main Hand item), silently (this function only
@@ -445,7 +489,16 @@ function beginTurn(state) {
   if (combat.magicBuffTurns > 0) combat.magicBuffTurns -= 1;
   if (combat.avatarOfPassingTurns > 0) combat.avatarOfPassingTurns -= 1;
   if (combat.avatarOfFateTurns > 0) combat.avatarOfFateTurns -= 1;
+  if (combat.avatarOfWarTurns > 0) combat.avatarOfWarTurns -= 1;
+  if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
+  // Battle Tempered (Divine Regalia — Armor of the First Legion): every
+  // round spent in combat grants +1 Attack/+1 Defense, capped +10/+10.
+  // Unconditional per-action, unlike Living Steel's every-3rd-action gate.
+  if (hasEffect(state, "battle_tempered")) {
+    if ((combat.battleTemperedAtkStacks || 0) < 10) combat.battleTemperedAtkStacks = (combat.battleTemperedAtkStacks || 0) + 1;
+    if ((combat.battleTemperedDefStacks || 0) < 10) combat.battleTemperedDefStacks = (combat.battleTemperedDefStacks || 0) + 1;
+  }
   if (combat.burn && combat.burn.turnsLeft > 0) {
     const creature = getCombatCreature(state);
     combat.hp -= combat.burn.dmgPerTurn;
@@ -559,6 +612,28 @@ function applyPlayerDamage(state, dmg) {
   return lines;
 }
 
+// Unbroken Line (Divine Regalia — Bulwark of Champions): every 3rd
+// instance of taking damage grants 25% Damage Reduction for the next 2
+// rounds, then the counter resets — checked against the OLD reduction
+// window (so the hit that trips the 3rd count isn't itself reduced by
+// the window it just opened), then the counter advances/resets for next
+// time. Called on the raw incoming damage, before applyPlayerDamage
+// consumes Temporary Health, mirroring where Shield Wall/Master Duelist
+// already sit in the existing damage-reduction chain.
+function applyUnbrokenLine(state, dmg) {
+  if (!state.combat || !hasEffect(state, "unbroken_line")) return dmg;
+  const combat = state.combat;
+  const reduced = combat.damageReductionTurns > 0 ? Math.round(dmg * 0.75) : dmg;
+  if (dmg > 0) {
+    combat.unbrokenLineHitCount = (combat.unbrokenLineHitCount || 0) + 1;
+    if (combat.unbrokenLineHitCount >= 3) {
+      combat.unbrokenLineHitCount = 0;
+      combat.damageReductionTurns = 2;
+    }
+  }
+  return reduced;
+}
+
 function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
@@ -649,6 +724,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     }
     edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
+    edmg = applyUnbrokenLine(state, edmg);
     const absorbLines1 = applyPlayerDamage(state, edmg);
     if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
@@ -664,6 +740,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   }
   edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
+  edmg = applyUnbrokenLine(state, edmg);
   const absorbLines2 = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
@@ -681,7 +758,11 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
 function maybeRiposte(state, creature) {
   if (!hasEffect(state, "riposte")) return [];
   if (!state.combat || state.combat.hp <= 0) return [];
-  const dmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state));
+  // Clash of Steel (Divine Regalia — Gauntlets of the Unyielding): +50% to
+  // Riposte's damage specifically — the only "counterattack" mechanic the
+  // player has in this engine.
+  const clashMult = hasEffect(state, "clash_of_steel") ? 1.5 : 1;
+  const dmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
   state.combat.hp -= dmg;
   const lines = [`You seize the opening — a free riposte for ${dmg} damage.`];
   if (hasSetTier(state, "White Watch", 6)) {
@@ -825,6 +906,14 @@ function startCombat(state, creatureIdOrObject) {
     avatarOfFateUsed: false, // gates Avatar of Fate's (Regalia of the Woven Thread 6pc) below-25%-HP burst
     avatarOfFateTurns: 0, // Avatar of Fate's temporary doubled-crit-bonus duration remaining
     avatarOfFateSaveUsed: false, // gates Avatar of Fate's once-during-the-effect 1-HP cheat-death
+    worthyChallengeStacks: 0, // Worthy Challenge's (Divine Regalia) stacking +5% damage per attack, capped at 10 (+50%)
+    unbrokenLineHitCount: 0, // Unbroken Line's (Divine Regalia) every-3rd-hit-taken counter
+    damageReductionTurns: 0, // Unbroken Line's temporary 25% incoming-damage reduction duration remaining
+    battleTemperedAtkStacks: 0, // Battle Tempered's (Divine Regalia) every-round +1 Attack, capped at 10
+    battleTemperedDefStacks: 0, // Battle Tempered's every-round +1 Defense, capped at 10
+    rallyTheLineUsed: false, // gates Rally the Line's (Divine Regalia) below-50%-HP +10/+10 burst
+    avatarOfWarUsed: false, // gates Avatar of War's (Regalia of the Crimson Vanguard 6pc) below-25%-HP burst
+    avatarOfWarTurns: 0, // Avatar of War's temporary lifesteal/expanded-Riposte duration remaining
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -900,6 +989,23 @@ function checkRootedResolve(state) {
   return [`Rooted Resolve — you plant yourself as your Health falls; +8 Defense for 3 turns.`];
 }
 
+// Rally the Line (Divine Regalia — General's Standard): the same below-
+// 50%-Health trigger as Rooted Resolve above, granting both a flat +10
+// Attack and +10 Defense for 4 rounds — reuses the shared atkBuffTurns/
+// atkBuffAmount and defBuffTurns/defBuffAmount fields via Math.max, the
+// same composition Avatar of Bloom already uses.
+function checkRallyTheLine(state) {
+  const combat = state.combat;
+  if (!combat || combat.rallyTheLineUsed || !hasEffect(state, "rally_the_line")) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
+  combat.rallyTheLineUsed = true;
+  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 4);
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 10);
+  combat.defBuffTurns = Math.max(combat.defBuffTurns, 4);
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, 10);
+  return [`Rally the Line — your Health falls, and the line holds; +10 Attack, +10 Defense for 4 rounds.`];
+}
+
 // Avatar of Bloom (Regalia of the First Bloom 6pc): once per fight, the
 // first time the player's Health drops below 25%, an instant 50% max
 // Health heal (routed through applyHeal like every other heal, so
@@ -958,6 +1064,29 @@ function checkAvatarOfFate(state) {
   combat.avatarOfFateUsed = true;
   combat.avatarOfFateTurns = 4;
   return [`Avatar of Fate awakens — for 4 rounds, fate bends further in your favor.`];
+}
+
+// Avatar of War (Regalia of the Crimson Vanguard 6pc): same below-25%-
+// Health trigger as its sibling "Avatar of X" abilities. Grants 4 rounds
+// of +50% Attack (approximated as a flat addend off base state.atk, the
+// same technique Avatar of Bloom uses for its own +25%), a 10%-damage-
+// dealt-as-healing lifesteal (see rollPlayerDamage), and widens Riposte's
+// trigger to fire on every enemy hit rather than only a zero-damage one
+// (see the resolveEnemyRetaliation call sites). Its "immune to Fear/Stun/
+// Disarm" clause is trivially already true — none of those exist as
+// player-targeting mechanics in this engine — and "defeating an enemy
+// immediately grants another attack" is inert for the same reason Second
+// Wind (Mythic) is: a kill always ends this engine's single-enemy fight,
+// so there's no next enemy for the extra attack to land on.
+function checkAvatarOfWar(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfWarUsed || !hasSetTier(state, "Regalia of the Crimson Vanguard", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfWarUsed = true;
+  combat.avatarOfWarTurns = 4;
+  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 4);
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, Math.round(state.atk * 0.5));
+  return [`Avatar of War awakens — for 4 rounds, you fight like the battle itself.`];
 }
 
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
@@ -1052,6 +1181,23 @@ function resolveKill(state, creature) {
   if (hasEffect(state, "living_legacy") && ((creature.tier || 0) >= 4 || creature.unique) && state.livingLegacyBonus < 100) {
     state.livingLegacyBonus += 1;
   }
+  // Blessing of Valor (Regalia of the Crimson Vanguard 2pc): if the
+  // opening attack of the fight is what landed this kill, restore 15% max
+  // Health — checked here (before state.combat is nulled below) since
+  // only resolveKill knows the kill actually happened.
+  if (hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.actionCounter === 1) {
+    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.15));
+    if (healed > 0) out.push(`Blessing of Valor — a killing opening blow steadies you; mended for ${healed} health.`, ...lines);
+  }
+  // Victor's Momentum (Divine Regalia — Ring of Conquest): +3 Attack per
+  // kill, persisting across fights and decaying on rest — the same
+  // approximation Vanguard Momentum/Passing Whisper use for "for the
+  // remainder of combat" in an engine where a kill always ends the fight.
+  // No cap was given for this one (unlike Passing Whisper's explicit +15),
+  // so it's left uncapped, relying on the same rest-decay safety valve.
+  if (hasEffect(state, "victors_momentum")) {
+    state.flags.victorsMomentumStacks = (state.flags.victorsMomentumStacks || 0) + 3;
+  }
   state.combat = null;
   state.recomputeStats(true);
   out.push(...applyRegrowth(state));
@@ -1103,8 +1249,9 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1135,13 +1282,14 @@ function attemptFlee(state) {
   }
   edmg = applyShieldWall(state, edmg);
   edmg = applyMasterDuelist(state, edmg);
+  edmg = applyUnbrokenLine(state, edmg);
   const absorbLines = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1232,8 +1380,9 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1363,8 +1512,9 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -1558,8 +1708,9 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;

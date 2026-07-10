@@ -92,7 +92,7 @@ class GameState {
     const n = this.level - 1;
     const growth = bg.growth || {};
     const oldMaxHealth = this.maxHealth;
-    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0);
+    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0) + (this.flags.victorsMomentumStacks || 0);
     this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n) + equipmentBonus(this, "def") + setStatBonus(this, "def") + (this.soulLedgerDefBonus || 0);
     this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0) + (this.soulLedgerHealthBonus || 0);
     this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0);

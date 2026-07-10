@@ -518,6 +518,11 @@ function cmdRest(state) {
     state.flags.passingWhisperStacks = 0;
     state.recomputeStats(true);
   }
+  // Victor's Momentum (Divine Regalia) decays on rest the same way.
+  if (state.flags.victorsMomentumStacks) {
+    state.flags.victorsMomentumStacks = 0;
+    state.recomputeStats(true);
+  }
 
   const hunt = checkKabalHunt(state, state.location);
   if (hunt) {

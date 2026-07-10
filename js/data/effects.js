@@ -189,6 +189,19 @@ const EFFECT_DEFS = {
   blessing_of_guidance: { name: "Blessing of Guidance", category: "set", description: "Regalia of the Woven Thread (2pc). The first attack or spell each combat gains +25% Critical Chance — the only source of critical-hit chance this engine has; see critMultiplier in engine/combat.js." },
   threads_of_consequence: { name: "Threads of Consequence", category: "set", description: "Regalia of the Woven Thread (4pc). Whenever an enemy misses you, your next attack deals 40% additional damage." },
   avatar_of_fate: { name: "Avatar of Fate", category: "set", description: "Regalia of the Woven Thread (6pc). Once per combat, the first time you drop below 25% Health: for 4 rounds, critical hits deal double their bonus damage, and once during the window you may survive a fatal blow at 1 Health. Its 'every attack cannot miss' and 'enemy dodge/block/evasion ignored' clauses are trivially already true — no miss state exists on the player's attacks, and nothing in this engine lets an enemy dodge/block one in the first place." },
+
+  // ---- Divine Regalia (Kar'Mhal) ----
+  worthy_challenge: { name: "Worthy Challenge", category: "regalia", description: "Every attack against the enemy with the highest current Health grants +5% permanent damage for the rest of combat, capped at +50%. 'Highest current Health' is trivially always THE enemy in this engine's single-target combat, so this fires on every attack unconditionally." },
+  unbroken_line: { name: "Unbroken Line", category: "regalia", description: "After taking damage 3 times, gain 25% Damage Reduction for the next 2 rounds, then the counter resets." },
+  battle_tempered: { name: "Battle Tempered", category: "regalia", description: "Every round spent in combat grants +1 Attack and +1 Defense, capped at +10/+10." },
+  victors_momentum: { name: "Victor's Momentum", category: "regalia", description: "Every defeated enemy grants +3 Attack for the remainder of combat, uncapped. Since a kill always ends this engine's single-enemy fight, this persists across fights and decays on rest instead — the same approximation Vanguard Momentum/Passing Whisper use for the same wording." },
+  clash_of_steel: { name: "Clash of Steel", category: "regalia", description: "Counterattacks (Riposte — the only counterattack mechanic the player has) deal 50% additional damage." },
+  rally_the_line: { name: "Rally the Line", category: "regalia", description: "The first time your Health drops below 50% each combat, gain +10 Attack and +10 Defense for 4 rounds." },
+
+  // ---- Regalia of the Crimson Vanguard set bonuses (Kar'Mhal) ----
+  blessing_of_valor: { name: "Blessing of Valor", category: "set", description: "Regalia of the Crimson Vanguard (2pc). Your opening attack each combat deals +30% damage. If it defeats the target, immediately restore 15% max Health." },
+  commanding_presence: { name: "Commanding Presence", category: "set", description: "Regalia of the Crimson Vanguard (4pc). Every 3rd attack fully ignores the target's Defense. Its 'cannot miss'/'cannot be blocked' clauses are trivially already true — no miss state exists on the player's attacks, and nothing in this engine lets an enemy block one in the first place." },
+  avatar_of_war: { name: "Avatar of War", category: "set", description: "Regalia of the Crimson Vanguard (6pc). Once per combat, the first time you drop below 25% Health: for 4 rounds, gain +50% Attack, every successful attack restores 10% Health, and Riposte (if equipped) fires after every enemy hit rather than only a zero-damage one. Its 'immune to Fear/Stun/Disarm' clause is trivially already true (none of those exist as player-targeting mechanics here), and 'defeating an enemy grants another attack' is inert for the same reason Second Wind (Mythic) is — a kill always ends this engine's single-enemy fight." },
 };
 
 function getEffectDef(effectId) {

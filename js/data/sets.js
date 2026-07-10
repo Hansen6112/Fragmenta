@@ -386,6 +386,15 @@ const SETS = {
       6: { effects: ["avatar_of_fate"], description: "Avatar of Fate — once per combat, dropping below 25% Health grants 4 rounds of doubled Critical Damage and a one-time 1-HP save" },
     },
   },
+  "Regalia of the Crimson Vanguard": {
+    theme: "Kar'Mhal's gifts to those who never yield the field.",
+    god: "Kar'Mhal",
+    bonuses: {
+      2: { effects: ["blessing_of_valor"], description: "Blessing of Valor — your opening attack deals +30% damage, healing 15% max Health if it's a kill" },
+      4: { effects: ["commanding_presence"], description: "Commanding Presence — every 3rd attack fully ignores the target's Defense" },
+      6: { effects: ["avatar_of_war"], description: "Avatar of War — once per combat, dropping below 25% Health grants 4 rounds of +50% Attack, 10% lifesteal, and expanded Riposte" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong
