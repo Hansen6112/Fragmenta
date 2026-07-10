@@ -236,13 +236,18 @@ function startCombat(state, creatureIdOrObject) {
   return lines;
 }
 
-// Shared victory handling — gold, XP, job progress, ending combat.
+// Shared victory handling — gold, loot, XP, job progress, ending combat.
 function resolveKill(state, creature) {
   const out = [`${withThe(creature.name, true)} falls. ${creature.combatNotes || ""}`.trim()];
   const bounty = state.flags.isMercenary ? 1.5 : 1;
   const goldFound = Math.round(randInt(1, 4) * (creature.tier + 1) * bounty);
   state.gold += goldFound;
   out.push(`You find ${goldFound} gold on/near the creature.`);
+  const loot = rollCreatureLoot(creature);
+  if (loot) {
+    state.inventory.push(loot);
+    out.push(`It was also carrying ${formatItemLine(loot)}.`);
+  }
   state.combat = null;
   out.push(...state.gainXp(xpFromKill(creature)));
   out.push(...checkJobProgressOnKill(state, creature));
