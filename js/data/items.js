@@ -733,7 +733,7 @@ const ITEM_DEFS = {
   "coastwarden mail": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "job", set: "Stormwatch" },
   "tempest gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["guarded_strike"], source: "job", set: "Stormwatch" },
   "tide guard gloves": { slot: "gloves", tier: 2, bonuses: { def: 2 }, effects: ["spell_ward"], source: "shop", set: "Stormwatch" },
-  "cliffrunner greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["surefooted"], source: "job", set: "Stormwatch" },
+  "cliffrunner greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["surefooted"], source: "job", set: "Stormwatch", region: "norrvael" },
   "storm boots": { slot: "boots", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["spell_ward"], source: "contract", set: "Stormwatch" },
   "a stormwatch seal": { slot: "rings", tier: 3, bonuses: { def: 3 }, effects: ["spell_ward"], source: "contract", set: "Stormwatch" },
   "a coastal oath ring": { slot: "rings", tier: 2, bonuses: { def: 2 }, effects: ["stalwart"], source: "shop", set: "Stormwatch" },
@@ -1383,6 +1383,69 @@ const ITEM_DEFS = {
   "a hearthstone": { slot: "trinkets", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "job", region: "thraekor" },
   "a living coal": { slot: "trinkets", tier: 4, bonuses: { magic: 2, def: 2 }, effects: ["elemental_focus"], source: "contract", region: "thraekor" },
   "an ancient forge rune": { slot: "trinkets", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "thraekor" },
+
+  // ---- Norrvael regional items ----
+  // "Duelist's Gloves" collided with an existing White Watch set item of
+  // the same name but different effect/source, so it's renamed below.
+  // "Stormglass Ring" already existed from the prior regional batch with
+  // matching tier/bonus/effect/source and needed no change.
+  "a white ash saber": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["riposte"], source: "shop", region: "norrvael" },
+  "an icebreaker axe": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["crushing_impact"], source: "monster", region: "norrvael" },
+  "a coastwarden spear": { slot: "mainhand", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["opening_reach"], source: "job", region: "norrvael" },
+  "a stormglass rapier": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["feinting_edge"], source: "shop", region: "norrvael" },
+  "a froststeel longsword": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["guarded_strike"], source: "monster", region: "norrvael" },
+  "a harbor defender mace": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "job", region: "norrvael" },
+  "a whalebone harpoon": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "contract", region: "norrvael" },
+  "a navigator's boarding blade": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["riposte"], source: "contract", region: "norrvael" },
+  "a tempest pike": { slot: "mainhand", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["opening_reach"], source: "contract", region: "norrvael" },
+  "a silversteel officer's sword": { slot: "mainhand", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "norrvael" },
+
+  "a harbor buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "shop", region: "norrvael" },
+  "a stormglass shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "an icebound kite shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "job", region: "norrvael" },
+  "a silversteel bulwark": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["brace"], source: "contract", region: "norrvael" },
+
+  "a coastwatch helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, effects: ["ambush_sense"], source: "shop", region: "norrvael" },
+  "a fur-lined officer's helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, effects: ["coldproof"], source: "monster", region: "norrvael" },
+  "a navigator's hood": { slot: "helmet", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "norrvael" },
+  "a storm captain's helm": { slot: "helmet", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "norrvael" },
+
+  "a sealskin coat": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["coldproof"], source: "shop", region: "norrvael" },
+  "harbor guard mail": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["guarded_strike"], source: "monster", region: "norrvael" },
+  "storm sail brigandine": { slot: "chest", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["spell_ward"], source: "job", region: "norrvael" },
+  "a silversteel breastplate": { slot: "chest", tier: 4, bonuses: { def: 4 }, effects: ["stalwart"], source: "contract", region: "norrvael" },
+
+  "sailmaster's gloves": { slot: "gloves", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "norrvael" },
+  "harbor grip gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, effects: ["guarded_strike"], source: "monster", region: "norrvael" },
+  "storm duelist's gloves": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["feinting_edge"], source: "job", region: "norrvael" },
+  "stormglass gauntlets": { slot: "gloves", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["spell_ward"], source: "contract", region: "norrvael" },
+
+  "icepath boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, effects: ["surefooted"], source: "shop", region: "norrvael" },
+  "harbor walker boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "monster", region: "norrvael" },
+  "deepwater boots": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["trailwise"], source: "contract", region: "norrvael" },
+
+  "a navigator's ring": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "norrvael" },
+  "a harbor master's band": { slot: "rings", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job", region: "norrvael" },
+  "an admiralty signet": { slot: "rings", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "norrvael" },
+
+  "a compass pendant": { slot: "necklace", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "norrvael" },
+  "a whalebone charm": { slot: "necklace", tier: 3, bonuses: { atk: 3 }, effects: ["executioner"], source: "monster", region: "norrvael" },
+  "a captain's chain": { slot: "necklace", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["tactical_memory"], source: "job", region: "norrvael" },
+  "a stormglass medallion": { slot: "necklace", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["spell_ward"], source: "contract", region: "norrvael" },
+
+  "a white fur mantle": { slot: "cloak", tier: 2, bonuses: { def: 2 }, effects: ["coldproof"], source: "shop", region: "norrvael" },
+  "a harbor cloak": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "monster", region: "norrvael" },
+  "a storm sail cloak": { slot: "cloak", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["spell_ward"], source: "job", region: "norrvael" },
+  "an admiral's mantle": { slot: "cloak", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "contract", region: "norrvael" },
+
+  "a sailor's knot charm": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "norrvael" },
+  "a lighthouse beacon": { slot: "trinkets", tier: 2, bonuses: { def: 2 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "harbor navigation charts": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "job", region: "norrvael" },
+  "a stormglass shard": { slot: "trinkets", tier: 3, bonuses: { magic: 3 }, effects: ["spell_ward"], source: "monster", region: "norrvael" },
+  "a whale ivory carving": { slot: "trinkets", tier: 3, bonuses: { health: 3 }, effects: ["regrowth"], source: "contract", region: "norrvael" },
+  "an officer's logbook": { slot: "trinkets", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "norrvael" },
+  "a frozen tide pearl": { slot: "trinkets", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["elemental_focus"], source: "contract", region: "norrvael" },
+  "a northern star compass": { slot: "trinkets", tier: 4, bonuses: { knowledge: 4 }, effects: ["trailwise"], source: "contract", region: "norrvael" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
