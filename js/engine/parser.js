@@ -374,13 +374,21 @@ function cmdEquip(arg, state) {
   if (!slot) return [`${item} isn't something you can equip.`];
 
   if (slot === "trinkets") {
-    if (state.equipment.trinkets.length >= EQUIP_SLOT_CAPACITY.trinkets) {
-      return ["Both trinket slots are already full. Unequip one first."];
+    // Dual Focus (Artifact): raises the trinket cap from 2 to 3. Checked
+    // against the item ALREADY being equipped (any currently-worn Dual
+    // Focus trinket counts toward its own cap increase), not the one about
+    // to be equipped.
+    const trinketCap = hasEffect(state, "dual_focus") ? EQUIP_SLOT_CAPACITY.trinkets + 1 : EQUIP_SLOT_CAPACITY.trinkets;
+    if (state.equipment.trinkets.length >= trinketCap) {
+      return [trinketCap > EQUIP_SLOT_CAPACITY.trinkets ? "All three trinket slots are already full. Unequip one first." : "Both trinket slots are already full. Unequip one first."];
     }
+    const wasPending = state.flags.pendingConduitAscendantChoice;
     state.inventory.splice(idx, 1);
     state.equipment.trinkets.push(item);
     state.recomputeStats(true);
-    return [`You equip ${formatItemLine(item)}. (${EQUIP_SLOT_LABELS.trinkets})`];
+    const lines = [`You equip ${formatItemLine(item)}. (${EQUIP_SLOT_LABELS.trinkets})`];
+    if (!wasPending && state.flags.pendingConduitAscendantChoice) lines.push(...conduitAscendantOfferLines(state));
+    return lines;
   }
 
   const lines = [];
@@ -390,11 +398,23 @@ function cmdEquip(arg, state) {
     state.inventory.push(current);
     lines.push(`You unequip ${current} to make room.`);
   }
+  const wasPending = state.flags.pendingConduitAscendantChoice;
   state.inventory.splice(idx, 1);
   state.equipment[slot] = item;
   state.recomputeStats(true);
   lines.push(`You equip ${formatItemLine(item)}. (${EQUIP_SLOT_LABELS[slot]})`);
+  if (!wasPending && state.flags.pendingConduitAscendantChoice) lines.push(...conduitAscendantOfferLines(state));
   return lines;
+}
+
+// Conduit Ascendant (Artifact): the announcement shown the instant the
+// effect first becomes usable (recomputeStats sets the pending flag),
+// mirroring the level-15 second-element announcement in state.js.
+function conduitAscendantOfferLines(state) {
+  return [
+    `Conduit Ascendant stirs — you may reach beyond ${ELEMENTS[state.primaryElement].name} and ${ELEMENTS[state.secondaryElement].name} to a third discipline ` +
+      `(type 'choose <element>': ${elementList().join(", ")}).`,
+  ];
 }
 
 function cmdUnequip(arg, state) {
@@ -512,7 +532,7 @@ function cmdStatus(state) {
       : `XP: ${state.xp}/${xpToNextLevel(state.level)} to next level`;
   const elementLine =
     state.flags.isMage && state.primaryElement
-      ? `Element: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? ` / ${ELEMENTS[state.secondaryElement].name}` : ""}`
+      ? `Element: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? ` / ${ELEMENTS[state.secondaryElement].name}` : ""}${state.tertiaryElement ? ` / ${ELEMENTS[state.tertiaryElement].name}` : ""}`
       : null;
   return [
     `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}`,
@@ -549,10 +569,10 @@ function cmdSkills(state) {
   if (state.flags.isMage && state.primaryElement) {
     const lines = [
       `== Elemental Abilities == (Knowledge: ${state.knowledge})`,
-      `Primary: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? `   Secondary: ${ELEMENTS[state.secondaryElement].name}` : ""}`,
+      `Primary: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? `   Secondary: ${ELEMENTS[state.secondaryElement].name}` : ""}${state.tertiaryElement ? `   Tertiary: ${ELEMENTS[state.tertiaryElement].name}` : ""}`,
       "",
     ];
-    const elementKeys = [state.primaryElement, state.secondaryElement].filter(Boolean);
+    const elementKeys = [state.primaryElement, state.secondaryElement, state.tertiaryElement].filter(Boolean);
     for (const key of elementKeys) {
       const a = ELEMENT_ABILITIES[key];
       const unlocked = state.knowledge >= a.knowledgeReq;
@@ -584,6 +604,16 @@ function cmdSkills(state) {
 }
 
 function cmdChoose(arg, state) {
+  if (state.flags.pendingConduitAscendantChoice) {
+    const key = findElement((arg || "").toLowerCase().trim());
+    if (!key) return [`Choose a third element to open, beyond ${ELEMENTS[state.primaryElement].name} and ${ELEMENTS[state.secondaryElement].name}: ${elementList().join(", ")}.`];
+    if (key === state.primaryElement || key === state.secondaryElement) {
+      return ["You've already opened yourself to that element. Choose a different one."];
+    }
+    state.tertiaryElement = key;
+    state.flags.pendingConduitAscendantChoice = false;
+    return [`Conduit Ascendant lets you reach further still — you've opened yourself to a third discipline: ${ELEMENTS[key].name}.`];
+  }
   if (!state.flags.pendingLevel15Choice) {
     return ["There's nothing to choose right now."];
   }

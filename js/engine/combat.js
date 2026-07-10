@@ -37,6 +37,19 @@ function getCombatCreature(state) {
   return state.combat.creatureObj || BESTIARY[state.combat.creatureId];
 }
 
+// Master of Arms (Artifact): whether the given effect id is specifically
+// on the equipped Main Hand item (not just equipped somewhere), so its
+// "doubles if applicable" clause can target only that source. hasEffect()
+// itself is a pure presence check across all gear and can't answer this.
+function mainhandGrants(state, effectId) {
+  const item = state.equipment.mainhand;
+  const def = item && ITEM_DEFS[item];
+  return !!(def && def.effects && def.effects.includes(effectId));
+}
+function masterOfArmsDoubles(state, effectId) {
+  return hasEffect(state, "master_of_arms") && mainhandGrants(state, effectId);
+}
+
 // Creature names that are already articled ("The Turned") or proper nouns
 // ("Druith, the Ancient") shouldn't get a second "A"/"An"/"the" stuck in front.
 function isSelfArticled(name) {
@@ -100,7 +113,8 @@ function perfectBalanceBonus(state) {
 // unique/named creature.
 function kingslayerMultiplier(state, creature) {
   if (!hasEffect(state, "kingslayer")) return 1;
-  return (creature.tier || 0) >= 4 || creature.unique ? 1.25 : 1;
+  const bonus = masterOfArmsDoubles(state, "kingslayer") ? 1.5 : 1.25;
+  return (creature.tier || 0) >= 4 || creature.unique ? bonus : 1;
 }
 
 // Hunter's Instinct (Legendary): +30% damage on the very first action of
@@ -109,7 +123,8 @@ function kingslayerMultiplier(state, creature) {
 // action that's executed this fight."
 function huntersInstinctMultiplier(state) {
   if (!hasEffect(state, "hunters_instinct")) return 1;
-  return state.combat && state.combat.actionCounter === 1 ? 1.3 : 1;
+  const bonus = masterOfArmsDoubles(state, "hunters_instinct") ? 1.6 : 1.3;
+  return state.combat && state.combat.actionCounter === 1 ? bonus : 1;
 }
 
 // Momentum (Legendary): each of the player's own damage rolls this fight
@@ -135,7 +150,8 @@ function applyMasterDuelist(state, dmg) {
 // additional flat 1.5x — mage-only, folded into rollPlayerDamage's magic
 // branch alongside the other multipliers.
 function arcaneOverflowMultiplier(state) {
-  return hasEffect(state, "arcane_overflow") ? 1.5 : 1;
+  if (!hasEffect(state, "arcane_overflow")) return 1;
+  return masterOfArmsDoubles(state, "arcane_overflow") ? 2.0 : 1.5;
 }
 
 // Execution Protocol (Mythic): a harsher, independent Executioner —
@@ -143,7 +159,8 @@ function arcaneOverflowMultiplier(state) {
 // with Executioner if a character somehow has both.
 function executionProtocolMultiplier(state) {
   if (!hasEffect(state, "execution_protocol") || !state.combat) return 1;
-  return state.combat.hp <= state.combat.maxHp * 0.2 ? 2 : 1;
+  const mult = masterOfArmsDoubles(state, "execution_protocol") ? 3 : 2;
+  return state.combat.hp <= state.combat.maxHp * 0.2 ? mult : 1;
 }
 
 // Temporal Echo (Mythic): every 5th combat action deals double damage.
@@ -153,7 +170,8 @@ function executionProtocolMultiplier(state) {
 // its own "replay the action" logic.
 function temporalEchoMultiplier(state) {
   if (!hasEffect(state, "temporal_echo") || !state.combat) return 1;
-  return state.combat.actionCounter > 0 && state.combat.actionCounter % 5 === 0 ? 2 : 1;
+  const mult = masterOfArmsDoubles(state, "temporal_echo") ? 3 : 2;
+  return state.combat.actionCounter > 0 && state.combat.actionCounter % 5 === 0 ? mult : 1;
 }
 
 // River Warden's 6pc set bonus (+2 Magic per "resist," max +8) is a
@@ -223,7 +241,11 @@ function rollPlayerDamage(state, creature, activeElement) {
   let dmg;
   if (state.flags.isMage && state.primaryElement) {
     const magic = effectiveMagic(state);
-    const base = randInt(magic - 2, magic + 2);
+    // Arcane Convergence (Artifact): rolls the base damage twice and keeps
+    // the higher result — an "advantage" reroll rather than a flat
+    // multiplier, so it still respects the natural magic-2..magic+2 spread.
+    let base = randInt(magic - 2, magic + 2);
+    if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
     const multiplier = 1 + magic / 40;
     const matchup = elementMultiplier(state, activeElement, creature.element);
     const effDef = Math.max(0, creature.def - defPenalty);
@@ -236,17 +258,26 @@ function rollPlayerDamage(state, creature, activeElement) {
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult));
+    // Echoing Arsenal (Artifact): every 5th physical/weapon-attack roll
+    // (playerAttack, Ambush, Decoy, Disarm — anything landing in this
+    // "else" branch) deals double damage. Its own counter, separate from
+    // combat.actionCounter, so mixing in elemental casts doesn't throw off
+    // the count of actual weapon swings.
+    state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
+    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult));
   }
   if (hasEffect(state, "momentum")) {
     state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
   }
-  // Soul Leech (Mythic): heals 10% of every hit's damage, silently (this
-  // function only returns a number, no message line) — consistent with
-  // Momentum/Kingslayer/Hunter's Instinct also affecting the roll without
-  // their own narration.
+  // Soul Leech (Mythic): heals 10% of every hit's damage (20% if Master of
+  // Arms doubles it from the Main Hand item), silently (this function only
+  // returns a number, no message line) — consistent with Momentum/
+  // Kingslayer/Hunter's Instinct also affecting the roll without their own
+  // narration.
   if (hasEffect(state, "soul_leech") && state.health < state.maxHealth) {
-    const leech = Math.round(dmg * 0.1);
+    const leechPct = masterOfArmsDoubles(state, "soul_leech") ? 0.2 : 0.1;
+    const leech = Math.round(dmg * leechPct);
     if (leech > 0) state.health = Math.min(state.maxHealth, state.health + leech);
   }
   return dmg;
@@ -255,8 +286,9 @@ function rollPlayerDamage(state, creature, activeElement) {
 // Picks which element flavors this particular hit — alternates between
 // primary/secondary once a second element is unlocked at level 15.
 function pickElement(state) {
-  if (state.secondaryElement && Math.random() < 0.5) return state.secondaryElement;
-  return state.primaryElement;
+  const known = [state.primaryElement, state.secondaryElement, state.tertiaryElement].filter(Boolean);
+  if (known.length <= 1) return state.primaryElement;
+  return known[Math.floor(Math.random() * known.length)];
 }
 
 // Opening Reach: the FIRST normal physical attack of the fight hits
@@ -426,6 +458,24 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   if (creature.element) {
     const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
     const base = randInt(creature.magic - 2, creature.magic + 2);
+    // Mirror Soul (Artifact): the first hostile spell each combat is
+    // reflected back at the caster wholesale — the raw, unmitigated roll,
+    // before any of the player's own damage-reduction effects below apply
+    // — instead of landing on the player at all. Safe to resolve a kill
+    // from here if the reflection is lethal: every caller of
+    // resolveEnemyRetaliation already null-guards on state.combat before
+    // doing anything further with it.
+    if (hasEffect(state, "mirror_soul") && !combat.mirrorSoulUsed) {
+      combat.mirrorSoulUsed = true;
+      const reflected = Math.max(0, Math.round(base * matchup));
+      if (reflected > 0) {
+        combat.hp -= reflected;
+        const lines = [`Mirror Soul turns ${withThe(creature.name, false)}'s spell back on it, for ${reflected} damage.`];
+        if (combat.hp <= 0) lines.push(...resolveKill(state, creature));
+        return { lines, damage: 0 };
+      }
+      return { lines: [`Mirror Soul readies itself, but there's nothing in the spell worth turning aside.`], damage: 0 };
+    }
     const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
     const def = effectivePlayerDef(state) + bonusDef + coldBonus;
     let edmg = Math.max(0, Math.round(base * matchup) - Math.floor(def / 10));
@@ -586,6 +636,8 @@ function startCombat(state, creatureIdOrObject) {
     adaptiveWardElement: null, // Adaptive Ward's (Mythic) locked-in resisted element, once the first elemental hit lands
     perfectTimingUsed: false, // gates Perfect Timing's (Mythic) free first tactic
     livingSteelBonus: 0, // Living Steel's (Mythic) stacking atk/def bonus, capped at 5
+    weaponAttackCounter: 0, // Echoing Arsenal's (Artifact) every-5th-physical-attack counter
+    mirrorSoulUsed: false, // gates Mirror Soul's (Artifact) first-hostile-spell reflection
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -677,13 +729,27 @@ function resolveKill(state, creature) {
     out.push(`It was also carrying ${formatItemLine(loot)}.`);
   }
   if (hasEffect(state, "blood_debt")) {
-    const heal = Math.ceil(state.maxHealth * 0.2);
+    const healPct = masterOfArmsDoubles(state, "blood_debt") ? 0.4 : 0.2;
+    const heal = Math.ceil(state.maxHealth * healPct);
     if (heal > 0 && state.health < state.maxHealth) {
       state.health = Math.min(state.maxHealth, state.health + heal);
       out.push(`Blood Debt repaid — you're mended for ${heal} health.`);
     }
   }
+  // Battle Scholar (Artifact): +1 Knowledge, permanently, after every kill —
+  // capped at +50 total. Applied to the tracked bonus before recomputeStats
+  // re-derives state.knowledge from scratch (bg mod + growth + gear + this).
+  if (hasEffect(state, "battle_scholar") && state.battleScholarBonus < 50) {
+    state.battleScholarBonus += 1;
+  }
+  // Living Legacy (Artifact): +1 permanent max Health after an Elite-or-
+  // stronger kill, capped +100 — same tier4/unique proxy Kingslayer uses
+  // for "Elite/Boss," since the bestiary has no formal field for it.
+  if (hasEffect(state, "living_legacy") && ((creature.tier || 0) >= 4 || creature.unique) && state.livingLegacyBonus < 100) {
+    state.livingLegacyBonus += 1;
+  }
   state.combat = null;
+  state.recomputeStats(true);
   out.push(...applyRegrowth(state));
   out.push(...applyVanguardMomentum(state));
   out.push(...state.gainXp(xpFromKill(creature)));
@@ -820,7 +886,11 @@ function useFeint(state) {
   if (state.combat.nextAttackBonus) return [`You're already coiled for a strike — feint again once you've used it.`];
   const t = TACTICS.feint;
   if (state.knowledge < t.knowledgeReq) return [`You don't know how to feint yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if ((state.combat.cooldowns.feint || 0) > 0) return [`Feint is still recovering — ${state.combat.cooldowns.feint} more turn(s).`];
+  // Perfect Recall (Artifact): the gate itself is skipped entirely, rather
+  // than zeroing state.combat.cooldowns.feint — cooldowns still accrue
+  // normally underneath (so losing the effect mid-fight falls back to
+  // whatever's actually stored), they just never block the next use.
+  if ((state.combat.cooldowns.feint || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Feint is still recovering — ${state.combat.cooldowns.feint} more turn(s).`];
 
   const out = beginTurn(state);
   state.combat.turnTaken = true;
@@ -870,7 +940,7 @@ function useDecoy(state) {
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
   const t = TACTICS.decoy;
   if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if ((state.combat.cooldowns.decoy || 0) > 0) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
+  if ((state.combat.cooldowns.decoy || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
 
   const out = beginTurn(state);
   state.combat.turnTaken = true;
@@ -951,7 +1021,7 @@ function useDisarm(state) {
   const t = TACTICS.disarm;
   if (state.knowledge < t.knowledgeReq) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
   if (state.combat.disarmed) return [`It's already lost whatever you could have disarmed.`];
-  if ((state.combat.cooldowns.disarm || 0) > 0) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
+  if ((state.combat.cooldowns.disarm || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
 
   const out = beginTurn(state);
   state.combat.turnTaken = true;
@@ -1001,7 +1071,11 @@ function useElementAbility(state, elementKey) {
   if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
   const creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. Save it.`];
-  if (elementKey !== state.primaryElement && elementKey !== state.secondaryElement) {
+  // World Walker (Artifact): Blink specifically ignores the known-element
+  // gate entirely — usable by any class, mage or not, regardless of which
+  // elements (if any) are actually known.
+  const worldWalkerBypass = elementKey === "transportation" && hasEffect(state, "world_walker");
+  if (!worldWalkerBypass && elementKey !== state.primaryElement && elementKey !== state.secondaryElement && elementKey !== state.tertiaryElement) {
     return [`You haven't opened yourself to ${ELEMENTS[elementKey].name}.`];
   }
   if (state.knowledge < a.knowledgeReq) return [`You don't have the Knowledge for that yet. (needs Knowledge ${a.knowledgeReq}+)`];
@@ -1149,8 +1223,12 @@ function useElementAbility(state, elementKey) {
   // Spell Echo (Legendary): a flat 20% chance for this cast's damage to
   // immediately repeat at half power, checked once per cast regardless of
   // how many hits it already landed (so Lightning's double-strike doesn't
-  // get two independent rolls).
-  if (state.combat.hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < 0.2) {
+  // get two independent rolls). Master of Arms (Artifact) doubles that
+  // chance to 40% when Spell Echo is specifically the Main Hand item's own
+  // effect — "triggers twice" read as "triggers twice as often" for a
+  // proc-chance passive, rather than doubling the echo's own damage.
+  const spellEchoChance = masterOfArmsDoubles(state, "spell_echo") ? 0.4 : 0.2;
+  if (state.combat.hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < spellEchoChance) {
     const echoDmg = Math.max(1, Math.round(castDamageDealt * 0.5));
     state.combat.hp -= echoDmg;
     out.push(`The spell echoes — a second casting lands for ${echoDmg} damage.`);

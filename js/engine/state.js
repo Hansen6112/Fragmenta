@@ -25,6 +25,9 @@ class GameState {
     this.magicBoost = 0; // permanent bonus from the level-15 "deepen primary" choice
     this.primaryElement = null;
     this.secondaryElement = null;
+    this.tertiaryElement = null; // Conduit Ascendant's (Artifact) additional element, beyond the normal two
+    this.battleScholarBonus = 0; // Battle Scholar's (Artifact) permanent post-combat Knowledge, capped +50
+    this.livingLegacyBonus = 0; // Living Legacy's (Artifact) permanent post-Elite-kill max Health, capped +100
     this.stealthMod = 0;
     this.gold = 25;
     this.inventory = ["a traveler's cloak", "a half-empty waterskin", "a few days' rations"];
@@ -49,6 +52,9 @@ class GameState {
     this.magicBoost = 0;
     this.primaryElement = null;
     this.secondaryElement = null;
+    this.tertiaryElement = null;
+    this.battleScholarBonus = 0;
+    this.livingLegacyBonus = 0;
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
@@ -80,15 +86,31 @@ class GameState {
     const oldMaxHealth = this.maxHealth;
     this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0);
     this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n) + equipmentBonus(this, "def") + setStatBonus(this, "def");
-    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health") + setStatBonus(this, "health");
+    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0);
     this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic");
-    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge");
+    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0);
+    // The Empty Hand (Artifact): fighting with no Off-Hand equipped is a
+    // flat +50%/+25% multiplier, applied last on top of every other atk/
+    // def source above (growth, gear, sets).
+    if (hasEffect(this, "empty_hand") && !this.equipment.offhand) {
+      this.atk = Math.round(this.atk * 1.5);
+      this.def = Math.round(this.def * 1.25);
+    }
     if (healOnGain) {
       this.health += Math.max(0, this.maxHealth - oldMaxHealth);
     } else {
       this.health = this.maxHealth;
     }
     this.health = Math.min(this.health, this.maxHealth);
+    // Conduit Ascendant (Artifact): offers a one-time third-element choice
+    // the instant a mage who already knows both elements gains this effect
+    // (surfaced by the caller — see parser.js's cmdEquip); withdrawn if the
+    // granting item is unequipped again before the choice is made.
+    if (hasEffect(this, "conduit_ascendant") && this.primaryElement && this.secondaryElement && !this.tertiaryElement) {
+      this.flags.pendingConduitAscendantChoice = true;
+    } else if (!hasEffect(this, "conduit_ascendant")) {
+      this.flags.pendingConduitAscendantChoice = false;
+    }
   }
 
   // Adds XP and levels up as many times as the total earns (capped at

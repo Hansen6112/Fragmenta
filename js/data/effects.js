@@ -124,6 +124,33 @@ const EFFECT_DEFS = {
   execution_protocol: { name: "Execution Protocol", category: "mythic", description: "Deal 2x damage to any target at or below 20% of its maximum Health." },
   guardian_spirit: { name: "Guardian Spirit", category: "mythic", description: "The first enemy attack each fight automatically misses." },
   master_strategist: { name: "Master Strategist", category: "mythic", description: "Every tactic's cooldown is reduced by 1 turn — the same flat reduction First Kingdom's 6pc set bonus grants, from an item effect instead." },
+
+  // ---- Artifact Effects ----
+  // One tier above Mythic. Three of these (immutable, fatewoven,
+  // titans_endurance) describe defending against a mechanic that simply
+  // doesn't exist anywhere in this engine: nothing ever applies a negative
+  // status effect to the PLAYER, the player's own attacks never have a
+  // "failure" state to reroll (damage is always at least 1, with no
+  // miss/dodge check on outgoing hits), and state.def itself (the value
+  // these bonuses build on top of) is never reduced by anything — so
+  // there's nothing for any of the three to actually guard against. They're
+  // registered for completeness but are inert, the same category of
+  // limitation as unbreakable/iron_will/overwhelming_force/second_wind.
+  dual_focus: { name: "Dual Focus", category: "artifact", description: "Equip one additional Trinket (3 instead of 2)." },
+  master_of_arms: { name: "Master of Arms", category: "artifact", description: "Main-hand weapon passives trigger twice if applicable: Kingslayer/Hunter's Instinct/Execution Protocol/Arcane Overflow/Temporal Echo's bonus doubles, Spell Echo's proc chance doubles, and Blood Debt/Soul Leech's heal percentage doubles — only when that specific passive is on the equipped Main Hand item itself, and only for passives with a well-defined 'doubled' meaning." },
+  arcane_convergence: { name: "Arcane Convergence", category: "artifact", description: "Every elemental cast rolls its base damage twice and keeps the higher result." },
+  immutable: { name: "Immutable", category: "artifact", description: "Negative combat effects cannot be applied to you. Currently inert — nothing in this engine ever applies a negative status effect to the player in the first place." },
+  battle_scholar: { name: "Battle Scholar", category: "artifact", description: "Gain +1 Knowledge, permanently, after every combat victory (capped at +50 total)." },
+  perfect_recall: { name: "Perfect Recall", category: "artifact", description: "Tactics (Feint/Decoy/Disarm) no longer have cooldowns." },
+  conduit_ascendant: { name: "Conduit Ascendant", category: "artifact", description: "You may learn one additional element beyond the normal two-element limit, once you already know both a primary and secondary element ('choose <element>' to open it)." },
+  living_legacy: { name: "Living Legacy", category: "artifact", description: "Gain +1 permanent max Health after defeating an Elite-or-stronger enemy (capped at +100 total)." },
+  mirror_soul: { name: "Mirror Soul", category: "artifact", description: "The first hostile spell cast against you each combat is reflected back at the caster instead of landing on you." },
+  echoing_arsenal: { name: "Echoing Arsenal", category: "artifact", description: "Every 5th weapon (physical) attack strikes for double damage." },
+  world_walker: { name: "World Walker", category: "artifact", description: "Blink becomes usable regardless of class or known elements." },
+  fatewoven: { name: "Fatewoven", category: "artifact", description: "Once per combat, automatically reroll any failed attack. Currently inert — the player's own attacks in this engine always deal at least 1 damage; there's no miss/failure state on an outgoing hit to reroll." },
+  titans_endurance: { name: "Titan's Endurance", category: "artifact", description: "Defense can never fall below its base value. Currently inert — nothing in this engine ever reduces the player's base Defense; every combat modifier is an additive bonus layered on top of it, never a subtraction from it." },
+  river_harmony: { name: "River Harmony", category: "artifact", description: "Elemental synergy bonuses activate on every cast, regardless of what (if anything) was cast right before it." },
+  empty_hand: { name: "The Empty Hand", category: "artifact", description: "Fighting with no Off-Hand equipped grants +50% Attack and +25% Defense." },
 };
 
 function getEffectDef(effectId) {

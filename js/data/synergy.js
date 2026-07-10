@@ -137,9 +137,18 @@ function genericSynergy(state, elementA, elementB) {
 // practice, but defends against stale combat state).
 function getSynergy(state, elementKey) {
   const combat = state.combat;
-  const prev = combat.lastElementUsed;
+  const known = [state.primaryElement, state.secondaryElement, state.tertiaryElement].filter(Boolean);
+  let prev = combat.lastElementUsed;
+  // River Harmony (Artifact): a synergy bonus activates on every cast,
+  // regardless of what (if anything) actually came before it. Rather than
+  // requiring a real alternating pairing, this pairs the current cast with
+  // whichever OTHER known element exists, so the very first cast of the
+  // fight (no lastElementUsed yet) and an immediate same-element repeat
+  // both still resolve a real (curated or generic) combo.
+  if (hasEffect(state, "river_harmony") && (!prev || prev === elementKey)) {
+    prev = known.find((e) => e !== elementKey) || null;
+  }
   if (!prev || prev === elementKey) return null;
-  const known = [state.primaryElement, state.secondaryElement].filter(Boolean);
   if (!known.includes(prev) || !known.includes(elementKey)) return null;
   const key = pairKey(elementKey, prev);
   return SYNERGY_COMBOS[key] || genericSynergy(state, elementKey, prev);
