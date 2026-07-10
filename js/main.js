@@ -73,8 +73,36 @@ function renderInventory() {
   invPanel.insertBefore(gold, invPanel.firstChild);
 }
 
+// Fixed slot rows (Main Hand, Off Hand, ... Trinkets), unlike the flat
+// aggregated inventory list — every slot always shows, empty or not, so
+// it reads like a paper doll rather than a bag.
 function renderEquipment() {
-  renderItemList(equipPanel, state ? state.equipment : [], state ? "You have nothing equipped." : "Your journey hasn't begun yet.");
+  equipPanel.innerHTML = "";
+  if (!state) {
+    const empty = document.createElement("p");
+    empty.className = "inv-empty";
+    empty.textContent = "Your journey hasn't begun yet.";
+    equipPanel.appendChild(empty);
+    return;
+  }
+  const list = document.createElement("ul");
+  list.className = "inv-list";
+  for (const slot of EQUIP_SLOTS) {
+    const li = document.createElement("li");
+    const label = document.createElement("span");
+    label.className = "equip-slot-label";
+    label.textContent = EQUIP_SLOT_LABELS[slot];
+    li.appendChild(label);
+
+    const value = document.createElement("span");
+    const filled = slot === "trinkets" ? state.equipment.trinkets : (state.equipment[slot] ? [state.equipment[slot]] : []);
+    value.textContent = filled.length ? filled.join(", ") : "(empty)";
+    value.className = filled.length ? "equip-slot-value" : "equip-slot-value inv-empty";
+    li.appendChild(value);
+
+    list.appendChild(li);
+  }
+  equipPanel.appendChild(list);
 }
 
 function renderActiveTab() {

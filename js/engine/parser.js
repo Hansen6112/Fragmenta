@@ -335,26 +335,75 @@ function cmdDrop(arg, state) {
 }
 
 function cmdEquipment(state) {
-  if (state.equipment.length === 0) return ["You have nothing equipped."];
-  return ["You have equipped:", ...state.equipment.map((i) => `  - ${i}`)];
+  const lines = ["You have equipped:"];
+  for (const slot of EQUIP_SLOTS) {
+    const label = EQUIP_SLOT_LABELS[slot];
+    if (slot === "trinkets") {
+      const items = state.equipment.trinkets;
+      lines.push(`  ${label}: ${items.length ? items.join(", ") : "(empty)"}`);
+    } else {
+      lines.push(`  ${label}: ${state.equipment[slot] || "(empty)"}`);
+    }
+  }
+  return lines;
 }
 
+// Which slot an item goes in is inferred from its name (data/equipment.js
+// inferEquipSlot) rather than chosen by the player — items are plain
+// strings with no explicit type. Equipping into an already-occupied
+// single-item slot auto-unequips the old item back to inventory first;
+// Trinkets (the only 2-item slot) is instead a hard block when full, since
+// which of the two to bump would be ambiguous.
 function cmdEquip(arg, state) {
   if (!arg) return ["Equip what?"];
   const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(arg));
   if (idx < 0) return [`You aren't carrying "${arg}".`];
-  const item = state.inventory.splice(idx, 1)[0];
-  state.equipment.push(item);
-  return [`You equip ${item}.`];
+  const item = state.inventory[idx];
+  const slot = inferEquipSlot(item);
+  if (!slot) return [`${item} isn't something you can equip.`];
+
+  if (slot === "trinkets") {
+    if (state.equipment.trinkets.length >= EQUIP_SLOT_CAPACITY.trinkets) {
+      return ["Both trinket slots are already full. Unequip one first."];
+    }
+    state.inventory.splice(idx, 1);
+    state.equipment.trinkets.push(item);
+    return [`You equip ${item}. (${EQUIP_SLOT_LABELS.trinkets})`];
+  }
+
+  const lines = [];
+  const current = state.equipment[slot];
+  if (current) {
+    state.equipment[slot] = null;
+    state.inventory.push(current);
+    lines.push(`You unequip ${current} to make room.`);
+  }
+  state.inventory.splice(idx, 1);
+  state.equipment[slot] = item;
+  lines.push(`You equip ${item}. (${EQUIP_SLOT_LABELS[slot]})`);
+  return lines;
 }
 
 function cmdUnequip(arg, state) {
   if (!arg) return ["Unequip what?"];
-  const idx = state.equipment.findIndex((i) => i.toLowerCase().includes(arg));
-  if (idx < 0) return [`You don't have "${arg}" equipped.`];
-  const item = state.equipment.splice(idx, 1)[0];
-  state.inventory.push(item);
-  return [`You unequip ${item}.`];
+  for (const slot of EQUIP_SLOTS) {
+    if (slot === "trinkets") {
+      const idx = state.equipment.trinkets.findIndex((i) => i.toLowerCase().includes(arg));
+      if (idx >= 0) {
+        const item = state.equipment.trinkets.splice(idx, 1)[0];
+        state.inventory.push(item);
+        return [`You unequip ${item}.`];
+      }
+      continue;
+    }
+    const current = state.equipment[slot];
+    if (current && current.toLowerCase().includes(arg)) {
+      state.equipment[slot] = null;
+      state.inventory.push(current);
+      return [`You unequip ${current}.`];
+    }
+  }
+  return [`You don't have "${arg}" equipped.`];
 }
 
 function cmdExamine(arg, state) {

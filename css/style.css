@@ -167,6 +167,20 @@ body {
   color: var(--text-dim);
 }
 
+.equip-slot-label {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  margin-right: 1rem;
+}
+
+.equip-slot-value {
+  text-align: right;
+}
+
+.equip-slot-value.inv-empty {
+  color: var(--text-dim);
+}
+
 #log p {
   margin: 0 0 0.85rem;
 }

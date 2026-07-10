@@ -28,7 +28,7 @@ class GameState {
     this.stealthMod = 0;
     this.gold = 25;
     this.inventory = ["a traveler's cloak", "a half-empty waterskin", "a few days' rations"];
-    this.equipment = [];
+    this.equipment = emptyEquipment();
     this.day = 1;
     this.flags = {};
     this.visited = new Set();
@@ -52,7 +52,7 @@ class GameState {
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
-    this.equipment = [];
+    this.equipment = emptyEquipment();
     this.flags = { ...bg.flags };
     this.nation = bg.nation || this.deriveNationFromLocation(bg.startLocation);
     this.location = bg.startLocation;
@@ -158,7 +158,15 @@ class GameState {
     const s = new GameState();
     Object.assign(s, data);
     s.visited = new Set(data.visited || []);
-    s.equipment = data.equipment || [];
+    if (Array.isArray(data.equipment)) {
+      // Pre-slot save format: return those items to inventory rather than
+      // losing them, and start with fresh (empty) slots.
+      s.inventory = [...(data.inventory || []), ...data.equipment];
+      s.equipment = emptyEquipment();
+    } else {
+      s.equipment = Object.assign(emptyEquipment(), data.equipment || {});
+      if (!Array.isArray(s.equipment.trinkets)) s.equipment.trinkets = [];
+    }
     s.combat = null;
     return s;
   }
