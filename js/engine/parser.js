@@ -29,6 +29,11 @@ const VERB_SYNONYMS = {
   contracts: ["contracts", "guildcontracts"],
   accept: ["accept", "claim"],
   sign: ["sign"],
+  feint: ["feint"],
+  decoy: ["decoy"],
+  ambush: ["ambush"],
+  disarm: ["disarm"],
+  skills: ["skills", "tactics"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -64,6 +69,10 @@ async function handleInput(rawInput, state) {
   if (state.combat) {
     if (verb === "fight") return playerAttack(state);
     if (verb === "flee") return attemptFlee(state);
+    if (verb === "feint") return useFeint(state);
+    if (verb === "decoy") return useDecoy(state);
+    if (verb === "ambush") return useAmbush(state);
+    if (verb === "disarm") return useDisarm(state);
     if (verb === "leave" && BESTIARY[state.combat.creatureId].friendly) {
       const name = state.combat.name;
       state.combat = null;
@@ -77,8 +86,11 @@ async function handleInput(rawInput, state) {
         "Warmth spreads through a wound you didn't realize still ached. You heal 6 health.",
       ];
     }
-    if (verb !== "status" && verb !== "look" && verb !== "inventory") {
-      return [`You're in the middle of an encounter. (fight / flee${BESTIARY[state.combat.creatureId].friendly ? " / talk / leave" : ""})`];
+    if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "skills") {
+      const friendly = BESTIARY[state.combat.creatureId].friendly;
+      const usable = friendly ? [] : unlockedTactics(state).filter((id) => tacticAvailable(state, id)).map((id) => TACTICS[id].name.toLowerCase());
+      const options = ["fight", "flee", ...usable, ...(friendly ? ["talk", "leave"] : [])];
+      return [`You're in the middle of an encounter. (${options.join(" / ")})`];
     }
   }
 
@@ -123,6 +135,13 @@ async function handleInput(rawInput, state) {
       return cmdAccept(arg, state);
     case "sign":
       return cmdSign(arg, state);
+    case "skills":
+      return cmdSkills(state);
+    case "feint":
+    case "decoy":
+    case "ambush":
+    case "disarm":
+      return [`Nothing to ${verb} outside a fight. Try 'explore' if you're looking for one.`];
     case "help":
       return cmdHelp();
     case "save":
@@ -393,6 +412,16 @@ function cmdReputation(state) {
   return lines;
 }
 
+function cmdSkills(state) {
+  const lines = [`== Tactics == (Knowledge: ${state.knowledge})`];
+  for (const [id, t] of Object.entries(TACTICS)) {
+    const unlocked = state.knowledge >= t.knowledgeReq;
+    const status = unlocked ? "unlocked" : `locked — needs Knowledge ${t.knowledgeReq}`;
+    lines.push(`- ${t.name} (${status}): ${t.description}`);
+  }
+  return lines;
+}
+
 function codexUnlocked(entry, state) {
   return !entry.requires || !!state.flags[entry.requires];
 }
@@ -547,6 +576,8 @@ function cmdHelp() {
     "Work: board (city job board), accept <number>, contracts (guild-only,",
     "at Nocturne/Vorseth), sign <number>. Bounty jobs resolve the moment",
     "you win a big enough fight; courier jobs resolve the moment you arrive.",
+    "Tactics: skills (list what Knowledge has unlocked). In a fight, use",
+    "feint/decoy/ambush/disarm alongside fight/flee once you've unlocked them.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];
