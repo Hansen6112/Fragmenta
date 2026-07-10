@@ -1627,6 +1627,38 @@ const ITEM_DEFS = {
   "Eternity Plate": { slot: "chest", tier: 6, bonuses: { def: 10 }, effects: ["living_steel"], source: "dungeon" },
   "Vestments of the River Sage": { slot: "chest", tier: 6, bonuses: { magic: 10 }, effects: ["conduit_mastery"], source: "hidden_temple" },
   "Mantle of the Unyielding": { slot: "chest", tier: 6, bonuses: { def: 8, health: 2 }, effects: ["soul_leech"], source: "quest" },
+
+  // ---- Mythic Gloves ----
+  // Two more narrative source labels join this batch ("arena_champion",
+  // distinct from Legendary's plain "arena"; "ancient_temple", distinct
+  // from "ancient_vault") — still inert to the generic loot pools for the
+  // same tier-clamp reason noted above.
+  "Hands of the First Duelist": { slot: "gloves", tier: 6, bonuses: { atk: 10 }, effects: ["perfect_timing"], source: "arena_champion" },
+  "Lifebinder Grips": { slot: "gloves", tier: 6, bonuses: { atk: 8, health: 2 }, effects: ["soul_leech"], source: "ancient_vault" },
+  "Voidwoven Gloves": { slot: "gloves", tier: 6, bonuses: { magic: 10 }, effects: ["temporal_echo"], source: "hidden_temple" },
+
+  // ---- Mythic Boots ----
+  "Horizon Tread": { slot: "boots", tier: 6, bonuses: { knowledge: 10 }, effects: ["master_strategist"], source: "exploration" },
+  "Riverstep Sandals": { slot: "boots", tier: 6, bonuses: { magic: 8, def: 2 }, effects: ["conduit_mastery"], source: "secret_quest" },
+  "Boots of the Unbroken Path": { slot: "boots", tier: 6, bonuses: { def: 10 }, effects: ["guardian_spirit"], source: "world_boss" },
+
+  // ---- Mythic Rings ----
+  "Ouroboros Band": { slot: "rings", tier: 6, bonuses: { magic: 10 }, effects: ["twin_rivers"], source: "ancient_temple" },
+  "Ring of the Final Victor": { slot: "rings", tier: 6, bonuses: { atk: 10 }, effects: ["execution_protocol"], source: "arena_champion" },
+  "Infinite Sigil": { slot: "rings", tier: 6, bonuses: { knowledge: 8, def: 2 }, effects: ["living_steel"], source: "ancient_vault" },
+
+  // ---- Mythic Necklaces ----
+  "Worldheart Pendant": { slot: "necklace", tier: 6, bonuses: { health: 10 }, effects: ["soul_leech"], source: "hidden_temple" },
+  "Chain of Endless Dawn": { slot: "necklace", tier: 6, bonuses: { magic: 8, knowledge: 2 }, effects: ["arcane_overflow"], source: "world_boss" },
+
+  // ---- Mythic Cloaks ----
+  "Veil of Forgotten Skies": { slot: "cloak", tier: 6, bonuses: { def: 8, magic: 2 }, effects: ["adaptive_ward"], source: "ancient_vault" },
+  "Mantle of the Last Horizon": { slot: "cloak", tier: 6, bonuses: { knowledge: 10 }, effects: ["master_strategist"], source: "exploration" },
+
+  // ---- Mythic Trinkets ----
+  "Hourglass of the Wanderer": { slot: "trinkets", tier: 6, bonuses: { knowledge: 10 }, effects: ["temporal_echo"], source: "hidden_temple" },
+  "Heart of the Worldforge": { slot: "trinkets", tier: 6, bonuses: { def: 8, magic: 2 }, effects: ["living_steel"], source: "world_boss" },
+  "The Thirteenth Coin": { slot: "trinkets", tier: 6, bonuses: { magic: 10 }, effects: ["perfect_timing"], source: "secret_quest" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
