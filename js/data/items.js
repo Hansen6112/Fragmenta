@@ -46,8 +46,8 @@
  * for whichever items get authored with one.
  */
 
-const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic" };
-const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10 };
+const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic", 7: "Artifact" };
+const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10, 7: 12 };
 const STAT_LABELS = { atk: "Attack", def: "Defense", health: "Health", magic: "Magic", knowledge: "Knowledge" };
 
 const ITEM_DEFS = {
@@ -1659,6 +1659,48 @@ const ITEM_DEFS = {
   "Hourglass of the Wanderer": { slot: "trinkets", tier: 6, bonuses: { knowledge: 10 }, effects: ["temporal_echo"], source: "hidden_temple" },
   "Heart of the Worldforge": { slot: "trinkets", tier: 6, bonuses: { def: 8, magic: 2 }, effects: ["living_steel"], source: "world_boss" },
   "The Thirteenth Coin": { slot: "trinkets", tier: 6, bonuses: { magic: 10 }, effects: ["perfect_timing"], source: "secret_quest" },
+
+  // ---- Artifact (tier 7) items ----
+  // One tier above Mythic — the source table gave every row's Stats
+  // column as "Variable" rather than a fixed number, so the bonus splits
+  // below are a judgment call: ITEM_TIER_BONUS[7] (12) as a single stat
+  // where the passive doesn't obviously favor a secondary stat, or a
+  // 10/2-style split leaning toward whichever stat the passive plays into
+  // (e.g. magic for the two mage-flavored passives). Same Title Case /
+  // no-article naming as Legendary and Mythic, and a new round of
+  // narrative source labels (hidden_vault, ancient_titan, forgotten_library,
+  // lost_capital, ancient_fortress, hidden_river_shrine, legendary_quest,
+  // puzzle_dungeon, hidden_archive, secret_encounter) — still functionally
+  // inert to the generic loot systems, same tier-1-4 clamp as every prior
+  // tier above Masterwork. All 15 Artifact effects are represented here,
+  // including the 3 that are currently inert in combat (Immutable,
+  // Fatewoven, Titan's Endurance) — consistent with how inert Legendary/
+  // Mythic effects (Iron Will, Unbreakable, Overwhelming Force, Second
+  // Wind) were still given real items to carry them.
+  "The Hollow Blade": { slot: "mainhand", tier: 7, bonuses: { atk: 12 }, effects: ["echoing_arsenal"], source: "hidden_vault" },
+  Worldrender: { slot: "mainhand", tier: 7, bonuses: { atk: 12 }, effects: ["master_of_arms"], source: "ancient_titan" },
+  "The Nameless Staff": { slot: "mainhand", tier: 7, bonuses: { magic: 10, knowledge: 2 }, effects: ["arcane_convergence"], source: "forgotten_library" },
+
+  "Aegis of the Last Wall": { slot: "offhand", tier: 7, bonuses: { def: 12 }, effects: ["mirror_soul"], source: "world_boss" },
+
+  "The Crown Without a King": { slot: "helmet", tier: 7, bonuses: { knowledge: 12 }, effects: ["battle_scholar"], source: "lost_capital" },
+
+  "Armor of the First Sentinel": { slot: "chest", tier: 7, bonuses: { def: 12 }, effects: ["titans_endurance"], source: "ancient_fortress" },
+
+  "Gloves of the Empty Throne": { slot: "gloves", tier: 7, bonuses: { atk: 10, def: 2 }, effects: ["fatewoven"], source: "secret_quest" },
+
+  "Steps Between Worlds": { slot: "boots", tier: 7, bonuses: { def: 10, knowledge: 2 }, effects: ["world_walker"], source: "ancient_temple" },
+
+  "Ring of Endless Rivers": { slot: "rings", tier: 7, bonuses: { magic: 12 }, effects: ["conduit_ascendant"], source: "hidden_river_shrine" },
+  "The Ouroboros Loop": { slot: "rings", tier: 7, bonuses: { magic: 10, knowledge: 2 }, effects: ["river_harmony"], source: "world_boss" },
+
+  "Chain of the Unforgotten": { slot: "necklace", tier: 7, bonuses: { health: 12 }, effects: ["living_legacy"], source: "legendary_quest" },
+
+  "Mantle of Immutable Night": { slot: "cloak", tier: 7, bonuses: { def: 12 }, effects: ["immutable"], source: "ancient_vault" },
+
+  "Pocket of Holding": { slot: "trinkets", tier: 7, bonuses: { knowledge: 12 }, effects: ["dual_focus"], source: "puzzle_dungeon" },
+  "Chronicle of Every Victory": { slot: "trinkets", tier: 7, bonuses: { atk: 8, def: 4 }, effects: ["perfect_recall"], source: "hidden_archive" },
+  "The Empty Palm": { slot: "trinkets", tier: 7, bonuses: { atk: 12 }, effects: ["empty_hand"], source: "secret_encounter" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
