@@ -514,7 +514,7 @@ const ITEM_DEFS = {
   "living vine gloves": { slot: "gloves", tier: 4, bonuses: { def: 2, health: 2 }, effects: ["regrowth"], source: "contract", set: "Heartwood" },
   "grovekeeper wraps": { slot: "gloves", tier: 3, bonuses: { knowledge: 2, def: 1 }, effects: ["trailwise"], source: "job", set: "Heartwood" },
   "rootwalker boots": { slot: "boots", tier: 4, bonuses: { knowledge: 3, def: 1 }, effects: ["trailwise"], source: "contract", set: "Heartwood" },
-  "mossrunner boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["surefooted"], source: "job", set: "Heartwood" },
+  "mossrunner boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["surefooted"], source: "job", set: "Heartwood", region: "vaeloris" },
   "a seed ring": { slot: "rings", tier: 3, bonuses: { health: 2, magic: 1 }, effects: ["regrowth"], source: "monster", set: "Heartwood" },
   "a grovekeeper band": { slot: "rings", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", set: "Heartwood" },
   "a living heart torque": { slot: "necklace", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "contract", set: "Heartwood" },
@@ -674,7 +674,7 @@ const ITEM_DEFS = {
   "a forest warden pendant": { slot: "necklace", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "contract", set: "Canopy Ranger" },
   "a living leaf cloak": { slot: "cloak", tier: 4, bonuses: { knowledge: 3, magic: 1 }, effects: ["ambush_mastery"], source: "contract", set: "Canopy Ranger" },
   "a songbird whistle": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "monster", set: "Canopy Ranger" },
-  "an ancient seed pod": { slot: "trinkets", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "monster", set: "Canopy Ranger" },
+  "an ancient seed pod": { slot: "trinkets", tier: 4, bonuses: { health: 2, def: 2 }, effects: ["regrowth"], source: "monster", set: "Canopy Ranger", region: "vaeloris" },
 
   // ---- Sandstrider set (20 items) ----
   "a sandstrider saber": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["feinting_edge"], source: "contract", set: "Sandstrider" },
@@ -830,7 +830,7 @@ const ITEM_DEFS = {
   "a rootwoven guard": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
   "an elder crown": { slot: "helmet", tier: 4, bonuses: { magic: 4 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
   "living bark plate": { slot: "chest", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
-  "rootwoven gloves": { slot: "gloves", tier: 3, bonuses: { def: 2, health: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
+  "rootwoven gloves": { slot: "gloves", tier: 3, bonuses: { def: 2, health: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark", region: "vaeloris" },
   "ancient root boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "job", set: "Elder Bark" },
   "a living seed ring": { slot: "rings", tier: 3, bonuses: { health: 2, magic: 1 }, effects: ["regrowth"], source: "monster", set: "Elder Bark" },
   "an elderwood band": { slot: "rings", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "job", set: "Elder Bark" },
@@ -1182,7 +1182,7 @@ const ITEM_DEFS = {
 
   // Boots ("Legion March Boots" already existed pre-batch and was updated
   // in place above with a region tag, rather than duplicated here)
-  "canopy walker boots": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["surefooted"], source: "monster", region: "vaeloris" },
+  "canopy walker boots": { slot: "boots", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "vaeloris" },
   "forge walker greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, effects: ["heatproof"], source: "shop", region: "thraekor" },
   "cliff patrol boots": { slot: "boots", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "monster", region: "norrvael" },
   "caravan rider boots": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "sahrimor" },
@@ -1263,6 +1263,66 @@ const ITEM_DEFS = {
   "a blood oak charm": { slot: "trinkets", tier: 2, bonuses: { health: 2 }, effects: ["regrowth"], source: "monster", region: "sanguivorum" },
   "a border survey map": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "contract", region: "sanguivorum" },
   "a crimson trade writ": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["merchants_eye"], source: "shop", region: "sanguivorum" },
+
+  // ---- Vaeloris regional items ----
+  // "Living Root Shield" and "Branchrunner Boots" collided with existing
+  // Heartwood/Canopy Ranger set items of the same name but different
+  // stats, so those two are renamed below; "a living vine ring", "a
+  // mossweave cloak", and "a canopy seed charm" already existed from the
+  // prior regional batch with matching tier/bonus/effect (only source
+  // trivially differed) and were left as-is rather than re-added.
+  "an ashwood hunting bow": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "shop", region: "vaeloris" },
+  "a thornwood spear": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["opening_reach"], source: "monster", region: "vaeloris" },
+  "a briar fang knife": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["deep_cut"], source: "shop", region: "vaeloris" },
+  "a willowbranch staff": { slot: "mainhand", tier: 3, bonuses: { magic: 3 }, effects: ["elemental_focus"], source: "job", region: "vaeloris" },
+  "a living vine whip": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["feinting_edge"], source: "monster", region: "vaeloris" },
+  "an elderwood longbow": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["patient_aim"], source: "contract", region: "vaeloris" },
+  "a rootbound glaive": { slot: "mainhand", tier: 3, bonuses: { atk: 2, def: 1 }, effects: ["opening_reach"], source: "monster", region: "vaeloris" },
+  "a grovekeeper's blade": { slot: "mainhand", tier: 4, bonuses: { atk: 2, magic: 2 }, effects: ["regrowth"], source: "contract", region: "vaeloris" },
+  "a moonbark spear": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["opening_reach"], source: "contract", region: "vaeloris" },
+  "a heartwood warstaff": { slot: "mainhand", tier: 4, bonuses: { magic: 4 }, effects: ["elemental_focus"], source: "job", region: "vaeloris" },
+
+  "a barkwoven buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["regrowth"], source: "shop", region: "vaeloris" },
+  "a living root buckler": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a vinebound guard": { slot: "offhand", tier: 3, bonuses: { def: 2, magic: 1 }, effects: ["spell_ward"], source: "job", region: "vaeloris" },
+  "an elder bark bulwark": { slot: "offhand", tier: 4, bonuses: { def: 4 }, effects: ["regrowth"], source: "contract", region: "vaeloris" },
+
+  "a canopy hood": { slot: "helmet", tier: 2, bonuses: { knowledge: 2 }, effects: ["trailwise"], source: "shop", region: "vaeloris" },
+  "a mosswoven cowl": { slot: "helmet", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "monster", region: "vaeloris" },
+  "a branch circlet": { slot: "helmet", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["regrowth"], source: "job", region: "vaeloris" },
+  "an elderleaf crown": { slot: "helmet", tier: 4, bonuses: { magic: 4 }, effects: ["regrowth"], source: "contract", region: "vaeloris" },
+
+  "a leafwoven vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, effects: ["trailwise"], source: "shop", region: "vaeloris" },
+  "a vinebound jerkin": { slot: "chest", tier: 3, bonuses: { def: 2, health: 1 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a living bark armor": { slot: "chest", tier: 3, bonuses: { def: 3 }, effects: ["regrowth"], source: "contract", region: "vaeloris" },
+  "an ancient grove harness": { slot: "chest", tier: 4, bonuses: { def: 3, health: 1 }, effects: ["regrowth"], source: "job", region: "vaeloris" },
+
+  "archer's vine wraps": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "shop", region: "vaeloris" },
+  "thorngrip gloves": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, effects: ["deep_cut"], source: "job", region: "vaeloris" },
+  "grovekeeper's hands": { slot: "gloves", tier: 4, bonuses: { magic: 2, health: 2 }, effects: ["regrowth"], source: "contract", region: "vaeloris" },
+
+  "branchrunner's trail boots": { slot: "boots", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["trailwise"], source: "job", region: "vaeloris" },
+  "ancient root sandals": { slot: "boots", tier: 4, bonuses: { def: 2, knowledge: 2 }, effects: ["surefooted"], source: "contract", region: "vaeloris" },
+
+  "a seedkeeper's band": { slot: "rings", tier: 3, bonuses: { health: 2, magic: 1 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "an emerald grove ring": { slot: "rings", tier: 3, bonuses: { knowledge: 3 }, effects: ["trailwise"], source: "job", region: "vaeloris" },
+  "an elderwood signet": { slot: "rings", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["regrowth"], source: "contract", region: "vaeloris" },
+
+  "prayer seeds": { slot: "necklace", tier: 2, bonuses: { magic: 2 }, effects: ["regrowth"], source: "shop", region: "vaeloris" },
+  "a woven vine pendant": { slot: "necklace", tier: 3, bonuses: { health: 2, magic: 1 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a canopy warden charm": { slot: "necklace", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "job", region: "vaeloris" },
+  "a heartwood pendant": { slot: "necklace", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["elemental_focus"], source: "contract", region: "vaeloris" },
+
+  "a leaffall mantle": { slot: "cloak", tier: 3, bonuses: { def: 2, knowledge: 1 }, effects: ["ambush_sense"], source: "monster", region: "vaeloris" },
+  "a whisperleaf cloak": { slot: "cloak", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["regrowth"], source: "job", region: "vaeloris" },
+  "an emerald canopy mantle": { slot: "cloak", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["ambush_mastery"], source: "contract", region: "vaeloris" },
+
+  "a living acorn": { slot: "trinkets", tier: 2, bonuses: { magic: 2 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "a grovekeeper's whistle": { slot: "trinkets", tier: 3, bonuses: { knowledge: 3 }, effects: ["ambush_sense"], source: "job", region: "vaeloris" },
+  "preserved heartwood sap": { slot: "trinkets", tier: 3, bonuses: { health: 3 }, effects: ["regrowth"], source: "monster", region: "vaeloris" },
+  "an elder bloom": { slot: "trinkets", tier: 3, bonuses: { magic: 2, knowledge: 1 }, effects: ["elemental_focus"], source: "contract", region: "vaeloris" },
+  "a spirit vine cutting": { slot: "trinkets", tier: 4, bonuses: { health: 2, magic: 2 }, effects: ["regrowth"], source: "job", region: "vaeloris" },
+  "a worldroot sprout": { slot: "trinkets", tier: 4, bonuses: { magic: 2, knowledge: 2 }, effects: ["elemental_focus"], source: "contract", region: "vaeloris" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
