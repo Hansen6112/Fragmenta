@@ -253,7 +253,7 @@ function executeTravel(state, path, totalDays) {
     const legDanger = legLoc.danger || 1;
     const repMod = reputationFor(state, legLoc.nation) === "hostile" ? 0.05 : 0;
     let chance = Math.max(0, Math.min(0.5, legDanger * 0.07 + repMod - (state.stealthMod || 0) * 0.3));
-    if (hasEffect(state, "trailwise")) chance *= 0.9;
+    if (hasEffect(state, "trailwise")) chance *= hasSetTier(state, "Sahrimor", 4) ? 0.8 : 0.9;
     if (Math.random() < chance) {
       let combatant = null;
       if (Math.random() < ENEMY_MAGE_CHANCE) {
@@ -346,6 +346,11 @@ function cmdEquipment(state) {
       const item = state.equipment[slot];
       lines.push(`  ${label}: ${item ? formatItemLine(item) : "(empty)"}`);
     }
+  }
+  const setLines = describeSetProgress(state);
+  if (setLines.length) {
+    lines.push("Set bonuses:");
+    for (const l of setLines) lines.push(`  ${l}`);
   }
   return lines;
 }

@@ -61,7 +61,16 @@ function effectiveEnemyAtk(state, creature) {
 // go through this instead of state.def.
 function effectivePlayerDef(state) {
   const buff = state.combat.defBuffTurns > 0 ? state.combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (state.combat.evasiveGuardBonus || 0);
+  return state.def + buff + (state.combat.evasiveGuardBonus || 0) + (state.combat.forestGuardianBonus || 0);
+}
+
+// Legion's Shield Wall (4pc): a flat -10% on ALL incoming damage, applied
+// last after every other reduction (Defense, Spell Ward, etc.) — used at
+// every point the player actually takes damage (both branches of
+// resolveEnemyRetaliation, and attemptFlee's failed-flee hit).
+function applyShieldWall(state, dmg) {
+  if (!hasSetTier(state, "Legion", 4)) return dmg;
+  return Math.round(dmg * 0.9);
 }
 
 // Mages deal magic-driven damage instead of attack-driven: magic barely
@@ -75,28 +84,49 @@ function effectivePlayerDef(state) {
 // this since one side is always missing an element.
 // Executioner (finisher damage vs. a badly wounded target) is checked
 // once here since it applies uniformly to physical and magic damage
-// alike — everything else in this function is physical-only.
+// alike — everything else in this function is physical-only. Drake
+// Hunter's 4pc set bonus widens the threshold from 30% to 40% HP.
 function executionerMultiplier(state) {
   if (!hasEffect(state, "executioner")) return 1;
   const combat = state.combat;
-  return combat.hp <= combat.maxHp * 0.3 ? 1.2 : 1;
+  const threshold = hasSetTier(state, "Drake Hunter", 4) ? 0.4 : 0.3;
+  return combat.hp <= combat.maxHp * threshold ? 1.2 : 1;
+}
+
+// Legion's Disciplined Formation (6pc) stacks +2 Attack per successful
+// Feint for the rest of the fight — folded in here rather than into
+// state.atk directly so it never survives past the current combat.
+function effectiveAtk(state) {
+  return state.atk + ((state.combat && state.combat.disciplinedFormationBonus) || 0);
+}
+
+// Dragonslayer (Drake Hunter 6pc): a final multiplier against creatures
+// tagged draven (Drake, Dragon), "applied after all other damage
+// calculations" per its own spec — so it's applied last, outside both
+// branches below rather than folded into either one's own math.
+function dragonslayerMultiplier(state, creature) {
+  if (creature.monsterTag !== "draven") return 1;
+  return hasSetTier(state, "Drake Hunter", 6) ? 1.2 : 1;
 }
 
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
   const execMult = executionerMultiplier(state);
+  const dragonMult = dragonslayerMultiplier(state, creature);
   if (state.flags.isMage && state.primaryElement) {
     const base = randInt(state.magic - 2, state.magic + 2);
     const multiplier = 1 + state.magic / 40;
     const matchup = elementMultiplier(activeElement, creature.element);
     const effDef = Math.max(0, creature.def - defPenalty);
-    return Math.max(1, Math.round(base * multiplier * matchup * execMult) - Math.floor(effDef / 10));
+    return Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult) - Math.floor(effDef / 10));
   }
   const armorCrack = hasEffect(state, "armor_crack") ? 2 : 0;
   const effDef = Math.max(0, creature.def - defPenalty - armorCrack);
-  const crushMult = hasEffect(state, "crushing_impact") && effDef > state.atk ? 1.2 : 1;
-  const base = randInt(state.atk - 2, state.atk + 2) - Math.floor(effDef / 3);
-  return Math.max(1, Math.round(base * crushMult * execMult));
+  const atk = effectiveAtk(state);
+  const crushBase = hasSetTier(state, "Thraekor", 6) ? 1.35 : 1.2;
+  const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
+  const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
+  return Math.max(1, Math.round(base * crushMult * execMult * dragonMult));
 }
 
 // Picks which element flavors this particular hit — alternates between
@@ -115,7 +145,8 @@ function applyOpeningReach(state, dmg) {
   if (state.combat.firstPhysicalAttackDone) return dmg;
   state.combat.firstPhysicalAttackDone = true;
   if (!hasEffect(state, "opening_reach")) return dmg;
-  return Math.round(dmg * 1.15);
+  const mult = hasSetTier(state, "Norrvael", 6) ? 1.3 : 1.15;
+  return Math.round(dmg * mult);
 }
 
 // Deep Cut (Bleed) and Hamstring both roll off any successful physical
@@ -222,6 +253,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     const def = effectivePlayerDef(state) + bonusDef + coldBonus;
     let edmg = Math.max(0, Math.round(base * matchup) - Math.floor(def / 10));
     if (hasEffect(state, "spell_ward")) edmg = Math.round(edmg * 0.9);
+    edmg = applyShieldWall(state, edmg);
     state.health -= edmg;
     const elName = ELEMENTS[creature.element].name.toLowerCase();
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`];
@@ -229,7 +261,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     return { lines, damage: edmg };
   }
   const atk = effectiveEnemyAtk(state, creature);
-  const edmg = Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef);
+  const edmg = applyShieldWall(state, Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef));
   state.health -= edmg;
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`];
   if (state.health <= 0) lines.push(`Everything goes dark.`);
@@ -321,9 +353,19 @@ function startCombat(state, creatureIdOrObject) {
     hamstringApplied: false, // gates Hamstring (once per target per fight)
     tacticalMemoryUsed: false, // gates Tactical Memory (once per fight)
     surgingConduitUsed: false, // gates Surging Conduit (once per fight)
+    disciplinedFormationBonus: 0, // Legion 6pc — stacking +2 atk per successful Feint
+    forestGuardianBonus: 0, // Vaeloris 6pc — consumed charge from a prior fight's Regrowth
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
+  // Forest Guardian (Vaeloris 6pc): a Defense charge earned when Regrowth
+  // activated after the PREVIOUS fight ended (Regrowth itself only ever
+  // fires once combat is already over, so this is how its +2 Defense
+  // actually reaches a fight).
+  if (state.flags.forestGuardianCharge) {
+    state.combat.forestGuardianBonus = 2;
+    state.flags.forestGuardianCharge = false;
+  }
   // Unsettling: a flat chance the enemy starts the fight already weakened,
   // rolled once here rather than in playerAttack/etc. since it's a
   // combat-start effect, not a per-action one.
@@ -342,11 +384,19 @@ function startCombat(state, creatureIdOrObject) {
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description.
+// Vaeloris's 4pc (Nature's Grace, 5%->10% heal) and 6pc (Forest Guardian)
+// both key off Regrowth actually activating. Forest Guardian's +2 Defense
+// can't apply to "the current fight" since Regrowth only ever fires after
+// combat has already ended (a kill or a successful flee) — so it's
+// queued as a one-shot charge consumed at the start of the player's next
+// fight instead (see startCombat).
 function applyRegrowth(state) {
   if (!hasEffect(state, "regrowth")) return [];
-  const heal = Math.ceil(state.maxHealth * 0.05);
+  const pct = hasSetTier(state, "Vaeloris", 4) ? 0.1 : 0.05;
+  const heal = Math.ceil(state.maxHealth * pct);
   if (heal <= 0) return [];
   state.health = Math.min(state.maxHealth, state.health + heal);
+  if (hasSetTier(state, "Vaeloris", 6)) state.flags.forestGuardianCharge = true;
   return [`Regrowth mends you for ${heal} health.`];
 }
 
@@ -432,7 +482,7 @@ function attemptFlee(state) {
     return out;
   }
 
-  const edmg = Math.max(0, randInt(effectiveEnemyAtk(state, creature) - 1, effectiveEnemyAtk(state, creature) + 1) - effectivePlayerDef(state));
+  const edmg = applyShieldWall(state, Math.max(0, randInt(effectiveEnemyAtk(state, creature) - 1, effectiveEnemyAtk(state, creature) + 1) - effectivePlayerDef(state)));
   state.health -= edmg;
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`);
   if (state.health <= 0) out.push(`Everything goes dark.`);
@@ -481,6 +531,10 @@ function useFeint(state) {
 
   out.push(`You feint — ${withThe(creature.name, false)} doesn't bite, but your next strike will land hard.`);
   if (memory.fired) out.push(`Old instincts kick in — Feint recovers faster this time.`);
+  if (hasSetTier(state, "Legion", 6)) {
+    state.combat.disciplinedFormationBonus += 2;
+    out.push(`Disciplined Formation — your training holds; +2 Attack for the rest of this fight.`);
+  }
   const braceBonus = hasEffect(state, "brace") ? 3 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
@@ -626,9 +680,11 @@ function useElementAbility(state, elementKey) {
     return out;
   }
   // Conduit Ease rolls fresh on every cast (unlike Tactical Memory's
-  // once-per-fight tactic equivalent).
+  // once-per-fight tactic equivalent). Kabal's 6pc set (River Mastery)
+  // doubles the chance from 20% to 40%.
   let cooldown = a.cooldown;
-  if (hasEffect(state, "conduit_ease") && Math.random() < 0.2) {
+  const conduitEaseChance = hasSetTier(state, "Kabal", 6) ? 0.4 : 0.2;
+  if (hasEffect(state, "conduit_ease") && Math.random() < conduitEaseChance) {
     cooldown = Math.max(1, cooldown - 1);
     out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
   }
@@ -641,15 +697,17 @@ function useElementAbility(state, elementKey) {
   const dmgMult = synergy ? synergy.dmgMultiplier : 1;
   state.combat.lastElementUsed = elementKey;
 
-  // Elemental Focus (every cast) and Surging Conduit (first cast of the
-  // fight only) layer on top of synergy as a separate multiplier — kept
-  // apart from dmgMult because Stoneskin (earth) deals no damage and gets
-  // flat Defense instead of either bonus.
+  // Elemental Focus (every cast, boosted from 1.08x to 1.15x by Kabal's
+  // 4pc set) and Surging Conduit (first cast of the fight only) layer on
+  // top of synergy as a separate multiplier — kept apart from dmgMult
+  // because Stoneskin (earth) deals no damage and gets flat Defense
+  // instead of either bonus.
   const focusActive = hasEffect(state, "elemental_focus");
+  const focusMult = hasSetTier(state, "Kabal", 4) ? 1.15 : 1.08;
   const surgeActive = hasEffect(state, "surging_conduit") && !state.combat.surgingConduitUsed;
   if (surgeActive) state.combat.surgingConduitUsed = true;
   let elementalDmgMult = dmgMult;
-  if (focusActive) elementalDmgMult *= 1.08;
+  if (focusActive) elementalDmgMult *= focusMult;
   if (surgeActive) elementalDmgMult *= 1.2;
 
   switch (elementKey) {

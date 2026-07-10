@@ -67,6 +67,13 @@ const EFFECT_DEFS = {
   ambush_sense: { name: "Ambush Sense", category: "utility", description: "Reduces the chance of hostile creatures getting an opening ambush on you by 25%. Currently inert — no enemy-ambush mechanic exists yet." },
   trailwise: { name: "Trailwise", category: "utility", description: "Reduces the chance of a negative random travel encounter by 10% (relative). Doesn't affect scripted or quest-tied encounters." },
   merchants_eye: { name: "Merchant's Eye", category: "utility", description: "Shop purchase prices -5%, sale prices +5%. Currently inert — no shop/buy/sell system exists yet." },
+
+  // ---- Set-only bonuses (data/sets.js) — never appear on an item's own
+  // `effects` array; granted purely by reaching a set's 6-piece threshold.
+  // Documented here alongside the rest for a single reference point.
+  master_merchant: { name: "Master Merchant", category: "set", description: "Sahrimor set (6pc). Completed job/contract gold rewards +10%. Applies once regardless of how many set pieces you have." },
+  marsh_survivor: { name: "Marsh Survivor", category: "set", description: "Lizardfolk set (6pc). Incoming Bleed damage -50% (rounded down, minimum 1). Currently inert — Bleed (Deep Cut) only ever afflicts the enemy, never the player." },
+  dragonslayer: { name: "Dragonslayer", category: "set", description: "Drake Hunter set (6pc). Deal 1.20x damage against creatures tagged draven (Drake, Dragon) — a final multiplier applied after all other damage calculations." },
 };
 
 function getEffectDef(effectId) {

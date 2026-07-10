@@ -103,6 +103,22 @@ function renderEquipment() {
     list.appendChild(li);
   }
   equipPanel.appendChild(list);
+
+  const setLines = describeSetProgress(state);
+  if (setLines.length) {
+    const heading = document.createElement("p");
+    heading.className = "inv-gold";
+    heading.textContent = "Set Bonuses";
+    equipPanel.appendChild(heading);
+    const setList = document.createElement("ul");
+    setList.className = "inv-list";
+    for (const line of setLines) {
+      const li = document.createElement("li");
+      li.textContent = line;
+      setList.appendChild(li);
+    }
+    equipPanel.appendChild(setList);
+  }
 }
 
 function renderActiveTab() {

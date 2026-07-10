@@ -117,6 +117,7 @@ const BESTIARY = {
     description: "Diminished dragon-kin, reasoning and individual, common only in Norrvael. Breath type — fire, ice, acid, lightning, or scalding mist — is tied to parentage, not color.",
     combatNotes: "Genuinely intelligent; may be reasoned with, tested, or bonded rather than fought.",
     rare: true,
+    monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   dragon: {
     name: "Dragon",
@@ -127,6 +128,7 @@ const BESTIARY = {
     description: "Vast, ancient, and only four credible successful combat engagements ever recorded. Withdrawal is the recommended encounter protocol, not engagement.",
     combatNotes: "Extreme danger. Fewer than a handful of parties have ever survived a fight with one.",
     rare: true,
+    monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   vampire_turned: {
     name: "The Turned",

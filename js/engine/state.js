@@ -78,11 +78,11 @@ class GameState {
     const n = this.level - 1;
     const growth = bg.growth || {};
     const oldMaxHealth = this.maxHealth;
-    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n) + equipmentBonus(this, "atk");
-    this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n) + equipmentBonus(this, "def");
-    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health");
-    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic");
-    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge");
+    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk");
+    this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n) + equipmentBonus(this, "def") + setStatBonus(this, "def");
+    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health") + setStatBonus(this, "health");
+    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic");
+    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge");
     if (healOnGain) {
       this.health += Math.max(0, this.maxHealth - oldMaxHealth);
     } else {

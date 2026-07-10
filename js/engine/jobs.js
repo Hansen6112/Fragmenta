@@ -58,13 +58,17 @@ function resolveJob(state, job) {
   const kindLabel = job.kind === "guild" ? "Contract" : "Job";
   lines.push(`${kindLabel} complete: ${job.title}!`);
 
-  state.gold += job.rewardGold;
+  // Master Merchant (Sahrimor 6pc set bonus): +10% gold on every completed
+  // job/contract — a set-granted bonus, not an item's own effect, so this
+  // is a direct hasSetTier check rather than hasEffect.
+  const goldReward = hasSetTier(state, "Sahrimor", 6) ? Math.round(job.rewardGold * 1.1) : job.rewardGold;
+  state.gold += goldReward;
   const repParts = [];
   for (const [fid, amt] of Object.entries(job.rewardRep || {})) {
     state.reputation[fid] = clamp((state.reputation[fid] || 0) + amt, -100, 100);
     repParts.push(`${FACTIONS[fid] ? FACTIONS[fid].name : fid} +${amt}`);
   }
-  lines.push(`+${job.rewardGold} gold${repParts.length ? " — " + repParts.join(", ") : ""}.`);
+  lines.push(`+${goldReward} gold${repParts.length ? " — " + repParts.join(", ") : ""}.`);
   lines.push(...state.gainXp(xpFromJob(job)));
 
   if (job.fragmentChance && Math.random() < job.fragmentChance && state.knownFragments < 3) {
