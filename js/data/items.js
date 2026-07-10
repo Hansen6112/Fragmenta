@@ -1703,6 +1703,14 @@ const ITEM_DEFS = {
   "Ring of Verdant Promise": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["seedbearer"], source: "monster", set: "Regalia of the First Bloom" },
   "Sandals of Living Roots": { slot: "boots", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["natures_persistence"], source: "monster", set: "Regalia of the First Bloom" },
   "Seed of First Dawn": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["endless_bloom"], source: "monster", set: "Regalia of the First Bloom" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Final Veil (Mortasha) ----
+  "Lantern of Quiet Passage": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["gentle_crossing"], source: "monster", set: "Regalia of the Final Veil" },
+  "Veil of the Ferryman": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["between_worlds"], source: "monster", set: "Regalia of the Final Veil" },
+  "Vestments of Silent Repose": { slot: "chest", tier: 8, bonuses: { def: 12, magic: 4 }, effects: ["rest_eternal"], source: "monster", set: "Regalia of the Final Veil" },
+  "Ring of Last Breath": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["passing_whisper"], source: "monster", set: "Regalia of the Final Veil" },
+  "Gravewalker's Sandals": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calm_beyond_fear"], source: "monster", set: "Regalia of the Final Veil" },
+  "Coin of the Ferryman": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["soul_ledger"], source: "monster", set: "Regalia of the Final Veil" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

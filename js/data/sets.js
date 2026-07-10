@@ -368,6 +368,15 @@ const SETS = {
       6: { effects: ["avatar_of_bloom"], description: "Avatar of Bloom — once per combat, dropping below 25% Health instantly heals 50% max Health, cleanses negative status effects, and grants +25% Attack/Magic/Defense for 3 rounds" },
     },
   },
+  "Regalia of the Final Veil": {
+    theme: "Mortasha's gifts to those who guide the dead onward.",
+    god: "Mortasha",
+    bonuses: {
+      2: { effects: ["blessing_of_acceptance"], description: "Blessing of Acceptance — negative status durations on you are reduced by 1 round" },
+      4: { effects: ["mercy_of_the_veil"], description: "Mercy of the Veil — the first time each combat you fall below 40% Health, remove every negative status effect" },
+      6: { effects: ["avatar_of_passing"], description: "Avatar of Passing — once per combat, dropping below 25% Health grants 4 rounds where all damage dealt heals you for 30%" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

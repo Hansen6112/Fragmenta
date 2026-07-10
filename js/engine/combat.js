@@ -320,6 +320,12 @@ function rollPlayerDamage(state, creature, activeElement) {
     const leech = Math.round(dmg * leechPct);
     applyHeal(state, leech);
   }
+  // Avatar of Passing (Regalia of the Final Veil 6pc): for its 4-round
+  // window, all damage dealt heals 30% — silent like Soul Leech above
+  // (this function only returns a number, no message line to attach to).
+  if (state.combat && state.combat.avatarOfPassingTurns > 0) {
+    applyHeal(state, Math.round(dmg * 0.3));
+  }
   return dmg;
 }
 
@@ -404,6 +410,7 @@ function beginTurn(state) {
   if (combat.defBuffTurns > 0) combat.defBuffTurns -= 1;
   if (combat.atkBuffTurns > 0) combat.atkBuffTurns -= 1;
   if (combat.magicBuffTurns > 0) combat.magicBuffTurns -= 1;
+  if (combat.avatarOfPassingTurns > 0) combat.avatarOfPassingTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   if (combat.burn && combat.burn.turnsLeft > 0) {
     const creature = getCombatCreature(state);
@@ -462,6 +469,14 @@ function checkDeathPrevention(state) {
     state.health = 1;
     combat.lastStandAtkBonus = (combat.lastStandAtkBonus || 0) + 5;
     return `Last Stand — you refuse to fall. 1 Health, and +5 Attack for what's left of this fight.`;
+  }
+  // Between Worlds (Divine Regalia — Veil of the Ferryman): the same
+  // "leaves you at 1 Health" cheat-death shape as Last Stand above, but
+  // deliberately without its +5 Attack — a plain reprieve, nothing more.
+  if (hasEffect(state, "between_worlds") && !combat.betweenWorldsUsed) {
+    combat.betweenWorldsUsed = true;
+    state.health = 1;
+    return `Between Worlds — the Ferryman's veil catches you at the threshold. 1 Health, nothing more.`;
   }
   return null;
 }
@@ -724,6 +739,9 @@ function startCombat(state, creatureIdOrObject) {
     tempHealth: 0, // Overflowing Life's (Regalia of the First Bloom 4pc) overflow-heal buffer, capped at 30% max Health
     spellCastCounter: 0, // Seedbearer's (Divine Regalia) every-3rd-cast counter
     regen: null, // Endless Bloom's (Divine Regalia) Regeneration HoT: { turnsLeft, healPerTurn }
+    betweenWorldsUsed: false, // gates Between Worlds' (Divine Regalia) 1-HP cheat-death
+    avatarOfPassingUsed: false, // gates Avatar of Passing's (Regalia of the Final Veil 6pc) below-25%-HP burst
+    avatarOfPassingTurns: 0, // Avatar of Passing's temporary 30%-damage-dealt-as-healing duration remaining
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -808,6 +826,25 @@ function checkAvatarOfBloom(state) {
   return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
 }
 
+// Avatar of Passing (Regalia of the Final Veil 6pc): once per fight, the
+// same below-25%-Health trigger as Avatar of Bloom above (no threshold of
+// its own was specified, so this mirrors its sibling god's exact number
+// for consistency), granting 4 rounds of "damage dealt heals 30%" (see the
+// avatarOfPassingTurns check in rollPlayerDamage). Its other three stated
+// clauses — ignoring enemy resurrection, an AoE soul-explosion on kill,
+// and Fear/Death-magic immunity — are no-ops for now: this engine has no
+// enemy resurrection mechanic, no multi-target combat for an AoE to hit
+// (the user's own note: "future multi-target support"), and no Fear/Death
+// magic that could ever target the player in the first place.
+function checkAvatarOfPassing(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfPassingUsed || !hasSetTier(state, "Regalia of the Final Veil", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfPassingUsed = true;
+  combat.avatarOfPassingTurns = 4;
+  return [`Avatar of Passing awakens — for 4 rounds, the damage you deal returns to you as life.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -836,6 +873,36 @@ function applyVanguardMomentum(state) {
   state.flags.vanguardMomentumStacks = before + 1;
   state.recomputeStats(true);
   return [`Vanguard Momentum — the fight sharpens you; +1 Attack (${before + 1}/5 this streak).`];
+}
+
+// Passing Whisper (Divine Regalia — Ring of Last Breath): +1 Magic per
+// kill, capped +15. Same "persists across fights, decays on rest" shape as
+// Vanguard Momentum above, approximating "until combat ends" the same
+// way — every encounter here is its own fully separate fight, with no
+// back-to-back multi-kill combat for the bonus to have a real "until this
+// same fight ends" boundary.
+function applyPassingWhisper(state) {
+  if (!hasEffect(state, "passing_whisper")) return [];
+  const before = state.flags.passingWhisperStacks || 0;
+  if (before >= 15) return [];
+  state.flags.passingWhisperStacks = before + 1;
+  state.recomputeStats(true);
+  return [`Passing Whisper — a departing breath lends you strength; +1 Magic (${before + 1}/15 this streak).`];
+}
+
+// Soul Ledger (Divine Regalia — Coin of the Ferryman): a permanent,
+// uncapped, whole-game kill counter (not reset by rest or a new fight,
+// unlike Vanguard Momentum/Passing Whisper above). Every 100th kill offers
+// a one-time permanent +1 Health/Magic/Defense choice — see cmdChoose in
+// engine/parser.js for the "choose health/magic/defense" resolution.
+function applySoulLedger(state, creature) {
+  if (!hasEffect(state, "soul_ledger")) return [];
+  state.soulLedgerCount = (state.soulLedgerCount || 0) + 1;
+  if (state.soulLedgerCount % 100 === 0) {
+    state.flags.pendingSoulLedgerChoice = true;
+    return [`Soul Ledger — the 100th soul is recorded. Choose a permanent gift: 'choose health', 'choose magic', or 'choose defense'.`];
+  }
+  return [];
 }
 
 // Shared victory handling — gold, loot, XP, job progress, ending combat.
@@ -874,6 +941,8 @@ function resolveKill(state, creature) {
   state.recomputeStats(true);
   out.push(...applyRegrowth(state));
   out.push(...applyVanguardMomentum(state));
+  out.push(...applyPassingWhisper(state));
+  out.push(...applySoulLedger(state, creature));
   out.push(...state.gainXp(xpFromKill(creature)));
   out.push(...checkJobProgressOnKill(state, creature));
   return out;
@@ -919,7 +988,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -957,7 +1026,7 @@ function attemptFlee(state) {
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1048,7 +1117,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1179,7 +1248,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1374,7 +1443,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state));
   if (retaliation.damage === 0 && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);

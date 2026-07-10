@@ -513,6 +513,11 @@ function cmdRest(state) {
     state.flags.vanguardMomentumStacks = 0;
     state.recomputeStats(true);
   }
+  // Passing Whisper (Divine Regalia) decays on rest the same way.
+  if (state.flags.passingWhisperStacks) {
+    state.flags.passingWhisperStacks = 0;
+    state.recomputeStats(true);
+  }
 
   const hunt = checkKabalHunt(state, state.location);
   if (hunt) {
@@ -603,6 +608,28 @@ function cmdSkills(state) {
 }
 
 function cmdChoose(arg, state) {
+  if (state.flags.pendingSoulLedgerChoice) {
+    const a = (arg || "").toLowerCase().trim();
+    if (a === "health" || a === "hp") {
+      state.soulLedgerHealthBonus += 1;
+      state.flags.pendingSoulLedgerChoice = false;
+      state.recomputeStats(true);
+      return [`Soul Ledger — a permanent gift. +1 max Health.`];
+    }
+    if (a === "magic") {
+      state.soulLedgerMagicBonus += 1;
+      state.flags.pendingSoulLedgerChoice = false;
+      state.recomputeStats(true);
+      return [`Soul Ledger — a permanent gift. +1 Magic.`];
+    }
+    if (a === "defense" || a === "def") {
+      state.soulLedgerDefBonus += 1;
+      state.flags.pendingSoulLedgerChoice = false;
+      state.recomputeStats(true);
+      return [`Soul Ledger — a permanent gift. +1 Defense.`];
+    }
+    return ["Choose 'health', 'magic', or 'defense' for the Soul Ledger's permanent gift."];
+  }
   if (state.flags.pendingConduitAscendantChoice) {
     const key = findElement((arg || "").toLowerCase().trim());
     if (!key) return [`Choose a third element to open, beyond ${ELEMENTS[state.primaryElement].name} and ${ELEMENTS[state.secondaryElement].name}: ${elementList().join(", ")}.`];

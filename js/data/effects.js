@@ -163,6 +163,19 @@ const EFFECT_DEFS = {
   blessing_of_renewal: { name: "Blessing of Renewal", category: "set", description: "Regalia of the First Bloom (2pc). Restore 3% of maximum Health at the start of every round." },
   overflowing_life: { name: "Overflowing Life", category: "set", description: "Regalia of the First Bloom (4pc). Whenever you're healed beyond full Health, the excess becomes Temporary Health (capped at 30% of maximum Health)." },
   avatar_of_bloom: { name: "Avatar of Bloom", category: "set", description: "Regalia of the First Bloom (6pc). Once per combat, the first time you drop below 25% Health: instantly restore 50% max Health, cleanse negative status effects (currently a no-op — see Nature's Persistence), and gain +25% Attack/Magic/Defense for 3 rounds." },
+
+  // ---- Divine Regalia (Mortasha) ----
+  gentle_crossing: { name: "Gentle Crossing", category: "regalia", description: "Whenever an enemy dies, restore 5% of your maximum Mana and reduce one random cooldown by 1 turn. Currently inert — this engine has no Mana resource (only a static Magic stat, nothing depletable to restore a percentage of), and since every encounter here is a single enemy, a kill always ends the fight before a mid-fight cooldown reduction could ever matter." },
+  between_worlds: { name: "Between Worlds", category: "regalia", description: "The first fatal hit each combat leaves you at 1 Health instead. Does not heal you. Mechanically the same 1-HP reprieve as Last Stand, deliberately without its +5 Attack." },
+  rest_eternal: { name: "Rest Eternal", category: "regalia", description: "Enemies you kill cannot benefit from revival, resurrection, regeneration, or death-triggered effects. Currently inert — no creature in this engine has any such mechanic yet; future-proofing for when bosses gain one." },
+  passing_whisper: { name: "Passing Whisper", category: "regalia", description: "Every defeated enemy grants +1 Magic until combat ends, capped at +15. Persists across fights and decays on rest, the same approximation Vanguard Momentum uses for its own 'until combat ends' wording." },
+  calm_beyond_fear: { name: "Calm Beyond Fear", category: "regalia", description: "Fear, Terror, Panic, and similar morale effects cannot affect you. Currently inert — nothing in this engine applies morale/fear effects to the player; enemies have no abilities or actions of their own yet." },
+  soul_ledger: { name: "Soul Ledger", category: "regalia", description: "Every enemy you defeat permanently records one Soul (whole-game, uncapped). At every 100th Soul, choose one permanent gift: +1 Health, +1 Magic, or +1 Defense." },
+
+  // ---- Regalia of the Final Veil set bonuses (Mortasha) ----
+  blessing_of_acceptance: { name: "Blessing of Acceptance", category: "set", description: "Regalia of the Final Veil (2pc). Negative status durations on you are reduced by 1 round. Currently inert — nothing in this engine ever applies a negative status effect to the player to shorten." },
+  mercy_of_the_veil: { name: "Mercy of the Veil", category: "set", description: "Regalia of the Final Veil (4pc). The first time each combat you fall below 40% Health, immediately remove every negative status effect. Currently inert — same reason as Blessing of Acceptance; there's nothing to remove." },
+  avatar_of_passing: { name: "Avatar of Passing", category: "set", description: "Regalia of the Final Veil (6pc). Once per combat, the first time you drop below 25% Health: for 4 rounds, all damage you deal heals you for 30%. The set's other stated clauses (ignoring enemy resurrection, an AoE soul-explosion on kill, Fear/Death-magic immunity) are no-ops for now — no enemy resurrection mechanic, no multi-target combat, and no Fear/Death magic exist yet." },
 };
 
 function getEffectDef(effectId) {
