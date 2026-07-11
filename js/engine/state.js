@@ -8,6 +8,8 @@ const BASE_HEALTH = 20;
 const BASE_MAGIC = 3;
 const BASE_KNOWLEDGE = 3;
 const BASE_SPEED = 5;
+const BASE_ACCURACY = 5;
+const BASE_AGILITY = 5;
 
 class GameState {
   constructor() {
@@ -24,6 +26,8 @@ class GameState {
     this.magic = BASE_MAGIC;
     this.knowledge = BASE_KNOWLEDGE;
     this.speed = BASE_SPEED;
+    this.accuracy = BASE_ACCURACY;
+    this.agility = BASE_AGILITY;
     this.magicBoost = 0; // permanent bonus from the level-15 "deepen primary" choice
     this.primaryElement = null;
     this.secondaryElement = null;
@@ -104,6 +108,8 @@ class GameState {
     this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0);
     this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0) + (this.archiveEternalKnowledgeBonus || 0);
     this.speed = BASE_SPEED + (bg.speedMod || 0) + Math.round((growth.speed || 0) * n) + equipmentBonus(this, "speed") + setStatBonus(this, "speed");
+    this.accuracy = BASE_ACCURACY + (bg.accuracyMod || 0) + Math.round((growth.accuracy || 0) * n) + equipmentBonus(this, "accuracy") + setStatBonus(this, "accuracy");
+    this.agility = BASE_AGILITY + (bg.agilityMod || 0) + Math.round((growth.agility || 0) * n) + equipmentBonus(this, "agility") + setStatBonus(this, "agility");
     // The Empty Hand (Artifact): fighting with no Off-Hand equipped is a
     // flat +50%/+25% multiplier, applied last on top of every other atk/
     // def source above (growth, gear, sets).
@@ -180,6 +186,8 @@ class GameState {
       magic: this.magic,
       knowledge: this.knowledge,
       speed: this.speed,
+      accuracy: this.accuracy,
+      agility: this.agility,
       magicBoost: this.magicBoost,
       primaryElement: this.primaryElement,
       secondaryElement: this.secondaryElement,

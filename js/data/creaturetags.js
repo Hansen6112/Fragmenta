@@ -7,9 +7,10 @@
  * - Habitat: where a creature can appear (multi-select; lives on each
  *   BESTIARY entry's existing `tags` array alongside the terrain ids
  *   TERRAIN_TAGS already produces — see data/world.js).
- * - Archetype: how it fights. Scales Health/Attack/Defense/Speed by a
- *   flat multiplier per role — a Tank and a Skirmisher of the same
- *   species, level, and rarity end up with very different stat shapes.
+ * - Archetype: how it fights. Scales Health/Attack/Defense/Speed/
+ *   Accuracy/Agility by a flat multiplier per role — a Tank and a
+ *   Skirmisher of the same species, level, and rarity end up with very
+ *   different stat shapes.
  * - Danger Class: Normal/Elite/Boss/World Boss. A coarse, preset "buffed
  *   state" bucket (the same shape as jobs.js's 1-5 skull difficulty —
  *   a small discrete category driving lookups, not a formula) layered on
@@ -43,16 +44,17 @@ const HABITAT_TAGS = [
 // result (see computeCreatureStats), so archetype identity gets more
 // pronounced at higher levels, not just at the starting base.
 const ARCHETYPES = {
-  skirmisher: { health: 1.00, attack: 1.00, defense: 0.90, speed: 1.15 },
-  bruiser: { health: 1.25, attack: 1.20, defense: 1.00, speed: 0.85 },
-  tank: { health: 1.50, attack: 0.85, defense: 1.30, speed: 0.65 },
-  assassin: { health: 0.80, attack: 1.35, defense: 0.75, speed: 1.30 },
-  leader: { health: 1.20, attack: 1.10, defense: 1.10, speed: 1.00 },
-  support: { health: 0.90, attack: 0.70, defense: 0.90, speed: 1.00 },
-  controller: { health: 1.00, attack: 0.85, defense: 1.10, speed: 0.95 },
-  artillery: { health: 0.85, attack: 1.40, defense: 0.70, speed: 0.90 },
-  summoner: { health: 0.95, attack: 0.75, defense: 0.90, speed: 0.90 },
-  juggernaut: { health: 1.75, attack: 1.30, defense: 1.40, speed: 0.50 },
+  skirmisher: { health: 1.00, attack: 1.00, defense: 0.90, speed: 1.15, accuracy: 1.10, agility: 1.20 },
+  bruiser: { health: 1.25, attack: 1.20, defense: 1.00, speed: 0.85, accuracy: 0.95, agility: 0.80 },
+  tank: { health: 1.50, attack: 0.85, defense: 1.30, speed: 0.65, accuracy: 0.90, agility: 0.60 },
+  assassin: { health: 0.80, attack: 1.35, defense: 0.75, speed: 1.30, accuracy: 1.25, agility: 1.40 },
+  leader: { health: 1.20, attack: 1.10, defense: 1.10, speed: 1.00, accuracy: 1.05, agility: 1.00 },
+  support: { health: 0.90, attack: 0.70, defense: 0.90, speed: 1.00, accuracy: 1.15, agility: 1.05 },
+  controller: { health: 1.00, attack: 0.85, defense: 1.10, speed: 0.95, accuracy: 1.20, agility: 0.95 },
+  artillery: { health: 0.85, attack: 1.40, defense: 0.70, speed: 0.90, accuracy: 1.30, agility: 0.75 },
+  summoner: { health: 0.95, attack: 0.75, defense: 0.90, speed: 0.90, accuracy: 1.15, agility: 0.90 },
+  juggernaut: { health: 1.75, attack: 1.30, defense: 1.40, speed: 0.50, accuracy: 0.85, agility: 0.50 },
+  berserker: { health: 1.10, attack: 1.45, defense: 0.80, speed: 1.05, accuracy: 1.00, agility: 0.90 },
 };
 
 // Danger Class -> flat multiplier applied on top of everything else.
@@ -139,13 +141,13 @@ function rollEncounterLevel(playerLevel) {
   return Math.max(1, (playerLevel || 1) + randInt(-3, 3));
 }
 
-// Turns a species' hand-authored hp/atk/def/spd (the "Species Base") into
-// the actual stats a specific leveled, rarity-weighted, archetyped,
-// danger-classed encounter uses:
+// Turns a species' hand-authored hp/atk/def/spd/acc/agi (the "Species
+// Base") into the actual stats a specific leveled, rarity-weighted,
+// archetyped, danger-classed encounter uses:
 //   Final = (Species Base + (Level-1) * Rarity Weight) * Archetype Mult * Danger Class Mult
-// Health is floored at 1 (a creature can't exist at 0 Health); Attack/
-// Defense/Speed floor at 0 rather than 1, since some creatures are
-// intentionally harmless or immobile (e.g. Vaelorn's atk: 0).
+// Health is floored at 1 (a creature can't exist at 0 Health); every other
+// stat floors at 0 rather than 1, since some creatures are intentionally
+// harmless or immobile (e.g. Vaelorn's atk: 0).
 function computeCreatureStats(creature, level) {
   const rarityWeight = spawnRarityWeight(creature.spawnRarity);
   const dangerMult = dangerClassMultiplier(creature.dangerClass);
@@ -156,5 +158,7 @@ function computeCreatureStats(creature, level) {
     atk: scale(creature.atk, "attack", 0),
     def: scale(creature.def, "defense", 0),
     spd: scale(creature.spd, "speed", 0),
+    acc: scale(creature.acc, "accuracy", 0),
+    agi: scale(creature.agi, "agility", 0),
   };
 }

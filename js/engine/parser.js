@@ -553,6 +553,7 @@ function cmdStatus(state) {
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
     `Magic: ${state.magic}   Knowledge: ${state.knowledge}   Speed: ${state.speed}`,
+    `Accuracy: ${state.accuracy}   Agility: ${state.agility}`,
     ...(elementLine ? [elementLine] : []),
     xpLine,
     `Gold: ${state.gold}`,

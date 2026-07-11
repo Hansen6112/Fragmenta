@@ -3,10 +3,10 @@
  * Who the player is before the story starts. Each background sets a
  * starting location/nation, a starting kit, starting stat modifiers
  * relative to the base stats (state.js BASE_ATK/BASE_DEF/BASE_HEALTH/
- * BASE_MAGIC/BASE_KNOWLEDGE/BASE_SPEED), and a `reputation` map — the
- * qualitative *seed* for the numeric reputation meter (see data/factions.js
- * QUALITATIVE_TO_NUMERIC / state.reputation). Faction ids used here must
- * exist in FACTIONS (data/factions.js).
+ * BASE_MAGIC/BASE_KNOWLEDGE/BASE_SPEED/BASE_ACCURACY/BASE_AGILITY), and a
+ * `reputation` map — the qualitative *seed* for the numeric reputation
+ * meter (see data/factions.js QUALITATIVE_TO_NUMERIC / state.reputation).
+ * Faction ids used here must exist in FACTIONS (data/factions.js).
  *
  * `growth` is per-level stat gain (levels 1-25, see engine/leveling.js),
  * applied as Math.round(growth.stat * (level - 1)) on top of the starting
@@ -18,7 +18,10 @@
  * speed (see engine/combat.js resolveSpeedInitiative) follows the identity
  * each background already has — Scout fastest, Clan Warrior slowest — and
  * decides turn order each combat round: whoever has the higher Speed acts
- * first (ties favor the player).
+ * first (ties favor the player). accuracy/agility follow the same
+ * identity-driven logic (Scout highest in both, Clan Warrior lowest in
+ * agility) — see data/creaturetags.js for how they combine with Archetype
+ * multipliers once the hit/miss mechanic that consumes them is built.
  *
  * reputation values: "friendly" | "neutral" | "cold" | "hostile"
  */
@@ -35,7 +38,9 @@ const BACKGROUNDS = {
     magicMod: -2,
     knowledgeMod: 1,
     speedMod: 0,
-    growth: { atk: 0.6, def: 0.4, health: 1.2, magic: 0.05, knowledge: 0.4, speed: 0.3 },
+    accuracyMod: 1,
+    agilityMod: 0,
+    growth: { atk: 0.6, def: 0.4, health: 1.2, magic: 0.05, knowledge: 0.4, speed: 0.3, accuracy: 0.35, agility: 0.25 },
     gold: 15,
     inventory: ["a short sword", "a legion-issue shield", "a few days' rations"],
     flags: { isLegionary: true },
@@ -54,7 +59,9 @@ const BACKGROUNDS = {
     magicMod: -1,
     knowledgeMod: 2,
     speedMod: 2,
-    growth: { atk: 0.5, def: 0.25, health: 0.8, magic: 0.05, knowledge: 0.5, speed: 0.45 },
+    accuracyMod: 2,
+    agilityMod: 2,
+    growth: { atk: 0.5, def: 0.25, health: 0.8, magic: 0.05, knowledge: 0.5, speed: 0.45, accuracy: 0.45, agility: 0.4 },
     gold: 40,
     inventory: ["a curved desert blade", "a waterskin", "a contract chit from the Mugamiir Safor"],
     flags: { isMercenary: true },
@@ -73,7 +80,9 @@ const BACKGROUNDS = {
     magicMod: 4,
     knowledgeMod: 3,
     speedMod: 0,
-    growth: { atk: 0.15, def: 0.15, health: 0.6, magic: 0.8, knowledge: 0.6, speed: 0.25 },
+    accuracyMod: 1,
+    agilityMod: 0,
+    growth: { atk: 0.15, def: 0.15, health: 0.6, magic: 0.8, knowledge: 0.6, speed: 0.25, accuracy: 0.3, agility: 0.2 },
     gold: 10,
     inventory: ["a novitiate's plain robe", "a Kabal registration token", "an unbonded conduit stone"],
     flags: { isMage: true, isNovitiate: true },
@@ -92,7 +101,9 @@ const BACKGROUNDS = {
     magicMod: 3,
     knowledgeMod: 0,
     speedMod: 2,
-    growth: { atk: 0.3, def: 0.1, health: 0.6, magic: 0.75, knowledge: 0.4, speed: 0.4 },
+    accuracyMod: 0,
+    agilityMod: 2,
+    growth: { atk: 0.3, def: 0.1, health: 0.6, magic: 0.75, knowledge: 0.4, speed: 0.4, accuracy: 0.3, agility: 0.4 },
     gold: 5,
     inventory: ["a stolen, half-bonded conduit", "a hooded traveler's cloak", "half a loaf of stale bread"],
     flags: { isMage: true, isBruise: true, wanted: true },
@@ -111,7 +122,9 @@ const BACKGROUNDS = {
     magicMod: 0,
     knowledgeMod: 2,
     speedMod: 4,
-    growth: { atk: 0.4, def: 0.45, health: 0.8, magic: 0.15, knowledge: 0.65, speed: 0.6 },
+    accuracyMod: 4,
+    agilityMod: 3,
+    growth: { atk: 0.4, def: 0.45, health: 0.8, magic: 0.15, knowledge: 0.65, speed: 0.6, accuracy: 0.6, agility: 0.55 },
     stealthMod: 0.35,
     gold: 12,
     inventory: ["a hunting bow", "a quiver of arrows", "forest-worn boots"],
@@ -131,7 +144,9 @@ const BACKGROUNDS = {
     magicMod: -1,
     knowledgeMod: 1,
     speedMod: -2,
-    growth: { atk: 0.5, def: 0.55, health: 1.3, magic: 0.05, knowledge: 0.35, speed: 0.2 },
+    accuracyMod: 0,
+    agilityMod: -2,
+    growth: { atk: 0.5, def: 0.55, health: 1.3, magic: 0.05, knowledge: 0.35, speed: 0.2, accuracy: 0.25, agility: 0.2 },
     gold: 10,
     inventory: ["a dwarven hand-axe", "ash-worn leathers", "a clan token"],
     flags: { isClanWarrior: true },
