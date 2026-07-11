@@ -63,6 +63,7 @@ function generateEnemyMage(nationId, tier) {
     magic: 3 + t * 3,
     def: 1 + t,
     hp: 6 + t * 4,
+    spd: 4 + t,
     description: `${ELEMENTS[element].description} A rival practitioner, and not a friendly one — ${ELEMENTS[element].name.toLowerCase()} already gathers at their fingertips.`,
     combatNotes: "An elemental combatant — its magic favors and disfavors specific elements just like yours does.",
     tags: ["mage_encounter"],

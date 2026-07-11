@@ -547,7 +547,7 @@ function cmdStatus(state) {
     `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}`,
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
-    `Magic: ${state.magic}   Knowledge: ${state.knowledge}`,
+    `Magic: ${state.magic}   Knowledge: ${state.knowledge}   Speed: ${state.speed}`,
     ...(elementLine ? [elementLine] : []),
     xpLine,
     `Gold: ${state.gold}`,

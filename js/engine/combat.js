@@ -835,6 +835,13 @@ function rollPlayerDamage(state, creature, activeElement) {
   const isSpell = state.flags.isMage && state.primaryElement;
   const critMult = critMultiplier(state, isSpell);
   const threadsMult = state.combat && state.combat.threadsOfConsequencePending ? 1.4 : 1;
+  // Stone's Patience (Divine Regalia — Foundation's Hammer): "whenever you
+  // do not move first in a combat round, your next attack deals 30%
+  // additional damage" — combat.enemyActedFirstThisRound is set by
+  // resolveSpeedInitiative exactly when that happened, and consumed here
+  // (reset below, alongside threadsOfConsequencePending) so it only ever
+  // boosts the very next hit.
+  const stonesPatienceMult = state.combat && state.combat.enemyActedFirstThisRound && hasEffect(state, "stones_patience") ? 1.3 : 1;
   const worthyMult = worthyChallengeMultiplier(state);
   const valorMult = blessingOfValorMultiplier(state);
   const commandingDefMult = commandingPresenceDefMultiplier(state);
@@ -855,7 +862,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult) - Math.floor(effDef / 10));
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
     // cast during its 4-round window PERMANENTLY increases Magic by +2 —
     // unlike Avatar of Chaos/Endurance's own window-scoped bonus fields,
@@ -886,7 +893,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult));
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every
     // successful physical attack during its window PERMANENTLY increases
     // Attack by +2 — see the spell-branch comment above for why this
@@ -904,6 +911,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     state.combat.temperedSteelStacks = Math.min(15, (state.combat.temperedSteelStacks || 0) + 1);
   }
   state.combat.threadsOfConsequencePending = false;
+  state.combat.enemyActedFirstThisRound = false;
   if (hasEffect(state, "momentum")) {
     state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
   }
@@ -1013,6 +1021,51 @@ function applyHeartwoodVitality(state) {
   if (heal <= 0) return [];
   const { healed, lines } = applyHeal(state, heal);
   return [`Heartwood Vitality mends you for ${healed} health.`, ...lines];
+}
+
+// Speed (state.speed, data/backgrounds.js/bestiary.js/enemymages.js
+// `spd`): how quickly an entity acts in combat. Every creature still gets
+// exactly the retaliation it always got (resolveEnemyRetaliation, below,
+// unchanged) — Speed governs a SEPARATE, additional chance for a faster
+// enemy to land one pre-emptive strike before the player's chosen action
+// even resolves this round, on top of that normal retaliation. Zero
+// whenever the enemy isn't actually faster than the player (every fight
+// against a same-or-slower creature plays out exactly as before this
+// stat existed), scaling with the gap once the enemy is faster, and
+// capped so even a much faster foe can't strike pre-emptively more than
+// 60% of rounds.
+function speedInitiativeChance(state, creature) {
+  // Unhurried Step (Divine Regalia — Sandals of the Unbroken Path): "Enemy
+  // Haste, Speed, or Turn-order manipulation has no effect on you" — a
+  // flat, unconditional immunity to this entire mechanic.
+  if (hasEffect(state, "unhurried_step")) return 0;
+  const diff = (creature.spd || 0) - state.speed;
+  if (diff <= 0) return 0;
+  return Math.min(0.6, diff * 0.06);
+}
+
+// Rolls this round's Speed check and, if the enemy wins it, resolves one
+// pre-emptive strike against the player before their chosen action gets a
+// chance to resolve. Called once at the very top of every player action
+// function, immediately after beginTurn(). Reuses resolveEnemyRetaliation
+// for the actual damage/mitigation math (defined further below, but plain
+// function declarations are hoisted) — using its default spread and no
+// bonus Defense, since none of the action-specific defensive bonuses
+// (Brace, Guarded Strike, ...) exist yet at this point in the round. That
+// also means every "the enemy's first attack this fight" gate (Guardian
+// Spirit, Guided Footsteps, Timeless Guard, Reinforced, ...) applies here
+// exactly as it would to a normal retaliation, since a pre-emptive strike
+// genuinely can be that first attack. combat.enemyActedFirstThisRound is
+// left set for the rest of this action to read — Stone's Patience (Divine
+// Regalia — Foundation's Hammer) keys directly off it in rollPlayerDamage.
+function resolveSpeedInitiative(state, creature) {
+  const combat = state.combat;
+  combat.enemyActedFirstThisRound = false;
+  if (!creature || creature.friendly) return [];
+  if (Math.random() >= speedInitiativeChance(state, creature)) return [];
+  combat.enemyActedFirstThisRound = true;
+  const result = resolveEnemyRetaliation(state, creature, 2, 0);
+  return [`${withThe(creature.name, true)} is faster than you and strikes first this round!`, ...result.lines];
 }
 
 // Ages cooldowns and status-effect durations by one turn, and applies any
@@ -1699,6 +1752,7 @@ function startCombat(state, creatureIdOrObject) {
     hp: creature.hp,
     maxHp: creature.hp,
     turnTaken: false, // flips true after any action; gates Ambush
+    enemyActedFirstThisRound: false, // set by resolveSpeedInitiative when Speed wins the enemy a pre-emptive strike this round; Stone's Patience's next-attack bonus
     disarmed: false, // whether Disarm has already landed on this target
     corroded: false, // whether Corrode has already landed on this target
     enemyAtkPenalty: 0, // lasting attack reduction from Disarm
@@ -2414,6 +2468,8 @@ function playerAttack(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "attack"), ...applyWanderersReward(state, "attack"), ...applyActionTypeTracking(state, "attack"));
 
   // "Physical" here mirrors rollPlayerDamage's own branch check — a mage
@@ -2561,6 +2617,8 @@ function useFeint(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "feint"), ...applyWanderersReward(state, "feint"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "feint"));
   consumeTrailblazer(state);
   state.combat.nextAttackBonus = true;
@@ -2628,6 +2686,8 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "decoy"));
   consumeTrailblazer(state);
   let decoyMemory;
@@ -2687,6 +2747,8 @@ function useAmbush(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
   consumeTrailblazer(state);
 
@@ -2730,6 +2792,8 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "disarm"));
   consumeTrailblazer(state);
   let disarmMemory;
@@ -2809,6 +2873,8 @@ function useElementAbility(state, elementKey) {
     out.push(...resolveKill(state, creature));
     return out;
   }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
   // combat.spellCastCounter: an unconditional per-cast counter (every
   // elemental ability, regardless of what's equipped), shared by
   // Seedbearer (every 3rd) and Eureka (every 4th) below — the same

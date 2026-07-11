@@ -3,8 +3,8 @@
  * Who the player is before the story starts. Each background sets a
  * starting location/nation, a starting kit, starting stat modifiers
  * relative to the base stats (state.js BASE_ATK/BASE_DEF/BASE_HEALTH/
- * BASE_MAGIC/BASE_KNOWLEDGE), and a `reputation` map — the qualitative
- * *seed* for the numeric reputation meter (see data/factions.js
+ * BASE_MAGIC/BASE_KNOWLEDGE/BASE_SPEED), and a `reputation` map — the
+ * qualitative *seed* for the numeric reputation meter (see data/factions.js
  * QUALITATIVE_TO_NUMERIC / state.reputation). Faction ids used here must
  * exist in FACTIONS (data/factions.js).
  *
@@ -15,6 +15,10 @@
  * numbers: a fighter's atk/def/health growth vastly outpaces a mage's,
  * and vice versa for magic, while knowledge (tactical/spell options,
  * mechanically unused for now) is spread more broadly across archetypes.
+ * speed (see engine/combat.js resolveSpeedInitiative) follows the identity
+ * each background already has — Scout fastest, Clan Warrior slowest — and
+ * governs how often a faster enemy gets to strike before the player's
+ * chosen action resolves each round.
  *
  * reputation values: "friendly" | "neutral" | "cold" | "hostile"
  */
@@ -30,7 +34,8 @@ const BACKGROUNDS = {
     healthMod: 4,
     magicMod: -2,
     knowledgeMod: 1,
-    growth: { atk: 0.6, def: 0.4, health: 1.2, magic: 0.05, knowledge: 0.4 },
+    speedMod: 0,
+    growth: { atk: 0.6, def: 0.4, health: 1.2, magic: 0.05, knowledge: 0.4, speed: 0.3 },
     gold: 15,
     inventory: ["a short sword", "a legion-issue shield", "a few days' rations"],
     flags: { isLegionary: true },
@@ -48,7 +53,8 @@ const BACKGROUNDS = {
     healthMod: 0,
     magicMod: -1,
     knowledgeMod: 2,
-    growth: { atk: 0.5, def: 0.25, health: 0.8, magic: 0.05, knowledge: 0.5 },
+    speedMod: 2,
+    growth: { atk: 0.5, def: 0.25, health: 0.8, magic: 0.05, knowledge: 0.5, speed: 0.45 },
     gold: 40,
     inventory: ["a curved desert blade", "a waterskin", "a contract chit from the Mugamiir Safor"],
     flags: { isMercenary: true },
@@ -66,7 +72,8 @@ const BACKGROUNDS = {
     healthMod: -2,
     magicMod: 4,
     knowledgeMod: 3,
-    growth: { atk: 0.15, def: 0.15, health: 0.6, magic: 0.8, knowledge: 0.6 },
+    speedMod: 0,
+    growth: { atk: 0.15, def: 0.15, health: 0.6, magic: 0.8, knowledge: 0.6, speed: 0.25 },
     gold: 10,
     inventory: ["a novitiate's plain robe", "a Kabal registration token", "an unbonded conduit stone"],
     flags: { isMage: true, isNovitiate: true },
@@ -84,7 +91,8 @@ const BACKGROUNDS = {
     healthMod: -2,
     magicMod: 3,
     knowledgeMod: 0,
-    growth: { atk: 0.3, def: 0.1, health: 0.6, magic: 0.75, knowledge: 0.4 },
+    speedMod: 2,
+    growth: { atk: 0.3, def: 0.1, health: 0.6, magic: 0.75, knowledge: 0.4, speed: 0.4 },
     gold: 5,
     inventory: ["a stolen, half-bonded conduit", "a hooded traveler's cloak", "half a loaf of stale bread"],
     flags: { isMage: true, isBruise: true, wanted: true },
@@ -102,7 +110,8 @@ const BACKGROUNDS = {
     healthMod: 2,
     magicMod: 0,
     knowledgeMod: 2,
-    growth: { atk: 0.4, def: 0.45, health: 0.8, magic: 0.15, knowledge: 0.65 },
+    speedMod: 4,
+    growth: { atk: 0.4, def: 0.45, health: 0.8, magic: 0.15, knowledge: 0.65, speed: 0.6 },
     stealthMod: 0.35,
     gold: 12,
     inventory: ["a hunting bow", "a quiver of arrows", "forest-worn boots"],
@@ -121,7 +130,8 @@ const BACKGROUNDS = {
     healthMod: 4,
     magicMod: -1,
     knowledgeMod: 1,
-    growth: { atk: 0.5, def: 0.55, health: 1.3, magic: 0.05, knowledge: 0.35 },
+    speedMod: -2,
+    growth: { atk: 0.5, def: 0.55, health: 1.3, magic: 0.05, knowledge: 0.35, speed: 0.2 },
     gold: 10,
     inventory: ["a dwarven hand-axe", "ash-worn leathers", "a clan token"],
     flags: { isClanWarrior: true },
