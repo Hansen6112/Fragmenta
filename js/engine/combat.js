@@ -239,6 +239,11 @@ function applyHeal(state, amount) {
   // received for its 4-round window, stacking multiplicatively on top of
   // everything above.
   if (combat && combat.avatarOfEnduranceTurns > 0) amt = Math.round(amt * 1.5);
+  // Mercy's Gift (Divine Regalia — Ring of Gentle Rain): a live check
+  // against CURRENT Health (not a triggered/stacking buff) — +50% healing
+  // received for as long as Health is below 50% max, checked fresh on
+  // every single heal rather than latched on until recovery.
+  if (hasEffect(state, "mercys_gift") && state.health < state.maxHealth * 0.5) amt = Math.round(amt * 1.5);
   const before = state.health;
   state.health = Math.min(state.maxHealth, state.health + amt);
   const healed = state.health - before;
@@ -264,6 +269,24 @@ function applyHeal(state, amount) {
   // way for consistency.
   if (healed > 0 && combat && hasEffect(state, "compassions_grace")) {
     combat.compassionsGraceDefStacks = Math.min(5, (combat.compassionsGraceDefStacks || 0) + 1);
+  }
+  // Endless Current (Regalia of the Endless Tide 4pc): whenever you
+  // remove a negative effect (never happens — no such mechanic exists;
+  // see Cleansing Current/Calm Waters) or restore Health, gain +2
+  // Attack/+2 Defense/+2 Magic for 3 rounds, stacking up to +10 in each
+  // (5 stacks) — its own dedicated stack counter (rather than a plain
+  // "+2 flat" like Rally the Line) since this one genuinely stacks in
+  // magnitude across repeated procs, not just refreshes duration.
+  if (healed > 0 && combat && hasSetTier(state, "Regalia of the Endless Tide", 4)) {
+    combat.endlessCurrentStacks = Math.min(5, (combat.endlessCurrentStacks || 0) + 1);
+    const dur = applyBeneficialEffectBonuses(state, 3);
+    const grant = applyBlessingOfCreationBonus(state, combat.endlessCurrentStacks * 2);
+    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, grant);
+    combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
+    combat.defBuffAmount = Math.max(combat.defBuffAmount, grant);
+    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, grant);
   }
   // Avatar of Devotion: whenever you restore Health during its window,
   // immediately gain +5 Attack/+5 Magic/+5 Defense for 2 rounds.
@@ -490,6 +513,30 @@ function blessingOfStoneMultiplier(state) {
 // defensively-themed god's own capstone.
 function avatarOfEnduranceDamageMultiplier(state) {
   return state.combat && state.combat.avatarOfEnduranceTurns > 0 ? 0.5 : 1;
+}
+
+// Avatar of Renewal (Regalia of the Endless Tide 6pc): a flat 30% cut to
+// all incoming damage for its 4-round window, layered into the same
+// chain as the other "Avatar of X" damage-reduction effects.
+function avatarOfRenewalDamageMultiplier(state) {
+  return state.combat && state.combat.avatarOfRenewalTurns > 0 ? 0.7 : 1;
+}
+
+// Adaptive Tide (Divine Regalia — Vestments of the Endless Sea): -5% to a
+// specific damage TYPE per stack, capped at 5 stacks (-25%), grown
+// separately per type (physical vs magic — the only two incoming-damage
+// types that actually reach the player in this engine; "Burn," cited as
+// an example in the source text, is a DoT the player only ever inflicts
+// on enemies, never receives, so there's a third bucket with nothing to
+// ever grow it). Stacks grow in resolveEnemyRetaliation, right after each
+// branch's damage is finalized.
+function adaptiveTidePhysicalMultiplier(state) {
+  if (!hasEffect(state, "adaptive_tide") || !state.combat) return 1;
+  return 1 - Math.min(state.combat.adaptiveTidePhysicalStacks || 0, 5) * 0.05;
+}
+function adaptiveTideMagicMultiplier(state) {
+  if (!hasEffect(state, "adaptive_tide") || !state.combat) return 1;
+  return 1 - Math.min(state.combat.adaptiveTideMagicStacks || 0, 5) * 0.05;
 }
 
 // Unyielding Wall (Divine Regalia — Bulwark of Ages): the first hit that
@@ -991,6 +1038,7 @@ function beginTurn(state) {
   // it grows (see rollPlayerDamage) deliberately do NOT reset here when
   // the window ends — "permanently," per the source text.
   if (combat.avatarOfCreationTurns > 0) combat.avatarOfCreationTurns -= 1;
+  if (combat.avatarOfRenewalTurns > 0) combat.avatarOfRenewalTurns -= 1;
   if (combat.unyieldingWallCooldown > 0) combat.unyieldingWallCooldown -= 1;
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
@@ -1088,6 +1136,42 @@ function beginTurn(state) {
   if (hasEffect(state, "work_refines") && combat.actionCounter % 3 === 0) {
     if ((combat.workRefinesAtkStacks || 0) < 20) combat.workRefinesAtkStacks = Math.min(20, (combat.workRefinesAtkStacks || 0) + 2);
     if ((combat.workRefinesMagicStacks || 0) < 20) combat.workRefinesMagicStacks = Math.min(20, (combat.workRefinesMagicStacks || 0) + 2);
+  }
+  // Flowing Waters (Divine Regalia — Tidecaller): restore 3% max Health at
+  // the end of every round — its "3% Mana" half is a no-op, the same
+  // standing limitation cited for every other Mana-flavored clause (this
+  // engine has no Mana resource).
+  if (hasEffect(state, "flowing_waters")) {
+    const flowingWatersHeal = Math.ceil(state.maxHealth * 0.03);
+    if (flowingWatersHeal > 0) {
+      const { healed, lines: healLines } = applyHeal(state, flowingWatersHeal);
+      if (healed > 0) lines.push(`Flowing Waters mends you for ${healed} health.`, ...healLines);
+    }
+  }
+  // Patient Current (Divine Regalia — Sandals of the River): every
+  // second round spent in combat, ease a random currently-cooling-down
+  // Ability/Tactic by 1 turn — the same random-pick-and-ease pattern
+  // Universal Understanding/Twist of Fate already established.
+  if (hasEffect(state, "patient_current") && combat.actionCounter % 2 === 0) {
+    const cooling = Object.keys(combat.cooldowns).filter((k) => combat.cooldowns[k] > 0);
+    if (cooling.length) {
+      const key = cooling[Math.floor(Math.random() * cooling.length)];
+      combat.cooldowns[key] = Math.max(0, combat.cooldowns[key] - 1);
+      lines.push(`Patient Current eases ${cooldownDisplayName(key)}'s recovery by a turn.`);
+    }
+  }
+  // Avatar of Renewal (Regalia of the Endless Tide 6pc): restore 10% max
+  // Health at the end of every round during its 4-round window. Its
+  // "automatically cleanse one negative effect each round" clause is
+  // inert — no negative-status mechanic exists on the player side — and
+  // its "every healing effect also restores an equal amount of Mana"
+  // clause is a no-op for the same Mana-resource reason as Flowing Waters.
+  if (combat.avatarOfRenewalTurns > 0) {
+    const avatarOfRenewalHeal = Math.ceil(state.maxHealth * 0.1);
+    if (avatarOfRenewalHeal > 0) {
+      const { healed, lines: healLines } = applyHeal(state, avatarOfRenewalHeal);
+      if (healed > 0) lines.push(`Avatar of Renewal mends you for ${healed} health.`, ...healLines);
+    }
   }
   return lines;
 }
@@ -1339,9 +1423,14 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
     edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
     edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
+    edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
+    edmg = Math.round(edmg * adaptiveTideMagicMultiplier(state));
     edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
     edmg = applyUnyieldingWall(state, edmg);
     const absorbLines1 = applyPlayerDamage(state, edmg);
+    if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
+      combat.adaptiveTideMagicStacks = Math.min(5, (combat.adaptiveTideMagicStacks || 0) + 1);
+    }
     if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
     const elName = ELEMENTS[creature.element].name.toLowerCase();
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`, ...absorbLines1];
@@ -1362,9 +1451,14 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
   edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
   edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
+  edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
+  edmg = Math.round(edmg * adaptiveTidePhysicalMultiplier(state));
   edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
   edmg = applyUnyieldingWall(state, edmg);
   const absorbLines2 = applyPlayerDamage(state, edmg);
+  if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
+    combat.adaptiveTidePhysicalStacks = Math.min(5, (combat.adaptiveTidePhysicalStacks || 0) + 1);
+  }
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
   if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
@@ -1644,6 +1738,11 @@ function startCombat(state, creatureIdOrObject) {
     avatarOfCreationTurns: 0, // Avatar of Creation's temporary +40% Attack/Magic and doubled-cooldown-recovery duration remaining
     avatarOfCreationAtkStacks: 0, // Avatar of Creation's stacking PERMANENT +2 Attack per successful attack during its window (does not reset when the window ends)
     avatarOfCreationMagicStacks: 0, // Avatar of Creation's stacking PERMANENT +2 Magic per spell cast during its window (does not reset when the window ends)
+    adaptiveTidePhysicalStacks: 0, // Adaptive Tide's (Divine Regalia) stacking -5% physical damage taken, capped at 5 (-25%)
+    adaptiveTideMagicStacks: 0, // Adaptive Tide's stacking -5% magic damage taken, capped at 5 (-25%)
+    endlessCurrentStacks: 0, // Endless Current's (Regalia of the Endless Tide 4pc) stacking +2/+2/+2 Attack/Defense/Magic per heal, capped at 5 (+10/+10/+10)
+    avatarOfRenewalUsed: false, // gates Avatar of Renewal's (Regalia of the Endless Tide 6pc) below-25%-HP burst
+    avatarOfRenewalTurns: 0, // Avatar of Renewal's temporary per-round-heal/reduced-damage-taken duration remaining
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -1653,6 +1752,21 @@ function startCombat(state, creatureIdOrObject) {
   if (hasEffect(state, "endless_bloom")) {
     const healPerTurn = Math.ceil(state.maxHealth * 0.05);
     if (healPerTurn > 0) state.combat.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
+  }
+  // Blessing of the Tide (Regalia of the Endless Tide 2pc): a one-time
+  // 10% max Health heal at the moment any fight begins. Renamed from the
+  // source text's own "Blessing of Renewal" — that exact name (and a
+  // DIFFERENT mechanic, a per-round heal) is already taken by Regalia of
+  // the First Bloom's own 2pc effect (js/data/effects.js,
+  // blessing_of_renewal), so this needed its own distinct effect id and
+  // display name. Its "10% Mana" half is a no-op — no Mana resource
+  // exists in this engine.
+  if (hasSetTier(state, "Regalia of the Endless Tide", 2)) {
+    const heal = Math.ceil(state.maxHealth * 0.1);
+    if (heal > 0) {
+      const { healed, lines: healLines } = applyHeal(state, heal);
+      if (healed > 0) lines.push(`Blessing of the Tide mends you for ${healed} health.`, ...healLines);
+    }
   }
   // Weaver's Insight (Divine Regalia — Silver Thread of Veylana): reveal
   // the enemy's remaining Health, Defense, Attack, and any active status
@@ -1993,6 +2107,28 @@ function checkAvatarOfCreation(state) {
   return [`Avatar of Creation awakens — for 4 rounds, every strike and every cast reforges you anew.`];
 }
 
+// Avatar of Renewal (Regalia of the Endless Tide 6pc): the eleventh
+// "Avatar of X" once-per-fight below-25%-Health trigger. For 4 rounds:
+// restores 10% max Health at the end of every round (beginTurn) and cuts
+// incoming damage by 30% (avatarOfRenewalDamageMultiplier). Its
+// "automatically cleanse one negative effect each round" clause is
+// inert — no negative-status mechanic exists on the player side, the
+// same standing reason as Cleansing Current/Calm Waters above. Its
+// "healing cannot be reduced or prevented" clause is trivially already
+// true — nothing in this engine has ever reduced or prevented the
+// player's own healing, so there's nothing for this to protect against.
+// Its "every healing effect also restores an equal amount of Mana"
+// clause is a no-op — no Mana resource exists, the same limitation
+// Flowing Waters/Blessing of the Tide/Living Forge already cite.
+function checkAvatarOfRenewal(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfRenewalUsed || !hasSetTier(state, "Regalia of the Endless Tide", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfRenewalUsed = true;
+  combat.avatarOfRenewalTurns = applyBeneficialEffectBonuses(state, 4);
+  return [`Avatar of Renewal awakens — for 4 rounds, the tide itself mends you.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -2185,7 +2321,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2224,15 +2360,20 @@ function attemptFlee(state) {
   edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
   edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
   edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
+  edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
+  edmg = Math.round(edmg * adaptiveTidePhysicalMultiplier(state));
   edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
   edmg = applyUnyieldingWall(state, edmg);
   const absorbLines = applyPlayerDamage(state, edmg);
+  if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
+    combat.adaptiveTidePhysicalStacks = Math.min(5, (combat.adaptiveTidePhysicalStacks || 0) + 1);
+  }
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -2328,7 +2469,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2474,7 +2615,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2709,7 +2850,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);

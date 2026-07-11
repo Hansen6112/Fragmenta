@@ -449,6 +449,15 @@ const SETS = {
       6: { effects: ["avatar_of_creation"], description: "Avatar of Creation — once per combat, dropping below 25% Health grants 4 rounds of +40% Attack/+40% Magic, doubled cooldown recovery, and permanent +2 Attack per attack/+2 Magic per spell" },
     },
   },
+  "Regalia of the Endless Tide": {
+    theme: "Aqualis's gifts to those who never run dry.",
+    god: "Aqualis",
+    bonuses: {
+      2: { effects: ["blessing_of_the_tide"], description: "Blessing of the Tide — restore 10% Health at the start of combat" },
+      4: { effects: ["endless_current"], description: "Endless Current — healing grants +2 Attack/+2 Defense/+2 Magic for 3 rounds, stacking up to +10 in each" },
+      6: { effects: ["avatar_of_renewal"], description: "Avatar of Renewal — once per combat, dropping below 25% Health grants 4 rounds of a 10% Health heal every round and 30% reduced damage taken" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

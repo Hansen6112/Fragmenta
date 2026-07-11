@@ -1779,6 +1779,14 @@ const ITEM_DEFS = {
   "Ring of Endless Labor": { slot: "rings", tier: 8, bonuses: { atk: 8, knowledge: 8 }, effects: ["work_refines"], source: "monster", set: "Regalia of the Eternal Forge" },
   "Smith's Grasp": { slot: "gloves", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["master_craftsman"], source: "monster", set: "Regalia of the Eternal Forge" },
   "Embercore": { slot: "trinkets", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["living_forge"], source: "monster", set: "Regalia of the Eternal Forge" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Endless Tide (Aqualis) ----
+  "Tidecaller": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["flowing_waters"], source: "monster", set: "Regalia of the Endless Tide" },
+  "Shell of the Deep": { slot: "offhand", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["cleansing_current"], source: "monster", set: "Regalia of the Endless Tide" },
+  "Vestments of the Endless Sea": { slot: "chest", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["adaptive_tide"], source: "monster", set: "Regalia of the Endless Tide" },
+  "Ring of Gentle Rain": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["mercys_gift"], source: "monster", set: "Regalia of the Endless Tide" },
+  "Sandals of the River": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["patient_current"], source: "monster", set: "Regalia of the Endless Tide" },
+  "Pearl of Serenity": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["calm_waters"], source: "monster", set: "Regalia of the Endless Tide" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
