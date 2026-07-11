@@ -17,8 +17,8 @@
  * mechanically unused for now) is spread more broadly across archetypes.
  * speed (see engine/combat.js resolveSpeedInitiative) follows the identity
  * each background already has — Scout fastest, Clan Warrior slowest — and
- * governs how often a faster enemy gets to strike before the player's
- * chosen action resolves each round.
+ * decides turn order each combat round: whoever has the higher Speed acts
+ * first (ties favor the player).
  *
  * reputation values: "friendly" | "neutral" | "cold" | "hostile"
  */

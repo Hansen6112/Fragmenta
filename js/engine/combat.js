@@ -1024,48 +1024,69 @@ function applyHeartwoodVitality(state) {
 }
 
 // Speed (state.speed, data/backgrounds.js/bestiary.js/enemymages.js
-// `spd`): how quickly an entity acts in combat. Every creature still gets
-// exactly the retaliation it always got (resolveEnemyRetaliation, below,
-// unchanged) — Speed governs a SEPARATE, additional chance for a faster
-// enemy to land one pre-emptive strike before the player's chosen action
-// even resolves this round, on top of that normal retaliation. Zero
-// whenever the enemy isn't actually faster than the player (every fight
-// against a same-or-slower creature plays out exactly as before this
-// stat existed), scaling with the gap once the enemy is faster, and
-// capped so even a much faster foe can't strike pre-emptively more than
-// 60% of rounds.
-function speedInitiativeChance(state, creature) {
+// `spd`): how quickly an entity acts in combat. Turn order within a round
+// is simply whoever has the higher Speed — deterministic, not a dice
+// roll. Zero surprise for the common case: any creature at or below the
+// player's own Speed still lets the player act first exactly as before
+// this stat existed (ties favor the player, same default).
+function enemyActsFirst(state, creature) {
   // Unhurried Step (Divine Regalia — Sandals of the Unbroken Path): "Enemy
   // Haste, Speed, or Turn-order manipulation has no effect on you" — a
-  // flat, unconditional immunity to this entire mechanic.
-  if (hasEffect(state, "unhurried_step")) return 0;
-  const diff = (creature.spd || 0) - state.speed;
-  if (diff <= 0) return 0;
-  return Math.min(0.6, diff * 0.06);
+  // flat, unconditional immunity to ever losing the initiative order.
+  if (hasEffect(state, "unhurried_step")) return false;
+  return (creature.spd || 0) > state.speed;
 }
 
-// Rolls this round's Speed check and, if the enemy wins it, resolves one
-// pre-emptive strike against the player before their chosen action gets a
-// chance to resolve. Called once at the very top of every player action
-// function, immediately after beginTurn(). Reuses resolveEnemyRetaliation
-// for the actual damage/mitigation math (defined further below, but plain
+// Resolves this round's turn order and, if the enemy is faster, lets it
+// strike before the player's chosen action gets a chance to resolve.
+// Called once at the very top of every player action function,
+// immediately after beginTurn(). Reuses resolveEnemyRetaliation for the
+// actual damage/mitigation math (defined further below, but plain
 // function declarations are hoisted) — using its default spread and no
 // bonus Defense, since none of the action-specific defensive bonuses
 // (Brace, Guarded Strike, ...) exist yet at this point in the round. That
 // also means every "the enemy's first attack this fight" gate (Guardian
 // Spirit, Guided Footsteps, Timeless Guard, Reinforced, ...) applies here
 // exactly as it would to a normal retaliation, since a pre-emptive strike
-// genuinely can be that first attack. combat.enemyActedFirstThisRound is
-// left set for the rest of this action to read — Stone's Patience (Divine
-// Regalia — Foundation's Hammer) keys directly off it in rollPlayerDamage.
+// genuinely can be that first attack.
+//
+// This is turn ORDER, not an extra turn: acting first here normally means
+// the enemy's usual end-of-action retaliation is skipped for this same
+// round (see resolveOrSkipRetaliation) — one enemy action, just moved
+// earlier. The exception is BESTIARY's `flurry` creatures (a handful of
+// fast, dangerous, rare/unique monsters — Thunderbird, Drake, Dragon,
+// Banshee): for those specifically, being faster is a genuine extra
+// threat, so their normal retaliation still fires afterward too.
+//
+// combat.enemyActedFirstThisRound is left set for the rest of this action
+// to read — Stone's Patience (Divine Regalia — Foundation's Hammer) keys
+// directly off it in rollPlayerDamage.
 function resolveSpeedInitiative(state, creature) {
   const combat = state.combat;
   combat.enemyActedFirstThisRound = false;
+  combat.skipNormalRetaliationThisRound = false;
   if (!creature || creature.friendly) return [];
-  if (Math.random() >= speedInitiativeChance(state, creature)) return [];
+  if (!enemyActsFirst(state, creature)) return [];
   combat.enemyActedFirstThisRound = true;
+  if (!creature.flurry) combat.skipNormalRetaliationThisRound = true;
   const result = resolveEnemyRetaliation(state, creature, 2, 0);
-  return [`${withThe(creature.name, true)} is faster than you and strikes first this round!`, ...result.lines];
+  return [`${withThe(creature.name, true)} is faster than you and acts first this round!`, ...result.lines];
+}
+
+// Shared by every action that lets the enemy retaliate after the
+// player's own move resolves. If the enemy already acted first this round
+// (resolveSpeedInitiative, above) and isn't a `flurry` creature, it doesn't
+// get a second action — this just reports that, without touching `damage`
+// in a way that could be confused for a miss (damage stays null, not 0, so
+// downstream "retaliation.damage === 0" dodge/riposte bonuses correctly
+// don't fire off of it).
+function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef) {
+  const combat = state.combat;
+  if (combat.skipNormalRetaliationThisRound) {
+    combat.skipNormalRetaliationThisRound = false;
+    return { lines: [`${withThe(creature.name, true)} already acted first this round and doesn't get a follow-up strike.`], damage: null };
+  }
+  return resolveEnemyRetaliation(state, creature, atkSpread, extraDef);
 }
 
 // Ages cooldowns and status-effect durations by one turn, and applies any
@@ -1752,7 +1773,8 @@ function startCombat(state, creatureIdOrObject) {
     hp: creature.hp,
     maxHp: creature.hp,
     turnTaken: false, // flips true after any action; gates Ambush
-    enemyActedFirstThisRound: false, // set by resolveSpeedInitiative when Speed wins the enemy a pre-emptive strike this round; Stone's Patience's next-attack bonus
+    enemyActedFirstThisRound: false, // set by resolveSpeedInitiative when Speed wins the enemy the first move this round; Stone's Patience's next-attack bonus
+    skipNormalRetaliationThisRound: false, // set alongside it (unless the creature is `flurry`) so resolveOrSkipRetaliation doesn't grant a second enemy action this round
     disarmed: false, // whether Disarm has already landed on this target
     corroded: false, // whether Corrode has already landed on this target
     enemyAtkPenalty: 0, // lasting attack reduction from Disarm
@@ -2500,7 +2522,7 @@ function playerAttack(state) {
   if (isPhysical) out.push(...applyPhysicalOnHitEffects(state, creature));
 
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
-  const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -2661,7 +2683,7 @@ function useFeint(state) {
   if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
     state.combat.siegeCorpsAtkCharge = 2;
   }
-  const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -2833,7 +2855,7 @@ function useDisarm(state) {
   out.push(...applyPhysicalOnHitEffects(state, creature));
 
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
-  const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -3088,7 +3110,7 @@ function useElementAbility(state, elementKey) {
   }
 
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
-  const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));

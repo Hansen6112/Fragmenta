@@ -107,6 +107,7 @@ const BESTIARY = {
     description: "A massive storm-grey raptor that generates its own localized, self-sustaining thunderstorm and can direct lightning at specific targets when threatened.",
     combatNotes: "Never approach during an active or building storm.",
     rare: true,
+    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
   },
   drake: {
     name: "Drake",
@@ -117,6 +118,7 @@ const BESTIARY = {
     description: "Diminished dragon-kin, reasoning and individual, common only in Norrvael. Breath type — fire, ice, acid, lightning, or scalding mist — is tied to parentage, not color.",
     combatNotes: "Genuinely intelligent; may be reasoned with, tested, or bonded rather than fought.",
     rare: true,
+    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   dragon: {
@@ -128,6 +130,7 @@ const BESTIARY = {
     description: "Vast, ancient, and only four credible successful combat engagements ever recorded. Withdrawal is the recommended encounter protocol, not engagement.",
     combatNotes: "Extreme danger. Fewer than a handful of parties have ever survived a fight with one.",
     rare: true,
+    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   vampire_turned: {
@@ -211,6 +214,7 @@ const BESTIARY = {
     description: "Not a creature so much as a calcified stone holding the compressed dead of an unburied battlefield, projecting a spirit-form drawn from their memory.",
     combatNotes: "Conventional combat is nearly useless. Destroy the stone at range with magic, or don't engage.",
     rare: true,
+    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
   },
   wraith: {
     name: "Wraith",
