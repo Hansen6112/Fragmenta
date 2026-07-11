@@ -260,7 +260,7 @@ function executeTravel(state, path, totalDays) {
         combatant = generateEnemyMage(legLoc.nation, legDanger);
       } else {
         const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
-        const pool = creaturesForTags(tags, legLoc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
+        const pool = creaturesForTags(tags, legLoc.nation).filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id]);
         if (pool.length) combatant = pool[Math.floor(Math.random() * pool.length)];
       }
       if (combatant) {
@@ -788,7 +788,7 @@ function cmdExplore(state) {
     if (Math.random() < ENEMY_MAGE_CHANCE) {
       return startCombat(state, generateEnemyMage(loc.nation, loc.danger || 1));
     }
-    const pool = creaturesForTags(tags, loc.nation).filter((id) => !BESTIARY[id].unique || !state.flags["defeated_" + id]);
+    const pool = creaturesForTags(tags, loc.nation).filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id]);
     if (pool.length) {
       const creatureId = pool[Math.floor(Math.random() * pool.length)];
       return startCombat(state, creatureId);

@@ -84,12 +84,14 @@ const EFFECT_DEFS = {
   // ---- Legendary-exclusive effects (data/items.js tier 5) ----
   // Passives reserved for Legendary-tier gear only — none appear on any
   // lower tier. Three describe mechanics with no existing analog in the
-  // game (an Elite/Boss creature classification for Kingslayer works off
-  // creature.tier>=4 / creature.unique as the closest proxy and IS live;
-  // Unbreakable and Iron Will need a player-facing Defense-reduction/stun
-  // mechanic that doesn't exist anywhere yet, and Overwhelming Force is
-  // explicitly designed for multi-enemy fights, which this engine doesn't
-  // have — all three are registered and inert until those systems exist,
+  // game (an Elite/Boss creature classification for Kingslayer now works
+  // off the real Danger Class/Spawn Rarity tags via isNotableCreature —
+  // see data/creaturetags.js/engine/combat.js — and IS live; Unbreakable
+  // and Iron Will need a player-facing Defense-reduction/stun mechanic
+  // that doesn't exist anywhere yet, and Overwhelming Force is explicitly
+  // designed for multi-enemy fights, which this engine doesn't have yet
+  // (multi-enemy combat and allies are planned) — all three are
+  // registered and inert until those systems exist,
   // same policy as the inert effects above.
   kingslayer: { name: "Kingslayer", category: "legendary", description: "Deal +25% damage against Elite and Boss enemies (creature tier 4+, or a unique/named creature)." },
   last_stand: { name: "Last Stand", category: "legendary", description: "The first time you would die each fight, survive at 1 Health and gain +5 Attack for the remainder of the fight." },

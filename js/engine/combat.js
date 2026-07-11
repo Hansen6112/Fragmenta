@@ -31,7 +31,13 @@ function randInt(min, max) {
 // Combat targets are either a static BESTIARY entry (creatureId is a
 // string key) or a dynamically generated one, like an enemy mage
 // (creatureId is that object's own id, and the full object is stashed on
-// state.combat.creatureObj since it isn't in BESTIARY to look up).
+// state.combat.creatureObj since it isn't in BESTIARY to look up). Most
+// ordinary BESTIARY encounters ALSO get a creatureObj now — a per-fight
+// clone with a freshly rolled level and stats scaled from the species'
+// base via data/creaturetags.js computeCreatureStats (see startCombat) —
+// so the shared BESTIARY dict entry is never mutated. state.combat.dynamicCreature
+// (not creatureObj's truthiness) is the real "is this an enemy mage, not
+// a BESTIARY species" signal — see applyArchiveEternal.
 function getCombatCreature(state) {
   if (!state.combat) return null;
   return state.combat.creatureObj || BESTIARY[state.combat.creatureId];
@@ -108,13 +114,13 @@ function perfectBalanceBonus(state) {
 }
 
 // Kingslayer (Legendary): +25% damage against Elite/Boss-equivalent
-// creatures. The bestiary has no formal Elite/Boss field, so this uses
-// the closest existing proxy: tier 4+ (Extreme/Catastrophic threat) or a
-// unique/named creature.
+// creatures — now a direct read of the real Danger Class/Spawn Rarity
+// tags (see data/creaturetags.js isNotableCreature) instead of the old
+// tier>=4-or-unique proxy.
 function kingslayerMultiplier(state, creature) {
   if (!hasEffect(state, "kingslayer")) return 1;
   const bonus = masterOfArmsDoubles(state, "kingslayer") ? 1.5 : 1.25;
-  return (creature.tier || 0) >= 4 || creature.unique ? bonus : 1;
+  return isNotableCreature(creature) ? bonus : 1;
 }
 
 // Hunter's Instinct (Legendary): +30% damage on the very first action of
@@ -1765,10 +1771,27 @@ function tacticsLine(state) {
 // .id) — see data/enemymages.js generateEnemyMage.
 function startCombat(state, creatureIdOrObject) {
   const isDynamic = typeof creatureIdOrObject === "object";
-  const creature = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject];
+  const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject];
+  // Quest/job-tied encounters (BESTIARY's `special` flag — e.g. Kabal
+  // Enforcer patrols) and already-fully-generated dynamic creatures
+  // (enemy mages) are exempt from the level roll and stat scaling below,
+  // per the design's stated exception — everything else gets a freshly
+  // rolled level and stats scaled from its Species Base (see
+  // data/creaturetags.js). The clone means the shared BESTIARY dict entry
+  // itself is never mutated between fights.
+  let creature = template;
+  if (!isDynamic && !template.special) {
+    // Clamped into the creature's own Spawn Rarity band — otherwise a
+    // Common creature's Attack/Defense would scale to match a high-level
+    // player just as readily as a Unique's, since no creature has an
+    // Archetype/Danger Class yet to temper that (see clampLevelToRarityBand).
+    const level = clampLevelToRarityBand(rollEncounterLevel(state.level), template.spawnRarity);
+    creature = Object.assign({}, template, computeCreatureStats(template, level), { level });
+  }
   state.combat = {
     creatureId: isDynamic ? creature.id : creatureIdOrObject,
-    creatureObj: isDynamic ? creature : null,
+    creatureObj: creature,
+    dynamicCreature: isDynamic, // the real "is this an enemy mage, not a BESTIARY species" signal — see applyArchiveEternal
     name: creature.name,
     hp: creature.hp,
     maxHp: creature.hp,
@@ -2384,7 +2407,7 @@ function applySoulLedger(state, creature) {
 function applyArchiveEternal(state, creature) {
   if (!hasEffect(state, "archive_eternal") || !state.combat) return [];
   const combat = state.combat;
-  const speciesKey = combat.creatureObj ? "enemy_mage_" + (creature.element || "unknown") : combat.creatureId;
+  const speciesKey = combat.dynamicCreature ? "enemy_mage_" + (creature.element || "unknown") : combat.creatureId;
   if (!state.archiveEternalSeen) state.archiveEternalSeen = [];
   if (state.archiveEternalSeen.includes(speciesKey)) return [];
   state.archiveEternalSeen.push(speciesKey);
@@ -2396,7 +2419,12 @@ function applyArchiveEternal(state, creature) {
 function resolveKill(state, creature) {
   const out = [`${withThe(creature.name, true)} falls. ${creature.combatNotes || ""}`.trim()];
   const bounty = state.flags.isMercenary ? 1.5 : 1;
-  const goldFound = Math.round(randInt(1, 4) * (creature.tier + 1) * bounty);
+  // Scales off the creature's own encounter level (falling back to the
+  // player's level for quest/job-tied creatures that skip the level roll
+  // — see startCombat) and its Danger Class multiplier, replacing the old
+  // flat tier-based formula.
+  const rewardLevel = creature.level || state.level;
+  const goldFound = Math.round(randInt(1, 4) * Math.ceil(rewardLevel / 5) * dangerClassMultiplier(creature.dangerClass) * bounty);
   state.gold += goldFound;
   out.push(`You find ${goldFound} gold on/near the creature.`);
   const loot = rollCreatureLoot(state, creature);
@@ -2419,9 +2447,8 @@ function resolveKill(state, creature) {
     state.battleScholarBonus += 1;
   }
   // Living Legacy (Artifact): +1 permanent max Health after an Elite-or-
-  // stronger kill, capped +100 — same tier4/unique proxy Kingslayer uses
-  // for "Elite/Boss," since the bestiary has no formal field for it.
-  if (hasEffect(state, "living_legacy") && ((creature.tier || 0) >= 4 || creature.unique) && state.livingLegacyBonus < 100) {
+  // stronger kill, capped +100 — same isNotableCreature check Kingslayer uses.
+  if (hasEffect(state, "living_legacy") && isNotableCreature(creature) && state.livingLegacyBonus < 100) {
     state.livingLegacyBonus += 1;
   }
   // Blessing of Valor (Regalia of the Crimson Vanguard 2pc): if the
@@ -2472,7 +2499,7 @@ function resolveKill(state, creature) {
   out.push(...applyVanguardMomentum(state));
   out.push(...applyPassingWhisper(state));
   out.push(...applySoulLedger(state, creature));
-  out.push(...state.gainXp(xpFromKill(creature)));
+  out.push(...state.gainXp(xpFromKill(state, creature)));
   out.push(...checkJobProgressOnKill(state, creature));
   return out;
 }
@@ -2536,7 +2563,13 @@ function attemptFlee(state) {
   if (!state.combat) return ["There's nothing to flee from."];
   const creature = getCombatCreature(state);
 
-  const chance = 0.6 - creature.tier * 0.08 + (state.stealthMod || 0);
+  // Replaces the old flat tier-based penalty: harder to escape something
+  // above your own level, and harder still against a Boss/World Boss,
+  // regardless of level — clamped so neither factor alone can make
+  // fleeing a certain success or a certain failure.
+  const levelGap = (creature.level || state.level) - state.level;
+  const dangerPenalty = (dangerClassMultiplier(creature.dangerClass) - 1) * 0.1;
+  const chance = Math.max(0.05, Math.min(0.9, 0.6 - levelGap * 0.03 - dangerPenalty + (state.stealthMod || 0)));
   if (Math.random() < chance) {
     state.combat = null;
     return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...applyRegrowth(state)];

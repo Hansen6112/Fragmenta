@@ -11,7 +11,8 @@
  * Both job types resolve through mechanics that already exist rather than
  * inventing new ones:
  *  - "bounty" completes the instant you win a fight against a creature
- *    whose tier meets the job's threshold (see engine/jobs.js
+ *    that meets the job's Danger Class/Spawn Rarity requirement for its
+ *    difficulty (meetsBountyRequirement, below; checked in engine/jobs.js
  *    checkJobProgressOnKill) — anywhere, not location-locked, so the open
  *    world stays open.
  *  - "courier" completes the instant you arrive at the target location
@@ -24,7 +25,28 @@ const GUILD_HQ = {
   vorseth: "magma_hearth",
 };
 
-const BOUNTY_TIER_THRESHOLD = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
+// Replaces the old flat tier-number gate (BOUNTY_TIER_THRESHOLD) — each
+// skull difficulty now requires a Danger Class/Spawn Rarity floor instead
+// (see data/creaturetags.js for the rank scales), checked in
+// engine/jobs.js checkJobProgressOnKill.
+function meetsBountyRequirement(creature, difficulty) {
+  const dRank = dangerClassRank(creature);
+  const rRank = spawnRarityRank(creature);
+  switch (difficulty) {
+    case 1:
+      return true;
+    case 2:
+      return rRank >= SPAWN_RARITY_RANK.uncommon;
+    case 3:
+      return dRank >= DANGER_CLASS_RANK.elite || rRank >= SPAWN_RARITY_RANK.rare;
+    case 4:
+      return dRank >= DANGER_CLASS_RANK.elite && rRank >= SPAWN_RARITY_RANK.epic;
+    case 5:
+      return dRank >= DANGER_CLASS_RANK.boss || rRank >= SPAWN_RARITY_RANK.unique;
+    default:
+      return true;
+  }
+}
 
 const COURIER_DAY_BUCKETS = {
   1: [1, 3],
@@ -184,7 +206,6 @@ function makeBountyJob(boardLocationId, difficulty) {
     title: `Bounty: trouble near ${loc.name}`,
     description: flavor,
     boardLocation: boardLocationId,
-    tierThreshold: BOUNTY_TIER_THRESHOLD[difficulty],
     rewardGold: reward.gold,
     rewardRep: reward.rep,
     loot: reward.loot,
@@ -251,7 +272,6 @@ const GUILD_CONTRACTS = {
       title: "A Debt to the Sands",
       description:
         "An expedition team limped back from the Black Sands three days ago — short two members, and certain something followed them out. The guild wants it confirmed dead before it finds its way to a populated road.",
-      tierThreshold: BOUNTY_TIER_THRESHOLD[3],
       rewardGold: 220,
       rewardRep: { mugamiir_safor: 18, sahrimor: 8 },
       loot: "a Black Sands survivor's field journal, half its pages still blank",
@@ -279,7 +299,6 @@ const GUILD_CONTRACTS = {
       title: "What the Sands Don't Give Back",
       description:
         "Every returned expedition member is changed, not injured. Something usually explains itself eventually. This one hasn't, and it's gotten worse instead of better. The guild isn't calling it a mercy killing out loud, but that's what this contract is.",
-      tierThreshold: BOUNTY_TIER_THRESHOLD[5],
       rewardGold: 400,
       rewardRep: { mugamiir_safor: 28, sahrimor: 10 },
       loot: "a shard of hardened amethyst, warm to the touch for reasons no one at the guild will discuss",
@@ -310,7 +329,6 @@ const GUILD_CONTRACTS = {
       title: "Ash and Iron",
       description:
         "A mining operation feeding the Deepfire Order's forges has lost two shifts of workers to something in the tunnels below. The guild doesn't do rescue work, officially. Unofficially, the ore doesn't stop needing to come out.",
-      tierThreshold: BOUNTY_TIER_THRESHOLD[4],
       rewardGold: 320,
       rewardRep: { magma_hearth: 22, thraekor: 10 },
       loot: "a caldera-quality ingot, still faintly warm",
@@ -324,7 +342,6 @@ const GUILD_CONTRACTS = {
       title: "The Confederation's Due",
       description:
         "Thraekor's mining authorities keep an active search for Stage 3 Valdrek-Keth — Diamond Tails — before their digging breaks into a magma chamber under a city that can't survive the event. This contract exists because one has been found, and no clan wants to be the one that waited too long.",
-      tierThreshold: BOUNTY_TIER_THRESHOLD[5],
       rewardGold: 450,
       rewardRep: { magma_hearth: 28, thraekor: 12 },
       loot: "an uncut diamond, still rough from the tail plating",

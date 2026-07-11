@@ -13,8 +13,13 @@ function xpToNextLevel(level) {
   return level * 100;
 }
 
-function xpFromKill(creature) {
-  return (creature.tier + 1) * 10;
+// Scales off the creature's own encounter level (falling back to the
+// player's level for the handful of quest/job-tied creatures that skip
+// the level roll entirely — see engine/combat.js startCombat) and its
+// Danger Class multiplier, replacing the old flat tier-based formula.
+function xpFromKill(state, creature) {
+  const level = creature.level || state.level;
+  return Math.round(level * 3 * dangerClassMultiplier(creature.dangerClass));
 }
 
 // Guild contracts (kind: "guild") pay out more XP than an equivalent-

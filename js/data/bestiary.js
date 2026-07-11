@@ -1,17 +1,30 @@
 /*
  * FRAGMENTA — Bestiary Data
  * Condensed from "A Naturalist's Compendium of Magical Creatures" (Ch. 13),
- * compiled in-world by Davin the Archivist DeVerre. Threat tiers translated
- * to a 1-5 combat scale: 1 Low, 2 Moderate, 3 Significant/High, 4 Extreme,
- * 5 Catastrophic. `tags` drive random-encounter selection by terrain;
- * `nations` restricts a creature to specific nations/locations when given.
+ * compiled in-world by Davin the Archivist DeVerre. `tags` (habitat) drive
+ * random-encounter selection by terrain; `nations` restricts a creature to
+ * specific nations/locations when given.
+ *
+ * hp/atk/def/spd here are each species' "Species Base" — the actual stats
+ * used in a fight are computed per-encounter from these via
+ * data/creaturetags.js's computeCreatureStats (level, Spawn Rarity,
+ * Archetype, and Danger Class all scale from this base; see
+ * engine/combat.js startCombat). `special: true` (e.g. kabal_enforcer)
+ * marks a creature as quest/job-tied — exempt from that level roll/scaling
+ * entirely, used exactly as authored below.
+ *
+ * `spawnRarity` (common/uncommon/rare/epic/unique, default common) governs
+ * both stat growth rate and which levels a creature is even eligible to
+ * appear at; only a handful of creatures have `archetype`/`dangerClass`
+ * assigned so far (`flurry` is a separate, narrower flag — see
+ * engine/combat.js resolveSpeedInitiative) — retrofitting the rest is a
+ * deliberate follow-up content pass, not yet done here.
  */
 
 const BESTIARY = {
   stoneback_beetle: {
     name: "Stoneback Beetle",
     native: "Keth-Rhovael",
-    tier: 1,
     tags: ["urban", "forest", "desert", "cave", "continental"],
     hp: 6, atk: 2, def: 1, spd: 3,
     description: "A fist-sized, dark-shelled beetle, faintly luminescent at the abdomen. Rarely a threat alone — but corner a nest and hundreds of simultaneous defensive bites can kill an unprepared traveler.",
@@ -20,7 +33,6 @@ const BESTIARY = {
   mirrorfish: {
     name: "Mirrorfish",
     native: "Voreth-Sael",
-    tier: 0,
     tags: ["river"],
     hp: 2, atk: 0, def: 0, spd: 4,
     description: "An ordinary-looking silver fish whose scales reflect magical workings back at whoever cast them. Not dangerous — the river it swims in might be.",
@@ -29,7 +41,6 @@ const BESTIARY = {
   gloomhawk: {
     name: "Gloomhawk",
     native: "Rau-Nolveth",
-    tier: 2,
     tags: ["mountain", "continental"],
     hp: 10, atk: 4, def: 2, spd: 9,
     description: "An eagle-sized raptor that dampens magic in a radius around itself and remembers every face that's wronged it — sometimes for days, sometimes across a continent.",
@@ -38,7 +49,6 @@ const BESTIARY = {
   cave_scorpion: {
     name: "Cave Scorpion",
     native: "Dhulorvae",
-    tier: 2,
     tags: ["cave", "volcanic", "desert"],
     hp: 5, atk: 3, def: 2, spd: 7,
     description: "No longer than a forearm, but the venom is the danger, not the creature — effects vary sharply by region, from Sanguivorum's numbing-paralysis progression to Norrvael's blood-freezing sting.",
@@ -47,7 +57,6 @@ const BESTIARY = {
   ridgeback_boar: {
     name: "Ridgeback Boar",
     native: "Lorvaun-Nauri",
-    tier: 2,
     tags: ["forest", "plains", "continental"],
     hp: 14, atk: 5, def: 3, spd: 6,
     description: "An ordinary boar with a crystalline ridge running spine to tusk. Elders learn the Somersault Charge — rolling the ridge in as a piercing weapon that goes through armor.",
@@ -56,7 +65,6 @@ const BESTIARY = {
   thornhide: {
     name: "Thornhide",
     native: "Skrevak",
-    tier: 3,
     tags: ["desert", "volcanic", "swamp"],
     hp: 18, atk: 5, def: 5, spd: 4,
     description: "A lizard that grows very large and armors itself with age. The bite carries a bacterial load that kills through infection faster than through damage.",
@@ -65,7 +73,6 @@ const BESTIARY = {
   veilwing: {
     name: "Veilwing",
     native: "Voreth-Mauth",
-    tier: 2,
     tags: ["mountain", "continental"],
     hp: 4, atk: 1, def: 1, spd: 6,
     description: "A large cold-loving moth whose wing-dust is a dose-response sedative. It will not chase you — it will put you to sleep where you stand if you give it reason to.",
@@ -74,7 +81,6 @@ const BESTIARY = {
   ashwyrm: {
     name: "Ashwyrm",
     native: "Velthrak",
-    tier: 4,
     tags: ["volcanic", "desert"],
     hp: 6, atk: 8, def: 2, spd: 11,
     description: "A small slate-grey serpent with six retractable fangs, each carrying a distinct venom — combined, they convert blood to ash. Considered the deadliest small creature on the continent.",
@@ -83,7 +89,6 @@ const BESTIARY = {
   plainswolf: {
     name: "Plainswolf",
     native: "Kaeven-Thauln",
-    tier: 2,
     tags: ["plains", "mountain"],
     hp: 8, atk: 4, def: 2, spd: 9,
     description: "Larger than an ordinary wolf, hunting in near-silent, well-coordinated packs of up to ten under a single alpha.",
@@ -92,7 +97,6 @@ const BESTIARY = {
   river_serpent: {
     name: "River Serpent",
     native: "Kaluath",
-    tier: 3,
     tags: ["river", "swamp"],
     hp: 16, atk: 6, def: 3, spd: 7,
     description: "An 18-22 foot aquatic constrictor whose shimmering scales exert a subtle compulsion, drawing onlookers toward the water without their noticing.",
@@ -101,42 +105,38 @@ const BESTIARY = {
   thunderbird: {
     name: "Thunderbird",
     native: "Rhovael-Rau",
-    tier: 4,
     tags: ["coast", "sea"],
     hp: 20, atk: 7, def: 4, spd: 10,
     description: "A massive storm-grey raptor that generates its own localized, self-sustaining thunderstorm and can direct lightning at specific targets when threatened.",
     combatNotes: "Never approach during an active or building storm.",
-    rare: true,
+    spawnRarity: "rare",
     flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
   },
   drake: {
     name: "Drake",
     native: "Skrel-Drak",
-    tier: 4,
     tags: ["mountain", "coast", "continental"],
     hp: 26, atk: 9, def: 6, spd: 9,
     description: "Diminished dragon-kin, reasoning and individual, common only in Norrvael. Breath type — fire, ice, acid, lightning, or scalding mist — is tied to parentage, not color.",
     combatNotes: "Genuinely intelligent; may be reasoned with, tested, or bonded rather than fought.",
-    rare: true,
+    spawnRarity: "rare",
     flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   dragon: {
     name: "Dragon",
     native: "Draven-Drak",
-    tier: 5,
     tags: ["mountain", "volcanic", "coast"],
     hp: 60, atk: 14, def: 10, spd: 8,
     description: "Vast, ancient, and only four credible successful combat engagements ever recorded. Withdrawal is the recommended encounter protocol, not engagement.",
     combatNotes: "Extreme danger. Fewer than a handful of parties have ever survived a fight with one.",
-    rare: true,
+    spawnRarity: "rare",
     flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   vampire_turned: {
     name: "The Turned",
     native: "Sul-Voran",
-    tier: 2,
     tags: ["forest", "cave", "urban"],
     hp: 9, atk: 4, def: 2, spd: 5,
     description: "The first stage of the vampiric condition — still human in mind, growing irritable and blood-aware. Treatable within 48 hours of infection.",
@@ -145,7 +145,6 @@ const BESTIARY = {
   vampire_lesser: {
     name: "A Lesser",
     native: "Sul-Voran",
-    tier: 3,
     tags: ["forest", "cave"],
     hp: 14, atk: 6, def: 3, spd: 8,
     description: "Feral and tactically dangerous, drawn to its own kind, subordinate to any Full-Blood nearby.",
@@ -154,7 +153,6 @@ const BESTIARY = {
   skeleton: {
     name: "Skeleton",
     native: "Sul-Keth",
-    tier: 2,
     tags: ["ruin", "swamp", "cave"],
     hp: 8, atk: 3, def: 3, spd: 4,
     description: "Reanimated bone, silent and mechanical in its violence. A carved sigil bone anchors the animation.",
@@ -163,7 +161,6 @@ const BESTIARY = {
   zombie: {
     name: "Zombie",
     native: "Sul-Daun",
-    tier: 2,
     tags: ["ruin", "swamp"],
     hp: 12, atk: 3, def: 1, spd: 1,
     description: "Slow, aggressive, and dangerous mainly in numbers — fragments of undifferentiated spirit-material forced into dead flesh.",
@@ -172,7 +169,6 @@ const BESTIARY = {
   animated_armor: {
     name: "Animated Armour",
     native: "Skarr-Daun",
-    tier: 3,
     tags: ["ruin", "urban"],
     hp: 16, atk: 6, def: 6, spd: 3,
     description: "Worked metal given motion by enchantment carved directly into the plate. Higher tiers can adapt tactics mid-fight.",
@@ -181,7 +177,6 @@ const BESTIARY = {
   golem_stone: {
     name: "Stone Golem",
     native: "Thueln-Maur",
-    tier: 3,
     tags: ["ruin", "mountain"],
     hp: 24, atk: 6, def: 8, spd: 2,
     description: "A construct of animated stone, the most durable of the golem-kinds, requiring no maintenance if undamaged.",
@@ -190,7 +185,6 @@ const BESTIARY = {
   elemental_fire: {
     name: "Fire Elemental",
     native: "Soru-Daun Nori",
-    tier: 4,
     tags: ["volcanic", "desert"],
     hp: 22, atk: 9, def: 4, spd: 8,
     description: "A spontaneous coalescence of magical saturation given flame and humanoid form. Fights with weapon and spell simultaneously.",
@@ -199,7 +193,6 @@ const BESTIARY = {
   elemental_ice: {
     name: "Ice Elemental",
     native: "Soru-Daun Kaul",
-    tier: 4,
     tags: ["mountain", "continental"],
     hp: 22, atk: 8, def: 5, spd: 5,
     description: "A coalescence of cold and magical density given shape. Proximity alone is hazardous.",
@@ -208,18 +201,16 @@ const BESTIARY = {
   banshee: {
     name: "Banshee",
     native: "Orvuin",
-    tier: 4,
     tags: ["ruin"],
     hp: 10, atk: 10, def: 2, spd: 9,
     description: "Not a creature so much as a calcified stone holding the compressed dead of an unburied battlefield, projecting a spirit-form drawn from their memory.",
     combatNotes: "Conventional combat is nearly useless. Destroy the stone at range with magic, or don't engage.",
-    rare: true,
+    spawnRarity: "rare",
     flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
   },
   wraith: {
     name: "Wraith",
     native: "Mauven-Sulei",
-    tier: 4,
     tags: ["ruin", "swamp"],
     hp: 14, atk: 8, def: 3, spd: 8,
     description: "A spirit that refused to cross the river at death, both hands permanently over its ruined face, hunting the places it remembers from life.",
@@ -228,63 +219,55 @@ const BESTIARY = {
   stitched: {
     name: "The Stitched",
     native: "Voran-Daun",
-    tier: 5,
     tags: ["ruin"],
     hp: 40, atk: 10, def: 6, spd: 3,
     description: "A body assembled from many bodies by an outlawed Bruised mage, driven by one or more carved hearts. Feels no pain.",
     combatNotes: "Every heart must be destroyed. Fire, shock, and cutting alone do nothing to stop it.",
-    rare: true,
+    spawnRarity: "rare",
   },
   diamond_tail: {
     name: "Diamond Tail",
     native: "Valdrek-Keth",
-    tier: 5,
     tags: ["volcanic"],
     hp: 50, atk: 12, def: 12, spd: 2,
     description: "A living geological formation of fused rock and flesh, the size of a house, tipped in a tail it deliberately wields as a weapon.",
     combatNotes: "Not recommended without coordinated military and mage support. Territorial, not a hunter.",
-    rare: true,
+    spawnRarity: "rare",
   },
   druith: {
     name: "Druith, the Ancient",
     native: "Druith",
-    tier: 5,
     tags: ["swamp"],
     nations: ["vaeloris"],
     locations: ["drath_vorrumborrar", "the_swamps_near"],
     hp: 45, atk: 11, def: 14, spd: 1,
     description: "An impossibly old crocodile that declined to stop growing and has, so far, declined to die. Scales harder than worked metal. Protected fiercely by the lizardfolk — never approach without their escort.",
     combatNotes: "Nearly immobile on land unless truly provoked. Never enter the water near it unescorted.",
-    rare: true,
-    unique: true,
+    spawnRarity: "unique",
   },
   maur_rau: {
     name: "The Ancient Flyer",
     native: "Maur-Rau",
-    tier: 5,
     tags: ["mountain", "coast"],
     hp: 35, atk: 10, def: 9, spd: 6,
     description: "The largest known flying creature, armored in relics of a forgotten civilization, circumnavigating the continent on a slow, mappable circuit. Ignores everything beneath it except when feeding.",
     combatNotes: "Not hunting people. Move laterally if it's descending near you; it will not alter course.",
-    rare: true,
-    unique: true,
+    spawnRarity: "unique",
   },
   vaelorn: {
     name: "Vaelorn, a Grove Warden",
     native: "Vaelorn",
-    tier: 0,
     tags: ["forest"],
     nations: ["vaeloris"],
     hp: 30, atk: 0, def: 20, spd: 1,
     description: "In stillness, an ancient tree. In motion, a tall bark-covered figure that has never been documented to harm a person, and often heals them unasked.",
     combatNotes: "Not a combat encounter. If a corrupted grove is ever found, its undead should never be approached alone.",
     friendly: true,
-    unique: true,
+    spawnRarity: "unique",
   },
   kabal_enforcer: {
     name: "A Kabal Enforcer Patrol",
     native: "n/a — Kabal Martialum",
-    tier: 3,
     // Deliberately NOT a terrain tag used by TERRAIN_TAGS — this creature
     // never enters the normal random-encounter pool. It's only ever spawned
     // by the Bruise-hunted mechanic in parser.js (checkKabalHunt).

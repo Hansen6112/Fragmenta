@@ -1871,18 +1871,20 @@ function equipmentBonus(state, statKey) {
   return total;
 }
 
-// Whether/what a defeated creature drops, scaled to its own tier (bestiary
-// tiers run 0-5; clamped to 1-4 so nothing above Masterwork ever drops
-// from a normal kill — see file header on Legendary). Chance climbs with
-// danger: 16% at tier 1 up to 40% at tier 4. Master Appraiser's 6pc set
-// bonus raises that chance by 20% (relative). Nation-locked creatures
-// (BESTIARY's optional `nations` field) have a 50% chance to draw from
-// that nation's REGIONAL_LOOT_POOL instead of the generic pool, when one
-// exists at this tier — everything else (most creatures have no `nations`
-// restriction) behaves exactly as before.
+// Whether/what a defeated creature drops, scaled to its Spawn Rarity
+// (common/uncommon/rare/epic/unique) instead of the old flat tier number —
+// still capped at item tier 4/Masterwork even for Unique kills, since
+// Legendary+ stays reserved for hand-authored guild-contract capstones
+// (see file header). Drop chance climbs with rarity (and Danger Class),
+// Master Appraiser's 6pc set bonus still raises it by 20% (relative), and
+// nation-locked creatures (BESTIARY's optional `nations` field) still have
+// a 50% chance to draw from that nation's REGIONAL_LOOT_POOL instead of
+// the generic pool, when one exists at this tier.
+const ITEM_TIER_BY_SPAWN_RARITY = { common: 1, uncommon: 2, rare: 3, epic: 4, unique: 4 };
 function rollCreatureLoot(state, creature) {
-  const tier = Math.max(1, Math.min(4, creature.tier || 1));
-  let dropChance = 0.08 + tier * 0.08;
+  const rarity = creature.spawnRarity || DEFAULT_SPAWN_RARITY;
+  const tier = ITEM_TIER_BY_SPAWN_RARITY[rarity] || ITEM_TIER_BY_SPAWN_RARITY[DEFAULT_SPAWN_RARITY];
+  let dropChance = (0.08 + spawnRarityRank(creature) * 0.08) * dangerClassMultiplier(creature.dangerClass);
   if (hasSetTier(state, "Master Appraiser", 6)) dropChance *= 1.2;
   if (Math.random() >= dropChance) return null;
   if (creature.nations && creature.nations.length) {

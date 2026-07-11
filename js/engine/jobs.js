@@ -87,7 +87,7 @@ function resolveJob(state, job) {
 
 // Called from combat.js the moment a creature falls.
 function checkJobProgressOnKill(state, creature) {
-  const candidates = state.activeJobs.filter((j) => j.type === "bounty" && creature.tier >= j.tierThreshold);
+  const candidates = state.activeJobs.filter((j) => j.type === "bounty" && meetsBountyRequirement(creature, j.difficulty));
   if (!candidates.length) return [];
   candidates.sort((a, b) => b.difficulty - a.difficulty);
   return resolveJob(state, candidates[0]);

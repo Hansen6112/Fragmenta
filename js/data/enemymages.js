@@ -58,7 +58,13 @@ function generateEnemyMage(nationId, tier) {
     id: "enemy_mage_" + Math.random().toString(36).slice(2, 9),
     name: `${title} ${flavorName}`,
     native: nation ? nation.name : "Unknown",
-    tier: t,
+    // Enemy mages aren't routed through the BESTIARY level-roll/rarity
+    // system (see combat.js startCombat) — their own tier-based scaling
+    // below is untouched, but the gold/XP/flee/kingslayer formulas that
+    // used to read a flat `tier` now read a Level, so this is a simple
+    // proportional stand-in (location danger 1-5 -> level 5-25) rather
+    // than a real roll.
+    level: t * 5,
     element,
     magic: 3 + t * 3,
     def: 1 + t,
