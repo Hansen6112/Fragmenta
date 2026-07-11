@@ -46,6 +46,7 @@ const VERB_SYNONYMS = {
   windcut: ["windcut"],
   skills: ["skills", "tactics"],
   choose: ["choose", "attune", "focus"],
+  target: ["target", "switch"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -86,6 +87,7 @@ async function handleInput(rawInput, state) {
     if (verb === "ambush") return useAmbush(state);
     if (verb === "disarm") return useDisarm(state);
     if (ELEMENT_VERB_TO_KEY[verb]) return useElementAbility(state, ELEMENT_VERB_TO_KEY[verb]);
+    if (verb === "target") return useTarget(state, arg);
     if (verb === "leave" && getCombatCreature(state).friendly) {
       const name = state.combat.name;
       state.combat = null;
@@ -102,7 +104,7 @@ async function handleInput(rawInput, state) {
     if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose") {
       const friendly = getCombatCreature(state).friendly;
       const usable = friendly ? [] : availableActionNames(state);
-      const options = ["fight", "flee", ...usable, ...(friendly ? ["talk", "leave"] : [])];
+      const options = ["fight", "flee", ...usable, ...(!friendly && aliveEnemies(state).length > 1 ? ["target"] : []), ...(friendly ? ["talk", "leave"] : [])];
       return [`You're in the middle of an encounter. (${options.join(" / ")})`];
     }
   }

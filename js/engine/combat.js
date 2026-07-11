@@ -43,6 +43,50 @@ function getCombatCreature(state) {
   return state.combat.creatureObj || BESTIARY[state.combat.creatureId];
 }
 
+// Multi-enemy support (pack/squad encounters): state.combat.enemies is an
+// array, one entry per creature in the fight, each holding its own
+// hp/maxHp/creatureObj plus every debuff that's genuinely inflicted ON a
+// specific creature (Disarm, Corrode, Hamstring, burn/bleed, Reinforced's
+// counter, the stun flag, its own last-damage-type). state.combat.activeIndex
+// is whichever enemy the player is currently targeting.
+//
+// Rather than rewrite the ~50 existing damage/effect functions throughout
+// this file to thread an enemy index through everywhere, these dozen or so
+// fields are defined as live getters/setters on state.combat itself,
+// transparently proxying to state.combat.enemies[state.combat.activeIndex].
+// Every existing line of code that reads or writes state.combat.hp,
+// .creatureObj, .corroded, etc. keeps working completely unchanged — it
+// always operates on "whichever enemy is currently active," and switching
+// target (or resolveKill advancing past a dead one) just moves what that
+// means. Everything else on state.combat (all the Divine Regalia/
+// Legendary/Mythic stacking buffs, cooldowns, action counters) is genuinely
+// player-side and fight-scoped, not tied to any one enemy, so it's
+// untouched by this — a plain property on the shared object, same as before
+// multi-enemy fights existed.
+const PER_ENEMY_FIELDS = [
+  "creatureId", "creatureObj", "dynamicCreature", "name",
+  "hp", "maxHp",
+  "corroded", "disarmed", "enemyAtkPenalty", "enemyDefPenalty", "enemyStunned",
+  "hamstringApplied", "burn", "bleed", "reinforcedAttackCount", "lastDamageType",
+  "skipNormalRetaliationThisRound",
+];
+
+function wireActiveEnemyProxy(combat) {
+  PER_ENEMY_FIELDS.forEach((field) => {
+    Object.defineProperty(combat, field, {
+      configurable: true,
+      enumerable: true,
+      get() { return combat.enemies[combat.activeIndex][field]; },
+      set(v) { combat.enemies[combat.activeIndex][field] = v; },
+    });
+  });
+}
+
+// Every enemy still standing, in roster order.
+function aliveEnemies(state) {
+  return state.combat ? state.combat.enemies.filter((e) => e.alive) : [];
+}
+
 // Master of Arms (Artifact): whether the given effect id is specifically
 // on the equipped Main Hand item (not just equipped somewhere), so its
 // "doubles if applicable" clause can target only that source. hasEffect()
@@ -1082,32 +1126,68 @@ function enemyActsFirst(state, creature) {
 // combat.enemyActedFirstThisRound is left set for the rest of this action
 // to read — Stone's Patience (Divine Regalia — Foundation's Hammer) keys
 // directly off it in rollPlayerDamage.
+// creature (the caller's captured active target) is only used as the
+// legacy single-enemy early-return guard below — the real work loops
+// every alive enemy in the roster, so a pack of 3 faster wolves each get
+// their own pre-emptive strike, fastest first, not just the active one.
 function resolveSpeedInitiative(state, creature) {
   const combat = state.combat;
   combat.enemyActedFirstThisRound = false;
-  combat.skipNormalRetaliationThisRound = false;
+  combat.enemies.forEach((e) => { e.skipNormalRetaliationThisRound = false; });
   if (!creature || creature.friendly) return [];
-  if (!enemyActsFirst(state, creature)) return [];
-  combat.enemyActedFirstThisRound = true;
-  if (!creature.flurry) combat.skipNormalRetaliationThisRound = true;
-  const result = resolveEnemyRetaliation(state, creature, 2, 0);
-  return [`${withThe(creature.name, true)} is faster than you and acts first this round!`, ...result.lines];
+  const lines = [];
+  const fasterAlive = combat.enemies
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => e.alive && e.creatureObj && !e.creatureObj.friendly && enemyActsFirst(state, e.creatureObj))
+    .sort((a, b) => (b.e.creatureObj.spd || 0) - (a.e.creatureObj.spd || 0));
+  for (const { e, i } of fasterAlive) {
+    if (state.health <= 0) break;
+    combat.enemyActedFirstThisRound = true;
+    if (!e.creatureObj.flurry) e.skipNormalRetaliationThisRound = true;
+    const prevActive = combat.activeIndex;
+    combat.activeIndex = i;
+    const result = resolveEnemyRetaliation(state, e.creatureObj, 2, 0);
+    combat.activeIndex = prevActive;
+    lines.push(`${withThe(e.creatureObj.name, true)} is faster than you and acts first this round!`, ...result.lines);
+  }
+  return lines;
 }
 
 // Shared by every action that lets the enemy retaliate after the
-// player's own move resolves. If the enemy already acted first this round
-// (resolveSpeedInitiative, above) and isn't a `flurry` creature, it doesn't
-// get a second action — this just reports that, without touching `damage`
-// in a way that could be confused for a miss (damage stays null, not 0, so
-// downstream "retaliation.damage === 0" dodge/riposte bonuses correctly
-// don't fire off of it).
+// player's own move resolves. If a given enemy already acted first this
+// round (resolveSpeedInitiative, above) and isn't a `flurry` creature, it
+// doesn't get a second action — this just reports that, without touching
+// `damage` in a way that could be confused for a miss (damage stays null,
+// not 0, so downstream "retaliation.damage === 0" dodge/riposte bonuses
+// correctly don't fire off of it). Loops every alive enemy (a pack fight
+// means every surviving member gets its turn, not just the one the player
+// is currently targeting) — `damage` on the returned object specifically
+// reflects the CALLER'S active target (matching the original single-enemy
+// contract exactly), so riposte/dodge bonuses stay scoped to "the thing
+// you just traded blows with," not the whole pack.
 function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef) {
   const combat = state.combat;
-  if (combat.skipNormalRetaliationThisRound) {
-    combat.skipNormalRetaliationThisRound = false;
-    return { lines: [`${withThe(creature.name, true)} already acted first this round and doesn't get a follow-up strike.`], damage: null };
+  const callerActiveIndex = combat.activeIndex;
+  const lines = [];
+  let activeDamage = null;
+  for (let i = 0; i < combat.enemies.length; i++) {
+    const e = combat.enemies[i];
+    if (!e.alive || !e.creatureObj || e.creatureObj.friendly) continue;
+    const prevActive = combat.activeIndex;
+    combat.activeIndex = i;
+    let result;
+    if (e.skipNormalRetaliationThisRound) {
+      e.skipNormalRetaliationThisRound = false;
+      result = { lines: [`${withThe(e.creatureObj.name, true)} already acted first this round and doesn't get a follow-up strike.`], damage: null };
+    } else {
+      result = resolveEnemyRetaliation(state, e.creatureObj, atkSpread, extraDef);
+    }
+    combat.activeIndex = prevActive;
+    lines.push(...result.lines);
+    if (i === callerActiveIndex) activeDamage = result.damage;
+    if (state.health <= 0) break;
   }
-  return resolveEnemyRetaliation(state, creature, atkSpread, extraDef);
+  return { lines, damage: activeDamage };
 }
 
 // Ages cooldowns and status-effect durations by one turn, and applies any
@@ -1242,21 +1322,49 @@ function beginTurn(state) {
     lines.push(`Winds of Change shifts — +6 ${labels[roll]} this round.`);
     lines.push(...applyTwistOfFate(state));
   }
-  if (combat.burn && combat.burn.turnsLeft > 0) {
-    const creature = getCombatCreature(state);
-    combat.hp -= combat.burn.dmgPerTurn;
-    combat.lastDamageType = "fire";
-    lines.push(`The flames still burn ${withThe(creature.name, false)} for ${combat.burn.dmgPerTurn} damage.`);
-    combat.burn.turnsLeft -= 1;
-    if (combat.burn.turnsLeft <= 0) combat.burn = null;
-  }
-  if (combat.bleed && combat.bleed.turnsLeft > 0) {
-    const creature = getCombatCreature(state);
-    combat.hp -= combat.bleed.dmgPerTurn;
-    combat.lastDamageType = "bleed";
-    lines.push(`${withThe(creature.name, true)} is still bleeding for ${combat.bleed.dmgPerTurn} damage.`);
-    combat.bleed.turnsLeft -= 1;
-    if (combat.bleed.turnsLeft <= 0) combat.bleed = null;
+  // Burn/Bleed tick per-enemy, not just against whoever's currently
+  // targeted — igniting one wolf and then switching to another shouldn't
+  // silently freeze the first one's burn. playerTargetIndex is the enemy
+  // the player is actually fighting (set before this loop runs); if some
+  // OTHER, non-active enemy's DOT finishes it off mid-tick, resolveKill's
+  // own "advance to a survivor" logic gets overridden back to
+  // playerTargetIndex right after, since the player's real target is still
+  // alive and shouldn't change just because an unrelated pack member died.
+  const playerTargetIndex = combat.activeIndex;
+  for (let i = 0; i < combat.enemies.length; i++) {
+    const e = combat.enemies[i];
+    if (!e.alive) continue;
+    if (e.burn && e.burn.turnsLeft > 0) {
+      e.hp -= e.burn.dmgPerTurn;
+      e.lastDamageType = "fire";
+      lines.push(`The flames still burn ${withThe(e.creatureObj.name, false)} for ${e.burn.dmgPerTurn} damage.`);
+      e.burn.turnsLeft -= 1;
+      if (e.burn.turnsLeft <= 0) e.burn = null;
+      if (e.hp <= 0 && e.alive) {
+        combat.activeIndex = i;
+        lines.push(...resolveKill(state, e.creatureObj));
+        if (!state.combat) return lines;
+        if (i !== playerTargetIndex && combat.enemies[playerTargetIndex] && combat.enemies[playerTargetIndex].alive) {
+          combat.activeIndex = playerTargetIndex;
+        }
+        continue;
+      }
+    }
+    if (e.alive && e.bleed && e.bleed.turnsLeft > 0) {
+      e.hp -= e.bleed.dmgPerTurn;
+      e.lastDamageType = "bleed";
+      lines.push(`${withThe(e.creatureObj.name, true)} is still bleeding for ${e.bleed.dmgPerTurn} damage.`);
+      e.bleed.turnsLeft -= 1;
+      if (e.bleed.turnsLeft <= 0) e.bleed = null;
+      if (e.hp <= 0 && e.alive) {
+        combat.activeIndex = i;
+        lines.push(...resolveKill(state, e.creatureObj));
+        if (!state.combat) return lines;
+        if (i !== playerTargetIndex && combat.enemies[playerTargetIndex] && combat.enemies[playerTargetIndex].alive) {
+          combat.activeIndex = playerTargetIndex;
+        }
+      }
+    }
   }
   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
   // Regeneration HoT set up once at combat start (see startCombat),
@@ -1791,11 +1899,32 @@ function elementAbilityAvailable(state, elementKey) {
 
 // Reusable prompt suffix: "(fight / flee / feint / ambush)" or, for mages,
 // "(fight / flee / ignite)" etc — listing only actions currently usable.
+// "target" is appended whenever more than one enemy is still standing.
 function tacticsLine(state) {
   if (!state.combat) return null;
   const usable = availableActionNames(state);
-  if (!usable.length) return null;
-  return `(fight / flee / ${usable.join(" / ")})`;
+  const targetOption = aliveEnemies(state).length > 1 ? ["target"] : [];
+  if (!usable.length && !targetOption.length) return null;
+  return `(fight / flee / ${[...usable, ...targetOption].join(" / ")})`;
+}
+
+// "target" (no argument): lists every living enemy with its current Health
+// and whether it's the one currently being fought. "target <name>":
+// switches the active enemy to the first living match — partial,
+// case-insensitive, same matching leniency the rest of the parser uses
+// elsewhere (see connectionMatchingName/findLocationByName).
+function useTarget(state, arg) {
+  if (!state.combat) return ["There's nothing here to fight."];
+  const alive = state.combat.enemies.map((e, i) => ({ e, i })).filter(({ e }) => e.alive);
+  if (alive.length <= 1) return ["There's only one thing to fight here."];
+  if (!arg) {
+    return alive.map(({ e, i }) => `${i === state.combat.activeIndex ? "-> " : "   "}${e.creatureObj.name} (${e.hp}/${e.maxHp} HP)`);
+  }
+  const needle = arg.toLowerCase();
+  const match = alive.find(({ e }) => e.creatureObj.name.toLowerCase().includes(needle));
+  if (!match) return [`Nothing here matches "${arg}".`];
+  state.combat.activeIndex = match.i;
+  return [`You turn your attention to ${withThe(match.e.creatureObj.name, false)}.`];
 }
 
 // creatureIdOrObject is either a BESTIARY key (string) or a dynamically
@@ -1805,42 +1934,71 @@ function tacticsLine(state) {
 // pool by (see data/bestiary.js creaturesEligibleAtLevel and its two
 // parser.js call sites) pass it through so selection and scaling agree;
 // omitted, a fresh level is rolled here exactly as before.
+// Builds one per-fight enemy clone from a BESTIARY template at a given
+// level — the same scaling startCombat has always done for a single
+// creature (Object.assign the species base + computeCreatureStats), pulled
+// out so it can also run once per member of a pack/squad roster.
+// dangerClassOverride is set for packmates/underlings whose effective
+// Danger Class was capped by rollEncounterGroup rather than their own
+// natural one (never a higher tier than the encounter's anchor).
+function buildFightCreature(template, level, dangerClassOverride) {
+  const clampedLevel = clampLevelToRarityBand(level, template.spawnRarity);
+  const effectiveTemplate = dangerClassOverride ? Object.assign({}, template, { dangerClass: dangerClassOverride }) : template;
+  return Object.assign({}, effectiveTemplate, computeCreatureStats(effectiveTemplate, clampedLevel), { level: clampedLevel });
+}
+
 function startCombat(state, creatureIdOrObject, preRolledLevel) {
   const isDynamic = typeof creatureIdOrObject === "object";
   const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject];
   // Quest/job-tied encounters (BESTIARY's `special` flag — e.g. Kabal
   // Enforcer patrols) and already-fully-generated dynamic creatures
   // (enemy mages) are exempt from the level roll and stat scaling below,
-  // per the design's stated exception — everything else gets a freshly
-  // rolled level and stats scaled from its Species Base (see
-  // data/creaturetags.js). The clone means the shared BESTIARY dict entry
-  // itself is never mutated between fights.
-  let creature = template;
-  if (!isDynamic && !template.special) {
-    // Clamped into the creature's own Spawn Rarity band — otherwise a
-    // Common creature's Attack/Defense would scale to match a high-level
-    // player just as readily as a Unique's, since no creature has an
-    // Archetype/Danger Class yet to temper that (see clampLevelToRarityBand).
+  // per the design's stated exception, AND from pack/squad grouping —
+  // both spawn exactly one creature, same as before multi-enemy fights
+  // existed. The clone means the shared BESTIARY dict entry itself is
+  // never mutated between fights.
+  let roster;
+  if (isDynamic || template.special) {
+    roster = [{ id: isDynamic ? creatureIdOrObject : creatureIdOrObject, creature: template, dynamicCreature: isDynamic }];
+  } else {
+    // Every packmate shares the anchor's rolled level (see
+    // rollEncounterGroup) — buildFightCreature still clamps each one to
+    // its OWN species' Spawn Rarity band, so a Common packmate spawning
+    // alongside a Rare leader doesn't scale past what Common ever allows.
     const rolled = preRolledLevel != null ? preRolledLevel : rollEncounterLevel(state.level);
-    const level = clampLevelToRarityBand(rolled, template.spawnRarity);
-    creature = Object.assign({}, template, computeCreatureStats(template, level), { level });
+    roster = rollEncounterGroup(creatureIdOrObject).map((member) => ({
+      id: member.id,
+      creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass),
+      dynamicCreature: false,
+    }));
   }
-  state.combat = {
-    creatureId: isDynamic ? creature.id : creatureIdOrObject,
+  const enemies = roster.map(({ id, creature, dynamicCreature }) => ({
+    creatureId: dynamicCreature ? creature.id : id,
     creatureObj: creature,
-    dynamicCreature: isDynamic, // the real "is this an enemy mage, not a BESTIARY species" signal — see applyArchiveEternal
+    dynamicCreature, // the real "is this an enemy mage, not a BESTIARY species" signal — see applyArchiveEternal
     name: creature.name,
     hp: creature.hp,
     maxHp: creature.hp,
-    turnTaken: false, // flips true after any action; gates Ambush
-    enemyActedFirstThisRound: false, // set by resolveSpeedInitiative when Speed wins the enemy the first move this round; Stone's Patience's next-attack bonus
-    skipNormalRetaliationThisRound: false, // set alongside it (unless the creature is `flurry`) so resolveOrSkipRetaliation doesn't grant a second enemy action this round
+    alive: true,
+    skipNormalRetaliationThisRound: false, // set by resolveSpeedInitiative (unless the creature is `flurry`) so retaliation doesn't grant a second enemy action this round
     disarmed: false, // whether Disarm has already landed on this target
     corroded: false, // whether Corrode has already landed on this target
     enemyAtkPenalty: 0, // lasting attack reduction from Disarm
     enemyDefPenalty: 0, // lasting defense reduction from Corrode
+    enemyStunned: false, // set by Concuss, consumed by this enemy's next turn
+    burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
+    bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
+    lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit this creature, for resolveKill's damage-type-flavored death line
+    hamstringApplied: false, // gates Hamstring (once per target per fight)
+    reinforcedAttackCount: 0, // Reinforced's (Divine Regalia) every-3rd-enemy-attack counter
+  }));
+  const creature = enemies[0].creatureObj;
+  state.combat = {
+    enemies,
+    activeIndex: 0,
+    turnTaken: false, // flips true after any action; gates Ambush
+    enemyActedFirstThisRound: false, // set by resolveSpeedInitiative when Speed wins any enemy the first move this round; Stone's Patience's next-attack bonus
     nextAttackBonus: false, // set by Feint, consumed by the next hit
-    enemyStunned: false, // set by Concuss, consumed by the next enemy turn
     defBuffTurns: 0, // Stoneskin duration remaining
     defBuffAmount: 0, // Stoneskin's defense bonus
     evasionTurns: 0, // Windcut duration remaining
@@ -1850,14 +2008,10 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     whiteWatchRiposteDefBonus: 0, // White Watch 6pc — stacking def per Riposte
     riverWardenMagicBonus: 0, // River Warden 6pc — stacking magic, capped +8
     siegeCorpsAtkCharge: 0, // Siege Corps 6pc — one-shot +2 atk after Brace
-    burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
-    bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
     lastElementUsed: null, // for elemental synergy — see data/synergy.js
-    lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit the creature, for resolveKill's damage-type-flavored death line
     firstPhysicalAttackDone: false, // gates Opening Reach
     firstHitTakenUsed: false, // gates Stonewarden 6pc's first-hit reduction
     stormBarrierUsed: false, // gates Stormwatch 6pc's first-magical-hit reduction
-    hamstringApplied: false, // gates Hamstring (once per target per fight)
     tacticalMemoryUsed: false, // gates Tactical Memory (once per fight)
     surgingConduitUsesLeft: surgingConduitCharges(state), // Surging Conduit's per-fight charges (1, or 2 with Conduit Master/Fragmenta)
     noviceFreeCastUsed: false, // gates Novitiate 6pc's free first elemental cast
@@ -1963,7 +2117,14 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     avatarOfTimeTurns: 0, // Avatar of Time's temporary all-cooldowns-zeroed/frozen-buffs/+25%-damage duration remaining
     cooldowns: {},
   };
+  wireActiveEnemyProxy(state.combat);
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
+  // A pack/squad roster: name every packmate up front so the player knows
+  // what they're up against before the first "target" command.
+  if (enemies.length > 1) {
+    const others = enemies.slice(1).map((e) => e.creatureObj.name);
+    lines.push(`It isn't alone — ${others.join(", ")} ${others.length === 1 ? "stands" : "stand"} with it.`);
+  }
   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
   // Regeneration HoT set up at the moment any fight begins, ticked in
   // beginTurn the same way burn/bleed are.
@@ -2480,6 +2641,12 @@ function deathFlavorLine(creature, damageType) {
 
 // Shared victory handling — gold, loot, XP, job progress, ending combat.
 function resolveKill(state, creature) {
+  // The enemy that died is always whichever one is currently "active" —
+  // every call site either has it as the caller's own target already, or
+  // (beginTurn's DOT tick, for a non-active pack member) explicitly points
+  // activeIndex at it first. Captured now, before anything below could
+  // move it.
+  const diedIndex = state.combat.activeIndex;
   const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
   const bounty = state.flags.isMercenary ? 1.5 : 1;
   // Scales off the creature's own encounter level (falling back to the
@@ -2556,7 +2723,20 @@ function resolveKill(state, creature) {
     }
   }
   out.push(...applyArchiveEternal(state, creature));
-  state.combat = null;
+  // Only end the whole encounter once no roster member is left standing —
+  // a pack fight continues with whoever's left. applyArchiveEternal above
+  // still needed activeIndex pointing at the creature that just died (it
+  // reads combat.dynamicCreature), so this is deliberately the last thing
+  // that happens before the roster bookkeeping.
+  state.combat.enemies[diedIndex].alive = false;
+  const survivorIndex = state.combat.enemies.findIndex((e) => e.alive);
+  if (survivorIndex === -1) {
+    state.combat = null;
+  } else {
+    state.combat.activeIndex = survivorIndex;
+    const remaining = state.combat.enemies.filter((e) => e.alive).length;
+    out.push(`${remaining} more ${remaining === 1 ? "enemy stands" : "enemies stand"} against you.`);
+  }
   state.recomputeStats(true);
   out.push(...applyRegrowth(state));
   out.push(...applyVanguardMomentum(state));
@@ -2575,6 +2755,10 @@ function playerAttack(state) {
   }
 
   const out = beginTurn(state);
+  // beginTurn can itself end the fight now — a burn/bleed tick on a
+  // non-active pack member can finish it off (and, if it was the last one
+  // standing, the whole encounter) before the player's own action runs.
+  if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -2649,6 +2833,10 @@ function attemptFlee(state) {
   }
 
   const out = beginTurn(state);
+  // beginTurn can itself end the fight now — a burn/bleed tick on a
+  // non-active pack member can finish it off (and, if it was the last one
+  // standing, the whole encounter) before the player's own action runs.
+  if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -2740,6 +2928,10 @@ function useFeint(state) {
   if ((state.combat.cooldowns.feint || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Feint is still recovering — ${state.combat.cooldowns.feint} more turn(s).`];
 
   const out = beginTurn(state);
+  // beginTurn can itself end the fight now — a burn/bleed tick on a
+  // non-active pack member can finish it off (and, if it was the last one
+  // standing, the whole encounter) before the player's own action runs.
+  if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -2809,6 +3001,10 @@ function useDecoy(state) {
   if ((state.combat.cooldowns.decoy || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
 
   const out = beginTurn(state);
+  // beginTurn can itself end the fight now — a burn/bleed tick on a
+  // non-active pack member can finish it off (and, if it was the last one
+  // standing, the whole encounter) before the player's own action runs.
+  if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -2878,6 +3074,10 @@ function useAmbush(state) {
   if (state.combat.turnTaken && !ambushBypass) return [`The moment's passed — ambush only works as your opening move.`];
 
   const out = beginTurn(state);
+  // beginTurn can itself end the fight now — a burn/bleed tick on a
+  // non-active pack member can finish it off (and, if it was the last one
+  // standing, the whole encounter) before the player's own action runs.
+  if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -2930,6 +3130,10 @@ function useDisarm(state) {
   if ((state.combat.cooldowns.disarm || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
 
   const out = beginTurn(state);
+  // beginTurn can itself end the fight now — a burn/bleed tick on a
+  // non-active pack member can finish it off (and, if it was the last one
+  // standing, the whole encounter) before the player's own action runs.
+  if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
@@ -3018,6 +3222,10 @@ function useElementAbility(state, elementKey) {
   if ((state.combat.cooldowns[elementKey] || 0) > 0) return [`${a.name} is still recovering — ${state.combat.cooldowns[elementKey]} more turn(s).`];
 
   const out = beginTurn(state);
+  // beginTurn can itself end the fight now — a burn/bleed tick on a
+  // non-active pack member can finish it off (and, if it was the last one
+  // standing, the whole encounter) before the player's own action runs.
+  if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
