@@ -1165,7 +1165,13 @@ function resolveSpeedInitiative(state, creature) {
 // reflects the CALLER'S active target (matching the original single-enemy
 // contract exactly), so riposte/dodge bonuses stay scoped to "the thing
 // you just traded blows with," not the whole pack.
-function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef) {
+//
+// excludeIndex silently skips one specific enemy entirely (no line, no
+// damage) — Decoy/Ambush's own "this one specifically doesn't act" case,
+// which already gets its own dedicated flavor line at the call site and
+// isn't a pre-emptive-strike situation, so it deliberately does NOT reuse
+// skipNormalRetaliationThisRound's "already acted first" message.
+function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeIndex) {
   const combat = state.combat;
   const callerActiveIndex = combat.activeIndex;
   const lines = [];
@@ -1173,6 +1179,7 @@ function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef) {
   for (let i = 0; i < combat.enemies.length; i++) {
     const e = combat.enemies[i];
     if (!e.alive || !e.creatureObj || e.creatureObj.friendly) continue;
+    if (i === excludeIndex) continue;
     const prevActive = combat.activeIndex;
     combat.activeIndex = i;
     let result;
@@ -2749,7 +2756,7 @@ function resolveKill(state, creature) {
 
 function playerAttack(state) {
   if (!state.combat) return ["There's nothing here to fight."];
-  const creature = getCombatCreature(state);
+  let creature = getCombatCreature(state);
   if (creature.friendly) {
     return [`${withThe(creature.name, true)} has done you no harm. Attacking it seems both unwise and unkind.`];
   }
@@ -2761,8 +2768,13 @@ function playerAttack(state) {
   if (!state.combat) return out;
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
+    // Already dead from a DOT tick this same beginTurn — kill it, and if
+    // the fight goes on, re-target the survivor resolveKill just made
+    // active and keep this action going against it, rather than ending
+    // the round here.
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
   if (state.health <= 0) return out;
@@ -2799,10 +2811,16 @@ function playerAttack(state) {
     isPhysicalHit = isPhysical;
 
     if (state.combat.hp <= 0) {
+      // Killing your target doesn't end the round — the rest of the
+      // pack (and, if it was the last one standing, nothing) still gets
+      // to act below. Re-target the survivor before anything downstream
+      // (retaliation's own bookkeeping, Riposte) reads `creature` again.
       out.push(...resolveKill(state, creature));
-      return out;
+      if (!state.combat || state.health <= 0) return out;
+      creature = getCombatCreature(state);
+    } else if (isPhysical) {
+      out.push(...applyPhysicalOnHitEffects(state, creature));
     }
-    if (isPhysical) out.push(...applyPhysicalOnHitEffects(state, creature));
   }
 
   const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
@@ -2818,7 +2836,7 @@ function playerAttack(state) {
 
 function attemptFlee(state) {
   if (!state.combat) return ["There's nothing to flee from."];
-  const creature = getCombatCreature(state);
+  let creature = getCombatCreature(state);
 
   // Replaces the old flat tier-based penalty: harder to escape something
   // above your own level, and harder still against a Boss/World Boss,
@@ -2840,7 +2858,8 @@ function attemptFlee(state) {
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
 
   const combat = state.combat;
@@ -2916,7 +2935,7 @@ function applyFirstKingdomCooldown(cooldown) {
 function useFeint(state) {
   if (!state.combat) return ["There's nothing here to feint at."];
   if (state.flags.isMage) return ["Feinting isn't how your magic works. Try your element's ability instead."];
-  const creature = getCombatCreature(state);
+  let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. A feint would be wasted.`];
   if (state.combat.nextAttackBonus) return [`You're already coiled for a strike — feint again once you've used it.`];
   const t = TACTICS.feint;
@@ -2935,7 +2954,8 @@ function useFeint(state) {
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
   if (state.health <= 0) return out;
@@ -2994,7 +3014,7 @@ function useFeint(state) {
 function useDecoy(state) {
   if (!state.combat) return ["There's nothing here to use that on."];
   if (state.flags.isMage) return ["Decoys aren't how your magic works. Try your element's ability instead."];
-  const creature = getCombatCreature(state);
+  let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
   const t = TACTICS.decoy;
   if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
@@ -3008,10 +3028,15 @@ function useDecoy(state) {
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
   if (state.health <= 0) return out;
+  // Captured now, before the player's own strike (below) has any chance to
+  // kill this specific enemy — this is who's actually being decoyed, for
+  // the skipNormalRetaliationThisRound flag further down.
+  const decoyedIndex = state.combat.activeIndex;
   out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "decoy"));
   consumeTrailblazer(state);
   let decoyMemory;
@@ -3051,12 +3076,26 @@ function useDecoy(state) {
 
     if (state.combat.hp <= 0) {
       out.push(...resolveKill(state, creature));
-      return out;
+      if (!state.combat || state.health <= 0) return out;
+      creature = getCombatCreature(state);
+    } else {
+      out.push(...applyPhysicalOnHitEffects(state, creature));
     }
-    out.push(...applyPhysicalOnHitEffects(state, creature));
   }
 
-  out.push(`${withThe(creature.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
+  // Decoy only fools the one creature it's aimed at — if it's still alive,
+  // it specifically sits this round out; anyone ELSE still standing in a
+  // pack fight isn't distracted and acts normally.
+  const decoyedEnemy = state.combat.enemies[decoyedIndex];
+  if (decoyedEnemy && decoyedEnemy.alive) {
+    out.push(`${withThe(decoyedEnemy.creatureObj.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
+  }
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0, decoyedIndex);
+  out.push(...retaliation.lines);
+  // Decoy always guarantees the decoyed enemy itself dealt no damage, so
+  // Riposte/dodge bonuses fire unconditionally (matching the original
+  // solo-fight behavior) rather than being gated on the whole pack's
+  // aggregate retaliation.
   out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -3066,7 +3105,7 @@ function useDecoy(state) {
 function useAmbush(state) {
   if (!state.combat) return ["There's nothing here to ambush."];
   if (state.flags.isMage) return ["Ambush isn't how your magic works. Try your element's ability instead."];
-  const creature = getCombatCreature(state);
+  let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} hasn't given you a reason to ambush it.`];
   const t = TACTICS.ambush;
   const ambushBypass = activationRestrictionsBypassed(state);
@@ -3081,12 +3120,17 @@ function useAmbush(state) {
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
   if (state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
   consumeTrailblazer(state);
+  // Captured now, before the strike below has any chance to kill this
+  // specific enemy — this is who's actually being ambushed, for the
+  // skipNormalRetaliationThisRound flag further down.
+  const ambushedIndex = state.combat.activeIndex;
 
   // Even an ambush can go wide — Accuracy vs Agility still decides it,
   // just with no counter either way since the creature never saw it coming.
@@ -3104,15 +3148,22 @@ function useAmbush(state) {
 
     if (state.combat.hp <= 0) {
       out.push(...resolveKill(state, creature));
-      return out;
-    }
-    out.push(...applyPhysicalOnHitEffects(state, creature));
-    if (hasEffect(state, "evasive_release")) {
-      state.combat.evasionCharges += 1;
-      out.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
+      if (!state.combat || state.health <= 0) return out;
+      creature = getCombatCreature(state);
+    } else {
+      out.push(...applyPhysicalOnHitEffects(state, creature));
+      if (hasEffect(state, "evasive_release")) {
+        state.combat.evasionCharges += 1;
+        out.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
+      }
     }
   }
 
+  // Ambush only surprises the one creature it's aimed at — anyone else
+  // still standing in a pack fight wasn't caught off guard and retaliates
+  // normally, same as Decoy.
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0, ambushedIndex);
+  out.push(...retaliation.lines);
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
@@ -3121,7 +3172,7 @@ function useAmbush(state) {
 function useDisarm(state) {
   if (!state.combat) return ["There's nothing here to disarm."];
   if (state.flags.isMage) return ["Disarm isn't how your magic works. Try your element's ability instead."];
-  const creature = getCombatCreature(state);
+  let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't armed against you. Nothing to disarm.`];
   const t = TACTICS.disarm;
   const disarmBypass = activationRestrictionsBypassed(state);
@@ -3137,7 +3188,8 @@ function useDisarm(state) {
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
   if (state.health <= 0) return out;
@@ -3181,9 +3233,11 @@ function useDisarm(state) {
 
     if (state.combat.hp <= 0) {
       out.push(...resolveKill(state, creature));
-      return out;
+      if (!state.combat || state.health <= 0) return out;
+      creature = getCombatCreature(state);
+    } else {
+      out.push(...applyPhysicalOnHitEffects(state, creature));
     }
-    out.push(...applyPhysicalOnHitEffects(state, creature));
   }
 
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
@@ -3202,7 +3256,7 @@ function useDisarm(state) {
 function useElementAbility(state, elementKey) {
   const a = ELEMENT_ABILITIES[elementKey];
   if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
-  const creature = getCombatCreature(state);
+  let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. Save it.`];
   // World Walker (Artifact): Blink specifically ignores the known-element
   // gate entirely — usable by any class, mage or not, regardless of which
@@ -3229,7 +3283,8 @@ function useElementAbility(state, elementKey) {
   state.combat.turnTaken = true;
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
   if (state.health <= 0) return out;
@@ -3458,7 +3513,8 @@ function useElementAbility(state, elementKey) {
 
   if (state.combat.hp <= 0) {
     out.push(...resolveKill(state, creature));
-    return out;
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
   }
 
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
