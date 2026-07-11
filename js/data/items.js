@@ -1771,6 +1771,14 @@ const ITEM_DEFS = {
   "Ring of Far Horizons": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["wanderers_reward"], source: "monster", set: "Regalia of the Endless Horizon" },
   "Windstep Boots": { slot: "boots", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["swift_passage"], source: "monster", set: "Regalia of the Endless Horizon" },
   "Feather of the First Wind": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["trailblazer"], source: "monster", set: "Regalia of the Endless Horizon" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Eternal Forge (Pyreith) ----
+  "Forgefather's Hammer": { slot: "mainhand", tier: 8, bonuses: { atk: 10, magic: 6 }, effects: ["tempered_steel"], source: "monster", set: "Regalia of the Eternal Forge" },
+  "Forgeguard Buckler": { slot: "offhand", tier: 8, bonuses: { def: 10, atk: 6 }, effects: ["reinforced"], source: "monster", set: "Regalia of the Eternal Forge" },
+  "Forge Master's Apron": { slot: "chest", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["crafted_perfection"], source: "monster", set: "Regalia of the Eternal Forge" },
+  "Ring of Endless Labor": { slot: "rings", tier: 8, bonuses: { atk: 8, knowledge: 8 }, effects: ["work_refines"], source: "monster", set: "Regalia of the Eternal Forge" },
+  "Smith's Grasp": { slot: "gloves", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["master_craftsman"], source: "monster", set: "Regalia of the Eternal Forge" },
+  "Embercore": { slot: "trinkets", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["living_forge"], source: "monster", set: "Regalia of the Eternal Forge" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

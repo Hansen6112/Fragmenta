@@ -440,6 +440,15 @@ const SETS = {
       6: { effects: ["avatar_of_freedom"], description: "Avatar of Freedom — once per combat, dropping below 25% Health grants 4 rounds of +50% Evasion, doubled cooldown recovery, and unrestricted Ability/Tactic use" },
     },
   },
+  "Regalia of the Eternal Forge": {
+    theme: "Pyreith's gifts to those who forge themselves anew.",
+    god: "Pyreith",
+    bonuses: {
+      2: { effects: ["blessing_of_creation"], description: "Blessing of Creation — temporary stat bonuses you gain are increased by 25%" },
+      4: { effects: ["perfected_craft"], description: "Perfected Craft — every equipped passive may activate one additional time per combat" },
+      6: { effects: ["avatar_of_creation"], description: "Avatar of Creation — once per combat, dropping below 25% Health grants 4 rounds of +40% Attack/+40% Magic, doubled cooldown recovery, and permanent +2 Attack per attack/+2 Magic per spell" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

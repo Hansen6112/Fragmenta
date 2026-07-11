@@ -83,7 +83,7 @@ function effectiveEnemyAtk(state, creature) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0);
+  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0);
 }
 
 // Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
@@ -201,7 +201,9 @@ function effectiveMagic(state) {
   const unwaveringDevotionMagic = ((combat && combat.unwaveringDevotionStacks) || 0) * 2;
   const windsOfChangeMagic = (combat && combat.windsOfChangeMagic) || 0;
   const avatarOfChaosMagic = (combat && combat.avatarOfChaosMagicBonus) || 0;
-  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic;
+  const workRefinesMagic = (combat && combat.workRefinesMagicStacks) || 0;
+  const avatarOfCreationMagic = (combat && combat.avatarOfCreationMagicStacks) || 0;
+  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic;
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -267,11 +269,11 @@ function applyHeal(state, amount) {
   // immediately gain +5 Attack/+5 Magic/+5 Defense for 2 rounds.
   if (healed > 0 && combat && combat.avatarOfDevotionTurns > 0) {
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 2);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 5);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 5));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 2);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 5);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, 5));
     combat.defBuffTurns = Math.max(combat.defBuffTurns, 2);
-    combat.defBuffAmount = Math.max(combat.defBuffAmount, 5);
+    combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 5));
   }
   return { healed, lines };
 }
@@ -517,6 +519,44 @@ function momentumUnboundMultiplier(state) {
   return 1 + Math.min(state.combat.momentumUnboundStacks || 0, 6) * 0.05;
 }
 
+// Tempered Steel (Divine Regalia — Forgefather's Hammer): +2% damage per
+// successful attack (physical or spell — rollPlayerDamage is the single
+// shared roll for both, and every existing per-hit stacking bonus here
+// already treats "attack" uniformly across both branches), permanent for
+// the rest of the fight, capped at +30% (15 stacks). Stacks grow after
+// the roll, at the bottom of rollPlayerDamage.
+function temperedSteelMultiplier(state) {
+  if (!hasEffect(state, "tempered_steel") || !state.combat) return 1;
+  return 1 + Math.min(state.combat.temperedSteelStacks || 0, 15) * 0.02;
+}
+
+// Master Craftsman (Divine Regalia — Smith's Grasp): +20% damage whenever
+// the effective Attack used for THIS physical hit exceeds the enemy's
+// (raw) Defense by 10 or more — a live, per-hit threshold check rather
+// than a stacking bonus, scoped to the physical branch only (an
+// Attack-vs-Defense comparison has no equivalent meaning for a Magic-vs-
+// Defense spell roll).
+function masterCraftsmanMultiplier(atk, creature) {
+  return atk - creature.def >= 10 ? 1.2 : 1;
+}
+
+// Blessing of Creation (Regalia of the Eternal Forge 2pc): +25% to the
+// MAGNITUDE of any temporary (duration-based) stat bonus granted —
+// scoped specifically to the atk/magic/defBuffAmount-style buffs that
+// already funnel through the shared Turns-based buff fields (Hold the
+// Line, Rooted Resolve, Rally the Line, the various "Avatar of X"
+// bursts, Wanderer's Reward, Ever Forward), NOT the separate permanent-
+// for-the-fight stacking counters (Battle Tempered, Living Current,
+// Every Choice Matters, Tempered Steel, Reinforced, Work Refines, etc.)
+// — those are a different category ("permanent," not "temporary"),
+// matching the source text's own word choice. Retrofitted into every
+// existing call site that sets one of the shared buff-amount fields, the
+// same "touch every enumerable call site" precedent
+// applyBeneficialEffectBonuses already established for duration.
+function applyBlessingOfCreationBonus(state, amount) {
+  return hasSetTier(state, "Regalia of the Eternal Forge", 2) ? Math.round(amount * 1.25) : amount;
+}
+
 // Momentum Unbound (Divine Regalia — Galecaller) and Ever Forward
 // (Regalia of the Endless Horizon 4pc) both track the same broad
 // 3-category action-type signal ("attack", "tactic", or "elemental" —
@@ -538,9 +578,9 @@ function applyActionTypeTracking(state, actionType) {
   if (hasSetTier(state, "Regalia of the Endless Horizon", 4) && combat.actionTypeHistory.length === 3 && new Set(combat.actionTypeHistory).size === 3) {
     const dur = applyBeneficialEffectBonuses(state, 3);
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 10);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 10));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 10);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, 10));
     lines.push(`Ever Forward — three strides, three shapes; +10 Attack, +10 Magic for ${dur} rounds.`);
   }
   return lines;
@@ -562,9 +602,9 @@ function applyWanderersReward(state, actionKey) {
   if (!recent.includes(actionKey)) {
     const dur = applyBeneficialEffectBonuses(state, 2);
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 4);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 4));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 4);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, 4));
     lines.push(`Wanderer's Reward — new ground, new strength; +4 Attack, +4 Magic for ${dur} rounds.`);
   }
   combat.recentActionKeys = [actionKey, ...recent].slice(0, 2);
@@ -708,6 +748,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   const loadedDiceMult = loadedDiceMultiplier(state);
   const chaosMult = avatarOfChaosDamageMultiplier(state);
   const momentumUnboundMult = momentumUnboundMultiplier(state);
+  const temperedSteelMult = temperedSteelMultiplier(state);
   let dmg;
   if (isSpell) {
     const magic = effectiveMagic(state);
@@ -720,16 +761,29 @@ function rollPlayerDamage(state, creature, activeElement) {
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult) - Math.floor(effDef / 10));
+    // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
+    // cast during its 4-round window PERMANENTLY increases Magic by +2 —
+    // unlike Avatar of Chaos/Endurance's own window-scoped bonus fields,
+    // this one deliberately does NOT reset when the window ends (matching
+    // the source text's own "permanently," in contrast to the "for 4
+    // rounds" +40% Magic buff granted alongside it).
+    if (state.combat.avatarOfCreationTurns > 0) {
+      state.combat.avatarOfCreationMagicStacks = (state.combat.avatarOfCreationMagicStacks || 0) + 2;
+    }
   } else {
     const armorCrack = armorCrackAmount(state);
     const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
     const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
     const everyChoiceAtk = state.combat.everyChoiceAtkStacks || 0;
     const battleTemperedAtk = state.combat.battleTemperedAtkStacks || 0;
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0) + (state.combat.avatarOfEnduranceAtkBonus || 0);
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0) + (state.combat.avatarOfEnduranceAtkBonus || 0) + (state.combat.workRefinesAtkStacks || 0) + (state.combat.avatarOfCreationAtkStacks || 0);
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
+    // Master Craftsman (Divine Regalia — Smith's Grasp): compares this
+    // hit's own effective Attack (all the buffs/stacks above already
+    // folded in) against the enemy's raw Defense.
+    const craftsmanMult = hasEffect(state, "master_craftsman") ? masterCraftsmanMultiplier(atk, creature) : 1;
     const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
     // Echoing Arsenal (Artifact): every 5th physical/weapon-attack roll
     // (playerAttack, Ambush, Decoy, Disarm — anything landing in this
@@ -738,7 +792,22 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult));
+    // Avatar of Creation (Regalia of the Eternal Forge 6pc): every
+    // successful physical attack during its window PERMANENTLY increases
+    // Attack by +2 — see the spell-branch comment above for why this
+    // doesn't reset with the window.
+    if (state.combat.avatarOfCreationTurns > 0) {
+      state.combat.avatarOfCreationAtkStacks = (state.combat.avatarOfCreationAtkStacks || 0) + 2;
+    }
+  }
+  // Tempered Steel (Divine Regalia — Forgefather's Hammer): every
+  // successful attack (dmg is always >= 1 by this point) permanently
+  // grows its own stack for the NEXT hit, capped at 15 (+30%) — the same
+  // "read the stack before this roll, grow it after" ordering Momentum/
+  // Worthy Challenge use above.
+  if (hasEffect(state, "tempered_steel")) {
+    state.combat.temperedSteelStacks = Math.min(15, (state.combat.temperedSteelStacks || 0) + 1);
   }
   state.combat.threadsOfConsequencePending = false;
   if (hasEffect(state, "momentum")) {
@@ -862,13 +931,31 @@ function applyHeartwoodVitality(state) {
 function beginTurn(state) {
   const combat = state.combat;
   const lines = [];
-  // Avatar of Freedom (Regalia of the Endless Horizon 6pc): all cooldowns
-  // recover twice as fast for its 4-round window — read BEFORE its own
-  // decrement further below, so the window's final round still gets the
-  // faster recovery.
-  const cooldownDecrement = combat.avatarOfFreedomTurns > 0 ? 2 : 1;
+  // Avatar of Freedom (Regalia of the Endless Horizon 6pc) and Avatar of
+  // Creation (Regalia of the Eternal Forge 6pc): both speed up cooldown
+  // recovery for their own 4-round windows — read BEFORE the decrement
+  // below, so the window's final round still gets the faster recovery.
+  const cooldownDecrement = combat.avatarOfFreedomTurns > 0 || combat.avatarOfCreationTurns > 0 ? 2 : 1;
+  // Living Forge (Divine Regalia — Embercore): every cooldown that
+  // actually reaches 0 THIS tick ("completes") restores 3% max Health —
+  // its "3% Mana" half is a no-op, since this engine has no Mana resource
+  // (the same standing limitation cited for every other Mana-flavored
+  // clause so far).
+  let livingForgeCompletions = 0;
+  const livingForgeActive = hasEffect(state, "living_forge");
   for (const key of Object.keys(combat.cooldowns)) {
-    if (combat.cooldowns[key] > 0) combat.cooldowns[key] = Math.max(0, combat.cooldowns[key] - cooldownDecrement);
+    const before = combat.cooldowns[key];
+    if (before > 0) {
+      combat.cooldowns[key] = Math.max(0, before - cooldownDecrement);
+      if (livingForgeActive && combat.cooldowns[key] === 0) livingForgeCompletions += 1;
+    }
+  }
+  if (livingForgeCompletions > 0) {
+    const heal = Math.ceil(state.maxHealth * 0.03) * livingForgeCompletions;
+    if (heal > 0) {
+      const { healed, lines: healLines } = applyHeal(state, heal);
+      if (healed > 0) lines.push(`Living Forge mends you for ${healed} health.`, ...healLines);
+    }
   }
   if (combat.defBuffTurns > 0) combat.defBuffTurns -= 1;
   if (combat.atkBuffTurns > 0) combat.atkBuffTurns -= 1;
@@ -898,6 +985,12 @@ function beginTurn(state) {
     }
   }
   if (combat.avatarOfFreedomTurns > 0) combat.avatarOfFreedomTurns -= 1;
+  // Avatar of Creation (Regalia of the Eternal Forge 6pc): the +40%
+  // Attack/Magic buff (via the shared atk/magicBuffTurns fields) expires
+  // normally above, but the PERMANENT +2-per-attack/+2-per-spell stacks
+  // it grows (see rollPlayerDamage) deliberately do NOT reset here when
+  // the window ends — "permanently," per the source text.
+  if (combat.avatarOfCreationTurns > 0) combat.avatarOfCreationTurns -= 1;
   if (combat.unyieldingWallCooldown > 0) combat.unyieldingWallCooldown -= 1;
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
@@ -987,6 +1080,14 @@ function beginTurn(state) {
       const { healed, lines: healLines } = applyHeal(state, lastingFoundationHeal);
       if (healed > 0) lines.push(`Lasting Foundation mends you for ${healed} health.`, ...healLines);
     }
+  }
+  // Work Refines (Divine Regalia — Ring of Endless Labor): every third
+  // action permanently grants +2 Attack/+2 Magic, capped at +20/+20 (10
+  // triggers) — the same actionCounter cadence Lasting Foundation/
+  // Heartwood Vitality already read.
+  if (hasEffect(state, "work_refines") && combat.actionCounter % 3 === 0) {
+    if ((combat.workRefinesAtkStacks || 0) < 20) combat.workRefinesAtkStacks = Math.min(20, (combat.workRefinesAtkStacks || 0) + 2);
+    if ((combat.workRefinesMagicStacks || 0) < 20) combat.workRefinesMagicStacks = Math.min(20, (combat.workRefinesMagicStacks || 0) + 2);
   }
   return lines;
 }
@@ -1114,6 +1215,18 @@ function applyUnbrokenLine(state, dmg) {
 function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
+  // Reinforced (Divine Regalia — Forgeguard Buckler): every 3rd enemy
+  // ATTACK against the player (counted here, unconditionally, before any
+  // of the early-return misses/evasions below — an "attack" that gets
+  // evaded still counts as an attack, unlike Walls Endure/Unbroken Line's
+  // narrower "damage actually taken" counters) permanently grants +2
+  // Defense, capped at +20 (10 triggers).
+  if (hasEffect(state, "reinforced")) {
+    combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
+    if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
+      combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
+    }
+  }
   // Guardian Spirit (Mythic): the very first enemy attack each fight is a
   // guaranteed miss, checked before anything else (stun, evasion) since
   // it's a harder guarantee than either.
@@ -1522,6 +1635,15 @@ function startCombat(state, creatureIdOrObject) {
     swiftPassageReady: false, // Swift Passage's (Divine Regalia) queued free-cooldown charge from the previous fight's kill
     avatarOfFreedomUsed: false, // gates Avatar of Freedom's (Regalia of the Endless Horizon 6pc) below-25%-HP burst
     avatarOfFreedomTurns: 0, // Avatar of Freedom's temporary evasion/cooldown-speed/restriction-bypass duration remaining
+    temperedSteelStacks: 0, // Tempered Steel's (Divine Regalia) stacking +2% damage per successful attack, capped at 15 (+30%)
+    reinforcedAttackCount: 0, // Reinforced's (Divine Regalia) every-3rd-enemy-attack counter
+    reinforcedDefStacks: 0, // Reinforced's stacking +2 Defense per 3rd enemy attack, capped at 20
+    workRefinesAtkStacks: 0, // Work Refines' (Divine Regalia) stacking +2 Attack per 3rd action, capped at 20
+    workRefinesMagicStacks: 0, // Work Refines' stacking +2 Magic per 3rd action, capped at 20
+    avatarOfCreationUsed: false, // gates Avatar of Creation's (Regalia of the Eternal Forge 6pc) below-25%-HP burst
+    avatarOfCreationTurns: 0, // Avatar of Creation's temporary +40% Attack/Magic and doubled-cooldown-recovery duration remaining
+    avatarOfCreationAtkStacks: 0, // Avatar of Creation's stacking PERMANENT +2 Attack per successful attack during its window (does not reset when the window ends)
+    avatarOfCreationMagicStacks: 0, // Avatar of Creation's stacking PERMANENT +2 Magic per spell cast during its window (does not reset when the window ends)
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -1600,7 +1722,7 @@ function checkHoldTheLine(state) {
   combat.holdTheLineUsed = true;
   const dur = applyBeneficialEffectBonuses(state, 2);
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
-  combat.defBuffAmount = Math.max(combat.defBuffAmount, 6);
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 6));
   return [`Hold the Line — your training snaps into place as your Health falls; +6 Defense for 2 turns.`];
 }
 
@@ -1615,7 +1737,7 @@ function checkRootedResolve(state) {
   combat.rootedResolveUsed = true;
   const dur = applyBeneficialEffectBonuses(state, 3);
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
-  combat.defBuffAmount = Math.max(combat.defBuffAmount, 8);
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 8));
   return [`Rooted Resolve — you plant yourself as your Health falls; +8 Defense for 3 turns.`];
 }
 
@@ -1648,9 +1770,9 @@ function checkRallyTheLine(state) {
   combat.rallyTheLineUsed = true;
   const dur = applyBeneficialEffectBonuses(state, 4);
   combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 10);
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 10));
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
-  combat.defBuffAmount = Math.max(combat.defBuffAmount, 10);
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 10));
   return [`Rally the Line — your Health falls, and the line holds; +10 Attack, +10 Defense for 4 rounds.`];
 }
 
@@ -1670,11 +1792,11 @@ function checkAvatarOfBloom(state) {
   const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.5));
   const dur = applyBeneficialEffectBonuses(state, 3);
   combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, Math.round(state.atk * 0.25));
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.25)));
   combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, Math.round(state.magic * 0.25));
+  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.25)));
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
-  combat.defBuffAmount = Math.max(combat.defBuffAmount, Math.round(state.def * 0.25));
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, Math.round(state.def * 0.25)));
   return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
 }
 
@@ -1735,7 +1857,7 @@ function checkAvatarOfWar(state) {
   const dur = applyBeneficialEffectBonuses(state, 4);
   combat.avatarOfWarTurns = dur;
   combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, Math.round(state.atk * 0.5));
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.5)));
   return [`Avatar of War awakens — for 4 rounds, you fight like the battle itself.`];
 }
 
@@ -1757,8 +1879,8 @@ function checkAvatarOfKnowledge(state) {
   const dur = applyBeneficialEffectBonuses(state, 4);
   combat.avatarOfKnowledgeTurns = dur;
   combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, Math.round(state.magic * 0.5));
-  combat.knowledgeBuffAmount = 25;
+  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.5)));
+  combat.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, 25);
   const creature = getCombatCreature(state);
   return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${combat.hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
 }
@@ -1842,6 +1964,33 @@ function checkAvatarOfFreedom(state) {
   combat.avatarOfFreedomUsed = true;
   combat.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, 4);
   return [`Avatar of Freedom awakens — for 4 rounds, nothing can hold you.`];
+}
+
+// Avatar of Creation (Regalia of the Eternal Forge 6pc): the tenth
+// "Avatar of X" once-per-fight below-25%-Health trigger. For 4 rounds:
+// +40% Attack/+40% Magic (a temporary buff via the shared atk/
+// magicBuffAmount fields, boosted by Blessing of Creation like every
+// other such buff), cooldowns recover twice as fast (beginTurn), and
+// every successful attack/spell cast during the window PERMANENTLY grows
+// Attack/Magic by +2 (rollPlayerDamage — deliberately outlives the
+// window itself, unlike the temporary +40% buff granted here). Its "all
+// passive abilities activate at 150% effectiveness" clause is inert —
+// the same reason as Crafted Perfection/Perfected Craft below: no
+// generic "a passive just activated" event exists to hook a blanket
+// effectiveness multiplier into, the identical limitation Threads
+// Intertwined (Regalia of the Woven Thread) already established.
+function checkAvatarOfCreation(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfCreationUsed || !hasSetTier(state, "Regalia of the Eternal Forge", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfCreationUsed = true;
+  const dur = applyBeneficialEffectBonuses(state, 4);
+  combat.avatarOfCreationTurns = dur;
+  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.4)));
+  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.4)));
+  return [`Avatar of Creation awakens — for 4 rounds, every strike and every cast reforges you anew.`];
 }
 
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
@@ -2036,7 +2185,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2083,7 +2232,7 @@ function attemptFlee(state) {
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -2179,7 +2328,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2325,7 +2474,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2560,7 +2709,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
