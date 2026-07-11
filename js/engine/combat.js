@@ -81,6 +81,21 @@ function effectiveEnemyAtk(state, creature) {
   return Math.max(1, creature.atk - (state.combat.enemyAtkPenalty || 0));
 }
 
+// Whether an attack connects at all, before any damage math or special
+// miss/evasion effect runs — a contested Accuracy-vs-Agility roll, 50/50
+// at equal stats, shifting 3% per point of difference either way and
+// clamped to [10%, 90%] so neither side can ever guarantee a hit or a
+// miss purely by stacking one stat. Both the player's own attacks
+// (state.accuracy vs creature.agi) and enemy retaliation (creature.acc vs
+// state.agility) go through this, in that same attacker/defender shape.
+function hitChance(attackerAccuracy, defenderAgility) {
+  return Math.max(0.10, Math.min(0.90, 0.5 + ((attackerAccuracy || 0) - (defenderAgility || 0)) * 0.03));
+}
+
+function attackConnects(attackerAccuracy, defenderAgility) {
+  return Math.random() < hitChance(attackerAccuracy, defenderAgility);
+}
+
 // Earth's Stoneskin adds a temporary universal defense bonus; Evasive
 // Guard and Queen Carapace's carapace_adaptation each add a permanent-
 // for-the-fight bonus (capped +3 and +9 respectively) whenever their
@@ -1461,6 +1476,20 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
       combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
     }
   }
+  // A stunned enemy simply doesn't act at all this turn — not a "miss," so
+  // it's checked before the connects roll below, same as Reinforced above.
+  if (combat.enemyStunned) {
+    combat.enemyStunned = false;
+    return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
+  }
+  // Accuracy vs Agility: does the attack even connect? Checked before every
+  // special miss/evasion effect below, so none of those (Timeless Guard's
+  // once-per-3-rounds negation, Guardian Spirit/Guided Footsteps' first-
+  // attack charge, evasion charges, ...) ever get consumed on an attack
+  // that was going to miss on its own merits anyway.
+  if (!attackConnects(creature.acc, state.agility)) {
+    return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
+  }
   // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
   // attack every 3 rounds deals 0 damage entirely, ahead of even
   // Guardian Spirit/Guided Footsteps — a full negation, not just a miss
@@ -1483,10 +1512,6 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     if (Math.random() < 0.75) {
       return { lines: [`Guided Footsteps — you're already a step from where it lands.`], damage: 0 };
     }
-  }
-  if (combat.enemyStunned) {
-    combat.enemyStunned = false;
-    return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
   }
   // Never Where Expected (Divine Regalia — Boots of the Wandering Wind): a
   // flat 15% miss chance on EVERY enemy attack (not just the first, unlike
@@ -1633,6 +1658,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
 function maybeRiposte(state, creature) {
   if (!hasEffect(state, "riposte")) return [];
   if (!state.combat || state.combat.hp <= 0) return [];
+  if (!attackConnects(state.accuracy, creature.agi)) {
+    return [`You seize the opening, but the riposte doesn't land.`];
+  }
   // Clash of Steel (Divine Regalia — Gauntlets of the Unyielding): +50% to
   // Riposte's damage specifically — the only "counterattack" mechanic the
   // player has in this engine.
@@ -2562,29 +2590,38 @@ function playerAttack(state) {
   // don't apply to that basic attack.
   const isPhysical = !(state.flags.isMage && state.primaryElement);
   const activeElement = isPhysical ? null : pickElement(state);
-  let dmg = rollPlayerDamage(state, creature, activeElement);
-  if (isPhysical) dmg = applyOpeningReach(state, dmg);
-  // Borrowed Seconds (Divine Regalia — Epochkeeper): a plain Attack has
-  // no cooldown to refund, so its every-4th-action trigger grants +15%
-  // damage to this hit instead.
-  if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
-  if (state.combat.nextAttackBonus) {
-    const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
-    dmg = Math.round(dmg * feintMult);
-    state.combat.nextAttackBonus = false;
-    out.push("Your feint pays off —");
-  }
-  state.combat.hp -= dmg;
-  state.combat.lastDamageType = isPhysical ? "physical" : activeElement;
-  out.push(attackFlavorLine(state, creature, dmg, activeElement));
+  let isPhysicalHit = false;
+  // Accuracy vs Agility: does this attack even connect? A miss here
+  // doesn't consume Feint's nextAttackBonus (it's preserved for the next
+  // real attempt) or any of the on-hit-only effects below.
+  if (!attackConnects(state.accuracy, creature.agi)) {
+    out.push(`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`);
+  } else {
+    let dmg = rollPlayerDamage(state, creature, activeElement);
+    if (isPhysical) dmg = applyOpeningReach(state, dmg);
+    // Borrowed Seconds (Divine Regalia — Epochkeeper): a plain Attack has
+    // no cooldown to refund, so its every-4th-action trigger grants +15%
+    // damage to this hit instead.
+    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
+    if (state.combat.nextAttackBonus) {
+      const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
+      dmg = Math.round(dmg * feintMult);
+      state.combat.nextAttackBonus = false;
+      out.push("Your feint pays off —");
+    }
+    state.combat.hp -= dmg;
+    state.combat.lastDamageType = isPhysical ? "physical" : activeElement;
+    out.push(attackFlavorLine(state, creature, dmg, activeElement));
+    isPhysicalHit = isPhysical;
 
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    return out;
+    if (state.combat.hp <= 0) {
+      out.push(...resolveKill(state, creature));
+      return out;
+    }
+    if (isPhysical) out.push(...applyPhysicalOnHitEffects(state, creature));
   }
-  if (isPhysical) out.push(...applyPhysicalOnHitEffects(state, creature));
 
-  const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
+  const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
@@ -2805,16 +2842,23 @@ function useDecoy(state) {
   out.push(`You plant a decoy — ${withThe(creature.name, false)} takes the bait.`);
   if (decoyMemory.cooldown === 0 && !decoyMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
   if (decoyMemory.fired) out.push(`Old instincts kick in — Decoy recovers faster this time.`);
-  let dmg = applyOpeningReach(state, rollPlayerDamage(state, creature));
-  state.combat.hp -= dmg;
-  state.combat.lastDamageType = "physical";
-  out.push(attackFlavorLine(state, creature, dmg) + " (while it's distracted)");
+  // Accuracy vs Agility gates the player's own strike while the creature is
+  // distracted — it still wastes its attack on the decoy either way (that
+  // part isn't about whether YOUR hit landed).
+  if (!attackConnects(state.accuracy, creature.agi)) {
+    out.push(`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`);
+  } else {
+    let dmg = applyOpeningReach(state, rollPlayerDamage(state, creature));
+    state.combat.hp -= dmg;
+    state.combat.lastDamageType = "physical";
+    out.push(attackFlavorLine(state, creature, dmg) + " (while it's distracted)");
 
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    return out;
+    if (state.combat.hp <= 0) {
+      out.push(...resolveKill(state, creature));
+      return out;
+    }
+    out.push(...applyPhysicalOnHitEffects(state, creature));
   }
-  out.push(...applyPhysicalOnHitEffects(state, creature));
 
   out.push(`${withThe(creature.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
   out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -2844,23 +2888,29 @@ function useAmbush(state) {
   out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
   consumeTrailblazer(state);
 
-  let dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
-  // Borrowed Seconds (Divine Regalia — Epochkeeper): Ambush has no
-  // cooldown to refund (per its own established "no cooldown to shorten"
-  // design), so its every-4th-action trigger grants +15% damage instead.
-  if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
-  state.combat.hp -= dmg;
-  state.combat.lastDamageType = "physical";
-  out.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`);
+  // Even an ambush can go wide — Accuracy vs Agility still decides it,
+  // just with no counter either way since the creature never saw it coming.
+  if (!attackConnects(state.accuracy, creature.agi)) {
+    out.push(`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`);
+  } else {
+    let dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
+    // Borrowed Seconds (Divine Regalia — Epochkeeper): Ambush has no
+    // cooldown to refund (per its own established "no cooldown to shorten"
+    // design), so its every-4th-action trigger grants +15% damage instead.
+    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
+    state.combat.hp -= dmg;
+    state.combat.lastDamageType = "physical";
+    out.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`);
 
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    return out;
-  }
-  out.push(...applyPhysicalOnHitEffects(state, creature));
-  if (hasEffect(state, "evasive_release")) {
-    state.combat.evasionCharges += 1;
-    out.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
+    if (state.combat.hp <= 0) {
+      out.push(...resolveKill(state, creature));
+      return out;
+    }
+    out.push(...applyPhysicalOnHitEffects(state, creature));
+    if (hasEffect(state, "evasive_release")) {
+      state.combat.evasionCharges += 1;
+      out.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
+    }
   }
 
   const tl = tacticsLine(state);
@@ -2915,16 +2965,22 @@ function useDisarm(state) {
   out.push(`You disarm ${withThe(creature.name, false)} — its attacks will be noticeably weaker for the rest of this fight.`);
   if (disarmMemory.cooldown === 0 && !disarmMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
   if (disarmMemory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
-  let dmg = applyOpeningReach(state, Math.round(rollPlayerDamage(state, creature) * 0.7));
-  state.combat.hp -= dmg;
-  state.combat.lastDamageType = "physical";
-  out.push(`You still land a hit for ${dmg} damage.`);
+  // The disarm itself always lands (it's a grapple/tactic, not a strike) —
+  // only the follow-up hit is gated on Accuracy vs Agility.
+  if (!attackConnects(state.accuracy, creature.agi)) {
+    out.push(`The follow-up strike doesn't land, but the disarm holds.`);
+  } else {
+    let dmg = applyOpeningReach(state, Math.round(rollPlayerDamage(state, creature) * 0.7));
+    state.combat.hp -= dmg;
+    state.combat.lastDamageType = "physical";
+    out.push(`You still land a hit for ${dmg} damage.`);
 
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    return out;
+    if (state.combat.hp <= 0) {
+      out.push(...resolveKill(state, creature));
+      return out;
+    }
+    out.push(...applyPhysicalOnHitEffects(state, creature));
   }
-  out.push(...applyPhysicalOnHitEffects(state, creature));
 
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
@@ -3081,8 +3137,14 @@ function useElementAbility(state, elementKey) {
   // reduces combat.hp, so this being set even for it is harmless (no kill
   // can ever be attributed to it).
   state.combat.lastDamageType = elementKey;
+  // Accuracy vs Agility: does the cast even connect? Stoneskin (earth) is a
+  // self-buff with no target, so it's exempt — everything else (including
+  // its on-hit side effects: Ignite's burn, Corrode's defense penalty,
+  // the Force stun, Windcut's evasion window) only happens if this hits.
+  const spellHits = elementKey === "earth" || attackConnects(state.accuracy, creature.agi);
   switch (elementKey) {
     case "fire": {
+      if (!spellHits) { out.push(`${ELEMENTS.fire.name}'s lance goes wide, the flame guttering out short of ${withThe(creature.name, false)}.`); break; }
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
@@ -3091,6 +3153,7 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "water": {
+      if (!spellHits) { out.push(`The wave crashes past ${withThe(creature.name, false)}, missing entirely.`); break; }
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
@@ -3115,6 +3178,7 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "lightning": {
+      if (!spellHits) { out.push(`The bolt arcs past ${withThe(creature.name, false)} without connecting.`); break; }
       const dmg1 = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg1;
       castDamageDealt += dmg1;
@@ -3128,6 +3192,7 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "acid": {
+      if (!spellHits) { out.push(`The acid splashes wide, missing ${withThe(creature.name, false)} entirely.`); break; }
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
@@ -3137,6 +3202,7 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "force": {
+      if (!spellHits) { out.push(`The wall of force passes ${withThe(creature.name, false)} by.`); break; }
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
@@ -3145,6 +3211,7 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "transportation": {
+      if (!spellHits) { out.push(`You reappear a beat too far from ${withThe(creature.name, false)} to land the strike.`); break; }
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * 1.3 * elementalDmgMult);
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
@@ -3152,6 +3219,7 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "air": {
+      if (!spellHits) { out.push(`The gust tears past ${withThe(creature.name, false)}, missing.`); break; }
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
