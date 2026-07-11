@@ -368,6 +368,80 @@ function applyHeal(state, amount) {
   return { healed, lines };
 }
 
+// Consumables (data/items.js's slot: "consumable"): usable in or out of
+// combat. Outside a fight it's a free, instant action (nothing around to
+// react to it). Mid-fight, using one is a full turn exactly like any Tactic or
+// Elemental Ability — faster enemies still get their pre-emptive strike,
+// and the whole pack still gets its normal retaliation afterward. Without
+// this, a potion would be a risk-free way to heal that never lets the
+// enemy respond, unlike literally every other action in this engine.
+// arg is matched the same partial/case-insensitive way as cmdEquip/cmdDrop.
+function useItem(state, arg) {
+  if (!arg) return ["Use what?"];
+  const needle = arg.toLowerCase();
+  const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(needle));
+  if (idx < 0) return [`You aren't carrying "${arg}".`];
+  const item = state.inventory[idx];
+  const def = getItemDef(item);
+  if (!def || def.slot !== "consumable") return [`${item} isn't something you can use like that.`];
+
+  if (!state.combat) {
+    state.inventory.splice(idx, 1);
+    return applyConsumableEffect(state, item, def.useEffect);
+  }
+
+  let creature = getCombatCreature(state);
+  const out = beginTurn(state);
+  // beginTurn can itself end the fight — a burn/bleed tick on a non-active
+  // pack member (or the active one) can finish it off before this action
+  // even resolves.
+  if (!state.combat) return out;
+  state.combat.turnTaken = true;
+  if (state.combat.hp <= 0) {
+    out.push(...resolveKill(state, creature));
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
+  }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
+
+  state.inventory.splice(idx, 1);
+  out.push(...applyConsumableEffect(state, item, def.useEffect));
+  if (!state.combat || state.health <= 0) return out;
+
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
+  out.push(...retaliation.lines);
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+  const tl = tacticsLine(state);
+  if (tl) out.push(tl);
+  return out;
+}
+
+// Branches on useEffect.type — currently just "heal" (through the shared
+// applyHeal entry point, so Flourishing Soul/Avatar of Devotion/etc. all
+// apply to a potion's heal exactly like any other heal source), with a
+// harmless fallback for a consumable authored without one yet.
+function applyConsumableEffect(state, item, effect) {
+  if (!effect) return [`You use ${item}, but nothing happens.`];
+  if (effect.type === "heal") {
+    const amount = Math.ceil(state.maxHealth * effect.pct);
+    const { healed, lines } = applyHeal(state, amount);
+    return [`You drink ${item}, mending ${healed} health.`, ...lines];
+  }
+  return [`You use ${item}, but nothing happens.`];
+}
+
+// Whether the player is carrying at least one usable consumable — gates
+// whether "use" is worth suggesting in the tactics/options hint lines.
+function hasUsableConsumable(state) {
+  return state.inventory.some((i) => {
+    const def = getItemDef(i);
+    return def && def.slot === "consumable";
+  });
+}
+
 // Legion's Shield Wall (4pc): a flat -10% on ALL incoming damage, applied
 // last after every other reduction (Defense, Spell Ward, etc.) — used at
 // every point the player actually takes damage (both branches of
@@ -1906,13 +1980,15 @@ function elementAbilityAvailable(state, elementKey) {
 
 // Reusable prompt suffix: "(fight / flee / feint / ambush)" or, for mages,
 // "(fight / flee / ignite)" etc — listing only actions currently usable.
-// "target" is appended whenever more than one enemy is still standing.
+// "target" is appended whenever more than one enemy is still standing;
+// "use" whenever the player is carrying at least one consumable.
 function tacticsLine(state) {
   if (!state.combat) return null;
   const usable = availableActionNames(state);
   const targetOption = aliveEnemies(state).length > 1 ? ["target"] : [];
-  if (!usable.length && !targetOption.length) return null;
-  return `(fight / flee / ${[...usable, ...targetOption].join(" / ")})`;
+  const useOption = hasUsableConsumable(state) ? ["use"] : [];
+  if (!usable.length && !targetOption.length && !useOption.length) return null;
+  return `(fight / flee / ${[...usable, ...targetOption, ...useOption].join(" / ")})`;
 }
 
 // "target" (no argument): lists every living enemy with its current Health

@@ -44,6 +44,15 @@
  * behavioral traits (see that file). None of the items below use it yet;
  * it's plumbed through equipmentBonus's sibling, hasEffect(), and ready
  * for whichever items get authored with one.
+ *
+ * `slot: "consumable"` is the one non-equipment slot: cmdEquip explicitly
+ * rejects it (see engine/parser.js) rather than silently "equipping" it
+ * into a slot nothing ever displays. A consumable carries `useEffect`
+ * instead of `bonuses` (still an empty `bonuses: {}` for formatItemBonuses'
+ * sake) — `{ type: "heal", pct }` restores that fraction of max Health via
+ * the shared applyHeal() entry point when used (see engine/combat.js
+ * useItem/applyConsumableEffect). Consumed on use — engine/parser.js's
+ * useItem splices it out of state.inventory the same way cmdEquip does.
  */
 
 const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic", 7: "Artifact", 8: "Divine Regalia" };
@@ -1795,6 +1804,16 @@ const ITEM_DEFS = {
   "Ring of Measured Fate": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["moment_preserved"], source: "monster", set: "Regalia of the Eternal Hour" },
   "Sandals of the Unbroken Path": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["unhurried_step"], source: "monster", set: "Regalia of the Eternal Hour" },
   "Sands of the Last Hour": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["hourglass_reserve"], source: "monster", set: "Regalia of the Eternal Hour" },
+
+  // ---- Consumables — usable in or out of combat, consumed on use (see
+  // useItem/applyConsumableEffect in engine/combat.js). Tiered 1-4 like
+  // ordinary combat loot so they enter COMBAT_LOOT_POOL and drop naturally;
+  // "tier" here is just which loot bucket they fall into, not an
+  // equipment-bonus magnitude (bonuses stays empty).
+  "a minor healing draught": { slot: "consumable", tier: 1, bonuses: {}, useEffect: { type: "heal", pct: 0.25 }, source: "monster" },
+  "a healing tonic": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "heal", pct: 0.4 }, source: "monster" },
+  "a vial of blessed water": { slot: "consumable", tier: 3, bonuses: {}, useEffect: { type: "heal", pct: 0.6 }, source: "monster" },
+  "a phoenix-down elixir": { slot: "consumable", tier: 4, bonuses: {}, useEffect: { type: "heal", pct: 1.0 }, source: "monster" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

@@ -47,6 +47,7 @@ const VERB_SYNONYMS = {
   skills: ["skills", "tactics"],
   choose: ["choose", "attune", "focus"],
   target: ["target", "switch"],
+  use: ["use", "drink", "eat", "consume"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -88,6 +89,7 @@ async function handleInput(rawInput, state) {
     if (verb === "disarm") return useDisarm(state);
     if (ELEMENT_VERB_TO_KEY[verb]) return useElementAbility(state, ELEMENT_VERB_TO_KEY[verb]);
     if (verb === "target") return useTarget(state, arg);
+    if (verb === "use") return useItem(state, arg);
     if (verb === "leave" && getCombatCreature(state).friendly) {
       const name = state.combat.name;
       state.combat = null;
@@ -104,7 +106,7 @@ async function handleInput(rawInput, state) {
     if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose") {
       const friendly = getCombatCreature(state).friendly;
       const usable = friendly ? [] : availableActionNames(state);
-      const options = ["fight", "flee", ...usable, ...(!friendly && aliveEnemies(state).length > 1 ? ["target"] : []), ...(friendly ? ["talk", "leave"] : [])];
+      const options = ["fight", "flee", ...usable, ...(!friendly && aliveEnemies(state).length > 1 ? ["target"] : []), ...(hasUsableConsumable(state) ? ["use"] : []), ...(friendly ? ["talk", "leave"] : [])];
       return [`You're in the middle of an encounter. (${options.join(" / ")})`];
     }
   }
@@ -160,6 +162,8 @@ async function handleInput(rawInput, state) {
       return cmdSkills(state);
     case "choose":
       return cmdChoose(arg, state);
+    case "use":
+      return useItem(state, arg);
     case "feint":
     case "decoy":
     case "ambush":
@@ -379,6 +383,7 @@ function cmdEquip(arg, state) {
   const itemDef = getItemDef(item);
   const slot = itemDef ? itemDef.slot : inferEquipSlot(item);
   if (!slot) return [`${item} isn't something you can equip.`];
+  if (slot === "consumable") return [`${item} isn't gear — try 'use ${item}' instead.`];
 
   if (slot === "trinkets") {
     // Dual Focus (Artifact): raises the trinket cap from 2 to 3. Checked
