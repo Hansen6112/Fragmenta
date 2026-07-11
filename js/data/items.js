@@ -1787,6 +1787,14 @@ const ITEM_DEFS = {
   "Ring of Gentle Rain": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["mercys_gift"], source: "monster", set: "Regalia of the Endless Tide" },
   "Sandals of the River": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["patient_current"], source: "monster", set: "Regalia of the Endless Tide" },
   "Pearl of Serenity": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["calm_waters"], source: "monster", set: "Regalia of the Endless Tide" },
+
+  // ---- Divine Regalia (tier 8) — Regalia of the Eternal Hour (Chronaeus) ----
+  "Epochkeeper": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["borrowed_seconds"], source: "monster", set: "Regalia of the Eternal Hour" },
+  "Chronal Dial": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["timeless_guard"], source: "monster", set: "Regalia of the Eternal Hour" },
+  "Robes of Endless Record": { slot: "chest", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["perfect_memory"], source: "monster", set: "Regalia of the Eternal Hour" },
+  "Ring of Measured Fate": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["moment_preserved"], source: "monster", set: "Regalia of the Eternal Hour" },
+  "Sandals of the Unbroken Path": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["unhurried_step"], source: "monster", set: "Regalia of the Eternal Hour" },
+  "Sands of the Last Hour": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["hourglass_reserve"], source: "monster", set: "Regalia of the Eternal Hour" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

@@ -458,6 +458,15 @@ const SETS = {
       6: { effects: ["avatar_of_renewal"], description: "Avatar of Renewal — once per combat, dropping below 25% Health grants 4 rounds of a 10% Health heal every round and 30% reduced damage taken" },
     },
   },
+  "Regalia of the Eternal Hour": {
+    theme: "Chronaeus's gifts to those who master the moment.",
+    god: "Chronaeus",
+    bonuses: {
+      2: { effects: ["blessing_of_the_hour"], description: "Blessing of the Hour — cooldowns recover 1 additional turn every 4th round" },
+      4: { effects: ["keeper_of_history"], description: "Keeper of History — defeating an enemy restores 10% Health" },
+      6: { effects: ["avatar_of_time"], description: "Avatar of Time — once per combat, dropping below 25% Health zeroes every cooldown and grants 3 rounds of +25% damage, frozen buff durations, and free Ability/Tactic cooldowns" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong

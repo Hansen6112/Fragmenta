@@ -196,7 +196,9 @@ function effectiveMagic(state) {
   // Expanding Mind's Knowledge input, alongside Avatar of Knowledge above —
   // the same deliberate scope limit (this formula only, not every
   // knowledgeReq gate in the codebase).
-  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.knowledgeBuffAmount) || 0) + ((combat && combat.windsOfChangeKnowledge) || 0) + ((combat && combat.avatarOfChaosKnowledgeBonus) || 0);
+  // Perfect Memory (Divine Regalia — Robes of Endless Record) also feeds
+  // this same Knowledge input, the same deliberate scope limit as above.
+  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.knowledgeBuffAmount) || 0) + ((combat && combat.windsOfChangeKnowledge) || 0) + ((combat && combat.avatarOfChaosKnowledgeBonus) || 0) + ((combat && combat.perfectMemoryKnowledgeBonus) || 0);
   const expandingMindMagic = hasEffect(state, "expanding_mind") ? Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5) : 0;
   const unwaveringDevotionMagic = ((combat && combat.unwaveringDevotionStacks) || 0) * 2;
   const windsOfChangeMagic = (combat && combat.windsOfChangeMagic) || 0;
@@ -587,6 +589,31 @@ function masterCraftsmanMultiplier(atk, creature) {
   return atk - creature.def >= 10 ? 1.2 : 1;
 }
 
+// Borrowed Seconds (Divine Regalia — Epochkeeper): every 4th action
+// either refunds 50% of the cooldown it just set (Feint/Decoy/Disarm/an
+// elemental cast) or, if the action has no cooldown at all (a plain
+// Attack or Ambush), grants +15% damage to that same hit instead. A
+// read-only check (no "used" flag) — "every 4th action" is naturally
+// self-gating via the modulus, the same shape Calming Presence/Work
+// Refines already use.
+function borrowedSecondsActive(state) {
+  return hasEffect(state, "borrowed_seconds") && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter % 4 === 0;
+}
+
+// Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
+// attack every 3 rounds deals 0 damage entirely — a full negation
+// (unlike Unyielding Wall's damage CAP), on its own 3-round recharge
+// (unlike Shared Burden's once-per-fight gate). Checked (and, on
+// success, its own cooldown reset) at the very top of
+// resolveEnemyRetaliation, before any of the other evasion/miss checks.
+function applyTimelessGuard(state) {
+  if (!hasEffect(state, "timeless_guard") || !state.combat) return false;
+  const combat = state.combat;
+  if ((combat.timelessGuardCooldown || 0) > 0) return false;
+  combat.timelessGuardCooldown = 3;
+  return true;
+}
+
 // Blessing of Creation (Regalia of the Eternal Forge 2pc): +25% to the
 // MAGNITUDE of any temporary (duration-based) stat bonus granted —
 // scoped specifically to the atk/magic/defBuffAmount-style buffs that
@@ -656,6 +683,25 @@ function applyWanderersReward(state, actionKey) {
   }
   combat.recentActionKeys = [actionKey, ...recent].slice(0, 2);
   return lines;
+}
+
+// Perfect Memory (Divine Regalia — Robes of Endless Record): the first
+// time each DISTINCT Tactic or Elemental Ability is used in a fight
+// grants +2 Knowledge permanently for that combat, capped at +16 (8
+// distinct actions) — Endless Study's exact shape, but scoped to
+// Tactics/Elemental Abilities only (never plain Attack, unlike Endless
+// Study/Wanderer's Reward's broader actionKey), so it uses its own
+// separate tracking list rather than piggybacking on
+// combat.endlessStudyKeys. Called only from the tactic/elemental-ability
+// action functions, never from playerAttack.
+function applyPerfectMemory(state, actionKey) {
+  if (!hasEffect(state, "perfect_memory") || !state.combat) return [];
+  const combat = state.combat;
+  if (!combat.perfectMemoryKeys) combat.perfectMemoryKeys = [];
+  if (combat.perfectMemoryKeys.includes(actionKey) || (combat.perfectMemoryKnowledgeBonus || 0) >= 16) return [];
+  combat.perfectMemoryKeys.push(actionKey);
+  combat.perfectMemoryKnowledgeBonus = Math.min(16, (combat.perfectMemoryKnowledgeBonus || 0) + 2);
+  return [`Perfect Memory — a new technique, remembered; +2 Knowledge (now +${combat.perfectMemoryKnowledgeBonus}).`];
 }
 
 // Trailblazer (Divine Regalia — Feather of the First Wind) and Avatar of
@@ -796,6 +842,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   const chaosMult = avatarOfChaosDamageMultiplier(state);
   const momentumUnboundMult = momentumUnboundMultiplier(state);
   const temperedSteelMult = temperedSteelMultiplier(state);
+  const avatarOfTimeMult = state.combat && state.combat.avatarOfTimeTurns > 0 ? 1.25 : 1;
   let dmg;
   if (isSpell) {
     const magic = effectiveMagic(state);
@@ -808,7 +855,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult) - Math.floor(effDef / 10));
+    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult) - Math.floor(effDef / 10));
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
     // cast during its 4-round window PERMANENTLY increases Magic by +2 —
     // unlike Avatar of Chaos/Endurance's own window-scoped bonus fields,
@@ -839,7 +886,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult));
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every
     // successful physical attack during its window PERMANENTLY increases
     // Attack by +2 — see the spell-branch comment above for why this
@@ -982,7 +1029,13 @@ function beginTurn(state) {
   // Creation (Regalia of the Eternal Forge 6pc): both speed up cooldown
   // recovery for their own 4-round windows — read BEFORE the decrement
   // below, so the window's final round still gets the faster recovery.
-  const cooldownDecrement = combat.avatarOfFreedomTurns > 0 || combat.avatarOfCreationTurns > 0 ? 2 : 1;
+  // Blessing of the Hour (Regalia of the Eternal Hour 2pc): the same
+  // extra-decrement bonus, but only every 4th round — combat.actionCounter
+  // hasn't been incremented for THIS round yet (that happens further down,
+  // via applyHeartwoodVitality), so "+1" here predicts what it's about to
+  // become.
+  const blessingOfTheHourRound = hasSetTier(state, "Regalia of the Eternal Hour", 2) && (combat.actionCounter + 1) % 4 === 0;
+  const cooldownDecrement = combat.avatarOfFreedomTurns > 0 || combat.avatarOfCreationTurns > 0 || blessingOfTheHourRound ? 2 : 1;
   // Living Forge (Divine Regalia — Embercore): every cooldown that
   // actually reaches 0 THIS tick ("completes") restores 3% max Health —
   // its "3% Mana" half is a no-op, since this engine has no Mana resource
@@ -1004,9 +1057,14 @@ function beginTurn(state) {
       if (healed > 0) lines.push(`Living Forge mends you for ${healed} health.`, ...healLines);
     }
   }
-  if (combat.defBuffTurns > 0) combat.defBuffTurns -= 1;
-  if (combat.atkBuffTurns > 0) combat.atkBuffTurns -= 1;
-  if (combat.magicBuffTurns > 0) combat.magicBuffTurns -= 1;
+  // Avatar of Time (Regalia of the Eternal Hour 6pc): "buff durations no
+  // longer decrease" for its window — scoped to these 3 shared buff-turn
+  // fields, the same "temporary stat bonus" scope Blessing of Creation
+  // already uses.
+  const avatarOfTimeFreezesBuffs = combat.avatarOfTimeTurns > 0;
+  if (combat.defBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.defBuffTurns -= 1;
+  if (combat.atkBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.atkBuffTurns -= 1;
+  if (combat.magicBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.magicBuffTurns -= 1;
   if (combat.avatarOfPassingTurns > 0) combat.avatarOfPassingTurns -= 1;
   if (combat.avatarOfFateTurns > 0) combat.avatarOfFateTurns -= 1;
   if (combat.avatarOfWarTurns > 0) combat.avatarOfWarTurns -= 1;
@@ -1040,6 +1098,16 @@ function beginTurn(state) {
   if (combat.avatarOfCreationTurns > 0) combat.avatarOfCreationTurns -= 1;
   if (combat.avatarOfRenewalTurns > 0) combat.avatarOfRenewalTurns -= 1;
   if (combat.unyieldingWallCooldown > 0) combat.unyieldingWallCooldown -= 1;
+  if (combat.timelessGuardCooldown > 0) combat.timelessGuardCooldown -= 1;
+  // Avatar of Time (Regalia of the Eternal Hour 6pc): "when the effect
+  // ends, all cooldowns resume from whatever value they would have
+  // naturally reached" is simplified here to "cooldowns simply remain at
+  // 0" instead — reconstructing a parallel shadow-cooldown ledger just
+  // to restore the exact natural value would be a bespoke, one-off
+  // tracking system for a minor edge case; this is a deliberate,
+  // documented simplification (slightly favors the player) rather than
+  // that added complexity.
+  if (combat.avatarOfTimeTurns > 0) combat.avatarOfTimeTurns -= 1;
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
@@ -1310,6 +1378,13 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
       combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
     }
+  }
+  // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
+  // attack every 3 rounds deals 0 damage entirely, ahead of even
+  // Guardian Spirit/Guided Footsteps — a full negation, not just a miss
+  // chance, so it takes priority over the probabilistic checks below.
+  if (applyTimelessGuard(state)) {
+    return { lines: [`Timeless Guard — for a moment, time itself refuses to let the blow land.`], damage: 0 };
   }
   // Guardian Spirit (Mythic): the very first enemy attack each fight is a
   // guaranteed miss, checked before anything else (stun, evasion) since
@@ -1743,6 +1818,12 @@ function startCombat(state, creatureIdOrObject) {
     endlessCurrentStacks: 0, // Endless Current's (Regalia of the Endless Tide 4pc) stacking +2/+2/+2 Attack/Defense/Magic per heal, capped at 5 (+10/+10/+10)
     avatarOfRenewalUsed: false, // gates Avatar of Renewal's (Regalia of the Endless Tide 6pc) below-25%-HP burst
     avatarOfRenewalTurns: 0, // Avatar of Renewal's temporary per-round-heal/reduced-damage-taken duration remaining
+    timelessGuardCooldown: 0, // Timeless Guard's (Divine Regalia) once-every-3-rounds recharge, in rounds remaining
+    perfectMemoryKeys: [], // Perfect Memory's (Divine Regalia) list of distinct Tactics/Elemental Abilities already used this fight
+    perfectMemoryKnowledgeBonus: 0, // Perfect Memory's stacking +2 Knowledge per first-use, capped at 16 (8 distinct actions)
+    hourglassReserveReady: hasEffect(state, "hourglass_reserve"), // Hourglass Reserve's (Divine Regalia) once-per-combat free-cooldown charge, available from combat start
+    avatarOfTimeUsed: false, // gates Avatar of Time's (Regalia of the Eternal Hour 6pc) below-25%-HP burst
+    avatarOfTimeTurns: 0, // Avatar of Time's temporary all-cooldowns-zeroed/frozen-buffs/+25%-damage duration remaining
     cooldowns: {},
   };
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -2129,6 +2210,32 @@ function checkAvatarOfRenewal(state) {
   return [`Avatar of Renewal awakens — for 4 rounds, the tide itself mends you.`];
 }
 
+// Avatar of Time (Regalia of the Eternal Hour 6pc): the twelfth and
+// final "Avatar of X" once-per-fight below-25%-Health trigger — the only
+// one whose OWN source text gives an explicit duration other than 4
+// rounds (3, here), so that's honored exactly rather than the 4-round
+// convention used everywhere a duration wasn't specified. On activation,
+// every current cooldown is zeroed immediately; for the window's 3
+// rounds, every attack deals +25% damage (rollPlayerDamage), buff
+// durations don't decay (beginTurn), and new Ability/Tactic cooldowns
+// cost 0 (see the cooldown-assignment sites in useFeint/useDecoy/
+// useDisarm/useElementAbility). Its "debuff durations on you decrease
+// twice as fast" clause is inert — no debuffs exist on the player side —
+// and "you cannot be Stunned" is trivially already true — there's no
+// player-stun mechanic to begin with (only enemies can be stunned, via
+// Concuss). Its "cooldowns resume from whatever they'd have naturally
+// reached" clause is simplified — see the avatarOfTimeTurns decrement in
+// beginTurn for why.
+function checkAvatarOfTime(state) {
+  const combat = state.combat;
+  if (!combat || combat.avatarOfTimeUsed || !hasSetTier(state, "Regalia of the Eternal Hour", 6)) return [];
+  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+  combat.avatarOfTimeUsed = true;
+  combat.avatarOfTimeTurns = applyBeneficialEffectBonuses(state, 3);
+  for (const key of Object.keys(combat.cooldowns)) combat.cooldowns[key] = 0;
+  return [`Avatar of Time awakens — for 3 rounds, every clock in the world bends to yours.`];
+}
+
 // Regrowth: a flat post-combat heal, whether combat ended by winning or by
 // fleeing successfully — presence-only (hasEffect), so multiple copies
 // don't stack per the effect's own description. regrowthHealPct (data/
@@ -2268,6 +2375,20 @@ function resolveKill(state, creature) {
   if (hasEffect(state, "swift_passage")) {
     state.flags.swiftPassageCharge = true;
   }
+  // Keeper of History (Regalia of the Eternal Hour 4pc): restore 10%
+  // Health on a kill. Its "10% Mana" half is a no-op (no Mana resource),
+  // and its "remove one cooldown from a random ability" half is
+  // effectively a no-op too — a kill always ends this engine's single-
+  // enemy fight, and the about-to-be-discarded combat object's cooldowns
+  // have no bearing on the next one (unlike Swift Passage's explicitly
+  // "next Ability or Tactic" wording, which this clause doesn't share).
+  if (hasSetTier(state, "Regalia of the Eternal Hour", 4)) {
+    const heal = Math.ceil(state.maxHealth * 0.1);
+    if (heal > 0 && state.health < state.maxHealth) {
+      const { healed, lines } = applyHeal(state, heal);
+      if (healed > 0) out.push(`Keeper of History mends you for ${healed} health.`, ...lines);
+    }
+  }
   out.push(...applyArchiveEternal(state, creature));
   state.combat = null;
   state.recomputeStats(true);
@@ -2303,6 +2424,10 @@ function playerAttack(state) {
   const activeElement = isPhysical ? null : pickElement(state);
   let dmg = rollPlayerDamage(state, creature, activeElement);
   if (isPhysical) dmg = applyOpeningReach(state, dmg);
+  // Borrowed Seconds (Divine Regalia — Epochkeeper): a plain Attack has
+  // no cooldown to refund, so its every-4th-action trigger grants +15%
+  // damage to this hit instead.
+  if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
   if (state.combat.nextAttackBonus) {
     const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
     dmg = Math.round(dmg * feintMult);
@@ -2321,7 +2446,7 @@ function playerAttack(state) {
   const guardBonus = isPhysical && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2373,7 +2498,7 @@ function attemptFlee(state) {
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
+    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -2436,19 +2561,30 @@ function useFeint(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "feint"), ...applyWanderersReward(state, "feint"), ...applyActionTypeTracking(state, "tactic"));
+  out.push(...applyEndlessStudy(state, "feint"), ...applyWanderersReward(state, "feint"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "feint"));
   consumeTrailblazer(state);
   state.combat.nextAttackBonus = true;
   let feintMemory;
-  if (applyPerfectTiming(state)) {
+  if (state.combat.avatarOfTimeTurns > 0) {
+    feintMemory = { cooldown: 0, fired: false };
+  } else if (applyPerfectTiming(state)) {
     feintMemory = { cooldown: 0, fired: false };
   } else if (state.combat.swiftPassageReady) {
     state.combat.swiftPassageReady = false;
+    feintMemory = { cooldown: 0, fired: false };
+  } else if (state.combat.hourglassReserveReady) {
+    state.combat.hourglassReserveReady = false;
     feintMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
     if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
     feintMemory = applyTacticalMemory(state, baseCooldown);
+  }
+  // Borrowed Seconds (Divine Regalia — Epochkeeper): refunds 50% of
+  // whatever cooldown was just computed above (a no-op if it's already 0
+  // from one of the free-cast sources above).
+  if (borrowedSecondsActive(state) && feintMemory.cooldown > 0) {
+    feintMemory.cooldown = Math.round(feintMemory.cooldown / 2);
   }
   state.combat.cooldowns.feint = feintMemory.cooldown;
 
@@ -2469,7 +2605,7 @@ function useFeint(state) {
   }
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2492,18 +2628,26 @@ function useDecoy(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"));
+  out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "decoy"));
   consumeTrailblazer(state);
   let decoyMemory;
-  if (applyPerfectTiming(state)) {
+  if (state.combat.avatarOfTimeTurns > 0) {
+    decoyMemory = { cooldown: 0, fired: false };
+  } else if (applyPerfectTiming(state)) {
     decoyMemory = { cooldown: 0, fired: false };
   } else if (state.combat.swiftPassageReady) {
     state.combat.swiftPassageReady = false;
+    decoyMemory = { cooldown: 0, fired: false };
+  } else if (state.combat.hourglassReserveReady) {
+    state.combat.hourglassReserveReady = false;
     decoyMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
     if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
     decoyMemory = applyTacticalMemory(state, baseCooldown);
+  }
+  if (borrowedSecondsActive(state) && decoyMemory.cooldown > 0) {
+    decoyMemory.cooldown = Math.round(decoyMemory.cooldown / 2);
   }
   state.combat.cooldowns.decoy = decoyMemory.cooldown;
 
@@ -2543,10 +2687,14 @@ function useAmbush(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"));
+  out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
   consumeTrailblazer(state);
 
-  const dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
+  let dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
+  // Borrowed Seconds (Divine Regalia — Epochkeeper): Ambush has no
+  // cooldown to refund (per its own established "no cooldown to shorten"
+  // design), so its every-4th-action trigger grants +15% damage instead.
+  if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
   state.combat.hp -= dmg;
   out.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`);
 
@@ -2582,18 +2730,26 @@ function useDisarm(state) {
     out.push(...resolveKill(state, creature));
     return out;
   }
-  out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"));
+  out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "disarm"));
   consumeTrailblazer(state);
   let disarmMemory;
-  if (applyPerfectTiming(state)) {
+  if (state.combat.avatarOfTimeTurns > 0) {
+    disarmMemory = { cooldown: 0, fired: false };
+  } else if (applyPerfectTiming(state)) {
     disarmMemory = { cooldown: 0, fired: false };
   } else if (state.combat.swiftPassageReady) {
     state.combat.swiftPassageReady = false;
+    disarmMemory = { cooldown: 0, fired: false };
+  } else if (state.combat.hourglassReserveReady) {
+    state.combat.hourglassReserveReady = false;
     disarmMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
     if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
     disarmMemory = applyTacticalMemory(state, baseCooldown);
+  }
+  if (borrowedSecondsActive(state) && disarmMemory.cooldown > 0) {
+    disarmMemory.cooldown = Math.round(disarmMemory.cooldown / 2);
   }
   state.combat.cooldowns.disarm = disarmMemory.cooldown;
   state.combat.disarmed = true;
@@ -2615,7 +2771,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2665,7 +2821,7 @@ function useElementAbility(state, elementKey) {
     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
     if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
   }
-  out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"));
+  out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"), ...applyPerfectMemory(state, elementKey));
   consumeTrailblazer(state);
   // Conduit Mastery (Mythic): a flat, unconditional -1 to every elemental
   // cooldown, applied to the base cooldown before Novitiate/River's
@@ -2694,12 +2850,30 @@ function useElementAbility(state, elementKey) {
   // Avatar of Knowledge (Regalia of the Endless Archive 6pc): for its
   // 4-round window, every spell costs no cooldown at all.
   if (state.combat.avatarOfKnowledgeTurns > 0) cooldown = 0;
+  // Avatar of Time (Regalia of the Eternal Hour 6pc): same "every cast
+  // costs no cooldown" window, its own separate source.
+  if (state.combat.avatarOfTimeTurns > 0) cooldown = 0;
   // Swift Passage (Divine Regalia — Windstep Boots): the queued charge
   // from a prior fight's kill (see resolveKill/startCombat) overrides
   // whatever was just computed above, one time.
   if (state.combat.swiftPassageReady) {
     state.combat.swiftPassageReady = false;
     cooldown = 0;
+  }
+  // Hourglass Reserve (Divine Regalia — Sands of the Last Hour): a once-
+  // per-combat charge, available from the moment combat starts, that
+  // resets the first Ability/Tactic's own cooldown back to 0 immediately
+  // after it's set — functionally identical to Swift Passage's override
+  // above, just combat-scoped instead of queued across fights.
+  if (state.combat.hourglassReserveReady) {
+    state.combat.hourglassReserveReady = false;
+    cooldown = 0;
+  }
+  // Borrowed Seconds (Divine Regalia — Epochkeeper): refunds 50% of
+  // whatever cooldown was just computed above (a no-op if it's already 0
+  // from one of the free-cast sources above).
+  if (borrowedSecondsActive(state) && cooldown > 0) {
+    cooldown = Math.round(cooldown / 2);
   }
   state.combat.cooldowns[elementKey] = cooldown;
   // Universal Understanding (Regalia of the Endless Archive 4pc): every
@@ -2850,7 +3024,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveEnemyRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state));
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
