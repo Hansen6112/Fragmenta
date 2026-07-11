@@ -40,6 +40,106 @@ const HABITAT_TAGS = [
   "underground", "ruins", "urban", "dungeon", "volcanic", "wetlands", "sky",
 ];
 
+// Faction -> which pool of creatures can spawn together (see
+// poolmatesFor/rollEncounterGroup below). Mirrors the top level of the
+// author's own Enemy Codex; `group` (a BESTIARY field, open vocabulary —
+// "wolf", "mercenaries", etc., growing as more creatures are authored) is
+// the narrower label under it. Both must match for two creatures to be
+// poolable — same `group` alone isn't enough (a `wild`/wolf shouldn't pool
+// with a `magical`/wolf-flavored construct just because they share the
+// narrower label).
+const CREATURE_FACTIONS = [
+  "wild", "magical", "unnaturals", "kabal", "sanguivorum", "vaeloris",
+  "thraekor", "norrvael", "sahrimor", "neutral",
+];
+
+// spawnGroup -> whether/how a creature groups at spawn time. Undefined
+// defaults to "solitary" (every creature keeps spawning alone until
+// explicitly retrofitted, the same safe-fallback precedent archetype/
+// dangerClass/spawnRarity already established). "pack" (wild creatures)
+// and "squad" (organized humanoids) are functionally identical — both just
+// mean "eligible to pool with same-faction/same-group creatures" — the
+// distinction is flavor-text only (see rollEncounterGroup's callers).
+const SPAWN_GROUP_KINDS = ["solitary", "pack", "squad"];
+const DEFAULT_SPAWN_GROUP = "solitary";
+
+// Group size (including the anchor spawn itself), weighted toward small —
+// a guaranteed-possible 5-wolf pack against a low-level player is rough
+// without real tuning, so most encounters stay at 1-2 with the full 5 rare.
+// Index 0 -> size 1, index 4 -> size 5.
+const GROUP_SIZE_WEIGHTS = [45, 25, 15, 10, 5];
+
+function rollGroupSize() {
+  const total = GROUP_SIZE_WEIGHTS.reduce((a, b) => a + b, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < GROUP_SIZE_WEIGHTS.length; i++) {
+    roll -= GROUP_SIZE_WEIGHTS[i];
+    if (roll < 0) return i + 1;
+  }
+  return GROUP_SIZE_WEIGHTS.length;
+}
+
+// Every non-special BESTIARY id sharing BOTH faction and group with the
+// given template — the pool a pack/squad (or a Leader's underlings) draws
+// from. Requires both fields to be actually set (an untagged creature
+// never pools with another untagged one just because they're both
+// undefined). Includes the template's own id, since duplicates are
+// expected ("Wolf 1, Wolf 2, Ancient Wolf").
+function poolmatesFor(template) {
+  if (!template || !template.faction || !template.group) return [];
+  return Object.keys(BESTIARY).filter((id) => {
+    const c = BESTIARY[id];
+    return c && !c.special && c.faction === template.faction && c.group === template.group;
+  });
+}
+
+const DANGER_CLASS_BY_RANK_LIST = ["normal", "elite", "boss", "world_boss"];
+
+// Rolls the full spawn group for an encounter anchored on `anchorId`
+// (the creature the game already decided should appear, e.g. via
+// creaturesForTags). Returns an array of { id, dangerClass } — combat.js's
+// startCombat still does the actual per-member level clamp/stat-scaling
+// (clampLevelToRarityBand/computeCreatureStats), same as it already does
+// for a single creature.
+//
+// Two independent, additive rules:
+// - Pack/Squad: only if the anchor itself is tagged spawnGroup "pack" or
+//   "squad" AND a pool exists. Rolls a weighted group size (1-5,
+//   GROUP_SIZE_WEIGHTS), filling any additional slots with random picks
+//   from the pool — each capped to the anchor's own Danger Class rank
+//   (never a higher tier than the encounter's own anchor) and left at the
+//   anchor's level (same level band, per design).
+// - Leader underlings: ANY archetype "leader" creature (regardless of its
+//   own spawnGroup tag) always brings up to 2 underlings from the same
+//   pool, hard-capped to Normal Danger Class regardless of the leader's
+//   own class — added on top of whatever the pack/squad roll already
+//   produced, capped at 5 total.
+function rollEncounterGroup(anchorId) {
+  const template = BESTIARY[anchorId];
+  const anchorDangerClass = (template && template.dangerClass) || DEFAULT_DANGER_CLASS;
+  const members = [{ id: anchorId, dangerClass: anchorDangerClass }];
+  if (!template || template.special) return members;
+  const pool = poolmatesFor(template);
+  if (!pool.length) return members;
+  const ceilingRank = dangerClassRank(template);
+  const pickCapped = () => {
+    const pickId = pool[Math.floor(Math.random() * pool.length)];
+    const pickRank = Math.min(dangerClassRank(BESTIARY[pickId]), ceilingRank);
+    return { id: pickId, dangerClass: DANGER_CLASS_BY_RANK_LIST[pickRank] };
+  };
+  if (template.spawnGroup === "pack" || template.spawnGroup === "squad") {
+    const size = rollGroupSize();
+    while (members.length < size) members.push(pickCapped());
+  }
+  if (template.archetype === "leader") {
+    for (let i = 0; i < 2 && members.length < 5; i++) {
+      const pickId = pool[Math.floor(Math.random() * pool.length)];
+      members.push({ id: pickId, dangerClass: "normal" });
+    }
+  }
+  return members;
+}
+
 // Archetype -> flat multiplier per stat. Applied to the WHOLE level-scaled
 // result (see computeCreatureStats), so archetype identity gets more
 // pronounced at higher levels, not just at the starting base.
