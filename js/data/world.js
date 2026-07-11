@@ -64,6 +64,9 @@ const TERRAIN_TAGS = {
   sea: ["sea"],
   wasteland: ["ruin", "continental"],
   city: ["urban"],
+  jungle: ["jungle", "forest", "continental"],
+  tundra: ["tundra", "continental"],
+  lake: ["lake", "river", "continental"],
 };
 
 const LOCATIONS = {
@@ -415,7 +418,19 @@ const LOCATIONS = {
     connections: [
       { to: "the_arbor", days: 4, mode: "forest path" },
       { to: "dunmar", days: 6, mode: "forest path", desc: "continuous forest, no terrain relief" },
+      { to: "kaelthir_reach", days: 3, mode: "forest path", desc: "the canopy thickens the whole way" },
     ],
+  },
+  kaelthir_reach: {
+    name: "Kaelthir Reach",
+    nation: "vaeloris",
+    terrain: "jungle",
+    isCity: true,
+    danger: 3,
+    services: ["rest", "shop"],
+    description:
+      "Where the ancient forest thickens into true jungle and the canopy triples in height — dragonborn territory, the triarchy's least-visited third. The elves administer the treaties and the lizardfolk keep the swamp's secrets; here, the dragonborn keep their own council and rarely explain it to anyone who isn't one.",
+    connections: [{ to: "the_red_hold", days: 3, mode: "forest path" }],
   },
   dunmar: {
     name: "Dunmar",
@@ -451,7 +466,19 @@ const LOCATIONS = {
       { to: "nocturne", days: 15, mode: "road", desc: "elevation gain in the final stretch" },
       { to: "khaerun", days: 12, mode: "road", desc: "canyon terrain, pack animals only" },
       { to: "zyphera", days: 8, mode: "road" },
+      { to: "eternatum_shore", days: 2, mode: "road" },
     ],
+  },
+  eternatum_shore: {
+    name: "Eternatum's Shore",
+    nation: "sahrimor",
+    terrain: "lake",
+    isCity: true,
+    danger: 2,
+    services: ["rest", "shop"],
+    description:
+      "The lake that should not exist here, ringed by a settlement that has never had to worry about water the way the rest of Sahrimor does. No one has ever found where it's fed from, and the Merchant King's surveyors have stopped trying.",
+    connections: [{ to: "sahurim", days: 2, mode: "road" }],
   },
   myssara: {
     name: "Myssara",
@@ -693,7 +720,21 @@ const LOCATIONS = {
     danger: 4,
     services: ["rest"],
     description: "A high plateau built to be difficult to reach, and successful at it. Whatever's up here chose the isolation on purpose.",
-    connections: [{ to: "dragenholm", days: 6, mode: "mountain" }],
+    connections: [
+      { to: "dragenholm", days: 6, mode: "mountain" },
+      { to: "vintherim", days: 4, mode: "tundra", desc: "the plateau's frozen approach" },
+    ],
+  },
+  vintherim: {
+    name: "Vintherim",
+    nation: "norrvael",
+    terrain: "tundra",
+    isCity: true,
+    danger: 3,
+    services: ["rest"],
+    description:
+      "Where Norrvael's mountains give up and the permafrost takes over — the island's coldest inhabited edge, held by a clan that answers to House Dravenkov in name more than in practice.",
+    connections: [{ to: "isthvar", days: 4, mode: "tundra" }],
   },
   vorrikee: {
     name: "Vorrikee",

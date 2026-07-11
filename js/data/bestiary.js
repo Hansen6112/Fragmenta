@@ -131,7 +131,7 @@ const BESTIARY = {
   river_serpent: {
     name: "River Serpent",
     native: "Kaluath",
-    tags: ["river", "swamp"],
+    tags: ["river", "swamp", "lake"],
     hp: 16, atk: 6, def: 3, spd: 7,
     description: "An 18-22 foot aquatic constrictor whose shimmering scales exert a subtle compulsion, drawing onlookers toward the water without their noticing.",
     combatNotes: "Discharges an electrical shock at close range before striking. Don't linger at the water's edge distracted.",
@@ -257,7 +257,7 @@ const BESTIARY = {
   elemental_ice: {
     name: "Ice Elemental",
     native: "Soru-Daun Kaul",
-    tags: ["mountain", "continental"],
+    tags: ["mountain", "continental", "tundra"],
     hp: 22, atk: 8, def: 5, spd: 5,
     description: "A coalescence of cold and magical density given shape. Proximity alone is hazardous.",
     combatNotes: "Fire and sustained heat are the effective counters.",
