@@ -1230,6 +1230,7 @@ function beginTurn(state) {
   if (combat.burn && combat.burn.turnsLeft > 0) {
     const creature = getCombatCreature(state);
     combat.hp -= combat.burn.dmgPerTurn;
+    combat.lastDamageType = "fire";
     lines.push(`The flames still burn ${withThe(creature.name, false)} for ${combat.burn.dmgPerTurn} damage.`);
     combat.burn.turnsLeft -= 1;
     if (combat.burn.turnsLeft <= 0) combat.burn = null;
@@ -1237,6 +1238,7 @@ function beginTurn(state) {
   if (combat.bleed && combat.bleed.turnsLeft > 0) {
     const creature = getCombatCreature(state);
     combat.hp -= combat.bleed.dmgPerTurn;
+    combat.lastDamageType = "bleed";
     lines.push(`${withThe(creature.name, true)} is still bleeding for ${combat.bleed.dmgPerTurn} damage.`);
     combat.bleed.turnsLeft -= 1;
     if (combat.bleed.turnsLeft <= 0) combat.bleed = null;
@@ -1537,6 +1539,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
       const reflected = Math.max(0, Math.round(base * matchup));
       if (reflected > 0) {
         combat.hp -= reflected;
+        combat.lastDamageType = creature.element;
         const lines = [`Mirror Soul turns ${withThe(creature.name, false)}'s spell back on it, for ${reflected} damage.`];
         if (combat.hp <= 0) lines.push(...resolveKill(state, creature));
         return { lines, damage: 0 };
@@ -1636,6 +1639,7 @@ function maybeRiposte(state, creature) {
   const clashMult = hasEffect(state, "clash_of_steel") ? 1.5 : 1;
   const dmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
   state.combat.hp -= dmg;
+  state.combat.lastDamageType = "physical";
   const lines = [`You seize the opening — a free riposte for ${dmg} damage.`];
   if (hasSetTier(state, "White Watch", 6)) {
     state.combat.whiteWatchRiposteDefBonus = (state.combat.whiteWatchRiposteDefBonus || 0) + 2;
@@ -1821,6 +1825,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
     bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
     lastElementUsed: null, // for elemental synergy — see data/synergy.js
+    lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit the creature, for resolveKill's damage-type-flavored death line
     firstPhysicalAttackDone: false, // gates Opening Reach
     firstHitTakenUsed: false, // gates Stonewarden 6pc's first-hit reduction
     stormBarrierUsed: false, // gates Stormwatch 6pc's first-magical-hit reduction
@@ -2420,9 +2425,34 @@ function applyArchiveEternal(state, creature) {
   return [`Archive Eternal — a new species recorded; +1 permanent Knowledge.`];
 }
 
+// Death line per damage type — keyed by state.combat.lastDamageType, set at
+// every site that reduces combat.hp (burn/bleed DOTs, Mirror Soul's
+// reflected spell, Riposte, the basic Attack, Decoy/Ambush/Disarm, and
+// useElementAbility's casts). Falls back to the generic "falls" line for
+// an untracked/missing type (e.g. resolveEnemyRetaliation's non-mage
+// branch never sets it, since the ENEMY hitting itself isn't a kill path).
+const DEATH_FLAVOR_BY_DAMAGE_TYPE = {
+  physical: (name) => `${name} falls, its wounds finally too much to survive.`,
+  bleed: (name) => `${name} finally bleeds out.`,
+  fire: (name) => `${name} collapses, still smoldering.`,
+  water: (name) => `${name} goes still, waterlogged and broken.`,
+  earth: (name) => `${name} falls, crushed by stone.`,
+  lightning: (name) => `${name} collapses, still twitching from the current.`,
+  acid: (name) => `${name} dissolves where it falls.`,
+  force: (name) => `${name} is thrown backward and doesn't rise again.`,
+  transportation: (name) => `${name} doesn't fully reappear before it stops moving.`,
+  air: (name) => `${name} crumples as the gust passes through it.`,
+};
+
+function deathFlavorLine(creature, damageType) {
+  const name = withThe(creature.name, true);
+  const flavor = DEATH_FLAVOR_BY_DAMAGE_TYPE[damageType];
+  return flavor ? flavor(name) : `${name} falls.`;
+}
+
 // Shared victory handling — gold, loot, XP, job progress, ending combat.
 function resolveKill(state, creature) {
-  const out = [`${withThe(creature.name, true)} falls. ${creature.combatNotes || ""}`.trim()];
+  const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
   const bounty = state.flags.isMercenary ? 1.5 : 1;
   // Scales off the creature's own encounter level (falling back to the
   // player's level for quest/job-tied creatures that skip the level roll
@@ -2545,6 +2575,7 @@ function playerAttack(state) {
     out.push("Your feint pays off —");
   }
   state.combat.hp -= dmg;
+  state.combat.lastDamageType = isPhysical ? "physical" : activeElement;
   out.push(attackFlavorLine(state, creature, dmg, activeElement));
 
   if (state.combat.hp <= 0) {
@@ -2776,6 +2807,7 @@ function useDecoy(state) {
   if (decoyMemory.fired) out.push(`Old instincts kick in — Decoy recovers faster this time.`);
   let dmg = applyOpeningReach(state, rollPlayerDamage(state, creature));
   state.combat.hp -= dmg;
+  state.combat.lastDamageType = "physical";
   out.push(attackFlavorLine(state, creature, dmg) + " (while it's distracted)");
 
   if (state.combat.hp <= 0) {
@@ -2818,6 +2850,7 @@ function useAmbush(state) {
   // design), so its every-4th-action trigger grants +15% damage instead.
   if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
   state.combat.hp -= dmg;
+  state.combat.lastDamageType = "physical";
   out.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`);
 
   if (state.combat.hp <= 0) {
@@ -2884,6 +2917,7 @@ function useDisarm(state) {
   if (disarmMemory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
   let dmg = applyOpeningReach(state, Math.round(rollPlayerDamage(state, creature) * 0.7));
   state.combat.hp -= dmg;
+  state.combat.lastDamageType = "physical";
   out.push(`You still land a hit for ${dmg} damage.`);
 
   if (state.combat.hp <= 0) {
@@ -3043,6 +3077,10 @@ function useElementAbility(state, elementKey) {
   // (0 for Stoneskin, which deals none) so it has something to repeat at
   // half power after the switch below.
   let castDamageDealt = 0;
+  // Every non-Stoneskin case below deals damage — Stoneskin (earth) never
+  // reduces combat.hp, so this being set even for it is harmless (no kill
+  // can ever be attributed to it).
+  state.combat.lastDamageType = elementKey;
   switch (elementKey) {
     case "fire": {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
