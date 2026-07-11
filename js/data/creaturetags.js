@@ -243,22 +243,58 @@ function rollEncounterLevel(playerLevel) {
 
 // Turns a species' hand-authored hp/atk/def/spd/acc/agi (the "Species
 // Base") into the actual stats a specific leveled, rarity-weighted,
-// archetyped, danger-classed encounter uses:
-//   Final = (Species Base + (Level-1) * Rarity Weight) * Archetype Mult * Danger Class Mult
+// archetyped, danger-classed encounter uses. Health/Attack/Defense:
+//   Final = (Species Base + (Level-1) * Rarity Weight * CREATURE_GROWTH_SCALE) * Archetype Mult * Danger Class Mult
+// Speed/Accuracy/Agility (see SECONDARY_STAT_GROWTH_PER_LEVEL below):
+//   Final = (Species Base + (Level-1) * SECONDARY_STAT_GROWTH_PER_LEVEL) * Archetype Mult
 // Health is floored at 1 (a creature can't exist at 0 Health); every other
 // stat floors at 0 rather than 1, since some creatures are intentionally
 // harmless or immobile (e.g. Vaelorn's atk: 0).
+//
+// Both constants were tuned against actual simulated fights (not picked on
+// paper) — the original formula applied the SAME per-level growth and
+// Danger Class multiplier to every one of the six stats, and a level-10
+// Uncommon/Normal creature came out with ~28 Accuracy/~30 Agility against a
+// same-level player's own ~9/~7 (an unwinnable gap even before Attack/
+// Defense/Health entered into it), while a level-25 Unique/Normal creature
+// still ran away with the fight on Attack/Defense alone even after Speed/
+// Accuracy/Agility were fixed. CREATURE_GROWTH_SCALE reins in Health/
+// Attack/Defense's growth to be in the same ballpark as a player's own
+// per-level growth (background growth rates are ~0.2-0.8 per stat per
+// level; RarityWeight alone was 1-5 per level, before this).
+const CREATURE_GROWTH_SCALE = 0.2;
+// Accuracy/Agility/Speed deliberately DON'T scale off RarityWeight or
+// Danger Class at all — they feed threshold-y, near-binary combat math
+// (hit chance clamps at 10%/90%; Speed decides who acts first outright)
+// where a modest numeric edge swings outcomes far more than the same-sized
+// edge in Health/Attack/Defense, which just shifts damage/HP pools
+// smoothly. A Unique World Boss should hit far harder and tank far more
+// than a Common Normal creature — but not ALSO be several times more
+// accurate/evasive/fast, or it becomes nearly unhittable and always acts
+// first regardless of the player's own level. Instead they grow at a flat
+// per-level rate (SECONDARY_STAT_GROWTH_PER_LEVEL) calibrated to roughly
+// match a player's own average Accuracy/Agility/Speed growth (background
+// growth rates are ~0.2-0.6 per stat per level) — Archetype is what
+// differentiates them instead (a Skirmisher IS supposed to be quicker and
+// more evasive than a Tank, at any rarity or danger class).
+const SECONDARY_STAT_GROWTH_PER_LEVEL = 0.4;
 function computeCreatureStats(creature, level) {
   const rarityWeight = spawnRarityWeight(creature.spawnRarity);
   const dangerMult = dangerClassMultiplier(creature.dangerClass);
-  const growth = Math.max(0, level - 1) * rarityWeight;
-  const scale = (base, statKey, floor) => Math.max(floor, Math.round((((base || 0) + growth) * archetypeMultiplier(statKey, creature.archetype)) * dangerMult));
+  const levels = Math.max(0, level - 1);
+  const growth = levels * rarityWeight * CREATURE_GROWTH_SCALE;
+  const secondaryGrowth = levels * SECONDARY_STAT_GROWTH_PER_LEVEL;
+  const scale = (base, statKey, floor, secondary) => {
+    const g = secondary ? secondaryGrowth : growth;
+    const d = secondary ? 1 : dangerMult;
+    return Math.max(floor, Math.round((((base || 0) + g) * archetypeMultiplier(statKey, creature.archetype)) * d));
+  };
   return {
-    hp: scale(creature.hp, "health", 1),
-    atk: scale(creature.atk, "attack", 0),
-    def: scale(creature.def, "defense", 0),
-    spd: scale(creature.spd, "speed", 0),
-    acc: scale(creature.acc, "accuracy", 0),
-    agi: scale(creature.agi, "agility", 0),
+    hp: scale(creature.hp, "health", 1, false),
+    atk: scale(creature.atk, "attack", 0, false),
+    def: scale(creature.def, "defense", 0, false),
+    spd: scale(creature.spd, "speed", 0, true),
+    acc: scale(creature.acc, "accuracy", 0, true),
+    agi: scale(creature.agi, "agility", 0, true),
   };
 }
