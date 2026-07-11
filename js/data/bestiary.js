@@ -369,3 +369,18 @@ function creaturesForTags(tagList, nation) {
     })
     .map(([id]) => id);
 }
+
+// Re-filters an already habitat/nation-matched creature id pool (from
+// creaturesForTags) down to the ones whose Spawn Rarity band actually
+// covers `level` (see data/creaturetags.js isLevelEligibleForRarity) —
+// this is what makes the encounter pool skew toward rarer creatures as
+// the player levels up. A PREFERENCE, not a hard requirement: if nothing
+// in the pool is in-band at this level (e.g. no Epic-rarity creature
+// exists yet, so levels 16-19 have a gap), falls back to the full
+// unfiltered pool rather than silently producing zero encounters —
+// whatever gets picked still gets its level clamped to its own band in
+// startCombat, so it stays balanced either way.
+function creaturesEligibleAtLevel(pool, level) {
+  const eligible = pool.filter((id) => isLevelEligibleForRarity(level, BESTIARY[id].spawnRarity));
+  return eligible.length ? eligible : pool;
+}

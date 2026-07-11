@@ -1768,8 +1768,12 @@ function tacticsLine(state) {
 
 // creatureIdOrObject is either a BESTIARY key (string) or a dynamically
 // generated combat target like an enemy mage (a full object, with its own
-// .id) — see data/enemymages.js generateEnemyMage.
-function startCombat(state, creatureIdOrObject) {
+// .id) — see data/enemymages.js generateEnemyMage. `preRolledLevel` is
+// optional — callers that already rolled a level to filter the encounter
+// pool by (see data/bestiary.js creaturesEligibleAtLevel and its two
+// parser.js call sites) pass it through so selection and scaling agree;
+// omitted, a fresh level is rolled here exactly as before.
+function startCombat(state, creatureIdOrObject, preRolledLevel) {
   const isDynamic = typeof creatureIdOrObject === "object";
   const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject];
   // Quest/job-tied encounters (BESTIARY's `special` flag — e.g. Kabal
@@ -1785,7 +1789,8 @@ function startCombat(state, creatureIdOrObject) {
     // Common creature's Attack/Defense would scale to match a high-level
     // player just as readily as a Unique's, since no creature has an
     // Archetype/Danger Class yet to temper that (see clampLevelToRarityBand).
-    const level = clampLevelToRarityBand(rollEncounterLevel(state.level), template.spawnRarity);
+    const rolled = preRolledLevel != null ? preRolledLevel : rollEncounterLevel(state.level);
+    const level = clampLevelToRarityBand(rolled, template.spawnRarity);
     creature = Object.assign({}, template, computeCreatureStats(template, level), { level });
   }
   state.combat = {

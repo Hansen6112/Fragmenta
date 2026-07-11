@@ -256,19 +256,24 @@ function executeTravel(state, path, totalDays) {
     if (hasEffect(state, "trailwise")) chance *= hasSetTier(state, "Sahrimor", 4) ? 0.8 : 0.9;
     if (Math.random() < chance) {
       let combatant = null;
+      let combatantLevel = null;
       if (Math.random() < ENEMY_MAGE_CHANCE) {
         combatant = generateEnemyMage(legLoc.nation, legDanger);
       } else {
         const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
         const pool = creaturesForTags(tags, legLoc.nation).filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id]);
-        if (pool.length) combatant = pool[Math.floor(Math.random() * pool.length)];
+        if (pool.length) {
+          combatantLevel = rollEncounterLevel(state.level);
+          const eligiblePool = creaturesEligibleAtLevel(pool, combatantLevel);
+          combatant = eligiblePool[Math.floor(Math.random() * eligiblePool.length)];
+        }
       }
       if (combatant) {
         state.day += totalDays;
         state.location = path[i];
         state.visit(path[i]);
         lines.push(`Along the way, near ${legLoc.name}:`);
-        lines.push(...startCombat(state, combatant));
+        lines.push(...startCombat(state, combatant, combatantLevel));
         return lines;
       }
     }
@@ -790,8 +795,10 @@ function cmdExplore(state) {
     }
     const pool = creaturesForTags(tags, loc.nation).filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id]);
     if (pool.length) {
-      const creatureId = pool[Math.floor(Math.random() * pool.length)];
-      return startCombat(state, creatureId);
+      const level = rollEncounterLevel(state.level);
+      const eligiblePool = creaturesEligibleAtLevel(pool, level);
+      const creatureId = eligiblePool[Math.floor(Math.random() * eligiblePool.length)];
+      return startCombat(state, creatureId, level);
     }
   }
   if (roll < 0.55) {
