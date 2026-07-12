@@ -3885,6 +3885,58 @@ const LOCATIONS = {
         description:
           "Staging area for merchants entering and leaving the forest.",
       },
+      // ----------------------------------------------------- ARTISAN QUARTER
+      woodcraftersWard: {
+        name: "Woodcrafter's Ward",
+        type: "street",
+        district: "Artisan Quarter (Woodcrafter's Ward)",
+        description:
+          "Craftsmanship inspired by the living forest.",
+      },
+      heartwoodForge: {
+        name: "Heartwood Forge",
+        type: "shop",
+        district: "Artisan Quarter (Woodcrafter's Ward)",
+        shopCategory: "weapons",
+        description:
+          "Produces elegant hunting weapons and finely balanced blades.",
+      },
+      livingCarpenter: {
+        name: "Living Carpenter",
+        type: "landmark",
+        district: "Artisan Quarter (Woodcrafter's Ward)",
+        description:
+          "Constructs homes, bridges, and furnishings using sustainable forestry practices.",
+      },
+      leafweaverAtelier: {
+        name: "Leafweaver Atelier",
+        type: "landmark",
+        district: "Artisan Quarter (Woodcrafter's Ward)",
+        description:
+          "Produces travel clothing, cloaks, and ranger attire.",
+      },
+      amberJewelers: {
+        name: "Amber Jewelers",
+        type: "shop",
+        district: "Artisan Quarter (Woodcrafter's Ward)",
+        shopCategory: "jewelry",
+        description:
+          "Crafts jewelry from amber, gemstones, and polished hardwoods.",
+      },
+      fletchersHall: {
+        name: "Fletcher's Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Woodcrafter's Ward)",
+        description:
+          "Produces bows, arrows, crossbows, and hunting equipment.",
+      },
+      artisanGrove: {
+        name: "Artisan Grove",
+        type: "landmark",
+        district: "Artisan Quarter (Woodcrafter's Ward)",
+        description:
+          "Shared workshops where woodworkers and craftsmen collaborate.",
+      },
     },
   },
   netturon: {
