@@ -1069,6 +1069,56 @@ const LOCATIONS = {
         description:
           "Builds masts, docks, wagons, and structural timbers for maritime construction.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      pearlHeights: {
+        name: "The Pearl Heights",
+        type: "residential",
+        district: "Noble Quarter (The Pearl Heights)",
+        description:
+          "Perched above the harbor, this district houses Aphroneth's wealthiest merchant dynasties and foreign dignitaries.",
+      },
+      houseOfHarborLord: {
+        name: "House of the Harbor Lord",
+        type: "landmark",
+        district: "Noble Quarter (The Pearl Heights)",
+        description:
+          "Residence of the city's Ascendus senator.",
+      },
+      merchantEstates: {
+        name: "Merchant Estates",
+        type: "residential",
+        district: "Noble Quarter (The Pearl Heights)",
+        description:
+          "Elegant villas belonging to Aphroneth's influential merchant families.",
+      },
+      embassyRow: {
+        name: "Embassy Row",
+        type: "residential",
+        district: "Noble Quarter (The Pearl Heights)",
+        description:
+          "Diplomatic residences representing nations across Fragmenta.",
+      },
+      pearlGardens: {
+        name: "Pearl Gardens",
+        type: "landmark",
+        district: "Noble Quarter (The Pearl Heights)",
+        description:
+          "Terraced gardens overlooking the sea, often used for formal receptions and diplomatic negotiations.",
+      },
+      hallOfMaritimeHonors: {
+        name: "Hall of Maritime Honors",
+        type: "landmark",
+        district: "Noble Quarter (The Pearl Heights)",
+        description:
+          "Recognizes extraordinary achievements in commerce, exploration, and naval service.",
+      },
+      captainsClub: {
+        name: "Captain's Club",
+        type: "landmark",
+        district: "Noble Quarter (The Pearl Heights)",
+        description:
+          "An exclusive gathering place for admirals, renowned captains, and merchant princes.",
+      },
     },
   },
   arethon: {
