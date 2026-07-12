@@ -2894,6 +2894,35 @@ const LOCATIONS = {
         description:
           "An exclusive gathering place for master craftsmen, engineers, and industrial leaders.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      worldForge: {
+        name: "The World Forge",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The largest forge in Fragmenta, its colossal furnaces burn continuously and supply the Empire with its greatest works.",
+      },
+      greatLift: {
+        name: "The Great Lift",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "An enormous mechanical elevator carrying miners and cargo between the city and the volcanic depths.",
+      },
+      ashCrown: {
+        name: "The Ash Crown",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The ring of towering smokestacks and chimneys that crowns Vulcaron and can be seen for miles.",
+      },
+      riverOfFire: {
+        name: "River of Fire",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A controlled channel of molten rock flowing through the industrial district, powering foundries and smelters.",
+      },
     },
   },
   silvanor: {
