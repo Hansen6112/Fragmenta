@@ -3604,6 +3604,73 @@ const LOCATIONS = {
         description:
           "Maintains order while protecting both the city and the surrounding forest.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      greenMarket: {
+        name: "The Green Market",
+        type: "street",
+        district: "Commercial Quarter (The Green Market)",
+        description:
+          "Every merchant reflects the bounty of the forest.",
+      },
+      woodlandExchange: {
+        name: "The Woodland Exchange",
+        type: "market",
+        district: "Commercial Quarter (The Green Market)",
+        description:
+          "Stocks camping supplies, travel gear, herbal remedies, and everyday provisions.",
+      },
+      ironrootForge: {
+        name: "Ironroot Forge",
+        type: "shop",
+        district: "Commercial Quarter (The Green Market)",
+        shopCategory: "weapons",
+        description:
+          "Produces lightweight weapons, hunting spears, axes, and practical tools designed for woodland travel.",
+      },
+      barkshieldArmory: {
+        name: "Barkshield Armory",
+        type: "shop",
+        district: "Commercial Quarter (The Green Market)",
+        shopCategory: "armor",
+        description:
+          "Specializes in light armor, leather equipment, and ranger gear emphasizing mobility.",
+      },
+      verdantRemedies: {
+        name: "Verdant Remedies",
+        type: "shop",
+        district: "Commercial Quarter (The Green Market)",
+        shopCategory: "potions",
+        description:
+          "Produces herbal medicines, natural poisons, antidotes, and botanical extracts gathered from the surrounding forest.",
+      },
+      forestStables: {
+        name: "Forest Stables",
+        type: "landmark",
+        district: "Commercial Quarter (The Green Market)",
+        description:
+          "Maintains horses and pack animals trained to travel woodland paths.",
+      },
+      hollowOak: {
+        name: "The Hollow Oak",
+        type: "inn",
+        district: "Commercial Quarter (The Green Market)",
+        description:
+          "A welcoming inn built within the hollow trunk of a massive living tree.",
+      },
+      evergreenReserve: {
+        name: "Evergreen Reserve",
+        type: "landmark",
+        district: "Commercial Quarter (The Green Market)",
+        description:
+          "Supports foresters, hunters, merchants, and local craftsmen.",
+      },
+      forestersGuild: {
+        name: "Forester's Guild",
+        type: "guildhall",
+        district: "Commercial Quarter (The Green Market)",
+        description:
+          "Coordinates sustainable harvesting and woodland commerce.",
+      },
     },
   },
   netturon: {
