@@ -548,6 +548,69 @@ const LOCATIONS = {
         description:
           "An open inspection yard for desert caravans. Sand is swept from cargo, animals are checked, and suspicious shipments are isolated before entering the city.",
       },
+      // -------------------------------------------------------- CRAFT QUARTER
+      // Working production and repair shops, not retail — carts and
+      // scaffolding and masonry repairs aren't purchasable inventory items.
+      // The Twelve Facets is the one real exception: a jeweler is exactly
+      // what the existing (until now unused) "jewelry" shopCategory was
+      // built for, so it gets a real, independently-stocked shop.
+      artisansWard: {
+        name: "The Artisan's Ward",
+        type: "street",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "The hammer-and-forge counterpart to the Marches Market — less about buying and selling, more about the things Arethon actually needs made or fixed. The air smells like sawdust, hot iron, and tanned hide in roughly equal measure.",
+      },
+      timberLine: {
+        name: "The Timber Line",
+        type: "landmark",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "A carpentry and wagonmaking district producing carts, siege frames, storage chests, scaffolding, and military transport equipment.",
+      },
+      whiteHammer: {
+        name: "The White Hammer",
+        type: "landmark",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "A masonry workshop known for frontier fortification work, reinforced foundations, and rapid wall repair.",
+      },
+      hideAndRivet: {
+        name: "The Hide and Rivet",
+        type: "landmark",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "A leatherworker supplying harnesses, boots, straps, armor backing, saddles, and shield grips.",
+      },
+      crimsonThread: {
+        name: "The Crimson Thread",
+        type: "landmark",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "A tailor serving both soldiers and civilians. It produces uniforms, officer cloaks, travel clothes, and formal civic dress.",
+      },
+      twelveFacets: {
+        name: "The Twelve Facets",
+        type: "shop",
+        shopCategory: "jewelry",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "A jeweler and seal-cutter specializing in signet rings, military honors, temple offerings, and merchant marks.",
+      },
+      makersCourt: {
+        name: "The Makers' Court",
+        type: "landmark",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "A shared workshop complex where smaller craftspeople rent space, tools, and furnace time.",
+      },
+      brokenWheel: {
+        name: "The Broken Wheel",
+        type: "landmark",
+        district: "Craft Quarter (The Artisan's Ward)",
+        description:
+          "A repair yard infamous for never closing. Wagons damaged on the frontier often arrive here before their owners find lodging.",
+      },
     },
   },
   apollyon: {
