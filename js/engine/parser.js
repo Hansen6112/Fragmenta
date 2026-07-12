@@ -900,19 +900,20 @@ function cmdRest(state) {
   if (!loc.services || !loc.services.includes("rest")) {
     return ["There's nowhere safe to rest here. Better to keep moving."];
   }
-  const friendly = reputationFor(state, loc.nation) === "friendly";
-  return performRest(state, loc, friendly ? 6 : 4, 60, "rest a while");
+  return performRest(state, loc, Math.ceil(state.maxHealth * 0.12), 60, "rest a while");
 }
 
-// The full option: 8 hours, a full night's healing — the amounts cmdRest
-// used to grant unconditionally before the rest/sleep split.
+// The full option: 8 hours, a full heal — passing maxHealth itself
+// (rather than computing the exact deficit) works the same way applyHeal
+// already clamps any other heal to maxHealth, and keeps this a genuine
+// full heal regardless of whatever healing-boost effects might otherwise
+// scale a smaller number past where it should stop.
 function cmdSleep(state) {
   const loc = state.currentLocation();
   if (!loc.services || !loc.services.includes("rest")) {
     return ["There's nowhere safe to sleep here. Better to keep moving."];
   }
-  const friendly = reputationFor(state, loc.nation) === "friendly";
-  return performRest(state, loc, friendly ? 12 : 8, 480, "sleep through the night");
+  return performRest(state, loc, state.maxHealth, 480, "sleep through the night");
 }
 
 function cmdStatus(state) {
