@@ -2201,6 +2201,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation. Like its counterparts at Zuevaron and Aphroneth, it stands ready for a network that doesn't yet exist.",
       },
+      // ---------------------------------------------------- TRADE QUARTER
+      harborDefenses: {
+        name: "Harbor Defenses",
+        type: "docks",
+        district: "Trade Quarter (Harbor Defenses)",
+        description:
+          "Unlike other ports, Tritonath's harbor exists primarily to support the military.",
+      },
+      fortressHarbor: {
+        name: "Fortress Harbor",
+        type: "docks",
+        district: "Trade Quarter (Harbor Defenses)",
+        description:
+          "Sheltered docks reserved for military vessels and authorized traffic.",
+      },
+      customsHall: {
+        name: "Customs Hall",
+        type: "landmark",
+        district: "Trade Quarter (Harbor Defenses)",
+        description:
+          "Inspects every ship entering the fjord.",
+      },
+      militaryWarehouses: {
+        name: "Military Warehouses",
+        type: "landmark",
+        district: "Trade Quarter (Harbor Defenses)",
+        description:
+          "Stores food, weapons, construction materials, and emergency provisions.",
+      },
+      harborMastersOffice: {
+        name: "Harbor Master's Office",
+        type: "landmark",
+        district: "Trade Quarter (Harbor Defenses)",
+        description:
+          "Coordinates all harbor operations.",
+      },
+      fleetSupplyDepot: {
+        name: "Fleet Supply Depot",
+        type: "landmark",
+        district: "Trade Quarter (Harbor Defenses)",
+        description:
+          "Maintains supplies for patrol fleets operating along the western coast.",
+      },
+      fishermansPier: {
+        name: "Fisherman's Pier",
+        type: "docks",
+        district: "Trade Quarter (Harbor Defenses)",
+        description:
+          "A modest civilian fishing harbor supporting the city's population.",
+      },
     },
   },
   vulcaron: {
