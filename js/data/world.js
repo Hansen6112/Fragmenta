@@ -2441,17 +2441,75 @@ const LOCATIONS = {
   },
   vulcaron: {
     name: "Vulcaron",
+    title: "The Ember Crown",
     nation: "sanguivorum",
     terrain: "mountain",
     isCity: true,
+    type: "gate",
     danger: 2,
-    services: ["rest", "shop"],
+    services: ["rest", "shop", "healer"],
     description:
-      "A northern city under the mountain range's shadow, closer in temperament to the frontier than to Zuevaron's polish.",
+      "Carved directly into the volcanic slopes of the Ashpeak Mountains, Vulcaron is the industrial heart of Sanguivorum. Every hammer strike echoes through its cavernous halls as smiths, miners, and engineers labor day and night. The Empire's finest steel, armor, siege engines, and masterwork weapons all begin their lives in Vulcaron's furnaces. Smoke, molten stone, and the glow of great forges have become as much a part of the city as its people.",
     connections: [
       { to: "silvanor", days: 2, mode: "road" },
       { to: "apollyon", days: 3, mode: "road" },
     ],
+    // Vulcaron's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, and Tritonath) — the
+    // Civic Quarter (The Ember Forum) is the first. Every place carries a
+    // `district` tag for grouping in cmdLook/cmdPlaces; the Ember Forum
+    // itself is the district's own walkable hub, so it doesn't need one.
+    sublocations: {
+      emberForum: {
+        name: "The Ember Forum",
+        type: "street",
+        district: "Civic Quarter (The Ember Forum)",
+        description:
+          "The administrative center overseeing the Empire's mining and industrial output.",
+      },
+      ironGate: {
+        name: "The Iron Gate",
+        type: "gate",
+        district: "Civic Quarter (The Ember Forum)",
+        description:
+          "Massive reinforced gates built to withstand both invasion and volcanic tremors.",
+      },
+      hallOfForgeSenate: {
+        name: "Hall of the Forge Senate",
+        type: "landmark",
+        district: "Civic Quarter (The Ember Forum)",
+        description:
+          "Seat of Vulcaron's Ascendus senator, where production quotas, mining rights, and civic law are administered.",
+      },
+      emberSquare: {
+        name: "Ember Square",
+        type: "street",
+        district: "Civic Quarter (The Ember Forum)",
+        description:
+          "A broad plaza illuminated by ever-burning braziers where civic announcements and festivals are held.",
+      },
+      foundryLedger: {
+        name: "The Foundry Ledger",
+        type: "board",
+        district: "Civic Quarter (The Ember Forum)",
+        description:
+          "Mining contracts, monster extermination, ore deliveries, and engineering commissions are posted daily.",
+      },
+      minersWard: {
+        name: "Miner's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Ember Forum)",
+        description:
+          "Home to generations of miners, smelters, and forge workers.",
+      },
+      forgeVigilisHeadquarters: {
+        name: "Forge Vigilis Headquarters",
+        type: "barracks",
+        district: "Civic Quarter (The Ember Forum)",
+        description:
+          "Maintains order throughout the city's industrial districts.",
+      },
+    },
   },
   silvanor: {
     name: "Silvanor",
