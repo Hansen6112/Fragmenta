@@ -45,6 +45,8 @@ class GameState {
     this.inventory = ["a traveler's cloak", "a half-empty waterskin", "a few days' rations"];
     this.equipment = emptyEquipment();
     this.day = 1;
+    this.hour = 8; // world clock — see engine/time.js's advanceTime/getDaypart
+    this.minute = 0;
     this.flags = {};
     this.visited = new Set();
     this.combat = null; // { creatureId, hp, name } when engaged
@@ -222,6 +224,8 @@ class GameState {
       inventory: this.inventory,
       equipment: this.equipment,
       day: this.day,
+      hour: this.hour,
+      minute: this.minute,
       flags: this.flags,
       visited: Array.from(this.visited),
       knownFragments: this.knownFragments,

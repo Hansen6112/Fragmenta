@@ -2970,6 +2970,9 @@ function resolveKill(state, creature) {
   const survivorIndex = state.combat.enemies.findIndex((e) => e.alive);
   if (survivorIndex === -1) {
     state.combat = null;
+    // The fight is genuinely over (last enemy down) — charge its time
+    // cost once here, not per-kill within a pack.
+    out.push(...advanceTime(state, randInt(10, 30), "combat"));
   } else {
     state.combat.activeIndex = survivorIndex;
     const remaining = state.combat.enemies.filter((e) => e.alive).length;
@@ -3135,7 +3138,7 @@ function attemptFlee(state) {
   const chance = Math.max(0.05, Math.min(0.9, 0.6 - levelGap * 0.03 - dangerPenalty + (state.stealthMod || 0)));
   if (Math.random() < chance) {
     state.combat = null;
-    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...applyRegrowth(state)];
+    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...applyRegrowth(state), ...advanceTime(state, randInt(10, 30), "combat")];
   }
 
   const out = beginTurn(state);

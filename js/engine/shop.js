@@ -23,6 +23,15 @@ const SHOP_REFRESH_DAYS = 4;
 const SHOP_STOCK_SIZE = 8;
 const SET_TO_GUILD = { "Mugamiir Safor": "mugamiir_safor", "Magma-Hearth": "magma_hearth" };
 
+// Shops keep ordinary daylight hours — open through the morning and
+// afternoon, closed by evening. Checked separately from stock
+// eligibility/refresh above; a shop can exist at a location and simply
+// not be open right now.
+function isShopOpen(state) {
+  const part = getDaypart(state.hour);
+  return part === "morning" || part === "afternoon";
+}
+
 function eligibleShopItems(locId) {
   const loc = LOCATIONS[locId];
   if (!loc) return [];

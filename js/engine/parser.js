@@ -17,7 +17,8 @@ const VERB_SYNONYMS = {
   equipment: ["equipment", "gear", "worn"],
   examine: ["examine", "x", "inspect", "study"],
   talk: ["talk", "speak", "ask", "greet"],
-  rest: ["rest", "sleep", "camp"],
+  rest: ["rest"],
+  sleep: ["sleep", "camp"],
   status: ["status", "stats", "health", "hp", "level", "xp"],
   lore: ["lore", "codex", "recall", "remember"],
   fight: ["fight", "attack", "strike", "hit"],
@@ -114,6 +115,7 @@ async function handleInput(rawInput, state) {
       return [
         "It tilts its great bark-covered head toward you. No words — just a sound like creaking wood, structured, patient.",
         `Warmth spreads through a wound you didn't realize still ached. You heal ${healed} health.`,
+        ...advanceTime(state, 5, "talk"),
       ];
     }
     if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose" && verb !== "party" && verb !== "stance") {
@@ -149,6 +151,8 @@ async function handleInput(rawInput, state) {
       return cmdTalk(arg, state);
     case "rest":
       return cmdRest(state);
+    case "sleep":
+      return cmdSleep(state);
     case "status":
       return cmdStatus(state);
     case "lore":
@@ -322,7 +326,7 @@ function executeTravel(state, path, totalDays) {
         }
       }
       if (combatant) {
-        state.day += totalDays;
+        lines.push(...advanceTime(state, totalDays * 1440, "travel"));
         state.location = path[i];
         state.visit(path[i]);
         lines.push(`Along the way, near ${legLoc.name}:`);
@@ -332,7 +336,7 @@ function executeTravel(state, path, totalDays) {
     }
   }
 
-  state.day += totalDays;
+  lines.push(...advanceTime(state, totalDays * 1440, "travel"));
   state.location = destId;
   state.visit(destId);
 
@@ -814,7 +818,7 @@ function maybeTalkToKessa(arg, state) {
 
 function cmdTalk(arg, state) {
   const kessaLines = maybeTalkToKessa(arg, state);
-  if (kessaLines) return kessaLines;
+  if (kessaLines) return [...kessaLines, ...advanceTime(state, 5, "talk")];
   const loc = state.currentLocation();
   const lang = NATION_LANGUAGE[loc.nation] || "vauret";
   const name = generateNameForNation(loc.nation);
@@ -840,6 +844,7 @@ function cmdTalk(arg, state) {
     lines.push(`They mutter something carved-sounding: "${phrase}" — ${gloss}`);
   }
   lines.push(`Then, more practically: "${randomRumor(state)}"`);
+  lines.push(...advanceTime(state, 5, "talk"));
   return lines;
 }
 
@@ -855,15 +860,13 @@ function randomRumor(state) {
   return rumors[Math.floor(Math.random() * rumors.length)];
 }
 
-function cmdRest(state) {
-  const loc = state.currentLocation();
-  if (!loc.services || !loc.services.includes("rest")) {
-    return ["There's nowhere safe to rest here. Better to keep moving."];
-  }
-  state.day += 1;
-  const friendly = reputationFor(state, loc.nation) === "friendly";
-  const { healed } = applyHeal(state, friendly ? 12 : 8);
-  const lines = [`You rest for a day at ${loc.name}. Recovered ${healed} health.`, `It is now day ${state.day}.`];
+// Shared by cmdRest (a quick, 1-hour breather) and cmdSleep (a full
+// 8-hour night's rest) — same mechanics, different time cost and heal
+// amount. `verb` is just for the opening line's phrasing.
+function performRest(state, loc, healAmount, minutes, verb) {
+  const { healed } = applyHeal(state, healAmount);
+  const lines = [`You ${verb} at ${loc.name}. Recovered ${healed} health.`, ...advanceTime(state, minutes, "rest")];
+  lines.push(`Day ${state.day}, ${formatTime(state)} (${getDaypart(state.hour)}).`);
 
   // Vanguard Momentum (Contract Hunter 6pc) persists across fights but
   // decays on rest, approximating its "combat only" wording.
@@ -890,6 +893,28 @@ function cmdRest(state) {
   return lines;
 }
 
+// The quick option: an hour off your feet, a partial heal, cheap in
+// time. 'sleep' (below) is the full 8-hour version.
+function cmdRest(state) {
+  const loc = state.currentLocation();
+  if (!loc.services || !loc.services.includes("rest")) {
+    return ["There's nowhere safe to rest here. Better to keep moving."];
+  }
+  const friendly = reputationFor(state, loc.nation) === "friendly";
+  return performRest(state, loc, friendly ? 6 : 4, 60, "rest a while");
+}
+
+// The full option: 8 hours, a full night's healing — the amounts cmdRest
+// used to grant unconditionally before the rest/sleep split.
+function cmdSleep(state) {
+  const loc = state.currentLocation();
+  if (!loc.services || !loc.services.includes("rest")) {
+    return ["There's nowhere safe to sleep here. Better to keep moving."];
+  }
+  const friendly = reputationFor(state, loc.nation) === "friendly";
+  return performRest(state, loc, friendly ? 12 : 8, 480, "sleep through the night");
+}
+
 function cmdStatus(state) {
   const loc = state.currentLocation();
   const bg = BACKGROUNDS[state.background];
@@ -902,7 +927,7 @@ function cmdStatus(state) {
       ? `Element: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? ` / ${ELEMENTS[state.secondaryElement].name}` : ""}${state.tertiaryElement ? ` / ${ELEMENTS[state.tertiaryElement].name}` : ""}`
       : null;
   return [
-    `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}`,
+    `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}, ${formatTime(state)} (${getDaypart(state.hour)})`,
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
     `Magic: ${state.magic}   Knowledge: ${state.knowledge}   Speed: ${state.speed}`,
@@ -1141,6 +1166,7 @@ function cmdSign(arg, state) {
 function cmdShop(state) {
   const loc = state.currentLocation();
   if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
+  if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   const shop = getOrRefreshShop(state, state.location);
   const lines = [`== Shop: ${loc.name} ==`];
   if (!shop.stock.length) {
@@ -1158,23 +1184,35 @@ function cmdShop(state) {
 function cmdBuy(arg, state) {
   const loc = state.currentLocation();
   if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
+  if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   const num = parseInt((arg.match(/\d+/) || [])[0], 10);
   if (!num) return ["Buy which one? (buy <number> — see 'shop' for the list)"];
   const result = buyShopItem(state, state.location, num - 1);
   if (!result.ok) return [result.message];
-  return [`You buy ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold left)`];
+  return [`You buy ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold left)`, ...advanceTime(state, 10, "shop")];
 }
 
 function cmdSell(arg, state) {
   const loc = state.currentLocation();
   if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here to sell to."];
+  if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   if (!arg) return ["Sell what?"];
   const result = sellInventoryItem(state, arg.toLowerCase());
   if (!result.ok) return [result.message];
-  return [`You sell ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold total)`];
+  return [`You sell ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold total)`, ...advanceTime(state, 10, "shop")];
 }
 
+// Searching an area always costs its own 30 minutes, win lose or draw —
+// applied via this wrapper rather than at each of the branches' own
+// return statements below, so it can't accidentally be missed on a
+// future one. If the search turns up a fight, combat's own time cost
+// (see resolveKill/attemptFlee) stacks on top once that fight resolves —
+// you spent time searching, then however long the fight itself took.
 function cmdExplore(state) {
+  return [...exploreOutcome(state), ...advanceTime(state, 30, "explore")];
+}
+
+function exploreOutcome(state) {
   const loc = state.currentLocation();
   const tags = TERRAIN_TAGS[loc.terrain] || ["continental"];
 
@@ -1220,8 +1258,11 @@ function cmdHelp() {
   return [
     "Commands: look, go <place>, map, inventory, take <item>, drop <item>,",
     "equip <item>, unequip <item>, equipment, examine <thing>, talk [to whom],",
-    "rest, status (or level), explore,",
+    "rest, sleep, status (or level), explore,",
     "lore [topic], quests, reputation, fight, flee, save, help.",
+    "Time passes as you act (talking, exploring, buying, fighting, ...) —",
+    "status shows the day, clock, and time of day. rest is a quick,",
+    "cheap partial heal; sleep is a full night's rest and a full heal.",
     "You gain XP from kills, jobs, and contracts, and level up automatically",
     "(1-25) — each background grows differently: a fighter's levels favor",
     "attack/defense/health, a mage's favor magic and knowledge.",
@@ -1230,7 +1271,8 @@ function cmdHelp() {
     "you win a big enough fight; courier jobs resolve the moment you arrive.",
     "Shop: shop (view a location's stock, wherever 'services' lists shop),",
     "buy <number>, sell <item>. Stock varies by nation and rotates every",
-    "few days, so it's worth checking back.",
+    "few days, so it's worth checking back. Shops keep morning/afternoon",
+    "hours — closed by evening.",
     "Tactics: skills (list what Knowledge has unlocked). Fighters/scouts use",
     "feint/decoy/ambush/disarm alongside fight/flee once unlocked. Mages",
     "fight through their chosen element instead, and get their own signature",
