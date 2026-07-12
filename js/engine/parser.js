@@ -248,11 +248,26 @@ function reputationFlavorLine(state, nationId) {
 function cmdLook(state) {
   const loc = state.currentLocation();
   state.visit(state.location);
-  const lines = [`== ${loc.name} ==`, loc.description];
-  const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
-  lines.push(`Paths from here: ${exits}.`);
-  if (loc.services && loc.services.length) {
-    lines.push(`Services available: ${loc.services.join(", ")}.`);
+  const place = state.currentSublocation();
+  const lines = place ? [`== ${place.name} ==`, place.description] : [`== ${loc.name} ==`, loc.description];
+  if (place) {
+    const others = Object.values(loc.sublocations)
+      .filter((s) => s !== place)
+      .map((s) => s.name);
+    lines.push(`Other places in ${loc.name}: ${others.join(", ")}.`);
+    lines.push("(go back to return to the square)");
+    if (place.services && place.services.length) {
+      lines.push(`Services available: ${place.services.join(", ")}.`);
+    }
+  } else {
+    const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
+    lines.push(`Paths from here: ${exits}.`);
+    if (loc.services && loc.services.length) {
+      lines.push(`Services available: ${loc.services.join(", ")}.`);
+    }
+    if (loc.sublocations) {
+      lines.push(`Around the city: ${Object.values(loc.sublocations).map((s) => s.name).join(", ")}.`);
+    }
   }
   if (state.flags.isBruise && loc.nation === "kabal") {
     lines.push("You are standing in the one place in the world you have the most reason to fear. Every minute here is borrowed.");
@@ -269,6 +284,22 @@ function cmdLook(state) {
 function cmdGo(arg, state) {
   if (!arg) return ["Go where?"];
   const loc = state.currentLocation();
+
+  // Moving between named places within the current city, if it has any
+  // (see world.js's sublocations) — a short walk, not a real journey.
+  if (loc.sublocations) {
+    const subId = findSublocationByName(loc, arg);
+    if (subId) {
+      if (subId === state.subLocation) return [`You're already at ${loc.sublocations[subId].name}.`];
+      state.subLocation = subId;
+      return [...cmdLook(state), ...advanceTime(state, 10, "walk")];
+    }
+    if (state.subLocation && isReturnToSquareQuery(loc, arg)) {
+      state.subLocation = null;
+      return [...cmdLook(state), ...advanceTime(state, 10, "walk")];
+    }
+  }
+
   const direct = connectionMatchingName(state.location, arg);
   if (direct) {
     return executeTravel(state, [state.location, direct.to], direct.days);
@@ -328,6 +359,7 @@ function executeTravel(state, path, totalDays) {
       if (combatant) {
         lines.push(...advanceTime(state, totalDays * 1440, "travel"));
         state.location = path[i];
+        state.subLocation = null; // arriving anywhere always lands at that place's main square/gate
         state.visit(path[i]);
         lines.push(`Along the way, near ${legLoc.name}:`);
         lines.push(...startCombat(state, combatant, combatantLevel));
@@ -338,6 +370,7 @@ function executeTravel(state, path, totalDays) {
 
   lines.push(...advanceTime(state, totalDays * 1440, "travel"));
   state.location = destId;
+  state.subLocation = null; // arriving anywhere always lands at that place's main square/gate
   state.visit(destId);
 
   const jobLines = checkJobProgressOnArrive(state, destId);
@@ -860,6 +893,15 @@ function randomRumor(state) {
   return rumors[Math.floor(Math.random() * rumors.length)];
 }
 
+// True if the player's current physical spot offers `service` — the
+// specific sublocation if the city has been broken up into named places
+// (see world.js), or the whole city otherwise (every city that hasn't
+// been broken up yet keeps working exactly as before).
+function hasService(state, service) {
+  const place = state.currentPlace();
+  return !!(place.services && place.services.includes(service));
+}
+
 // Shared by cmdRest (a quick, 1-hour breather) and cmdSleep (a full
 // 8-hour night's rest) — same mechanics, different time cost and heal
 // amount. `verb` is just for the opening line's phrasing.
@@ -896,7 +938,7 @@ function performRest(state, loc, healAmount, minutes, verb) {
 // The quick option: an hour off your feet, a partial heal, cheap in
 // time. 'sleep' (below) is the full 8-hour version.
 function cmdRest(state) {
-  const loc = state.currentLocation();
+  const loc = state.currentPlace();
   if (!loc.services || !loc.services.includes("rest")) {
     return ["There's nowhere safe to rest here. Better to keep moving."];
   }
@@ -909,7 +951,7 @@ function cmdRest(state) {
 // full heal regardless of whatever healing-boost effects might otherwise
 // scale a smaller number past where it should stop.
 function cmdSleep(state) {
-  const loc = state.currentLocation();
+  const loc = state.currentPlace();
   if (!loc.services || !loc.services.includes("rest")) {
     return ["There's nowhere safe to sleep here. Better to keep moving."];
   }
@@ -1137,6 +1179,7 @@ function cmdBoard(state) {
 function cmdContracts(state) {
   const guildId = GUILD_HQ[state.location];
   if (!guildId) return ["No guild keeps contracts here. Try Nocturne (Mugamiir Safor) or Vorseth (Magma-Hearth)."];
+  if (!hasService(state, "guild")) return ["No guild hall here — you'll need to find the guild's actual seat in this city."];
   const list = GUILD_CONTRACTS[guildId] || [];
   const lines = [`== ${FACTIONS[guildId].name} — Contracts ==`];
   list.forEach((c, i) => {
@@ -1164,6 +1207,7 @@ function cmdAccept(arg, state) {
 function cmdSign(arg, state) {
   const guildId = GUILD_HQ[state.location];
   if (!guildId) return ["No guild contracts to sign here."];
+  if (!hasService(state, "guild")) return ["No guild hall here — you'll need to find the guild's actual seat in this city."];
   const num = parseInt((arg.match(/\d+/) || [])[0], 10);
   if (!num) return ["Sign which contract? (sign <number>)"];
   const result = signGuildContract(state, guildId, num - 1);
@@ -1174,7 +1218,7 @@ function cmdSign(arg, state) {
 // Location-gated the same way cmdRest checks loc.services — a shop is
 // somewhere you have to actually be, not a menu available from anywhere.
 function cmdShop(state) {
-  const loc = state.currentLocation();
+  const loc = state.currentPlace();
   if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
   if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   const shop = getOrRefreshShop(state, state.location);
@@ -1192,7 +1236,7 @@ function cmdShop(state) {
 }
 
 function cmdBuy(arg, state) {
-  const loc = state.currentLocation();
+  const loc = state.currentPlace();
   if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
   if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   const num = parseInt((arg.match(/\d+/) || [])[0], 10);
@@ -1203,7 +1247,7 @@ function cmdBuy(arg, state) {
 }
 
 function cmdSell(arg, state) {
-  const loc = state.currentLocation();
+  const loc = state.currentPlace();
   if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here to sell to."];
   if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   if (!arg) return ["Sell what?"];

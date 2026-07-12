@@ -103,6 +103,26 @@ const LOCATIONS = {
       { to: "apollyon", days: 2, mode: "road" },
       { to: "tritoneth", days: 6, mode: "road", desc: "north into the tundra" },
     ],
+    sublocations: {
+      tavern: {
+        name: "The Bronze Ledger",
+        services: ["rest"],
+        description:
+          "A tidy inn named, everyone assumes, for the Senate's own accounting rooms — a joke the innkeeper never confirms or denies. Off-duty clerks and Legion pay-officers share the long tables, comparing whose posting is worse.",
+      },
+      market: {
+        name: "The Ingenum Concourse",
+        services: ["shop"],
+        description:
+          "A colonnaded market built to Ingenum specification, every stall the same width, every awning the same red. Efficient to a fault — you can find anything here in under a minute, and no one will chat with you while you look.",
+      },
+      senateSteps: {
+        name: "The Senate Steps",
+        services: [],
+        description:
+          "Wide Ingenum-cut steps facing the Senate house, where citizens read the day's postings aloud to whoever's within earshot — half news, half performance. \"A citizen is a tool that knows itself,\" someone always mutters, like it's supposed to be comforting.",
+      },
+    },
   },
   arethon: {
     name: "Arethon",
@@ -120,6 +140,26 @@ const LOCATIONS = {
       { to: "the_rivers_gate", days: 9, mode: "road", desc: "south toward the Vaeloris border" },
       { to: "sahurim", days: 13, mode: "road", desc: "the bridge road, through the Desert War front" },
     ],
+    sublocations: {
+      tavern: {
+        name: "The Twelve Roads",
+        services: ["rest"],
+        description:
+          "Named for the roads that meet here, and busy at every hour a column happens to be rotating through. A mercenary leans off the tavern wall most nights, watching the room like she's pricing everyone in it.",
+      },
+      market: {
+        name: "The Column Market",
+        services: ["shop"],
+        description:
+          "Stalls packed in tight along the old supply road, smelling of oiled leather and unspent orders. Half the trade here is legitimate quartermaster surplus; the other half, no one asks too closely about.",
+      },
+      muster: {
+        name: "The Legion Muster",
+        services: [],
+        description:
+          "A drilling yard where Legion columns stage before rotating out to the Desert War front. Officers post the casualty lists here first, before anywhere else in the city — Arethon reads them before it reads anything.",
+      },
+    },
   },
   apollyon: {
     name: "Apollyon",
@@ -309,6 +349,26 @@ const LOCATIONS = {
       { to: "orethmare", days: 4, mode: "forest path" },
       { to: "the_red_hold", days: 4, mode: "forest path", desc: "continuous dense forest, no shortcut" },
     ],
+    sublocations: {
+      hollow: {
+        name: "The Root Hollow",
+        services: ["rest"],
+        description:
+          "A rest-house grown into the Arbor's own roots rather than built beside them — elven carpenters shaped the wood centuries ago and it's simply kept growing since. Sleep here and you half-dream of rings countable in the walls.",
+      },
+      market: {
+        name: "The Canopy Market",
+        services: ["shop"],
+        description:
+          "Stalls strung between lower branches and reached by rope bridge, trading in elven, lizardfolk, and dragonborn goods side by side — the one place in the triarchy where all three actually barter face to face.",
+      },
+      boughs: {
+        name: "The Witnessed Boughs",
+        services: ["guild"],
+        description:
+          "Climb high enough and the upper branches go quiet in a way that isn't natural silence. The Witnessed are said to keep council somewhere up here; you never quite see them, but standing still long enough, you feel seen back.",
+      },
+    },
   },
   the_meadows_sentinel: {
     name: "The Meadow's Sentinel",
@@ -468,6 +528,26 @@ const LOCATIONS = {
       { to: "zyphera", days: 8, mode: "road" },
       { to: "eternatum_shore", days: 2, mode: "road" },
     ],
+    sublocations: {
+      tavern: {
+        name: "The Waterworth Rest",
+        services: ["rest"],
+        description:
+          "A rest-house that charges for its water before it charges for the room, per Sahrimor custom — pay it without complaint and the innkeeper warms up considerably. Caravan guards trade war-front rumors over lukewarm tea.",
+      },
+      market: {
+        name: "The Caravan Bazaar",
+        services: ["shop"],
+        description:
+          "A sprawl of stalls that never fully closes, restocked by whichever caravan rolled in most recently. Everything's priced in water-equivalents first, gold second — a habit that confuses outsiders and no one bothers explaining.",
+      },
+      cistern: {
+        name: "The Cistern Court",
+        services: [],
+        description:
+          "The public cistern and the law court that governs it share the same courtyard, deliberately — water disputes here get settled in view of the water itself. The Merchant King's seal is stamped on every rationing notice.",
+      },
+    },
   },
   eternatum_shore: {
     name: "Eternatum's Shore",
@@ -603,6 +683,26 @@ const LOCATIONS = {
     description:
       "A hold town deep enough in the ash fields that visitors are quietly counted on the way in and on the way out. Also home to the Magma-Hearth Guild — Thraekor's mercenary institution, formally independent of the clans, expected to support confederation wars at discount rather than for free. Its heavy infantry and siege specialists are the guild's calling card, and its long-running rivalry with Sahrimor's Mugamiir Safor is commercial, not personal — though both sides watch the other closely.",
     connections: [{ to: "trutek", days: 5, mode: "road" }, { to: "khar_vantr", days: 5, mode: "volcanic", desc: "guide required" }],
+    sublocations: {
+      tavern: {
+        name: "The Ash-Counted Hearth",
+        services: ["rest"],
+        description:
+          "Named half for the volcanic hearth-fires and half for the count kept on everyone who passes through — visitors are logged coming in and logged again going out, and the innkeeper does both without seeming to look up.",
+      },
+      market: {
+        name: "The Cinder Market",
+        services: ["shop"],
+        description:
+          "Stalls set back from the ash-fall line, trading in what the mercenary trade actually needs: rations, rope, and gear that can survive a march through live volcanic ground.",
+      },
+      guildhall: {
+        name: "The Magma-Hearth Guildhall",
+        services: ["guild"],
+        description:
+          "Seat of the Magma-Hearth Guild — Thraekor's mercenary institution, heavy infantry and siege specialists first, everything else second. Contract boards line the entry hall, updated the moment a confederation war needs bodies.",
+      },
+    },
   },
   khar_adrel: {
     name: "Khar-Adrel",
@@ -691,6 +791,26 @@ const LOCATIONS = {
       { to: "askvele", days: 4, mode: "forest path" },
       { to: "isthvar", days: 6, mode: "mountain", desc: "deliberately hard to reach" },
     ],
+    sublocations: {
+      tavern: {
+        name: "The Sleeping Wyrm",
+        services: ["rest"],
+        description:
+          "Named for the dragon the old stories say sleeps under the mountains here, slowly waking. Regulars swear the floor hums some nights. The innkeeper swears it's just the cellar, and pours another round before anyone can ask twice.",
+      },
+      market: {
+        name: "The Canyon Road Bazaar",
+        services: ["shop"],
+        description:
+          "Stalls lining the switchback where the canyon road opens into the city proper — the island's commercial spine ends here, so whatever Norrvael trades in eventually passes through this market.",
+      },
+      cliffhall: {
+        name: "The Cliff-Hall",
+        services: ["guild"],
+        description:
+          "Empress Violetta Dravenkov's seat, built into the cliff face above the canyon road so the whole city has to look up to see it. House Dravenkov business is conducted here, and very little of it is explained to outsiders.",
+      },
+    },
   },
   runholm: {
     name: "Runholm",

@@ -80,3 +80,33 @@ function connectionMatchingName(fromId, query) {
   }
   return null;
 }
+
+// Matches "go <name>" against a city's own sublocations (see
+// world.js — only a handful of hub cities have these so far), by either
+// the place's display name or its raw data key ("tavern", "market", ...).
+function findSublocationByName(loc, query) {
+  if (!loc.sublocations) return null;
+  const q = normalizeName(query);
+  if (!q) return null;
+  for (const [id, sub] of Object.entries(loc.sublocations)) {
+    const name = normalizeName(sub.name);
+    if (name === q || normalizeName(id) === q) return id;
+  }
+  for (const [id, sub] of Object.entries(loc.sublocations)) {
+    const name = normalizeName(sub.name);
+    if (name.includes(q) || q.includes(name)) return id;
+  }
+  return null;
+}
+
+// "go back"/"go square"/"go <city's own name>" from inside one of a
+// city's sublocations — heads back to the city's main square/gate
+// (state.subLocation = null) rather than trying to travel elsewhere.
+const RETURN_TO_SQUARE_WORDS = ["square", "town square", "gate", "gates", "outside", "back", "center", "centre"];
+function isReturnToSquareQuery(loc, query) {
+  const q = normalizeName(query);
+  if (!q) return false;
+  if (RETURN_TO_SQUARE_WORDS.includes(q)) return true;
+  const cityName = normalizeName(loc.name);
+  return cityName === q || cityName.includes(q) || q.includes(cityName);
+}

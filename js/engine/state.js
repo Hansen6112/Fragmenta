@@ -65,6 +65,7 @@ class GameState {
     this.hour = 8; // world clock — see engine/time.js's advanceTime/getDaypart
     this.minute = 0;
     this.lastSleptDay = 1; // last day a full 'sleep' was completed — see fatigueTier below
+    this.subLocation = null; // key into the current city's `sublocations` (see world.js), null = the city's main square/gate
     this.flags = {};
     this.visited = new Set();
     this.combat = null; // { creatureId, hp, name } when engaged
@@ -228,6 +229,31 @@ class GameState {
     return getLocation(this.location);
   }
 
+  // The specific place you've wandered into within the current city (see
+  // world.js's `sublocations`), or null if you're at its main square/gate
+  // — every city that hasn't been broken up into sublocations yet just
+  // stays null forever.
+  currentSublocation() {
+    const loc = this.currentLocation();
+    return loc && loc.sublocations && this.subLocation ? loc.sublocations[this.subLocation] || null : null;
+  }
+
+  // Whichever place actually gates rest/shop/guild access right now: the
+  // specific sublocation if you're standing in one, otherwise the city
+  // itself — unchanged behavior for every city without sublocations. Once
+  // a city HAS been broken into sublocations, though, its own square no
+  // longer inherits the city's flat services list — that's the whole
+  // point of tying rest/shop/guild to specific buildings — so standing at
+  // the square of a broken-up city offers nothing until you walk to the
+  // right place.
+  currentPlace() {
+    const sub = this.currentSublocation();
+    if (sub) return sub;
+    const loc = this.currentLocation();
+    if (loc && loc.sublocations) return { ...loc, services: [] };
+    return loc;
+  }
+
   visit(id) {
     this.visited.add(id);
   }
@@ -260,6 +286,7 @@ class GameState {
       hour: this.hour,
       minute: this.minute,
       lastSleptDay: this.lastSleptDay,
+      subLocation: this.subLocation,
       flags: this.flags,
       visited: Array.from(this.visited),
       knownFragments: this.knownFragments,
@@ -280,6 +307,13 @@ class GameState {
     // as just having slept, rather than retroactively penalizing whatever
     // day count they'd already reached.
     if (data.lastSleptDay == null) s.lastSleptDay = s.day;
+    // Normalizes away anything that can't be a valid current sublocation:
+    // saves from before this existed (undefined), a city that's never had
+    // sublocations, or a stale id left over from a since-changed city.
+    const cityAtLoad = getLocation(s.location);
+    if (!cityAtLoad || !cityAtLoad.sublocations || !cityAtLoad.sublocations[s.subLocation]) {
+      s.subLocation = null;
+    }
     s.visited = new Set(data.visited || []);
     if (Array.isArray(data.equipment)) {
       // Pre-slot save format: return those items to inventory rather than
