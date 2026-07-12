@@ -4016,6 +4016,67 @@ const LOCATIONS = {
         description:
           "An intricate network of elevated walkways connecting the city's upper districts through the canopy.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the maze of roots and the reclaimed fallen giant get "ruin" for
+      // skeleton/zombie/animated-armor encounters alongside the bandit/
+      // hired-blade "urban" pool. The Ancient Nursery, Ranger Outpost, and
+      // Canopy Outlook are all still-active, maintained sites, so they
+      // stay "urban" only. The Deep Grove instead gets "forest" (not
+      // "urban") — checked the bestiary first (stoneback_beetle/
+      // ridgeback_boar/vampire_turned all common, vampire_lesser
+      // uncommon; the one forest-tagged unique, Vaelorn, is
+      // Vaeloris-nation-locked and won't spawn here anyway) and confirmed
+      // a genuinely balanced pool, the same reasoning applied to
+      // Vulcaron's volcanic-only Magma Caverns.
+      deepGrove: {
+        name: "The Deep Grove",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["forest"],
+        description:
+          "A forbidden section of the ancient forest where few citizens willingly travel and dangerous creatures roam beneath perpetual shade.",
+      },
+      whisperingRoots: {
+        name: "The Whispering Roots",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "A maze of enormous exposed roots said to carry strange echoes through the earth.",
+      },
+      ancientNursery: {
+        name: "The Ancient Nursery",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A protected grove preserving the descendants of the first trees planted when Silvanor was founded.",
+      },
+      fallenGiant: {
+        name: "Fallen Giant",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The enormous trunk of a centuries-old tree now reclaimed by wildlife and adventurers alike.",
+      },
+      rangerOutpost: {
+        name: "Ranger Outpost",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A forward base where expeditions into the surrounding wilderness begin.",
+      },
+      canopyOutlook: {
+        name: "Canopy Outlook",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The highest accessible platform in Silvanor, offering sweeping views across the endless forest that surrounds the city.",
+      },
     },
   },
   netturon: {
