@@ -2032,6 +2032,70 @@ const LOCATIONS = {
         description:
           "Coordinates civilian supplies entering the fortress city.",
       },
+      // -------------------------------------------------- MILITARY QUARTER
+      fjordBastion: {
+        name: "The Fjord Bastion",
+        type: "barracks",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "The largest district in Tritonath and the reason the city exists.",
+      },
+      grandBastion: {
+        name: "The Grand Bastion",
+        type: "landmark",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "The primary fortress commanding both sides of the fjord entrance.",
+      },
+      hallOfDefenders: {
+        name: "Hall of Defenders",
+        type: "landmark",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "Strategic command center responsible for all western coastal defenses.",
+      },
+      legionBarracks: {
+        name: "Legion Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "Housing for the permanent Legion garrison assigned to Tritonath.",
+      },
+      siegeGrounds: {
+        name: "Siege Grounds",
+        type: "barracks",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "Training fields for engineers, ballista crews, and coastal artillery.",
+      },
+      westernArsenal: {
+        name: "Western Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "Stores weapons, siege engines, ammunition, and defensive equipment.",
+      },
+      quartermasterFortress: {
+        name: "Quartermaster Fortress",
+        type: "landmark",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "Coordinates military logistics throughout the western coastline.",
+      },
+      houseOfRestoration: {
+        name: "House of Restoration",
+        type: "healer",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "Treats wounded soldiers and sailors returning from patrol.",
+      },
+      cliffSignalTower: {
+        name: "Cliff Signal Tower",
+        type: "landmark",
+        district: "Military Quarter (The Fjord Bastion)",
+        description:
+          "Communicates with nearby forts using magical beacons and signal fires.",
+      },
     },
   },
   vulcaron: {
