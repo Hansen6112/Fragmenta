@@ -1869,6 +1869,7 @@ const LOCATIONS = {
       { to: "zuevaron", days: 2, mode: "road" },
       { to: "vulcaron", days: 3, mode: "road" },
       { to: "minervon", days: 3, mode: "road" },
+      { to: "daedaron", days: 3, mode: "road" },
     ],
     // A generic 3-place stub, same shape as Zuevaron's old placeholder —
     // used as scratch space by the engine-mechanism tests (sublocations,
@@ -2453,6 +2454,7 @@ const LOCATIONS = {
     connections: [
       { to: "silvanor", days: 2, mode: "road" },
       { to: "apollyon", days: 3, mode: "road" },
+      { to: "daedaron", days: 2, mode: "road", desc: "along the mountain road" },
     ],
     // Vulcaron's real district layout, built quarter by quarter (same
     // workflow as Arethon, Zuevaron, Aphroneth, and Tritonath) — the
@@ -2981,6 +2983,79 @@ const LOCATIONS = {
         dangerTags: ["urban"],
         description:
           "A high volcanic ridge offering breathtaking views of Vulcaron, its furnaces, and the surrounding mountain range.",
+      },
+    },
+  },
+  daedaron: {
+    name: "Daedaron",
+    title: "The City of Endless Innovation",
+    nation: "sanguivorum",
+    terrain: "mountain",
+    isCity: true,
+    type: "gate",
+    danger: 1,
+    services: ["rest", "shop", "healer"],
+    description:
+      "If Vulcaron provides the Empire with raw strength, Daedaron transforms that strength into progress. Every street echoes with invention as engineers, architects, artisans, and scholars continually refine the tools that shape Sanguivorum. New cranes rise beside experimental mills, aqueducts feed ingenious waterworks, and workshops compete to produce the next breakthrough. The city never truly sleeps — somewhere, another prototype is always being built.",
+    connections: [
+      { to: "vulcaron", days: 2, mode: "road", desc: "along the mountain road" },
+      { to: "apollyon", days: 3, mode: "road" },
+    ],
+    // Daedaron's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, and Vulcaron)
+    // — the Civic Quarter (The Inventor's Forum) is the first. Every
+    // place carries a `district` tag for grouping in cmdLook/cmdPlaces;
+    // the Inventor's Forum itself is the district's own walkable hub, so
+    // it doesn't need one.
+    sublocations: {
+      inventorsForum: {
+        name: "The Inventor's Forum",
+        type: "street",
+        district: "Civic Quarter (The Inventor's Forum)",
+        description:
+          "The administrative center responsible for regulating innovation, patents, and public works.",
+      },
+      innovatorsGate: {
+        name: "The Innovator's Gate",
+        type: "gate",
+        district: "Civic Quarter (The Inventor's Forum)",
+        description:
+          "A monumental entrance displaying the greatest engineering achievements of Daedaron.",
+      },
+      hallOfCivicWorks: {
+        name: "Hall of Civic Works",
+        type: "landmark",
+        district: "Civic Quarter (The Inventor's Forum)",
+        description:
+          "The city's Ascendus senator oversees public construction, infrastructure, and engineering initiatives.",
+      },
+      foundersSquare: {
+        name: "Founder's Square",
+        type: "street",
+        district: "Civic Quarter (The Inventor's Forum)",
+        description:
+          "Public demonstrations of new inventions frequently take place in the city's central plaza.",
+      },
+      buildersLedger: {
+        name: "The Builder's Ledger",
+        type: "board",
+        district: "Civic Quarter (The Inventor's Forum)",
+        description:
+          "Construction contracts, engineering commissions, surveying work, and prototype testing requests are posted daily.",
+      },
+      scholarsWard: {
+        name: "Scholar's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Inventor's Forum)",
+        description:
+          "Home to engineers, architects, inventors, and their families.",
+      },
+      civicEngineeringOffice: {
+        name: "Civic Engineering Office",
+        type: "landmark",
+        district: "Civic Quarter (The Inventor's Forum)",
+        description:
+          "Coordinates roads, bridges, aqueducts, and public infrastructure.",
       },
     },
   },
