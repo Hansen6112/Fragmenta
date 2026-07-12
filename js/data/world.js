@@ -664,6 +664,32 @@ const LOCATIONS = {
         description:
           "A banquet and civic reception hall where promotions, awards, military appointments, and commercial recognitions are announced.",
       },
+      // ----------------------------------------------------- CITY LANDMARKS
+      // Standalone, not part of any of the 8 districts — no wrapping hub
+      // place either, since the source list doesn't describe one. Shared
+      // "City Landmarks" district string just so they group together in
+      // the places/look listing instead of falling into a generic bucket.
+      easternWall: {
+        name: "The Eastern Wall",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The immense defensive barrier facing the frontier. Its towers are never unmanned, and its signal fires can summon the garrison before the city bells begin.",
+      },
+      veteransSquare: {
+        name: "Veterans' Square",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A memorial plaza surrounded by statues of soldiers, engineers, healers, scouts, and civilians who preserved the city during past crises.",
+      },
+      oldBridgeArch: {
+        name: "The Old Bridge Arch",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The surviving stone arch from Arethon's earlier life as a trade hub. The original bridge is gone, but the arch remains as a reminder that commerce existed before the fortress.",
+      },
     },
   },
   apollyon: {
