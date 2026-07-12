@@ -299,6 +299,62 @@ const LOCATIONS = {
         description:
           "The finest military hospital in Sanguivorum.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      // Patron deity Aethyra (leadership, travel, communication, unity) —
+      // domains that map directly onto the capital's own role as the place
+      // every road, messenger, and nation converges.
+      crownOfTwelve: {
+        name: "The Crown of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Crown of the Twelve)",
+        description:
+          "Zuevaron's devotional quarter, built around the belief that a capital answering to every nation of the Empire should also answer to every god of the Pantheon. Incense, bells, and processions share the streets with off-duty clergy from a dozen different orders.",
+      },
+      grandBasilicaOfAethyra: {
+        name: "The Grand Basilica of Aethyra",
+        type: "temple",
+        district: "Religious Quarter (The Crown of the Twelve)",
+        gods: ["Aethyra"],
+        description:
+          "The largest temple to Aethyra in Sanguivorum and one of the holiest sites outside the Kabal.",
+      },
+      hallOfTwelve: {
+        name: "The Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Crown of the Twelve)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Magnificent shrines dedicated to every member of the Fragmenta pantheon.",
+      },
+      pilgrimsHall: {
+        name: "The Pilgrim's Hall",
+        type: "inn",
+        district: "Religious Quarter (The Crown of the Twelve)",
+        description:
+          "Hosts thousands of travelers and pilgrims each year.",
+      },
+      gardenOfConcord: {
+        name: "The Garden of Concord",
+        type: "temple",
+        district: "Religious Quarter (The Crown of the Twelve)",
+        gods: ["Aethyra"],
+        description:
+          "A peaceful sanctuary dedicated to unity between the peoples of the Empire.",
+      },
+      houseOfTwelveVoices: {
+        name: "The House of Twelve Voices",
+        type: "landmark",
+        district: "Religious Quarter (The Crown of the Twelve)",
+        description:
+          "Residence of the High Clergy.",
+      },
+      sacredArchive: {
+        name: "The Sacred Archive",
+        type: "landmark",
+        district: "Religious Quarter (The Crown of the Twelve)",
+        description:
+          "Contains centuries of religious writings and temple records.",
+      },
     },
   },
   arethon: {
