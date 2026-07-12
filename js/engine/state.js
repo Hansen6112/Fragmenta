@@ -171,7 +171,7 @@ class GameState {
       this.xp -= xpToNextLevel(this.level);
       this.level += 1;
       this.recomputeStats(true);
-      this.party.forEach((ally) => recomputeAllyStats(ally, this.level));
+      Events.emit("player.leveledUp", { newLevel: this.level, state: this });
       lines.push(`*** Level up! You are now level ${this.level}. ***`);
       if (this.level === 15 && this.flags.isMage && this.primaryElement && !this.flags.level15ChoiceMade) {
         this.flags.pendingLevel15Choice = true;
@@ -300,3 +300,10 @@ function recomputeAllyStats(ally, level) {
     ally.health = Math.min(ally.health + Math.max(0, ally.maxHealth - oldMaxHealth), ally.maxHealth);
   }
 }
+
+// Listener: allies share the player's level, so every level-up recomputes
+// each party member's stats too — a pure side effect with nothing to
+// print, so it's a listener rather than an inline call inside gainXp.
+Events.on("player.leveledUp", ({ newLevel, state }) => {
+  state.party.forEach((ally) => recomputeAllyStats(ally, newLevel));
+});

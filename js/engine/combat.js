@@ -1336,6 +1336,18 @@ function resolveEnemyAttackOnAlly(state, creature, ally) {
 function killAlly(state, ally) {
   ally.alive = false;
   ally.pendingBodyChoice = true;
+  Events.emit("ally.died", { ally, state });
+  return [
+    `${ally.name} falls.`,
+    `You'll need to decide what becomes of them — 'send ${ally.name.split(" ")[0]} home' to carry the body to the Sanctuary, or 'leave ${ally.name.split(" ")[0]}' to let them go. Revival won't be easy, but it isn't impossible ('sanctuary' explains how).`,
+  ];
+}
+
+// Listener: an ally's gear returns to the shared pack the instant they
+// fall — nothing about it requires the wearer to still be alive, and it
+// doesn't contribute anything to what's printed, so it's a clean first
+// real listener rather than staying hardwired inside killAlly itself.
+Events.on("ally.died", ({ ally, state }) => {
   for (const slot of EQUIP_SLOTS) {
     if (slot === "trinkets") {
       state.inventory.push(...ally.equipment.trinkets);
@@ -1345,11 +1357,7 @@ function killAlly(state, ally) {
       ally.equipment[slot] = null;
     }
   }
-  return [
-    `${ally.name} falls.`,
-    `You'll need to decide what becomes of them — 'send ${ally.name.split(" ")[0]} home' to carry the body to the Sanctuary, or 'leave ${ally.name.split(" ")[0]}' to let them go. Revival won't be easy, but it isn't impossible ('sanctuary' explains how).`,
-  ];
-}
+});
 
 function resolveAllyActions(state) {
   if (!state.combat) return [];

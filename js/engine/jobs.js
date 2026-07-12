@@ -80,10 +80,22 @@ function resolveJob(state, job) {
     lines.push(`You also receive ${job.loot}.`);
   }
 
-  state.activeJobs = state.activeJobs.filter((j) => j.id !== job.id);
-  if (job.kind === "guild") state.flags["completed_" + job.id] = true;
+  Events.emit("job.completed", { job, state });
   return lines;
 }
+
+// Listeners: bookkeeping that doesn't affect what's printed above —
+// pulling the job out of the active list, and (guild contracts only)
+// marking it permanently completed. Two independent listeners on one
+// event, the same fan-out shape a future quest-chain unlock or
+// achievement tracker would hook into without resolveJob itself ever
+// needing to know they exist.
+Events.on("job.completed", ({ job, state }) => {
+  state.activeJobs = state.activeJobs.filter((j) => j.id !== job.id);
+});
+Events.on("job.completed", ({ job, state }) => {
+  if (job.kind === "guild") state.flags["completed_" + job.id] = true;
+});
 
 // Called from combat.js the moment a creature falls.
 function checkJobProgressOnKill(state, creature) {
