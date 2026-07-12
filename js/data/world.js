@@ -776,6 +776,7 @@ const LOCATIONS = {
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
+    type: "gate",
     danger: 1,
     services: ["rest", "shop", "guild"],
     description:
@@ -786,6 +787,30 @@ const LOCATIONS = {
       { to: "vulcaron", days: 3, mode: "road" },
       { to: "minervon", days: 3, mode: "road" },
     ],
+    // A generic 3-place stub, same shape as Zuevaron's old placeholder —
+    // used as scratch space by the engine-mechanism tests (sublocations,
+    // area types, shop) now that Zuevaron's own sublocations are being
+    // replaced by its real district layout batch by batch.
+    sublocations: {
+      tavern: {
+        name: "The Scrivener's Rest",
+        type: "inn",
+        description:
+          "A quiet inn favored by visiting scholars and guild couriers, its common room lined with retired shelving from the Archive's last renovation.",
+      },
+      market: {
+        name: "The Archivist's Concourse",
+        type: "market",
+        description:
+          "A small market catering to the Archive's constant foot traffic — copyists, couriers, and researchers passing through, more paper and ink for sale here than anywhere else in the Empire.",
+      },
+      readingSteps: {
+        name: "The Reading Steps",
+        type: "landmark",
+        description:
+          "Wide stone steps outside the Archive's main entrance, worn smooth by generations of scholars sitting to read newly copied pages in the sun.",
+      },
+    },
   },
   tritoneth: {
     name: "Tritoneth",
