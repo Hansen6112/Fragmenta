@@ -2096,6 +2096,64 @@ const LOCATIONS = {
         description:
           "Communicates with nearby forts using magical beacons and signal fires.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      // Patron deity Aqualis, the sea itself as protector and executioner
+      // — the Grand Temple and Garden of Reflection default prayer to her;
+      // Pilgrim's Rest, House of the Faithful, and Sacred Archives stay
+      // flavor-only, same treatment as their counterparts in the other
+      // cities' Sacred/Crown Precincts.
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "The sea is both protector and executioner. The faithful of Aqualis believe those who respect the waters may safely cross them, while those who underestimate them will inevitably be claimed.",
+      },
+      grandTempleOfAqualis: {
+        name: "The Grand Temple of Aqualis",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aqualis"],
+        description:
+          "The foremost temple of Aqualis in western Sanguivorum. Sailors, fishermen, and naval officers seek blessings before venturing onto the sea, while survivors return in gratitude for safe passage.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Shelters pilgrims, sailors, and travelers making the coastal pilgrimage.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Tritonath's clergy and caretakers of the city's sacred traditions.",
+      },
+      gardenOfReflection: {
+        name: "Garden of Reflection",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aqualis"],
+        description:
+          "A cliffside sanctuary where visitors contemplate the endless sea below.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Preserves centuries of maritime history, miracles, and religious records.",
+      },
     },
   },
   vulcaron: {
