@@ -2154,6 +2154,53 @@ const LOCATIONS = {
         description:
           "Preserves centuries of maritime history, miracles, and religious records.",
       },
+      // ---------------------------------------------------- ARCANE QUARTER
+      // The source names both the district hub and its Conclave HQ
+      // "Lighthouse Conclave" — same situation as Aphroneth's Sea Bastion,
+      // merged into one sublocation rather than two identically-named
+      // places.
+      lighthouseConclave: {
+        name: "Lighthouse Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (Lighthouse Conclave)",
+        description:
+          "The Kabal maintains a permanent presence in Tritonath to study the ancient lighthouse and defend the western coast — the official headquarters of the city's Conclave mages.",
+      },
+      registryOfMariners: {
+        name: "Registry of Mariners",
+        type: "landmark",
+        district: "Arcane Quarter (Lighthouse Conclave)",
+        description:
+          "Registers licensed maritime mages and magical navigators.",
+      },
+      chamberOfTides: {
+        name: "Chamber of Tides",
+        type: "landmark",
+        district: "Arcane Quarter (Lighthouse Conclave)",
+        description:
+          "Researches hydromancy, coastal weather, and defensive spellcraft.",
+      },
+      archiveOfBeacon: {
+        name: "Archive of the Beacon",
+        type: "landmark",
+        district: "Arcane Quarter (Lighthouse Conclave)",
+        description:
+          "Contains classified research concerning the ancient lighthouse and its unknown origins.",
+      },
+      mageQuarters: {
+        name: "Mage Quarters",
+        type: "residential",
+        district: "Arcane Quarter (Lighthouse Conclave)",
+        description:
+          "Housing for Conclave scholars assigned to Tritonath.",
+      },
+      beaconCircle: {
+        name: "Beacon Circle",
+        type: "landmark",
+        district: "Arcane Quarter (Lighthouse Conclave)",
+        description:
+          "Reserved for sanctioned magical transportation. Like its counterparts at Zuevaron and Aphroneth, it stands ready for a network that doesn't yet exist.",
+      },
     },
   },
   vulcaron: {
