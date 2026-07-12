@@ -2304,6 +2304,56 @@ const LOCATIONS = {
         description:
           "Produces siege timbers, dock structures, and military engineering supplies.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      commandHeights: {
+        name: "Command Heights",
+        type: "residential",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Perched atop the cliffs overlooking the fjord, this district houses Tritonath's senior leadership.",
+      },
+      houseOfCoastalWarden: {
+        name: "House of the Coastal Warden",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Residence of Tritonath's Ascendus senator.",
+      },
+      admiralsEstates: {
+        name: "Admiral's Estates",
+        type: "residential",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Homes of retired admirals, commanders, and distinguished officers.",
+      },
+      embassyHouse: {
+        name: "Embassy House",
+        type: "residential",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Limited diplomatic residences for foreign representatives.",
+      },
+      defendersGarden: {
+        name: "Defender's Garden",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "A quiet memorial garden honoring those who died protecting the western coast.",
+      },
+      hallOfCoastalHonor: {
+        name: "Hall of Coastal Honor",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Recognizes extraordinary acts of service in defense of the Empire.",
+      },
+      watchmansTable: {
+        name: "The Watchman's Table",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "A gathering place for senior officers, scholars, and respected captains.",
+      },
     },
   },
   vulcaron: {
