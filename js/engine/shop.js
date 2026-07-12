@@ -1,9 +1,10 @@
 /*
  * FRAGMENTA — Shop
- * Wires up data/items.js's long-tagged-but-unused source:"shop" catalog
- * (185 items) into an actual buy/sell economy, mirroring engine/jobs.js's
- * board pattern: state.shops[locId] = { stock, lastRefresh }, regenerated
- * from a per-location eligible pool once SHOP_REFRESH_DAYS have passed.
+ * Wires up data/items.js's source:"shop" catalog (188 items, including
+ * three always-in-stock travel potions) into an actual buy/sell economy,
+ * mirroring engine/jobs.js's board pattern: state.shops[locId] = { stock,
+ * lastRefresh }, regenerated from a per-location eligible pool once
+ * SHOP_REFRESH_DAYS have passed.
  *
  * Stock eligibility:
  *   - No `region` and no guild-gated `set` (see SET_TO_GUILD below): a
@@ -46,11 +47,19 @@ function sampleItems(pool, n) {
   return copy.slice(0, n);
 }
 
+// Potions are always in stock (subject to the same region/guild gating
+// as everything else) rather than part of the random gear roll — a shop
+// running out of basic healing draughts on an unlucky refresh would be a
+// worse experience than "gear varies, but you can always restock
+// potions." Everything else still rotates.
 function getOrRefreshShop(state, locId) {
   let shop = state.shops[locId];
   if (!shop || state.day - shop.lastRefresh >= SHOP_REFRESH_DAYS) {
     const pool = eligibleShopItems(locId);
-    shop = { stock: sampleItems(pool, Math.min(SHOP_STOCK_SIZE, pool.length)), lastRefresh: state.day };
+    const consumables = pool.filter((name) => ITEM_DEFS[name].slot === "consumable");
+    const gear = pool.filter((name) => ITEM_DEFS[name].slot !== "consumable");
+    const gearStock = sampleItems(gear, Math.min(SHOP_STOCK_SIZE, gear.length));
+    shop = { stock: [...consumables, ...gearStock], lastRefresh: state.day };
     state.shops[locId] = shop;
   }
   return shop;

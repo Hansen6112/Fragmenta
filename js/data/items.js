@@ -1815,6 +1815,18 @@ const ITEM_DEFS = {
   "a vial of blessed water": { slot: "consumable", tier: 3, bonuses: {}, useEffect: { type: "heal", pct: 0.6 }, source: "monster" },
   "a phoenix-down elixir": { slot: "consumable", tier: 4, bonuses: {}, useEffect: { type: "heal", pct: 1.0 }, source: "monster" },
 
+  // Shop-purchasable siblings of the above (see engine/shop.js) — same
+  // tiers/pct, distinct names/source so the two pools (random combat loot
+  // vs. reliably-buyable stock) stay separate rather than one item double-
+  // dipping into both. No `region` tag: ordinary travel potions are
+  // generic stock at any location with the "shop" service, not tied to a
+  // nation the way gear/weapons often are. No tier 4 sibling — shop stock
+  // tops out at tier 3, same as every other shop item; a full heal stays
+  // a real (monster-drop) find.
+  "a traveler's healing draught": { slot: "consumable", tier: 1, bonuses: {}, useEffect: { type: "heal", pct: 0.25 }, source: "shop" },
+  "a physician's tonic": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "heal", pct: 0.4 }, source: "shop" },
+  "a sealed vial of restorative draught": { slot: "consumable", tier: 3, bonuses: {}, useEffect: { type: "heal", pct: 0.6 }, source: "shop" },
+
   // A rare ritual find, not a normal potion — its `slot` deliberately
   // isn't "consumable", since it isn't usable via the plain 'use' command
   // (see useItem); it only means anything at the Sanctuary, via 'revive'
