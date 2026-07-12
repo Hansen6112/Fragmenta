@@ -3470,6 +3470,62 @@ const LOCATIONS = {
         description:
           "A monumental mechanical clock whose moving gears have become the symbol of Daedaron.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the abandoned laboratories, waterworks, founder's workshop, and
+      // broken engine get "ruin" for skeleton/zombie/animated-armor
+      // encounters alongside the bandit/hired-blade "urban" pool. Surveyor's
+      // Camp and the High Observatory are active, still-used sites (a
+      // staging area and a working watchtower, not abandoned ruins), so
+      // they stay "urban" only.
+      prototypeVaults: {
+        name: "The Prototype Vaults",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Abandoned laboratories containing unstable inventions, forgotten experiments, and dangerous constructs.",
+      },
+      oldWaterworks: {
+        name: "The Old Waterworks",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "An obsolete aqueduct system now serving as hidden tunnels beneath the city.",
+      },
+      foundersWorkshop: {
+        name: "The Founder's Workshop",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The preserved workshop of Daedaron's legendary founder, left largely untouched for generations.",
+      },
+      brokenEngine: {
+        name: "The Broken Engine",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The remains of an enormous experimental machine whose original purpose has been lost to history.",
+      },
+      surveyorsCamp: {
+        name: "Surveyor's Camp",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A staging area where expeditions depart to design roads, bridges, and settlements across the Empire.",
+      },
+      highObservatory: {
+        name: "The High Observatory",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The tallest tower in Daedaron, offering sweeping views of the city's countless workshops, cranes, and engineering marvels.",
+      },
     },
   },
   silvanor: {
