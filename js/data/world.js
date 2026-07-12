@@ -2637,6 +2637,62 @@ const LOCATIONS = {
         description:
           "A towering fortress overlooking the city and its volcanic approaches.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      // Patron deity Pyreith, the refining flame — the Grand Temple and
+      // Garden of Embers both default prayer to him; Pilgrim's Rest,
+      // House of the Faithful, and Sacred Archives stay flavor-only.
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Fire is both creator and destroyer. The faithful of Pyreith believe that only through trial, sacrifice, and the refining flame can greatness be achieved.",
+      },
+      grandTempleOfPyreith: {
+        name: "The Grand Temple of Pyreith",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Pyreith"],
+        description:
+          "The greatest temple to Pyreith in Sanguivorum, where smiths bless newly forged masterpieces and craftsmen offer thanks for successful works.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Shelters craftsmen, pilgrims, and travelers seeking Pyreith's blessing.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Vulcaron's clergy.",
+      },
+      gardenOfEmbers: {
+        name: "Garden of Embers",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Pyreith"],
+        description:
+          "A contemplative courtyard where eternal braziers symbolize renewal through fire.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Records miracles, masterworks, and centuries of the city's religious history.",
+      },
     },
   },
   silvanor: {
