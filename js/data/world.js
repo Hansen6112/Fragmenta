@@ -3185,6 +3185,63 @@ const LOCATIONS = {
         description:
           "Used to oversee construction throughout the expanding city.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      // Patron deity Nystros, embracing calculated risk, creativity, and
+      // the unpredictable nature of progress — the Grand Temple and
+      // Garden of Possibility both default prayer to him; Pilgrim's Rest,
+      // House of the Faithful, and Sacred Archives stay flavor-only.
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Innovation requires uncertainty. Every discovery begins by stepping beyond what is known. For this reason Daedaron honors Nystros, embracing calculated risk, creativity, and the unpredictable nature of progress.",
+      },
+      grandTempleOfNystros: {
+        name: "The Grand Temple of Nystros",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Nystros"],
+        description:
+          "The greatest sanctuary dedicated to Nystros in Sanguivorum, where inventors seek inspiration before beginning ambitious projects and craftsmen offer thanks when experiments succeed.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Welcomes pilgrims, scholars, and travelers alike.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Daedaron's clergy.",
+      },
+      gardenOfPossibility: {
+        name: "Garden of Possibility",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Nystros"],
+        description:
+          "A constantly changing garden whose design is intentionally altered throughout the year to symbolize continual change.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Preserves scripture, notable inventions dedicated to Nystros, and the city's religious history.",
+      },
     },
   },
   silvanor: {
