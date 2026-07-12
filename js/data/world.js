@@ -3242,6 +3242,55 @@ const LOCATIONS = {
         description:
           "Preserves scripture, notable inventions dedicated to Nystros, and the city's religious history.",
       },
+      // ---------------------------------------------------- ARCANE QUARTER
+      // The source names the district hub "The Inventor's Conclave" and
+      // its Kabal headquarters building just "Inventor's Conclave" — an
+      // even subtler version of the Sea Bastion/Great Foundry/Engine
+      // Bastion collision, since "go" always strips a leading "the" off
+      // the player's query. Merged into one sublocation rather than
+      // leaving the hub unreachable.
+      inventorsConclave: {
+        name: "The Inventor's Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Inventor's Conclave)",
+        description:
+          "The Kabal's foremost center for magical engineering and arcane experimentation — the official headquarters of the Kabal within Daedaron.",
+      },
+      registryOfInnovators: {
+        name: "Registry of Innovators",
+        type: "landmark",
+        district: "Arcane Quarter (The Inventor's Conclave)",
+        description:
+          "Registers magical engineers, artificers, and experimental researchers.",
+      },
+      chamberOfInnovation: {
+        name: "Chamber of Innovation",
+        type: "landmark",
+        district: "Arcane Quarter (The Inventor's Conclave)",
+        description:
+          "Studies the interaction between magic and engineering.",
+      },
+      archiveOfMechanisms: {
+        name: "Archive of Mechanisms",
+        type: "landmark",
+        district: "Arcane Quarter (The Inventor's Conclave)",
+        description:
+          "Contains research on magical devices, constructs, and experimental technologies.",
+      },
+      mageWorkshops: {
+        name: "Mage Workshops",
+        type: "residential",
+        district: "Arcane Quarter (The Inventor's Conclave)",
+        description:
+          "Housing and laboratories for resident Conclave researchers.",
+      },
+      innovationCircle: {
+        name: "Innovation Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The Inventor's Conclave)",
+        description:
+          "Reserved for sanctioned magical transportation. Like its counterparts elsewhere in the Empire, it stands ready for a network that doesn't yet exist.",
+      },
     },
   },
   silvanor: {
