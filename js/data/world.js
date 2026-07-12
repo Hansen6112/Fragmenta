@@ -340,7 +340,7 @@ const LOCATIONS = {
       },
       houseOfReturning: {
         name: "The House of Returning",
-        type: "landmark",
+        type: "healer",
         district: "Military Quarter (The Eastern Citadel)",
         description:
           "Arethon's military hospital. Wounded soldiers arrive here directly from the gates, docks, and frontier posts.",
@@ -351,6 +351,80 @@ const LOCATIONS = {
         district: "Military Quarter (The Eastern Citadel)",
         description:
           "A restrained assembly hall where commanders meet, dine, plan operations, and receive official visitors.",
+      },
+      // ---------------------------------------------------- RELIGIOUS QUARTER
+      // `gods` (see engine/parser.js cmdPray) is the mechanical hook: praying
+      // at a place with exactly one god defaults to it; the Hall of the
+      // Twelve (all twelve) and the jointly-tended Garden of Final Honor
+      // (two) require naming one. Every other place here is administrative
+      // or archival rather than a place of active worship, so it stays
+      // flavor-only, same as most of the Military Quarter.
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Arethon's devotional heart, quieter than the rest of the city even at midday. Incense and old stone rather than oiled leather and orders — the one quarter where the war doesn't quite reach.",
+      },
+      grandBasilica: {
+        name: "The Grand Basilica of Kar'Mhal",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Kar'Mhal"],
+        description:
+          "Arethon's principal temple and the spiritual heart of the city. Legionnaires seek courage before battle, commanders offer trophies after victory, and families pray for those posted beyond the walls.",
+      },
+      hallOfTwelve: {
+        name: "The Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "A circular sanctuary containing twelve equal chapels, one for each deity of Fragmenta. Kar'Mhal's chapel is the most heavily attended, but none are treated as lesser.",
+      },
+      houseOfFirstStep: {
+        name: "The House of the First Step",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aethyra"],
+        description:
+          "Aethyra's local pilgrim house. Travelers, messengers, caravan guards, and soldiers departing on long campaigns receive route blessings here.",
+      },
+      gardenOfFinalHonor: {
+        name: "The Garden of Final Honor",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Kar'Mhal", "Mortasha"],
+        description:
+          "A quiet memorial garden jointly tended by the clergy of Kar'Mhal and Mortasha. The dead are remembered not only for how they died, but for what their lives accomplished.",
+      },
+      wallOfEasternWatch: {
+        name: "The Wall of the Eastern Watch",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "A long black-stone memorial engraved with the names of those who died defending Arethon and the eastern frontier.",
+      },
+      pilgrimsMeasure: {
+        name: "The Pilgrim's Measure",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "A modest hostel for religious travelers, military families, and those visiting the memorials. Payment is accepted, but no pilgrim is turned away for lacking coin.",
+      },
+      houseOfTwelveVoices: {
+        name: "The House of Twelve Voices",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "The residence and meeting place of Arethon's clergy. Priests debate doctrine, coordinate festivals, and organize charitable work from here.",
+      },
+      sacredRecord: {
+        name: "The Sacred Record",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "A temple archive containing burial rolls, campaign blessings, oaths, marriages, pilgrim accounts, and records of religious service.",
       },
     },
   },

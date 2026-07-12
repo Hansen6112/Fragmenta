@@ -32,7 +32,50 @@ const FACTIONS = {
     blurb:
       "Thraekor's mercenary institution, headquartered at Vorreth (Vorseth in some records) — formally independent of the clans, though expected to support confederation wars at a steep discount rather than for free. Smaller and younger than the Mugamiir Safor, with a geographic edge in northern and eastern markets and a reputation built on heavy infantry and siege specialists. The rivalry between the two guilds is commercial, not personal — both know exactly how good the other is at the same job.",
   },
+  // The twelve gods of the Pantheon (see data/sets.js's Divine Regalia sets,
+  // each already tied to one of these names) — reputation here is a small,
+  // repeatable trickle from praying at a temple (see engine/parser.js
+  // cmdPray), completely separate from the Sanctuary's divineFavor scalar
+  // used for ally revival, even where the god is the same one (Mortasha).
+  god_aelthyr: { name: "Aelthyr", kind: "god" },
+  god_mortasha: { name: "Mortasha", kind: "god" },
+  god_veylana: { name: "Veylana", kind: "god" },
+  god_karmhal: { name: "Kar'Mhal", kind: "god" },
+  god_ithrien: { name: "Ithrien", kind: "god" },
+  god_seressa: { name: "Seressa", kind: "god" },
+  god_nystros: { name: "Nystros", kind: "god" },
+  god_xalaxar: { name: "Xalaxar", kind: "god" },
+  god_aethyra: { name: "Aethyra", kind: "god" },
+  god_pyreith: { name: "Pyreith", kind: "god" },
+  god_aqualis: { name: "Aqualis", kind: "god" },
+  god_chronaeus: { name: "Chronaeus", kind: "god" },
 };
+
+function godFactionId(godName) {
+  return Object.keys(FACTIONS).find((id) => FACTIONS[id].kind === "god" && FACTIONS[id].name === godName);
+}
+
+function pantheonGodNames() {
+  return Object.values(FACTIONS)
+    .filter((f) => f.kind === "god")
+    .map((f) => f.name);
+}
+
+// Strips everything but letters so "karmhal", "kar mhal", and "kar'mhal"
+// all still match "Kar'Mhal" — every god name here is a single word (at
+// most with an apostrophe), so there's no real word boundary to preserve
+// the way travel.js's normalizeName keeps spaces for multi-word places.
+function normalizeGodName(s) {
+  return s.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function findGodByName(query) {
+  if (!query) return null;
+  const q = normalizeGodName(query);
+  if (!q) return null;
+  const gods = pantheonGodNames();
+  return gods.find((g) => normalizeGodName(g) === q) || gods.find((g) => normalizeGodName(g).includes(q)) || null;
+}
 
 // Starting qualitative labels (from BACKGROUNDS[].reputation) map to a
 // numeric seed; "neutral" / unlisted factions default to 0.

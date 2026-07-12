@@ -20,6 +20,7 @@ const VERB_SYNONYMS = {
   talk: ["talk", "speak", "ask", "greet"],
   rest: ["rest"],
   sleep: ["sleep", "camp"],
+  heal: ["heal"],
   status: ["status", "stats", "health", "hp", "level", "xp"],
   lore: ["lore", "codex", "recall", "remember"],
   fight: ["fight", "attack", "strike", "hit"],
@@ -156,6 +157,8 @@ async function handleInput(rawInput, state) {
       return cmdRest(state);
     case "sleep":
       return cmdSleep(state);
+    case "heal":
+      return cmdHeal(state);
     case "status":
       return cmdStatus(state);
     case "lore":
@@ -203,7 +206,7 @@ async function handleInput(rawInput, state) {
     case "sanctuary":
       return cmdSanctuary(state);
     case "pray":
-      return cmdPray(state);
+      return cmdPray(arg, state);
     case "rite":
       return cmdAttemptRite(state);
     case "revive":
@@ -775,9 +778,35 @@ function cmdSanctuary(state) {
   return lines;
 }
 
-// Raising favor costs more each time — a slow, ordinary devotion, not a
-// grind you can brute-force your way through in an afternoon.
-function cmdPray(state) {
+// A place tagged with `gods` (see world.js's Sacred Precinct) redirects
+// prayer to the small, repeatable Pantheon-reputation trickle instead of
+// the Sanctuary's divineFavor below — completely separate currencies, even
+// where the god is the same one (Mortasha). Anywhere without a `gods` tag
+// falls straight through to the original, location-agnostic prayer, so
+// existing ally-revival play is untouched either way.
+function cmdPray(arg, state) {
+  const place = state.currentPlace();
+  const gods = place && place.gods;
+  if (gods && gods.length) {
+    let god;
+    if (arg) {
+      const requested = findGodByName(arg);
+      if (!requested) return [`No god by that name. Try: ${gods.join(", ")}.`];
+      if (!gods.includes(requested)) return [`This place doesn't honor ${requested}. Try: ${gods.join(", ")}.`];
+      god = requested;
+    } else if (gods.length === 1) {
+      god = gods[0];
+    } else {
+      return [`Pray to whom? Try: ${gods.join(", ")}.`];
+    }
+    const factionId = godFactionId(god);
+    const before = state.reputation[factionId] || 0;
+    state.reputation[factionId] = Math.max(-100, Math.min(100, before + 1));
+    return [`You offer a small prayer to ${god}. (+1 standing)`, ...advanceTime(state, 10, "pray")];
+  }
+
+  // Raising favor costs more each time — a slow, ordinary devotion, not a
+  // grind you can brute-force your way through in an afternoon.
   const cost = 10 + state.divineFavor;
   if (state.gold < cost) {
     return [`You have nothing left to offer that the god of Death and Renewal would notice. (Praying costs gold — you have ${state.gold}, need ${cost}.)`];
@@ -1016,6 +1045,29 @@ function cmdSleep(state) {
   return lines;
 }
 
+// The healer's paid, quick option: gold instead of time, a full heal in
+// minutes rather than an hour of rest or a night's sleep. Doesn't touch
+// fatigue (only a real sleep clears that — paying someone to patch you up
+// isn't the same as actually resting) and doesn't decay the momentum-style
+// combat buffs performRest does, for the same reason.
+function cmdHeal(state) {
+  const loc = state.currentPlace();
+  if (!effectiveServices(loc).includes("healer")) {
+    return ["There's no healer here."];
+  }
+  const missing = state.maxHealth - state.health;
+  if (missing <= 0) {
+    return ["You're already at full health. The healer has nothing to do."];
+  }
+  const cost = Math.max(5, Math.ceil(missing * 1.5));
+  if (state.gold < cost) {
+    return [`The healer names a price of ${cost} gold to see you right. You have ${state.gold}.`];
+  }
+  state.gold -= cost;
+  const { healed } = applyHeal(state, missing);
+  return [`You pay ${cost} gold. ${loc.name}'s healer sets to work — ${healed} health restored, quick and clean.`, ...advanceTime(state, 15, "heal")];
+}
+
 function cmdStatus(state) {
   const loc = state.currentLocation();
   const bg = BACKGROUNDS[state.background];
@@ -1048,6 +1100,7 @@ function cmdReputation(state) {
   const lines = ["== Standing ==", "How officials and locals of each power are likely to treat you.", ""];
   const nations = Object.entries(FACTIONS).filter(([, f]) => f.kind === "nation");
   const guilds = Object.entries(FACTIONS).filter(([, f]) => f.kind === "guild");
+  const gods = Object.entries(FACTIONS).filter(([, f]) => f.kind === "god");
 
   const fmt = (id, f) => {
     const value = state.reputation[id] || 0;
@@ -1060,6 +1113,9 @@ function cmdReputation(state) {
   lines.push("");
   lines.push("Guilds:");
   guilds.forEach(([id, f]) => lines.push(fmt(id, f)));
+  lines.push("");
+  lines.push("Gods:");
+  gods.forEach(([id, f]) => lines.push(fmt(id, f)));
   return lines;
 }
 
