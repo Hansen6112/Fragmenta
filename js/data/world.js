@@ -4072,6 +4072,62 @@ const LOCATIONS = {
         description:
           "A monumental archive preserving military doctrine, historical campaigns, maps, and tactical treatises.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the abandoned practice fortifications and ruined siegeworks get
+      // "ruin" for skeleton/zombie/animated-armor encounters alongside the
+      // bandit/hired-blade "urban" pool. The Hidden Archives (restricted,
+      // not decayed), Officer's Trial, Scout's Camp, and Commander's
+      // Outlook are all still-active, maintained sites rather than actual
+      // ruins, so they stay "urban" only.
+      oldTrainingGrounds: {
+        name: "The Old Training Grounds",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Abandoned practice fortifications now occupied by dangerous creatures and forgotten secrets.",
+      },
+      hiddenArchives: {
+        name: "The Hidden Archives",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A restricted collection of sealed military records unavailable to the public.",
+      },
+      forgottenSiegeworks: {
+        name: "The Forgotten Siegeworks",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Ruins of an early academy where primitive siege engines were first developed.",
+      },
+      officersTrial: {
+        name: "The Officer's Trial",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "An advanced obstacle course reserved for elite cadets, occasionally opened for special challenges.",
+      },
+      scoutsCamp: {
+        name: "Scout's Camp",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A forward operating base where reconnaissance missions and strategic expeditions begin.",
+      },
+      commandersOutlook: {
+        name: "Commander's Outlook",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The highest hill overlooking Minervon, used by instructors to teach battlefield analysis while providing panoramic views of the surrounding countryside.",
+      },
     },
   },
   marsatum: {
