@@ -3835,6 +3835,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation.",
       },
+      // ------------------------------------------------------ TRADE QUARTER
+      timberExchange: {
+        name: "Timber Exchange",
+        type: "street",
+        district: "Trade Quarter (Timber Exchange)",
+        description:
+          "Every resource leaving Silvanor is harvested with care.",
+      },
+      forestGate: {
+        name: "Forest Gate",
+        type: "gate",
+        district: "Trade Quarter (Timber Exchange)",
+        description:
+          "Primary entrance for timber caravans and woodland trade.",
+      },
+      harvestOffice: {
+        name: "Harvest Office",
+        type: "landmark",
+        district: "Trade Quarter (Timber Exchange)",
+        description:
+          "Records all lumber, herbs, and natural resources leaving the forest.",
+      },
+      timberYards: {
+        name: "Timber Yards",
+        type: "landmark",
+        district: "Trade Quarter (Timber Exchange)",
+        description:
+          "Stores carefully managed timber harvested under strict regulation.",
+      },
+      herbalExchange: {
+        name: "Herbal Exchange",
+        type: "landmark",
+        district: "Trade Quarter (Timber Exchange)",
+        description:
+          "The Empire's largest marketplace for medicinal herbs and botanical ingredients.",
+      },
+      rangerLogistics: {
+        name: "Ranger Logistics",
+        type: "landmark",
+        district: "Trade Quarter (Timber Exchange)",
+        description:
+          "Coordinates supplies to frontier outposts.",
+      },
+      caravanGrounds: {
+        name: "Caravan Grounds",
+        type: "landmark",
+        district: "Trade Quarter (Timber Exchange)",
+        description:
+          "Staging area for merchants entering and leaving the forest.",
+      },
     },
   },
   netturon: {
