@@ -3785,6 +3785,59 @@ const LOCATIONS = {
         description:
           "A tall observation tower overlooking every academy and training field.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Knowledge is the foundation of victory. The faithful of Ithrien believe wisdom earned through study is the greatest weapon any leader can possess.",
+      },
+      grandTempleOfIthrien: {
+        name: "The Grand Temple of Ithrien",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Ithrien"],
+        description:
+          "The greatest sanctuary dedicated to Ithrien in Sanguivorum. Officers, scholars, judges, and students seek guidance here before making decisions that may shape the future of thousands.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Welcomes scholars, clergy, military pilgrims, and travelers.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Minervon's clergy and teachers of the faith.",
+      },
+      gardenOfContemplation: {
+        name: "Garden of Contemplation",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Ithrien"],
+        description:
+          "A silent courtyard designed for reflection, meditation, and careful thought.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Preserves scripture, philosophical works, and centuries of theological scholarship.",
+      },
     },
   },
   marsatum: {
