@@ -355,6 +355,56 @@ const LOCATIONS = {
         description:
           "Contains centuries of religious writings and temple records.",
       },
+      // ---------------------------------------------------- ARCANE QUARTER
+      grandConclave: {
+        name: "The Grand Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Grand Conclave)",
+        description:
+          "The Kabal's largest presence outside the Tower itself, and the most closely watched quarter in the capital for it. Registered mages come and go under escort; unregistered ones don't come here at all if they know what's good for them.",
+      },
+      grandConclaveHall: {
+        name: "The Grand Conclave Hall",
+        type: "guildhall",
+        district: "Arcane Quarter (The Grand Conclave)",
+        description:
+          "The Kabal's principal administrative center outside the Tower itself.",
+      },
+      registryOfRivers: {
+        name: "The Registry of Rivers",
+        type: "landmark",
+        district: "Arcane Quarter (The Grand Conclave)",
+        description:
+          "Registers every legally recognized mage entering the capital.",
+      },
+      hallOfConduits: {
+        name: "The Hall of Conduits",
+        type: "landmark",
+        district: "Arcane Quarter (The Grand Conclave)",
+        description:
+          "Conducts magical evaluations and advanced conduit examinations.",
+      },
+      imperialRepository: {
+        name: "The Imperial Repository",
+        type: "landmark",
+        district: "Arcane Quarter (The Grand Conclave)",
+        description:
+          "One of the greatest magical libraries on the continent.",
+      },
+      magesResidence: {
+        name: "The Mage's Residence",
+        type: "residential",
+        district: "Arcane Quarter (The Grand Conclave)",
+        description:
+          "Housing for senior Kabal officials and visiting mages.",
+      },
+      circleChamber: {
+        name: "The Circle Chamber",
+        type: "landmark",
+        district: "Arcane Quarter (The Grand Conclave)",
+        description:
+          "Reserved for sanctioned long-distance magical transportation. The chamber stands ready; the network it's meant to connect to doesn't yet.",
+      },
     },
   },
   arethon: {
