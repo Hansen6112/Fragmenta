@@ -1271,6 +1271,95 @@ function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeI
   return { lines, damage: activeDamage };
 }
 
+// ---- Party / Allies (Phase 1 — party core combat mechanic) ----
+// Allies live on state.party (engine/state.js), persistent across fights —
+// combat reads/writes an ally's .health directly rather than keeping a
+// separate per-fight copy, so nothing needs to be synced back whenever a
+// fight ends (win, flee, or otherwise). They act once per round as a
+// group, all at once, right at the top of it (see beginTurn's own call
+// below) rather than getting their own Speed-based slot in the initiative
+// order — a deliberate Phase 1 simplification. Enemies don't target
+// allies yet either: for now they're pure force-multipliers who can't
+// themselves be put in danger. Permanent death, being downed, and the
+// home-base/revival system are Phase 2.
+function aliveAllies(state) {
+  return (state.party || []).filter((a) => a.alive);
+}
+
+function resolveAllyActions(state) {
+  if (!state.combat) return [];
+  const creature = getCombatCreature(state);
+  if (!creature || creature.friendly) return [];
+  const lines = [];
+  for (const ally of aliveAllies(state)) {
+    if (!state.combat || !aliveEnemies(state).length) break;
+    if (ally.stance === "defensive") lines.push(...allyDefensiveAction(state, ally));
+    else if (ally.stance === "support") lines.push(...allySupportAction(state, ally));
+    else lines.push(...allyAggressiveAction(state, ally));
+  }
+  return lines;
+}
+
+// Aggressive stance: pile onto whichever enemy the player is currently
+// targeting, using the same Accuracy-vs-Agility hit check as everything
+// else, and a damage roll loosely scaled off the ally's own Attack — not
+// routed through rollPlayerDamage, since that formula is threaded through
+// with player-only Divine Regalia/Legendary/Mythic bonuses that have
+// nothing to do with an ally's own gear.
+function allyAggressiveAction(state, ally) {
+  const combat = state.combat;
+  const target = combat.enemies[combat.activeIndex];
+  if (!target || !target.alive) return [];
+  if (!attackConnects(ally.accuracy, target.creatureObj.agi)) {
+    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
+  }
+  const dmg = Math.max(1, randInt(Math.round(ally.atk * 0.85), Math.round(ally.atk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5));
+  target.hp -= dmg;
+  target.lastDamageType = "physical";
+  const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
+  if (target.hp <= 0 && target.alive) lines.push(...resolveKill(state, target.creatureObj));
+  return lines;
+}
+
+// Defensive stance: weaken the active enemy's attack rather than damage
+// it — reuses Disarm's own enemyAtkPenalty field (a flat, lasting
+// reduction to effectiveEnemyAtk), capped so a long fight can't let it
+// stack into "the enemy can no longer hurt you at all."
+function allyDefensiveAction(state, ally) {
+  const combat = state.combat;
+  const target = combat.enemies[combat.activeIndex];
+  if (!target || !target.alive) return [];
+  const cap = 6;
+  if ((target.enemyAtkPenalty || 0) >= cap) {
+    return [`${ally.name} keeps ${withThe(target.creatureObj.name, false)} off balance.`];
+  }
+  target.enemyAtkPenalty = (target.enemyAtkPenalty || 0) + 1;
+  return [`${ally.name} disrupts ${withThe(target.creatureObj.name, false)}'s footing, weakening its attack.`];
+}
+
+// Support stance: mend whoever's lowest on health, player included — in
+// Phase 1 that's almost always the player, since enemies can't hurt
+// allies yet, but the comparison is written generally so it keeps working
+// once Phase 2 lets allies take damage too.
+function allySupportAction(state, ally) {
+  const candidates = [{ isPlayer: true, hp: state.health, maxHp: state.maxHealth }].concat(
+    aliveAllies(state)
+      .filter((a) => a !== ally)
+      .map((a) => ({ isPlayer: false, ref: a, hp: a.health, maxHp: a.maxHealth }))
+  );
+  candidates.sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp);
+  const target = candidates[0];
+  if (target.hp >= target.maxHp) return [`${ally.name} keeps watch — no one needs mending.`];
+  const amount = Math.ceil(target.maxHp * 0.15);
+  if (target.isPlayer) {
+    const { healed, lines } = applyHeal(state, amount);
+    return [`${ally.name} tends to your wounds, mending ${healed} health.`, ...lines];
+  }
+  const healed = Math.min(amount, target.maxHp - target.hp);
+  target.ref.health += healed;
+  return [`${ally.name} tends to ${target.ref.name}'s wounds, mending ${healed} health.`];
+}
+
 // Ages cooldowns and status-effect durations by one turn, and applies any
 // active burn/bleed damage (Fire's Ignite; Deep Cut). Called at the start
 // of whichever combat action actually executes (not on rejected/invalid
@@ -1527,6 +1616,16 @@ function beginTurn(state) {
       if (healed > 0) lines.push(`Avatar of Renewal mends you for ${healed} health.`, ...healLines);
     }
   }
+  // Allies act once per round, as a group, right here at the very end of
+  // beginTurn — the one function every action (playerAttack, useFeint,
+  // useDecoy, useAmbush, useDisarm, useElementAbility, useItem, a failed
+  // attemptFlee) already calls first, so this is a single integration
+  // point rather than touching each of those separately. Guarded the same
+  // way the DOT tick above is: an ally landing the killing blow can end
+  // the fight before the player's own action gets to run, and every call
+  // site already checks `if (!state.combat) return ...` right after
+  // beginTurn returns.
+  if (state.combat) lines.push(...resolveAllyActions(state));
   return lines;
 }
 

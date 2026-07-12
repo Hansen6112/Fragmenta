@@ -48,6 +48,11 @@ const VERB_SYNONYMS = {
   choose: ["choose", "attune", "focus"],
   target: ["target", "switch"],
   use: ["use", "drink", "eat", "consume"],
+  party: ["party", "allies", "roster"],
+  stance: ["stance"],
+  recruit: ["recruit"],
+  give: ["give", "hand"],
+  reclaim: ["reclaim", "retrieve"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -103,7 +108,7 @@ async function handleInput(rawInput, state) {
         `Warmth spreads through a wound you didn't realize still ached. You heal ${healed} health.`,
       ];
     }
-    if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose") {
+    if (verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose" && verb !== "party" && verb !== "stance") {
       const friendly = getCombatCreature(state).friendly;
       const usable = friendly ? [] : availableActionNames(state);
       const options = ["fight", "flee", ...usable, ...(!friendly && aliveEnemies(state).length > 1 ? ["target"] : []), ...(hasUsableConsumable(state) ? ["use"] : []), ...(friendly ? ["talk", "leave"] : [])];
@@ -164,6 +169,16 @@ async function handleInput(rawInput, state) {
       return cmdChoose(arg, state);
     case "use":
       return useItem(state, arg);
+    case "party":
+      return cmdParty(state);
+    case "stance":
+      return cmdStance(arg, state);
+    case "recruit":
+      return cmdRecruit(arg, state);
+    case "give":
+      return cmdGive(arg, state);
+    case "reclaim":
+      return cmdReclaim(arg, state);
     case "feint":
     case "decoy":
     case "ambush":
@@ -451,6 +466,141 @@ function cmdUnequip(arg, state) {
     }
   }
   return [`You don't have "${arg}" equipped.`];
+}
+
+const ALLY_STANCES = ["aggressive", "defensive", "support"];
+
+function findAlly(state, needle) {
+  const n = (needle || "").toLowerCase().trim();
+  if (!n) return null;
+  return state.party.find((a) => a.alive && a.name.toLowerCase().includes(n)) || null;
+}
+
+function cmdParty(state) {
+  if (!state.party.length) {
+    return ["You travel alone for now. (Allies are earned through reputation, quests, and rare finds — none have joined you yet.)"];
+  }
+  const lines = ["== Party =="];
+  for (const ally of state.party) {
+    const status = ally.alive ? `${ally.health}/${ally.maxHealth} HP` : "down";
+    lines.push(`${ally.name} — Level ${ally.level} — ${status} — Stance: ${ally.stance}`);
+    lines.push(`  Attack: ${ally.atk}   Defense: ${ally.def}   Accuracy: ${ally.accuracy}   Agility: ${ally.agility}   Speed: ${ally.speed}`);
+    const gearBits = EQUIP_SLOTS.filter((s) => (s === "trinkets" ? ally.equipment.trinkets.length : ally.equipment[s])).map((s) =>
+      s === "trinkets" ? ally.equipment.trinkets.map(formatItemLine).join(", ") : formatItemLine(ally.equipment[s])
+    );
+    lines.push(`  Gear: ${gearBits.length ? gearBits.join("; ") : "(none)"}`);
+  }
+  lines.push(`(stance <name> ${ALLY_STANCES.join("|")} — give <item> to <name> — reclaim <item> from <name>)`);
+  return lines;
+}
+
+// Aggressive focuses attack, defensive weakens the enemy, support mends
+// whoever's hurting most (see combat.js's resolveAllyActions) — set per
+// ally, not party-wide, since a mixed party is the whole point.
+function cmdStance(arg, state) {
+  if (!state.party.length) return ["You have no allies to command."];
+  if (!arg) return [`Set whose stance to what? (${ALLY_STANCES.join("/")}) — try: stance <ally name> <stance>`];
+  const words = arg.split(/\s+/);
+  const stance = words[words.length - 1];
+  if (!ALLY_STANCES.includes(stance)) return [`"${stance}" isn't a stance. Choose one of: ${ALLY_STANCES.join(", ")}.`];
+  const nameNeedle = words.slice(0, -1).join(" ").trim();
+  const ally = nameNeedle ? findAlly(state, nameNeedle) : state.party.length === 1 ? state.party[0] : null;
+  if (!ally) return [nameNeedle ? `No one in your party matches "${nameNeedle}".` : "Whose stance? Name one of your allies."];
+  ally.stance = stance;
+  return [`${ally.name} shifts to a ${stance} stance.`];
+}
+
+// A Phase 1 test hook, not the real recruitment gate — the actual
+// reputation/quest/item thresholds for primary allies are Phase 3. For
+// now this unconditionally adds the one hardcoded ally (data/allies.js)
+// so the party-combat mechanic itself has someone to test with.
+function cmdRecruit(arg, state) {
+  const keys = Object.keys(ALLY_DEFS);
+  if (!keys.length) return ["No one is available to recruit yet."];
+  const needle = (arg || "").toLowerCase().trim();
+  const defId = needle ? keys.find((k) => k === needle || ALLY_DEFS[k].name.toLowerCase().includes(needle)) : keys[0];
+  if (!defId) return [`No one matching "${arg}" is available to recruit.`];
+  if (state.party.some((a) => a.defId === defId)) return [`${ALLY_DEFS[defId].name} already travels with you.`];
+  const ally = state.recruitAlly(defId);
+  return [
+    `${ally.name} joins your party. (${ALLY_DEFS[defId].tagline})`,
+    `Set a stance with 'stance ${ally.name.split(" ")[0]} aggressive|defensive|support', and gear them up with 'give <item> to ${ally.name.split(" ")[0]}'.`,
+  ];
+}
+
+// Shared-inventory equip flow for allies — same slot inference/auto-swap
+// rules as cmdEquip, just moving the item from state.inventory into the
+// named ally's own equipment instead of the player's.
+function cmdGive(arg, state) {
+  if (!arg) return ["Give what to whom? (try: give <item> to <ally name>)"];
+  if (!state.party.length) return ["You have no allies to give anything to."];
+  const parts = arg.split(/\s+to\s+/);
+  if (parts.length < 2) return ["Give what to whom? (try: give <item> to <ally name>)"];
+  const itemNeedle = parts[0].trim();
+  const allyNeedle = parts.slice(1).join(" to ").trim();
+  const ally = findAlly(state, allyNeedle);
+  if (!ally) return [`No one in your party matches "${allyNeedle}".`];
+  const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(itemNeedle));
+  if (idx < 0) return [`You aren't carrying "${itemNeedle}".`];
+  const item = state.inventory[idx];
+  const itemDef = getItemDef(item);
+  const slot = itemDef ? itemDef.slot : inferEquipSlot(item);
+  if (!slot) return [`${item} isn't something ${ally.name} can use.`];
+  if (slot === "consumable") return [`${item} isn't gear — it stays in the shared pack for anyone to 'use'.`];
+
+  const lines = [];
+  if (slot === "trinkets") {
+    if (ally.equipment.trinkets.length >= EQUIP_SLOT_CAPACITY.trinkets) {
+      return [`${ally.name}'s trinket slots are both full. Reclaim one first.`];
+    }
+    state.inventory.splice(idx, 1);
+    ally.equipment.trinkets.push(item);
+    lines.push(`You hand ${formatItemLine(item)} to ${ally.name}. (${EQUIP_SLOT_LABELS.trinkets})`);
+  } else {
+    const current = ally.equipment[slot];
+    if (current) {
+      ally.equipment[slot] = null;
+      state.inventory.push(current);
+      lines.push(`${ally.name} hands back ${current} to make room.`);
+    }
+    state.inventory.splice(idx, 1);
+    ally.equipment[slot] = item;
+    lines.push(`You hand ${formatItemLine(item)} to ${ally.name}. (${EQUIP_SLOT_LABELS[slot]})`);
+  }
+  recomputeAllyStats(ally, ally.level);
+  return lines;
+}
+
+function cmdReclaim(arg, state) {
+  if (!arg) return ["Reclaim what, and from whom? (try: reclaim <item> from <ally name>)"];
+  if (!state.party.length) return ["You have no allies to reclaim gear from."];
+  const parts = arg.split(/\s+from\s+/);
+  const itemNeedle = parts[0].trim();
+  const allyNeedle = (parts[1] || "").trim();
+  const candidates = allyNeedle ? [findAlly(state, allyNeedle)].filter(Boolean) : state.party.filter((a) => a.alive);
+  if (allyNeedle && !candidates.length) return [`No one in your party matches "${allyNeedle}".`];
+  for (const ally of candidates) {
+    for (const slot of EQUIP_SLOTS) {
+      if (slot === "trinkets") {
+        const idx = ally.equipment.trinkets.findIndex((i) => i.toLowerCase().includes(itemNeedle));
+        if (idx >= 0) {
+          const item = ally.equipment.trinkets.splice(idx, 1)[0];
+          state.inventory.push(item);
+          recomputeAllyStats(ally, ally.level);
+          return [`You reclaim ${item} from ${ally.name}.`];
+        }
+        continue;
+      }
+      const current = ally.equipment[slot];
+      if (current && current.toLowerCase().includes(itemNeedle)) {
+        ally.equipment[slot] = null;
+        state.inventory.push(current);
+        recomputeAllyStats(ally, ally.level);
+        return [`You reclaim ${current} from ${ally.name}.`];
+      }
+    }
+  }
+  return [`No one in your party has "${itemNeedle}" equipped.`];
 }
 
 function cmdExamine(arg, state) {
@@ -849,6 +999,9 @@ function cmdHelp() {
     "corrode/concuss/blink/windcut — whichever matches your element).",
     "At level 15, mages use 'choose boost' for permanent +Magic, or",
     "'choose <element>' to open a second element and its ability.",
+    "Party: party (view allies), stance <name> aggressive|defensive|support,",
+    "give <item> to <name>, reclaim <item> from <name>. Allies act",
+    "automatically each round of a fight based on their stance.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];

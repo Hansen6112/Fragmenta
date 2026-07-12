@@ -5,6 +5,7 @@
 const logEl = document.getElementById("log");
 const invPanel = document.getElementById("inventory-panel");
 const equipPanel = document.getElementById("equipment-panel");
+const partyPanel = document.getElementById("party-panel");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
 const input = document.getElementById("input");
@@ -121,9 +122,64 @@ function renderEquipment() {
   }
 }
 
+// One card per ally: HP/stats, a stance picker (three buttons, clicking
+// one calls setStance the same way the "stance <name> <stance>" typed
+// command does), and their currently equipped gear. Re-rendered after
+// every input (see the form submit handler), so a stance change made in
+// combat via typed command still shows up here immediately.
+function renderParty() {
+  partyPanel.innerHTML = "";
+  if (!state || !state.party.length) {
+    const empty = document.createElement("p");
+    empty.className = "inv-empty";
+    empty.textContent = state ? "You travel alone for now." : "Your journey hasn't begun yet.";
+    partyPanel.appendChild(empty);
+    return;
+  }
+  for (const ally of state.party) {
+    const card = document.createElement("div");
+    card.className = "party-card";
+
+    const name = document.createElement("p");
+    name.className = "inv-gold";
+    name.textContent = `${ally.name} — Level ${ally.level}`;
+    card.appendChild(name);
+
+    const statLine = document.createElement("p");
+    statLine.textContent = `${ally.alive ? `${ally.health}/${ally.maxHealth} HP` : "Down"}   Atk ${ally.atk}   Def ${ally.def}   Acc ${ally.accuracy}   Agi ${ally.agility}   Spd ${ally.speed}`;
+    card.appendChild(statLine);
+
+    const stanceRow = document.createElement("div");
+    stanceRow.className = "party-stance-row";
+    ["aggressive", "defensive", "support"].forEach((stance) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = stance;
+      btn.className = "party-stance-btn" + (ally.stance === stance ? " active" : "");
+      btn.addEventListener("click", () => {
+        ally.stance = stance;
+        renderParty();
+      });
+      stanceRow.appendChild(btn);
+    });
+    card.appendChild(stanceRow);
+
+    const gear = document.createElement("p");
+    const gearBits = EQUIP_SLOTS.filter((s) => (s === "trinkets" ? ally.equipment.trinkets.length : ally.equipment[s])).map((s) =>
+      s === "trinkets" ? ally.equipment.trinkets.map(formatItemLine).join(", ") : formatItemLine(ally.equipment[s])
+    );
+    gear.className = gearBits.length ? "equip-slot-value" : "equip-slot-value inv-empty";
+    gear.textContent = `Gear: ${gearBits.length ? gearBits.join("; ") : `(none — try 'give <item> to ${ally.name}')`}`;
+    card.appendChild(gear);
+
+    partyPanel.appendChild(card);
+  }
+}
+
 function renderActiveTab() {
   if (activeTab === "inventory") renderInventory();
   if (activeTab === "equipment") renderEquipment();
+  if (activeTab === "party") renderParty();
 }
 
 function switchTab(tab) {
@@ -136,6 +192,7 @@ function switchTab(tab) {
   logEl.hidden = tab !== "story";
   invPanel.hidden = tab !== "inventory";
   equipPanel.hidden = tab !== "equipment";
+  partyPanel.hidden = tab !== "party";
   renderActiveTab();
 }
 

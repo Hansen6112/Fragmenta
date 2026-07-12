@@ -121,7 +121,8 @@ body {
 }
 
 #inventory-panel,
-#equipment-panel {
+#equipment-panel,
+#party-panel {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
@@ -129,8 +130,43 @@ body {
 }
 
 #inventory-panel[hidden],
-#equipment-panel[hidden] {
+#equipment-panel[hidden],
+#party-panel[hidden] {
   display: none;
+}
+
+.party-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.party-card p {
+  margin: 0 0 0.5rem;
+}
+
+.party-stance-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.party-stance-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 0.35rem;
+  cursor: pointer;
+}
+
+.party-stance-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .inv-gold {

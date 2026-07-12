@@ -52,6 +52,28 @@ class GameState {
     this.reputation = initialReputation(); // factionId -> -100..100, all 0 until a background is applied
     this.activeJobs = [];
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
+    this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
+  }
+
+  // Adds a new party member from ALLY_DEFS, at the player's current level,
+  // with empty gear and an aggressive default stance. Returns null (and
+  // adds nothing) if that ally is already in the party or the id is
+  // unknown — the caller (parser.js's cmdRecruit) is responsible for any
+  // recruitment gating; this just does the actual joining.
+  recruitAlly(defId) {
+    if (!ALLY_DEFS[defId] || this.party.some((a) => a.defId === defId)) return null;
+    const ally = {
+      defId,
+      name: ALLY_DEFS[defId].name,
+      level: this.level,
+      stance: "aggressive",
+      equipment: emptyEquipment(),
+      alive: true,
+    };
+    recomputeAllyStats(ally, this.level);
+    ally.health = ally.maxHealth;
+    this.party.push(ally);
+    return ally;
   }
 
   // Applies a chosen background's stats, kit, location, and flags. Called
@@ -146,6 +168,7 @@ class GameState {
       this.xp -= xpToNextLevel(this.level);
       this.level += 1;
       this.recomputeStats(true);
+      this.party.forEach((ally) => recomputeAllyStats(ally, this.level));
       lines.push(`*** Level up! You are now level ${this.level}. ***`);
       if (this.level === 15 && this.flags.isMage && this.primaryElement && !this.flags.level15ChoiceMade) {
         this.flags.pendingLevel15Choice = true;
@@ -202,6 +225,7 @@ class GameState {
       reputation: this.reputation,
       activeJobs: this.activeJobs,
       boards: this.boards,
+      party: this.party,
     };
   }
 
@@ -238,5 +262,35 @@ class GameState {
 
   static hasSave() {
     return !!localStorage.getItem("fragmenta_save");
+  }
+}
+
+// Recalculates an ally's atk/def/maxHealth/accuracy/agility/speed from
+// scratch — ALLY_DEFS's flat mod + Math.round(growth * (level-1)), on top
+// of the same BASE_* constants the player uses, plus whatever's in the
+// ally's own equipment (equipmentBonus only ever reads its argument's
+// .equipment field, so passing the ally object directly works exactly
+// like passing `state` does for the player). Called on recruit, on every
+// player level-up (allies share the player's level, at least until they
+// have their own XP/quest-driven growth), and after any gear change.
+// Mirrors GameState.recomputeStats's healOnGain behavior: gained max
+// Health is added to current health, not just reset to full.
+function recomputeAllyStats(ally, level) {
+  const def = ALLY_DEFS[ally.defId];
+  if (!def) return;
+  const n = level - 1;
+  const g = def.growth || {};
+  const oldMaxHealth = ally.maxHealth || 0;
+  ally.level = level;
+  ally.atk = BASE_ATK + (def.atkMod || 0) + Math.round((g.atk || 0) * n) + equipmentBonus(ally, "atk");
+  ally.def = BASE_DEF + (def.defMod || 0) + Math.round((g.def || 0) * n) + equipmentBonus(ally, "def");
+  ally.maxHealth = BASE_HEALTH + (def.healthMod || 0) + Math.round((g.health || 0) * n) + equipmentBonus(ally, "health");
+  ally.accuracy = BASE_ACCURACY + (def.accuracyMod || 0) + Math.round((g.accuracy || 0) * n) + equipmentBonus(ally, "accuracy");
+  ally.agility = BASE_AGILITY + (def.agilityMod || 0) + Math.round((g.agility || 0) * n) + equipmentBonus(ally, "agility");
+  ally.speed = BASE_SPEED + (def.speedMod || 0) + Math.round((g.speed || 0) * n) + equipmentBonus(ally, "speed");
+  if (ally.health == null) {
+    ally.health = ally.maxHealth;
+  } else {
+    ally.health = Math.min(ally.health + Math.max(0, ally.maxHealth - oldMaxHealth), ally.maxHealth);
   }
 }
