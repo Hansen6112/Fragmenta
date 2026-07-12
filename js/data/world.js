@@ -2743,6 +2743,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation. Like its counterparts elsewhere in the Empire, it stands ready for a network that doesn't yet exist.",
       },
+      // ---------------------------------------------------- TRADE QUARTER
+      oreExchange: {
+        name: "The Ore Exchange",
+        type: "street",
+        district: "Trade Quarter (The Ore Exchange)",
+        description:
+          "Raw materials flow through this district before becoming the Empire's greatest weapons.",
+      },
+      oreGate: {
+        name: "Ore Gate",
+        type: "gate",
+        district: "Trade Quarter (The Ore Exchange)",
+        description:
+          "Primary entrance for mining caravans arriving from the surrounding mountains.",
+      },
+      customsHall: {
+        name: "Customs Hall",
+        type: "landmark",
+        district: "Trade Quarter (The Ore Exchange)",
+        description:
+          "Inspects incoming ore shipments and commercial goods.",
+      },
+      greatSmelters: {
+        name: "The Great Smelters",
+        type: "landmark",
+        district: "Trade Quarter (The Ore Exchange)",
+        description:
+          "Massive furnaces refining ore from across Sanguivorum.",
+      },
+      oreWarehouses: {
+        name: "Ore Warehouses",
+        type: "landmark",
+        district: "Trade Quarter (The Ore Exchange)",
+        description:
+          "Secure storage for precious metals and refined materials.",
+      },
+      minersGuildHall: {
+        name: "Miner's Guild Hall",
+        type: "guildhall",
+        district: "Trade Quarter (The Ore Exchange)",
+        description:
+          "Coordinates mining operations throughout the region.",
+      },
+      freightOffice: {
+        name: "Freight Office",
+        type: "landmark",
+        district: "Trade Quarter (The Ore Exchange)",
+        description:
+          "Organizes industrial transport across the Empire.",
+      },
     },
   },
   silvanor: {
