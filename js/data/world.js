@@ -91,6 +91,7 @@ const LOCATIONS = {
   // ------------------------------------------------------------ SANGUIVORUM
   zuevaron: {
     name: "Zuevaron",
+    title: "The Heart of the Empire",
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
@@ -98,31 +99,74 @@ const LOCATIONS = {
     danger: 1,
     services: ["rest", "shop", "healer"],
     description:
-      "The capital of Sanguivorum, where the river forks toward the Kabal Tower. Senate banners hang from Ingenum-cut stone, and every citizen you pass walks like they're being graded on it.",
+      "Built where the great rivers converge beneath the shadow of the Kabal Bridge, Zuevaron is the political, military, and cultural capital of Sanguivorum. Every imperial road eventually leads here. Senators shape the future of the Empire, generals receive their commands, and citizens from every nation walk its streets.",
     connections: [
       { to: "kabal_tower", days: 4, mode: "road" },
       { to: "arethon", days: 3, mode: "road" },
       { to: "apollyon", days: 2, mode: "road" },
       { to: "tritoneth", days: 6, mode: "road", desc: "north into the tundra" },
     ],
+    // Zuevaron's real district layout, built quarter by quarter (same
+    // workflow as Arethon) — the Civic Quarter (The Imperial Forum) is
+    // the first. Every place carries a `district` tag for grouping in
+    // cmdLook/cmdPlaces; the Imperial Forum itself is the district's own
+    // walkable hub, so it doesn't need one.
     sublocations: {
-      tavern: {
-        name: "The Bronze Ledger",
-        type: "inn",
+      imperialForum: {
+        name: "The Imperial Forum",
+        type: "street",
+        district: "Civic Quarter (The Imperial Forum)",
         description:
-          "A tidy inn named, everyone assumes, for the Senate's own accounting rooms — a joke the innkeeper never confirms or denies. Off-duty clerks and Legion pay-officers share the long tables, comparing whose posting is worse.",
+          "Zuevaron's civic core, where the machinery of governing an empire is visible at street level — petitioners waiting outside marble halls, couriers cutting between offices, citizens debating half-heard Senate business before it's even been voted on. Every imperial road empties into it eventually, whether you meant to arrive here or not.",
       },
-      market: {
-        name: "The Ingenum Concourse",
-        type: "market",
+      imperatorsGate: {
+        name: "The Imperator's Gate",
+        type: "gate",
+        district: "Civic Quarter (The Imperial Forum)",
         description:
-          "A colonnaded market built to Ingenum specification, every stall the same width, every awning the same red. Efficient to a fault — you can find anything here in under a minute, and no one will chat with you while you look.",
+          "The grand western entrance to the capital, where triumphal processions, ambassadors, and imperial guests first enter the city.",
       },
-      senateSteps: {
-        name: "The Senate Steps",
+      hallOfSenate: {
+        name: "The Hall of the Senate",
         type: "landmark",
+        district: "Civic Quarter (The Imperial Forum)",
         description:
-          "Wide Ingenum-cut steps facing the Senate house, where citizens read the day's postings aloud to whoever's within earshot — half news, half performance. \"A citizen is a tool that knows itself,\" someone always mutters, like it's supposed to be comforting.",
+          "The seat of the Imperial Senate where the laws of Sanguivorum are debated and enacted.",
+      },
+      palaceOfAscendus: {
+        name: "The Palace of the Ascendus",
+        type: "landmark",
+        district: "Civic Quarter (The Imperial Forum)",
+        description:
+          "Residence and administrative offices of the Imperator.",
+      },
+      forumMagnus: {
+        name: "The Forum Magnus",
+        type: "street",
+        district: "Civic Quarter (The Imperial Forum)",
+        description:
+          "The largest public square in the Empire. Political speeches, celebrations, executions, and festivals are all held here.",
+      },
+      imperialLedger: {
+        name: "The Imperial Ledger",
+        type: "board",
+        district: "Civic Quarter (The Imperial Forum)",
+        description:
+          "Official civic postings ranging from courier work to imperial contracts.",
+      },
+      citizensQuarter: {
+        name: "The Citizen's Quarter",
+        type: "residential",
+        district: "Civic Quarter (The Imperial Forum)",
+        description:
+          "Home to government officials, merchants, scholars, and long-established families.",
+      },
+      officeOfCivicOrder: {
+        name: "The Office of Civic Order",
+        type: "barracks",
+        district: "Civic Quarter (The Imperial Forum)",
+        description:
+          "The administrative headquarters of the Capital Watch.",
       },
     },
   },
