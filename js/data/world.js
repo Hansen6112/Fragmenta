@@ -2793,6 +2793,57 @@ const LOCATIONS = {
         description:
           "Organizes industrial transport across the Empire.",
       },
+      // ------------------------------------------------- ARTISAN QUARTER
+      hammerWard: {
+        name: "Hammer Ward",
+        type: "street",
+        district: "Artisan Quarter (Hammer Ward)",
+        description:
+          "No district in Fragmenta rivals the concentration of master craftsmen found here.",
+      },
+      kingsHammer: {
+        name: "King's Hammer",
+        type: "landmark",
+        district: "Artisan Quarter (Hammer Ward)",
+        description:
+          "Produces legendary weapons commissioned by nobles and heroes alike.",
+      },
+      stonecuttersHall: {
+        name: "Stonecutter's Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Hammer Ward)",
+        description:
+          "Responsible for Vulcaron's monumental architecture.",
+      },
+      emberStitch: {
+        name: "Ember Stitch",
+        type: "landmark",
+        district: "Artisan Quarter (Hammer Ward)",
+        description:
+          "Crafts protective garments, forge aprons, and expedition equipment.",
+      },
+      gemfireJewelers: {
+        name: "Gemfire Jewelers",
+        type: "shop",
+        district: "Artisan Quarter (Hammer Ward)",
+        shopCategory: "jewelry",
+        description:
+          "Works precious gems recovered from the volcanic depths.",
+      },
+      mastersWorkshop: {
+        name: "Master's Workshop",
+        type: "landmark",
+        district: "Artisan Quarter (Hammer Ward)",
+        description:
+          "Shared workshops where master craftsmen collaborate on extraordinary commissions.",
+      },
+      timberAndTongs: {
+        name: "Timber & Tongs",
+        type: "landmark",
+        district: "Artisan Quarter (Hammer Ward)",
+        description:
+          "Produces mining supports, wagons, and industrial frameworks.",
+      },
     },
   },
   silvanor: {
