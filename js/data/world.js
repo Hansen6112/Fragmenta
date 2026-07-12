@@ -3291,6 +3291,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation. Like its counterparts elsewhere in the Empire, it stands ready for a network that doesn't yet exist.",
       },
+      // ---------------------------------------------------- TRADE QUARTER
+      buildersExchange: {
+        name: "The Builder's Exchange",
+        type: "street",
+        district: "Trade Quarter (The Builder's Exchange)",
+        description:
+          "Every major construction project in Sanguivorum begins here.",
+      },
+      buildersGate: {
+        name: "Builder's Gate",
+        type: "gate",
+        district: "Trade Quarter (The Builder's Exchange)",
+        description:
+          "Primary entrance for construction caravans and heavy freight.",
+      },
+      materialsOffice: {
+        name: "Materials Office",
+        type: "landmark",
+        district: "Trade Quarter (The Builder's Exchange)",
+        description:
+          "Records incoming timber, stone, iron, and industrial supplies.",
+      },
+      grandStorehouses: {
+        name: "Grand Storehouses",
+        type: "landmark",
+        district: "Trade Quarter (The Builder's Exchange)",
+        description:
+          "Warehouses holding construction materials awaiting distribution.",
+      },
+      surveyorsHall: {
+        name: "Surveyor's Hall",
+        type: "guildhall",
+        district: "Trade Quarter (The Builder's Exchange)",
+        description:
+          "Coordinates public works and infrastructure across the Empire.",
+      },
+      freightBureau: {
+        name: "Freight Bureau",
+        type: "landmark",
+        district: "Trade Quarter (The Builder's Exchange)",
+        description:
+          "Schedules transportation for large engineering projects.",
+      },
+      craneYard: {
+        name: "Crane Yard",
+        type: "landmark",
+        district: "Trade Quarter (The Builder's Exchange)",
+        description:
+          "Massive lifting equipment operates continuously to load and unload heavy cargo.",
+      },
     },
   },
   silvanor: {
