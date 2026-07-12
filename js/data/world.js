@@ -611,6 +611,59 @@ const LOCATIONS = {
         description:
           "A repair yard infamous for never closing. Wagons damaged on the frontier often arrive here before their owners find lodging.",
       },
+      // ------------------------------------------- NOBLE AND DIPLOMATIC WARD
+      // Residences and ceremonial spaces — no shops or rest services
+      // implied by any of these; the quarter's business is standing, not
+      // commerce.
+      highWard: {
+        name: "The High Ward",
+        type: "residential",
+        district: "Noble and Diplomatic Quarter (The High Ward)",
+        description:
+          "Arethon's quietest streets, in the specific way that comes from everyone in them being careful. Wide avenues, high walls, and the sense that every conversation here is also, somehow, a negotiation.",
+      },
+      houseOfEasternSeat: {
+        name: "The House of the Eastern Seat",
+        type: "landmark",
+        district: "Noble and Diplomatic Quarter (The High Ward)",
+        description:
+          "The official residence of Arethon's Ascendus senator. Less a palace than a fortified administrative estate.",
+      },
+      laurelTerraces: {
+        name: "The Laurel Terraces",
+        type: "residential",
+        district: "Noble and Diplomatic Quarter (The High Ward)",
+        description:
+          "A collection of villas occupied by senior officers, wealthy merchants, established civic families, and retired senators.",
+      },
+      houseOfSandAndBronze: {
+        name: "The House of Sand and Bronze",
+        type: "residential",
+        district: "Noble and Diplomatic Quarter (The High Ward)",
+        description:
+          "The formal residence assigned to Sahrimori envoys and trade representatives. Its guards are watched nearly as closely as its guests.",
+      },
+      quietEmbassy: {
+        name: "The Quiet Embassy",
+        type: "residential",
+        district: "Noble and Diplomatic Quarter (The High Ward)",
+        description:
+          "A neutral residence used by delegations from nations other than Sahrimor. Its name reflects the expectation that foreign visitors speak carefully in Arethon.",
+      },
+      governorsGarden: {
+        name: "The Governor's Garden",
+        type: "landmark",
+        district: "Noble and Diplomatic Quarter (The High Ward)",
+        description:
+          "A walled ceremonial garden used for private meetings, honors, negotiations, and carefully staged public receptions.",
+      },
+      hallOfProvenMerit: {
+        name: "The Hall of Proven Merit",
+        type: "landmark",
+        district: "Noble and Diplomatic Quarter (The High Ward)",
+        description:
+          "A banquet and civic reception hall where promotions, awards, military appointments, and commercial recognitions are announced.",
+      },
     },
   },
   apollyon: {
