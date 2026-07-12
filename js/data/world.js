@@ -3530,17 +3530,81 @@ const LOCATIONS = {
   },
   silvanor: {
     name: "Silvanor",
+    title: "The Living Canopy",
     nation: "sanguivorum",
-    terrain: "mountain",
+    terrain: "forest",
     isCity: true,
     danger: 2,
     services: ["rest"],
     description:
-      "A quiet mountain town beneath the northern range, known mostly for the trees that cluster oddly close around it — no one has ever quite explained why nothing is logged within a mile of the walls.",
+      "Silvanor is unlike any other city in Sanguivorum. Rather than conquering the ancient forest, its founders learned to build within it. Great halls are grown instead of quarried, bridges weave through colossal branches, and homes rest among living trunks that have stood for centuries. It is the cultural heart of Sanguivorum's Dragonborn population and the Empire's foremost authority on forestry, conservation, and wilderness survival. Here, civilization exists not in opposition to nature, but in partnership with it.",
     connections: [
       { to: "vulcaron", days: 2, mode: "road" },
       { to: "netturon", days: 3, mode: "road" },
     ],
+    // Silvanor's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron,
+    // Daedaron, and Minervon) — the Civic Quarter (The Canopy Forum) is
+    // the first. Every place carries a `district` tag for grouping in
+    // cmdLook/cmdPlaces; the Canopy Forum itself is the district's own
+    // walkable hub, so it doesn't need one. Silvanor is an existing stub
+    // (exact name match, no rename needed, same as Vulcaron and
+    // Minervon) — its prior terrain was "mountain", but the new lore
+    // describes an ancient-forest tree-city, so terrain is corrected to
+    // "forest" (its old one-line stub description even hinted at this:
+    // "known mostly for the trees that cluster oddly close around it").
+    // Services and road connections to Vulcaron/Netturon are preserved.
+    sublocations: {
+      canopyForum: {
+        name: "The Canopy Forum",
+        type: "street",
+        district: "Civic Quarter (The Canopy Forum)",
+        description:
+          "Government conducted beneath the shade of ancient trees.",
+      },
+      greenwoodGate: {
+        name: "The Greenwood Gate",
+        type: "gate",
+        district: "Civic Quarter (The Canopy Forum)",
+        description:
+          "The principal entrance into Silvanor, formed by two colossal living oaks whose branches have naturally intertwined overhead.",
+      },
+      hallOfLivingBoughs: {
+        name: "Hall of Living Boughs",
+        type: "landmark",
+        district: "Civic Quarter (The Canopy Forum)",
+        description:
+          "The seat of Silvanor's Ascendus senator, constructed entirely from living wood shaped over generations.",
+      },
+      verdantSquare: {
+        name: "Verdant Square",
+        type: "street",
+        district: "Civic Quarter (The Canopy Forum)",
+        description:
+          "A circular gathering place where festivals, public announcements, and seasonal celebrations are held beneath the forest canopy.",
+      },
+      rangersLedger: {
+        name: "The Ranger's Ledger",
+        type: "board",
+        district: "Civic Quarter (The Canopy Forum)",
+        description:
+          "Requests for monster hunts, forest patrols, botanical expeditions, and conservation efforts are posted here.",
+      },
+      canopyWard: {
+        name: "Canopy Ward",
+        type: "residential",
+        district: "Civic Quarter (The Canopy Forum)",
+        description:
+          "Homes woven into the trunks and branches of ancient trees.",
+      },
+      forestVigilisHeadquarters: {
+        name: "Forest Vigilis Headquarters",
+        type: "barracks",
+        district: "Civic Quarter (The Canopy Forum)",
+        description:
+          "Maintains order while protecting both the city and the surrounding forest.",
+      },
+    },
   },
   netturon: {
     name: "Netturon",
