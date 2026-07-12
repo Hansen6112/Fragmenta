@@ -128,6 +128,7 @@ const LOCATIONS = {
   },
   arethon: {
     name: "Arethon",
+    title: "The Eastern Bastion",
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
@@ -135,7 +136,7 @@ const LOCATIONS = {
     danger: 2,
     services: ["rest", "shop", "healer", "guild"],
     description:
-      "A hub city on the empire's war front, where twelve roads meet and Legion columns rotate through on their way to the fifteen-year stalemate with Sahrimor. The market smells like oiled leather and unspent orders.",
+      "A former commercial gateway transformed by war into Sanguivorum's principal eastern fortress. Arethon still carries the bones of a trade city, but nearly every street now serves the frontier: soldiers drill beside caravan yards, merchants bargain beneath watchtowers, and memorials stand where warehouses once did.",
     connections: [
       { to: "zuevaron", days: 3, mode: "road" },
       { to: "apollyon", days: 2, mode: "road" },
@@ -143,24 +144,67 @@ const LOCATIONS = {
       { to: "the_rivers_gate", days: 9, mode: "road", desc: "south toward the Vaeloris border" },
       { to: "sahurim", days: 13, mode: "road", desc: "the bridge road, through the Desert War front" },
     ],
+    // Arethon's real district layout, built quarter by quarter (see the
+    // workflow this was planned under) — the Civic Quarter (The Forum) is
+    // the first. Every place carries a `district` tag for grouping in
+    // cmdLook/cmdPlaces; The Forum itself is the district's own walkable
+    // hub, so it doesn't need one.
     sublocations: {
-      tavern: {
-        name: "The Twelve Roads",
-        type: "inn",
+      forum: {
+        name: "The Forum",
+        type: "street",
+        district: "Civic Quarter (The Forum)", // same district value as its own buildings — see the grouping helper in parser.js
         description:
-          "Named for the roads that meet here, and busy at every hour a column happens to be rotating through. A mercenary leans off the tavern wall most nights, watching the room like she's pricing everyone in it.",
+          "Arethon's civic heart, where the business of actually running a fortress city gets done — petitions, measures, notices, and the watch that keeps it all from fraying at the edges. The roads through here are cut wide enough for a Legion column, on the rare day one needs to pass through the Forum rather than around it.",
       },
-      market: {
-        name: "The Column Market",
-        type: "market",
+      aretineGate: {
+        name: "The Aretine Gate",
+        type: "gate",
+        district: "Civic Quarter (The Forum)",
         description:
-          "Stalls packed in tight along the old supply road, smelling of oiled leather and unspent orders. Half the trade here is legitimate quartermaster surplus; the other half, no one asks too closely about.",
+          "Arethon's primary western entrance and the roadward face of the city. Travelers entering from the Sanguivorum interior pass beneath bronze reliefs depicting the city before and after its militarization.",
       },
-      muster: {
-        name: "The Legion Muster",
+      hallOfAscendus: {
+        name: "The Hall of the Ascendus",
+        type: "landmark",
+        district: "Civic Quarter (The Forum)",
+        description:
+          "The administrative seat of Arethon's ruling senator. Petitions, legal disputes, taxation matters, and official appointments are handled within its severe marble chambers.",
+      },
+      chamberOfMeasures: {
+        name: "The Chamber of Measures",
+        type: "landmark",
+        district: "Civic Quarter (The Forum)",
+        description:
+          "A smaller civic hall where city officials record supply levels, population movement, commercial output, and military readiness. Arethon measures itself constantly.",
+      },
+      squareOfFirstStandard: {
+        name: "The Square of the First Standard",
+        type: "street",
+        district: "Civic Quarter (The Forum)",
+        description:
+          "The central public plaza, named for the first Legion standard raised when Arethon became a fortress city. Public announcements, civic ceremonies, and military departures begin here.",
+      },
+      bronzeLedger: {
+        name: "The Bronze Ledger",
+        type: "board",
+        district: "Civic Quarter (The Forum)",
+        description:
+          "Arethon's public notice board, framed in bronze and guarded against tampering. Jobs, decrees, missing-person notices, military requisitions, and public judgments are posted here.",
+      },
+      citizensSteps: {
+        name: "The Citizens' Steps",
+        type: "residential",
+        district: "Civic Quarter (The Forum)",
+        description:
+          "A broad residential ward built along rising stone terraces. Veterans, civic officials, artisans, and long-established families occupy the tightly ordered streets.",
+      },
+      vigilOffice: {
+        name: "The Vigil Office",
         type: "barracks",
+        district: "Civic Quarter (The Forum)",
         description:
-          "A drilling yard where Legion columns stage before rotating out to the Desert War front. Officers post the casualty lists here first, before anywhere else in the city — Arethon reads them before it reads anything.",
+          "Headquarters of the city watch. Less prestigious than the Legion, but far more involved in theft, unrest, smuggling, and ordinary city crime.",
       },
     },
   },

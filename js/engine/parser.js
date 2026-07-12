@@ -255,16 +255,20 @@ function cmdLook(state) {
   const active = place || loc; // whichever place you're actually standing in, for the services/commands hints below
   const lines = place ? [`== ${place.name} ==`, place.description] : [`== ${loc.name} ==`, loc.description];
   if (place) {
-    const others = Object.values(loc.sublocations)
-      .filter((s) => s !== place)
-      .map((s) => s.name);
-    lines.push(`Other places in ${loc.name}: ${others.join(", ")}.`);
-    lines.push("(go back to return to the square)");
+    // Scoped to the current place's own district once a city has enough
+    // places that "everywhere in the city" stops being a readable list —
+    // no district on the current place (rare) falls back to everywhere.
+    const siblings = place.district
+      ? Object.values(loc.sublocations).filter((s) => s !== place && s.district === place.district)
+      : Object.values(loc.sublocations).filter((s) => s !== place);
+    lines.push(`Other places in ${place.district || loc.name}: ${siblings.map((s) => s.name).join(", ")}.`);
+    lines.push("(go back to return to the square, or 'places' for the full directory)");
   } else {
     const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
     lines.push(`Paths from here: ${exits}.`);
     if (loc.sublocations) {
-      lines.push(`Around the city: ${Object.values(loc.sublocations).map((s) => s.name).join(", ")}.`);
+      lines.push("Around the city:");
+      groupPlacesByDistrict(Object.values(loc.sublocations)).forEach((g) => lines.push(`  ${g}.`));
     }
   }
   const services = effectiveServices(active);
@@ -412,24 +416,40 @@ function cmdMap(state) {
 // A slimmer version of cmdLook's "other places nearby" line, with none of
 // the full description — just what's reachable from right here, whether
 // that's a city's own sublocations or another city entirely.
+// Unlike cmdLook's brief, district-scoped "other places nearby" line,
+// 'places' is always the full directory of the current city — grouped by
+// district so a city with dozens of sublocations still reads cleanly —
+// regardless of which specific spot you're standing in.
 function cmdPlaces(state) {
   const loc = state.currentLocation();
   const place = state.currentSublocation();
   const lines = [];
+  if (loc.sublocations) {
+    lines.push(`Around ${loc.name}:`);
+    groupPlacesByDistrict(Object.values(loc.sublocations)).forEach((g) => lines.push(`  ${g}.`));
+  }
+  const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
+  lines.push(`Farther afield: ${exits}.`);
   if (place) {
-    const others = Object.values(loc.sublocations)
-      .filter((s) => s !== place)
-      .map((s) => s.name);
-    lines.push(`From ${place.name}, you can reach: ${others.join(", ")}.`);
     lines.push("(go back to return to the square)");
-  } else {
-    if (loc.sublocations) {
-      lines.push(`Around ${loc.name}: ${Object.values(loc.sublocations).map((s) => s.name).join(", ")}.`);
-    }
-    const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
-    lines.push(`Farther afield: ${exits}.`);
   }
   return lines;
+}
+
+// Groups a city's sublocations by their `district` tag for readable
+// listings at scale — a flat "places: A, B, C, ... (70 names)" line stops
+// being readable once a city has more than a handful of places. Entries
+// with no district (a quarter's own hub can share its children's district
+// string; a rare standalone landmark might have none at all) land in an
+// "Other" bucket rather than being silently dropped.
+function groupPlacesByDistrict(places) {
+  const groups = new Map();
+  for (const p of places) {
+    const key = p.district || "Other";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p.name);
+  }
+  return Array.from(groups.entries()).map(([district, names]) => `${district}: ${names.join(", ")}`);
 }
 
 function cmdInventory(state) {
