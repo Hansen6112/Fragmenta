@@ -2354,6 +2354,35 @@ const LOCATIONS = {
         description:
           "A gathering place for senior officers, scholars, and respected captains.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      ancientLighthouse: {
+        name: "The Ancient Lighthouse",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The oldest known structure on Sanguivorum's western coast. Older than the Great Mage War, older than the Kabal, and still burning without fuel or keeper. Its true origin remains unknown, and the Conclave's findings are classified.",
+      },
+      twinCliffs: {
+        name: "The Twin Cliffs",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "Towering stone walls that transform the fjord into one of the most defensible waterways in the world.",
+      },
+      defendersWall: {
+        name: "Defender's Wall",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A colossal coastal wall connecting the city's primary fortifications.",
+      },
+      westernBeacon: {
+        name: "The Western Beacon",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A military signal tower used to coordinate defenses along the coastline.",
+      },
     },
   },
   vulcaron: {
