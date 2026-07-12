@@ -480,6 +480,74 @@ const LOCATIONS = {
         description:
           "A secure chamber for dangerous artifacts, confiscated magical objects, and evidence awaiting transfer to the Kabal Tower.",
       },
+      // -------------------------------------------------------- TRADE QUARTER
+      // Customs, logistics, and wholesale — distinct from the Marches
+      // Market's retail shops. Nothing here is a consumer storefront (the
+      // Long Warehouse holds bonded goods, not stock for sale), so nothing
+      // gets a shopCategory despite some of these reading shop-adjacent.
+      caravanExchange: {
+        name: "The Caravan Exchange",
+        type: "street",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "The working end of Arethon's commerce — less browsing, more paperwork. Wagon wheels and ledger stamps instead of the Marches Market's haggling, and everyone here has somewhere to be.",
+      },
+      gateOfWeights: {
+        name: "The Gate of Weights",
+        type: "gate",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "The controlled eastern entrance used by caravans arriving from Sahrimor. Every wagon, seal, manifest, and water allotment is inspected here.",
+      },
+      officeOfSeals: {
+        name: "The Office of Seals",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Arethon's customs house. Trade permissions, caravan licenses, tariffs, and border documentation are issued and reviewed within.",
+      },
+      nineRoadsYard: {
+        name: "The Nine Roads Yard",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "A sprawling caravan staging ground divided by route, destination, and cargo type. The name refers to the old belief that every road worth traveling eventually passed through Arethon.",
+      },
+      longWarehouse: {
+        name: "The Long Warehouse",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "The largest bonded warehouse in the city. Foreign goods remain here until inspected, taxed, released, or confiscated.",
+      },
+      easternFreightHall: {
+        name: "The Eastern Freight Hall",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "A commercial dispatch office connecting merchants with wagons, guards, couriers, pack animals, and river transport.",
+      },
+      riverTeeth: {
+        name: "The River Teeth",
+        type: "docks",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Arethon's fortified docks, named for the angled stone piers that break the current. Military ferries, merchant barges, and patrol boats share the riverfront.",
+      },
+      caravanMastersHouse: {
+        name: "The Caravan Masters' House",
+        type: "guildhall",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "A private but influential meeting hall used by major trade companies, route planners, and licensed convoy leaders.",
+      },
+      dustCourt: {
+        name: "The Dust Court",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "An open inspection yard for desert caravans. Sand is swept from cargo, animals are checked, and suspicious shipments are isolated before entering the city.",
+      },
     },
   },
   apollyon: {
