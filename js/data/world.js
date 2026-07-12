@@ -405,6 +405,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned long-distance magical transportation. The chamber stands ready; the network it's meant to connect to doesn't yet.",
       },
+      // ---------------------------------------------------- TRADE QUARTER
+      riverExchange: {
+        name: "The River Exchange",
+        type: "street",
+        district: "Trade Quarter (The River Exchange)",
+        description:
+          "Where the capital's river trade actually gets processed — less ceremony than the Imperial Exchange, more shouting, and considerably more mud. Every cargo bound anywhere in the Empire passes through here first.",
+      },
+      riverGates: {
+        name: "The River Gates",
+        type: "gate",
+        district: "Trade Quarter (The River Exchange)",
+        description:
+          "Massive river checkpoints regulating traffic entering the capital.",
+      },
+      customsHall: {
+        name: "The Customs Hall",
+        type: "landmark",
+        district: "Trade Quarter (The River Exchange)",
+        description:
+          "Every shipment entering Zuevaron is documented here.",
+      },
+      grandWarehouses: {
+        name: "The Grand Warehouses",
+        type: "landmark",
+        district: "Trade Quarter (The River Exchange)",
+        description:
+          "Gigantic storage halls supplying the Empire.",
+      },
+      merchantDocks: {
+        name: "The Merchant Docks",
+        type: "docks",
+        district: "Trade Quarter (The River Exchange)",
+        description:
+          "Bustling river docks filled with vessels from every nation.",
+      },
+      guildOfCaravans: {
+        name: "The Guild of Caravans",
+        type: "guildhall",
+        district: "Trade Quarter (The River Exchange)",
+        description:
+          "Coordinates the Empire's overland trade routes.",
+      },
+      hallOfCommerce: {
+        name: "The Hall of Commerce",
+        type: "landmark",
+        district: "Trade Quarter (The River Exchange)",
+        description:
+          "Economic policy for the Empire begins here.",
+      },
     },
   },
   arethon: {
