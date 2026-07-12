@@ -571,6 +571,63 @@ const LOCATIONS = {
         description:
           "A perpetual flame honoring those who gave their lives in service to the Empire.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as Arethon's own Exploration
+      // Locations batch — no wrapping hub, shared district string for
+      // grouping, `dangerTags` swapping the encounter pool via
+      // exploreOutcome (see engine/parser.js). The dungeon, undercity
+      // tunnels, and senate ruins get "ruin" for skeleton/zombie/animated
+      // armor alongside the bandit/hired-blade "urban" pool; the night
+      // market, riverside promenade, and observation tower stay purely
+      // human-threat "urban".
+      forgottenVaults: {
+        name: "The Forgotten Vaults",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Ancient storage chambers beneath the oldest districts of the capital.",
+      },
+      undercity: {
+        name: "The Undercity",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "A sprawling network of tunnels, forgotten foundations, and hidden passages beneath Zuevaron.",
+      },
+      whisperMarket: {
+        name: "The Whisper Market",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "An unofficial night market where rare goods and whispered information change hands.",
+      },
+      oldSenateRuins: {
+        name: "The Old Senate Ruins",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The remnants of the senate hall that stood before the current imperial capital was expanded.",
+      },
+      riverWalk: {
+        name: "The River Walk",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A scenic promenade along the riverbanks that often hosts festivals, entertainers, and traveling merchants.",
+      },
+      watchCrown: {
+        name: "The Watch Crown",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The highest observation tower in Zuevaron, offering a view across the capital and surrounding countryside.",
+      },
     },
   },
   arethon: {
