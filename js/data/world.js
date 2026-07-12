@@ -455,6 +455,50 @@ const LOCATIONS = {
         description:
           "Economic policy for the Empire begins here.",
       },
+      // ------------------------------------------------- ARTISAN QUARTER
+      foundryWard: {
+        name: "The Foundry Ward",
+        type: "street",
+        district: "Artisan Quarter (The Foundry Ward)",
+        description:
+          "The capital's working quarter, where furnace-heat and stone dust replace the polish of the Imperial Forum. Every master craftsman in Sanguivorum wants a workshop here eventually, whether or not the Empire ever commissions them.",
+      },
+      masterForge: {
+        name: "The Master Forge",
+        type: "landmark",
+        district: "Artisan Quarter (The Foundry Ward)",
+        description:
+          "Produces masterpieces for emperors and heroes alike.",
+      },
+      marbleWorks: {
+        name: "The Marble Works",
+        type: "landmark",
+        district: "Artisan Quarter (The Foundry Ward)",
+        description:
+          "Responsible for many of the capital's monumental buildings.",
+      },
+      weaversHall: {
+        name: "The Weaver's Hall",
+        type: "landmark",
+        district: "Artisan Quarter (The Foundry Ward)",
+        description:
+          "Produces everything from Legion uniforms to senatorial robes.",
+      },
+      hallOfGems: {
+        name: "The Hall of Gems",
+        type: "shop",
+        district: "Artisan Quarter (The Foundry Ward)",
+        shopCategory: "jewelry",
+        description:
+          "The Empire's finest jewelers and seal engravers.",
+      },
+      inventorsCourt: {
+        name: "The Inventor's Court",
+        type: "landmark",
+        district: "Artisan Quarter (The Foundry Ward)",
+        description:
+          "A gathering place for master craftsmen and engineers.",
+      },
     },
   },
   arethon: {
