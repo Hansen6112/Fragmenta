@@ -3996,6 +3996,56 @@ const LOCATIONS = {
         description:
           "Constructs wagons, bridges, siege frames, and academy facilities.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      commandHeights: {
+        name: "Command Heights",
+        type: "residential",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Home to the Empire's greatest military minds.",
+      },
+      houseOfFirstStrategist: {
+        name: "House of the First Strategist",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Residence of Minervon's Ascendus senator.",
+      },
+      generalsEstates: {
+        name: "General's Estates",
+        type: "residential",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Homes of retired generals, academy masters, and distinguished commanders.",
+      },
+      embassyHall: {
+        name: "Embassy Hall",
+        type: "residential",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Hosts foreign observers studying Sanguivorum's military institutions.",
+      },
+      gardenOfVictory: {
+        name: "Garden of Victory",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "A peaceful memorial dedicated to those whose leadership preserved the Empire.",
+      },
+      hallOfTriumphs: {
+        name: "Hall of Triumphs",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "Recognizes extraordinary military leadership and scholarly achievement.",
+      },
+      strategistsCircle: {
+        name: "Strategist's Circle",
+        type: "landmark",
+        district: "Noble Quarter (Command Heights)",
+        description:
+          "A private gathering place where generals, scholars, and instructors debate doctrine and history.",
+      },
     },
   },
   marsatum: {
