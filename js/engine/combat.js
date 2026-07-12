@@ -2380,13 +2380,10 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     const others = enemies.slice(1).map((e) => e.creatureObj.name);
     lines.push(`It isn't alone — ${others.join(", ")} ${others.length === 1 ? "stands" : "stand"} with it.`);
   }
-  // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
-  // Regeneration HoT set up at the moment any fight begins, ticked in
-  // beginTurn the same way burn/bleed are.
-  if (hasEffect(state, "endless_bloom")) {
-    const healPerTurn = Math.ceil(state.maxHealth * 0.05);
-    if (healPerTurn > 0) state.combat.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
-  }
+  // "combat.started" listeners handle every combat-start reaction that
+  // doesn't itself produce a printed line (Endless Bloom's regen setup,
+  // Forest Guardian/Swift Passage's charge transfers) — see below.
+  Events.emit("combat.started", { creature, state });
   // Blessing of the Tide (Regalia of the Endless Tide 2pc): a one-time
   // 10% max Health heal at the moment any fight begins. Renamed from the
   // source text's own "Blessing of Renewal" — that exact name (and a
@@ -2428,22 +2425,6 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
       lines.push(`Blessing of Insight reveals a weakness: ${withThe(creature.name, false)} is exposed to ${counters.join(" and ")}.`);
     }
   }
-  // Forest Guardian (Vaeloris 6pc): a Defense charge earned when Regrowth
-  // activated after the PREVIOUS fight ended (Regrowth itself only ever
-  // fires once combat is already over, so this is how its +2 Defense
-  // actually reaches a fight).
-  if (state.flags.forestGuardianCharge) {
-    state.combat.forestGuardianBonus = 2;
-    state.flags.forestGuardianCharge = false;
-  }
-  // Swift Passage (Divine Regalia — Windstep Boots): transfers the charge
-  // queued in resolveKill (see there) onto this fresh combat object —
-  // consumed by the next Ability/Tactic's own cooldown assignment (Feint/
-  // Decoy/Disarm/useElementAbility; Ambush has no cooldown to zero).
-  if (state.flags.swiftPassageCharge) {
-    state.combat.swiftPassageReady = true;
-    state.flags.swiftPassageCharge = false;
-  }
   // Unsettling: a flat chance the enemy starts the fight already weakened,
   // rolled once here rather than in playerAttack/etc. since it's a
   // combat-start effect, not a per-action one.
@@ -2458,6 +2439,38 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   }
   return lines;
 }
+
+// "combat.started" listeners — every one of these is a hardwired, line-
+// free reaction to a fight beginning that used to sit inline above.
+Events.on("combat.started", ({ state }) => {
+  // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
+  // Regeneration HoT set up at the moment any fight begins, ticked in
+  // beginTurn the same way burn/bleed are.
+  if (hasEffect(state, "endless_bloom")) {
+    const healPerTurn = Math.ceil(state.maxHealth * 0.05);
+    if (healPerTurn > 0) state.combat.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
+  }
+});
+Events.on("combat.started", ({ state }) => {
+  // Forest Guardian (Vaeloris 6pc): a Defense charge earned when Regrowth
+  // activated after the PREVIOUS fight ended (Regrowth itself only ever
+  // fires once combat is already over, so this is how its +2 Defense
+  // actually reaches a fight).
+  if (state.flags.forestGuardianCharge) {
+    state.combat.forestGuardianBonus = 2;
+    state.flags.forestGuardianCharge = false;
+  }
+});
+Events.on("combat.started", ({ state }) => {
+  // Swift Passage (Divine Regalia — Windstep Boots): transfers the charge
+  // queued in resolveKill onto this fresh combat object — consumed by the
+  // next Ability/Tactic's own cooldown assignment (Feint/Decoy/Disarm/
+  // useElementAbility; Ambush has no cooldown to zero).
+  if (state.flags.swiftPassageCharge) {
+    state.combat.swiftPassageReady = true;
+    state.flags.swiftPassageCharge = false;
+  }
+});
 
 // Hold the Line (Legion 8pc): the first time the player's Health drops
 // below 30% each fight, an immediate +6 Defense for 2 turns. Checked
