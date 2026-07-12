@@ -1119,6 +1119,35 @@ const LOCATIONS = {
         description:
           "An exclusive gathering place for admirals, renowned captains, and merchant princes.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      lighthouseOfAphroneth: {
+        name: "Lighthouse of Aphroneth",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A towering beacon guiding ships safely into the Empire's greatest harbor.",
+      },
+      seaKingsArch: {
+        name: "Sea King's Arch",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A monumental stone arch spanning the inner harbor, symbolizing Sanguivorum's prosperity through trade.",
+      },
+      harborBell: {
+        name: "Harbor Bell",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A colossal bronze bell announcing fleet arrivals, emergencies, and imperial proclamations.",
+      },
+      promenadeOfSails: {
+        name: "Promenade of Sails",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A lively waterfront lined with markets, performers, restaurants, and merchant stalls overlooking the sea.",
+      },
     },
   },
   arethon: {
