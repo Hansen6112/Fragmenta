@@ -235,6 +235,70 @@ const LOCATIONS = {
         description:
           "The governing body of commerce within the capital.",
       },
+      // -------------------------------------------------- MILITARY QUARTER
+      firstCitadel: {
+        name: "The First Citadel",
+        type: "barracks",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "The capital's own fortress-district, walled and garrisoned separately from the rest of Zuevaron even though it hasn't faced a siege in living memory. Legion columns drill here on a schedule as fixed as the Senate's own calendar.",
+      },
+      imperialCitadel: {
+        name: "The Imperial Citadel",
+        type: "landmark",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "Headquarters of the Imperial Legion and supreme military command of Sanguivorum.",
+      },
+      hallOfVictories: {
+        name: "The Hall of Victories",
+        type: "landmark",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "Campaign maps, captured standards, and the military history of the Empire fill this grand hall.",
+      },
+      crimsonBarracks: {
+        name: "The Crimson Barracks",
+        type: "barracks",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "Housing for the elite Legion units assigned to protect the capital.",
+      },
+      fieldOfEagles: {
+        name: "The Field of Eagles",
+        type: "barracks",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "The Empire's largest military training grounds.",
+      },
+      imperialArsenal: {
+        name: "The Imperial Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "The most heavily guarded weapons repository in Sanguivorum.",
+      },
+      engineersHall: {
+        name: "The Engineers' Hall",
+        type: "landmark",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "Home of Ingenum's greatest military engineers.",
+      },
+      quartermasterGeneral: {
+        name: "The Quartermaster General",
+        type: "landmark",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "Coordinates supplies for every Legion throughout the Empire.",
+      },
+      houseOfRecovery: {
+        name: "The House of Recovery",
+        type: "healer",
+        district: "Military Quarter (The First Citadel)",
+        description:
+          "The finest military hospital in Sanguivorum.",
+      },
     },
   },
   arethon: {
