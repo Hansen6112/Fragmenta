@@ -3732,6 +3732,59 @@ const LOCATIONS = {
         description:
           "A living observation tower grown from a single colossal tree overlooking the forest.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Life flourishes through balance. The faithful of Aelthyr believe every living thing has a place within the natural order, and stewardship is among the greatest responsibilities entrusted to mortals.",
+      },
+      grandTempleOfAelthyr: {
+        name: "The Grand Temple of Aelthyr",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr"],
+        description:
+          "The greatest sanctuary devoted to Aelthyr in Sanguivorum. Built from living trees rather than carved stone, it serves as both temple and thriving grove.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Welcomes druids, pilgrims, travelers, and those seeking peace beneath the forest canopy.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Silvanor's clergy and caretakers of the sacred groves.",
+      },
+      gardenOfRenewal: {
+        name: "Garden of Renewal",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr"],
+        description:
+          "A living sanctuary where every tree commemorates a life dedicated to protecting nature.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Preserves botanical knowledge, sacred teachings, and centuries of natural history.",
+      },
     },
   },
   netturon: {
