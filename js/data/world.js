@@ -3896,6 +3896,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation.",
       },
+      // ------------------------------------------------------ TRADE QUARTER
+      logisticsQuarter: {
+        name: "The Logistics Quarter",
+        type: "street",
+        district: "Trade Quarter (The Logistics Quarter)",
+        description:
+          "An organized district ensuring every Legion receives what it needs.",
+      },
+      supplyGate: {
+        name: "Supply Gate",
+        type: "gate",
+        district: "Trade Quarter (The Logistics Quarter)",
+        description:
+          "Primary entrance for military caravans.",
+      },
+      militaryCustoms: {
+        name: "Military Customs",
+        type: "landmark",
+        district: "Trade Quarter (The Logistics Quarter)",
+        description:
+          "Inspects supplies destined for imperial forces.",
+      },
+      grandStorehouses: {
+        name: "Grand Storehouses",
+        type: "landmark",
+        district: "Trade Quarter (The Logistics Quarter)",
+        description:
+          "Warehouses filled with uniforms, provisions, weapons, and equipment.",
+      },
+      logisticsBureau: {
+        name: "Logistics Bureau",
+        type: "landmark",
+        district: "Trade Quarter (The Logistics Quarter)",
+        description:
+          "Coordinates military supply distribution across Sanguivorum.",
+      },
+      messengerHall: {
+        name: "Messenger Hall",
+        type: "landmark",
+        district: "Trade Quarter (The Logistics Quarter)",
+        description:
+          "Dispatches official military communications throughout the Empire.",
+      },
+      wagonYard: {
+        name: "Wagon Yard",
+        type: "landmark",
+        district: "Trade Quarter (The Logistics Quarter)",
+        description:
+          "Maintains the vast transport wagons serving the Legions.",
+      },
     },
   },
   marsatum: {
