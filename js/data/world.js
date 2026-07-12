@@ -1013,6 +1013,62 @@ const LOCATIONS = {
         description:
           "Home to Aphroneth's fishing fleet and the city's bustling morning fish market.",
       },
+      // ------------------------------------------------- ARTISAN QUARTER
+      // No jewelry shop this time (unlike Arethon's/Zuevaron's artisan
+      // quarters) — Aphroneth's is entirely shipbuilding-focused, and none
+      // of its named workshops sell goods matching an existing shop
+      // category (weapons/armor/potions/jewelry), so the whole district
+      // stays flavor-only, same principle as Master Forge/Marble Works in
+      // Zuevaron's Foundry Ward.
+      shipwrightsWard: {
+        name: "The Shipwright's Ward",
+        type: "street",
+        district: "Artisan Quarter (The Shipwright's Ward)",
+        description:
+          "The industrial district where vessels destined to cross the seas are designed, built, and repaired.",
+      },
+      ironKeel: {
+        name: "Iron Keel",
+        type: "landmark",
+        district: "Artisan Quarter (The Shipwright's Ward)",
+        description:
+          "Produces anchors, chains, reinforced hull fittings, and heavy naval hardware.",
+      },
+      sailmakersLoft: {
+        name: "Sailmaker's Loft",
+        type: "landmark",
+        district: "Artisan Quarter (The Shipwright's Ward)",
+        description:
+          "Crafts sails, banners, expedition tents, and maritime canvas.",
+      },
+      brassSextant: {
+        name: "Brass Sextant",
+        type: "landmark",
+        district: "Artisan Quarter (The Shipwright's Ward)",
+        description:
+          "Offers navigation instruments, maps, compasses, and surveying equipment.",
+      },
+      ropewalk: {
+        name: "Ropewalk",
+        type: "landmark",
+        district: "Artisan Quarter (The Shipwright's Ward)",
+        description:
+          "Produces rope, rigging, and heavy cable for fleets across the Empire.",
+      },
+      drydockWorks: {
+        name: "Drydock Works",
+        type: "landmark",
+        district: "Artisan Quarter (The Shipwright's Ward)",
+        description:
+          "Constructs and repairs everything from fishing boats to imperial warships.",
+      },
+      carpentersWharf: {
+        name: "Carpenter's Wharf",
+        type: "landmark",
+        district: "Artisan Quarter (The Shipwright's Ward)",
+        description:
+          "Builds masts, docks, wagons, and structural timbers for maritime construction.",
+      },
     },
   },
   arethon: {
