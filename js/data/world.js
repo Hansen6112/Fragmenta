@@ -2844,6 +2844,56 @@ const LOCATIONS = {
         description:
           "Produces mining supports, wagons, and industrial frameworks.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      ashenHeights: {
+        name: "Ashen Heights",
+        type: "residential",
+        district: "Noble Quarter (Ashen Heights)",
+        description:
+          "Home to Vulcaron's wealthiest industrial families and senior engineers.",
+      },
+      houseOfForgeLord: {
+        name: "House of the Forge Lord",
+        type: "landmark",
+        district: "Noble Quarter (Ashen Heights)",
+        description:
+          "Residence of Vulcaron's Ascendus senator.",
+      },
+      foundersEstates: {
+        name: "Founder's Estates",
+        type: "residential",
+        district: "Noble Quarter (Ashen Heights)",
+        description:
+          "Homes of influential mining dynasties and master smiths.",
+      },
+      embassyCourt: {
+        name: "Embassy Court",
+        type: "residential",
+        district: "Noble Quarter (Ashen Heights)",
+        description:
+          "Hosts foreign representatives seeking trade agreements.",
+      },
+      emberGardens: {
+        name: "Ember Gardens",
+        type: "landmark",
+        district: "Noble Quarter (Ashen Heights)",
+        description:
+          "Terraced gardens warmed year-round by geothermal vents.",
+      },
+      hallOfMasterworks: {
+        name: "Hall of Masterworks",
+        type: "landmark",
+        district: "Noble Quarter (Ashen Heights)",
+        description:
+          "Displays history's greatest creations forged within Vulcaron.",
+      },
+      crucibleClub: {
+        name: "The Crucible Club",
+        type: "landmark",
+        district: "Noble Quarter (Ashen Heights)",
+        description:
+          "An exclusive gathering place for master craftsmen, engineers, and industrial leaders.",
+      },
     },
   },
   silvanor: {
