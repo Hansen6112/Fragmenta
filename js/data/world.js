@@ -3785,6 +3785,56 @@ const LOCATIONS = {
         description:
           "Preserves botanical knowledge, sacred teachings, and centuries of natural history.",
       },
+      // ----------------------------------------------------- ARCANE QUARTER
+      verdantConclave: {
+        name: "The Verdant Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Verdant Conclave)",
+        description:
+          "The Kabal's center for natural magic, druidic study, and ecological research.",
+      },
+      verdantConclaveHall: {
+        name: "Verdant Conclave Hall",
+        type: "landmark",
+        district: "Arcane Quarter (The Verdant Conclave)",
+        description:
+          "Official headquarters of the Kabal within Silvanor.",
+      },
+      registryOfNaturalists: {
+        name: "Registry of Naturalists",
+        type: "landmark",
+        district: "Arcane Quarter (The Verdant Conclave)",
+        description:
+          "Registers druids, nature mages, and magical researchers.",
+      },
+      chamberOfGrowth: {
+        name: "Chamber of Growth",
+        type: "landmark",
+        district: "Arcane Quarter (The Verdant Conclave)",
+        description:
+          "Studies plant magic, natural restoration, and harmonious spellcraft.",
+      },
+      livingRepository: {
+        name: "Living Repository",
+        type: "landmark",
+        district: "Arcane Quarter (The Verdant Conclave)",
+        description:
+          "A library grown rather than built, containing botanical records, magical flora, and ecological research.",
+      },
+      groveResidences: {
+        name: "Grove Residences",
+        type: "residential",
+        district: "Arcane Quarter (The Verdant Conclave)",
+        description:
+          "Housing for resident scholars and nature mages.",
+      },
+      rootCircle: {
+        name: "Root Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The Verdant Conclave)",
+        description:
+          "Reserved for sanctioned magical transportation.",
+      },
     },
   },
   netturon: {
