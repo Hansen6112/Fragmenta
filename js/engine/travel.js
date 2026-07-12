@@ -92,6 +92,17 @@ function findSublocationByName(loc, query) {
     const name = normalizeName(sub.name);
     if (name === q || normalizeName(id) === q) return id;
   }
+  // "go" strips a leading "the" off the player's own query (see
+  // stripLeadingWords in parser.js), so a place literally named "The X"
+  // can never win the tier-1 exact match above through ordinary typing —
+  // check again with each candidate's own leading "the" stripped before
+  // falling back to fuzzy substring matching, so "The Harbor Gate" still
+  // resolves precisely against "harbor gate" even with a same-city
+  // "Harbor Gates" (no "the") sitting right next to it.
+  for (const [id, sub] of Object.entries(loc.sublocations)) {
+    const name = normalizeName(sub.name).replace(/^the\s+/, "");
+    if (name === q) return id;
+  }
   // Among substring matches, prefer the closest name length rather than
   // simply the first one found in insertion order — otherwise a shorter
   // hub name that's a strict prefix of a longer building's name (e.g. "The

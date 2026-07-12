@@ -956,6 +956,63 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation. Like the Circle Chamber at Zuevaron, it stands ready for a network that doesn't yet exist.",
       },
+      // ---------------------------------------------------- TRADE QUARTER
+      grandDocks: {
+        name: "The Grand Docks",
+        type: "docks",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "The busiest harbor in Sanguivorum and among the largest commercial ports on the continent.",
+      },
+      harborGates: {
+        name: "Harbor Gates",
+        type: "gate",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "Primary arrival point for vessels entering Aphroneth.",
+      },
+      customsHall: {
+        name: "Customs Hall",
+        type: "landmark",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "Every cargo entering the Empire is inspected, documented, and taxed here.",
+      },
+      longWharves: {
+        name: "Long Wharves",
+        type: "docks",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "Miles of stone docks capable of servicing merchant fleets from every nation.",
+      },
+      merchantWarehouses: {
+        name: "Merchant Warehouses",
+        type: "landmark",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "Secure storage halls protecting valuable imports awaiting distribution.",
+      },
+      guildOfCaravans: {
+        name: "Guild of Caravans",
+        type: "guildhall",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "Coordinates overland transport throughout Sanguivorum.",
+      },
+      harborMastersOffice: {
+        name: "Harbor Master's Office",
+        type: "landmark",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "Directs harbor traffic, docking assignments, and maritime safety.",
+      },
+      fishermansLanding: {
+        name: "Fisherman's Landing",
+        type: "docks",
+        district: "Trade Quarter (The Grand Docks)",
+        description:
+          "Home to Aphroneth's fishing fleet and the city's bustling morning fish market.",
+      },
     },
   },
   arethon: {
