@@ -206,6 +206,73 @@ const LOCATIONS = {
         description:
           "Headquarters of the city watch. Less prestigious than the Legion, but far more involved in theft, unrest, smuggling, and ordinary city crime.",
       },
+      // ---------------------------------------------- COMMERCIAL QUARTER
+      marchesMarket: {
+        name: "The Marches Market",
+        type: "street",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "Arethon's trading heart, still busy in the old commercial-gateway way even with half the city rebuilt around a garrison. Five specialist shops ring the square, each keeping its own stock rather than pooling it with the rest.",
+      },
+      frontierProvisioner: {
+        name: "The Frontier Provisioner",
+        type: "market",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "A general merchant specializing in travel goods, preserved food, rope, waterskins, lanterns, and basic adventuring supplies. Its stock reflects Arethon's position between meadow and desert.",
+      },
+      legionsArms: {
+        name: "The Legion's Arms",
+        type: "shop",
+        shopCategory: "weapons",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "A respected blacksmith whose weapons are made to Legion measurements even when sold to civilians. Plain, durable, and rarely decorative.",
+      },
+      redShield: {
+        name: "The Red Shield",
+        type: "shop",
+        shopCategory: "armor",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "Arethon's principal armorer. The shop is known for reinforced shields, layered frontier armor, and repairs performed quickly enough for soldiers returning to duty.",
+      },
+      potionarium: {
+        name: "The Potionarium",
+        type: "shop",
+        shopCategory: "potions",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "A licensed alchemical dispensary marked by blue-glass windows and the sharp smell of medicinal herbs. It sells healing draughts, tonics, antitoxins, and approved battlefield mixtures.",
+      },
+      goldenRein: {
+        name: "The Golden Rein",
+        type: "landmark",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "A stable and animal yard serving couriers, caravan masters, officers, and travelers. Sanguivorum horses occupy the front stalls; desert mounts and pack animals are kept farther back.",
+      },
+      marchingMug: {
+        name: "The Marching Mug",
+        type: "inn",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "A broad, noisy inn favored by soldiers, caravan guards, and low-ranking officers. The walls are covered in retired shields, old route maps, and names carved by departing Legionnaires.",
+      },
+      easternScale: {
+        name: "The Eastern Scale",
+        type: "landmark",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "The licensed money changer and appraisal house. Foreign coin, trade bars, gemstones, and sealed merchant credit are converted under civic supervision.",
+      },
+      concordOffice: {
+        name: "The Concord Office",
+        type: "guildhall",
+        district: "Commercial Quarter (The Marches Market)",
+        description:
+          "The local merchant association hall. Trade disputes, caravan partnerships, shipping claims, and commercial licenses are negotiated here.",
+      },
     },
   },
   apollyon: {
