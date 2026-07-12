@@ -3057,6 +3057,73 @@ const LOCATIONS = {
         description:
           "Coordinates roads, bridges, aqueducts, and public infrastructure.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      innovatorsExchange: {
+        name: "The Innovator's Exchange",
+        type: "street",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        description:
+          "Every merchant sells something designed to make life easier.",
+      },
+      utilityHouse: {
+        name: "The Utility House",
+        type: "market",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        description:
+          "Carries practical equipment, tools, travel gear, and specialized instruments.",
+      },
+      precisionForge: {
+        name: "Precision Forge",
+        type: "shop",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        shopCategory: "weapons",
+        description:
+          "Produces finely machined weapons, tools, gears, and mechanical components.",
+      },
+      reinforcedPlate: {
+        name: "Reinforced Plate",
+        type: "shop",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        shopCategory: "armor",
+        description:
+          "Specializes in expertly balanced armor favored by engineers and officers.",
+      },
+      catalystLaboratory: {
+        name: "Catalyst Laboratory",
+        type: "shop",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        shopCategory: "potions",
+        description:
+          "Produces industrial chemicals, solvents, adhesives, and advanced alchemical mixtures.",
+      },
+      buildersStable: {
+        name: "Builder's Stable",
+        type: "landmark",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        description:
+          "Maintains draft animals used for heavy construction projects.",
+      },
+      blueprintTavern: {
+        name: "The Blueprint Tavern",
+        type: "inn",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        description:
+          "A gathering place where inventors exchange ideas late into the night.",
+      },
+      engineersReserve: {
+        name: "Engineer's Reserve",
+        type: "landmark",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        description:
+          "Finances ambitious construction projects and commercial innovation.",
+      },
+      guildOfMakers: {
+        name: "Guild of Makers",
+        type: "guildhall",
+        district: "Commercial Quarter (The Innovator's Exchange)",
+        description:
+          "Represents Daedaron's engineers, builders, and craftsmen.",
+      },
     },
   },
   silvanor: {
