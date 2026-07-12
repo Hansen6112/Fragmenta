@@ -701,6 +701,73 @@ const LOCATIONS = {
         description:
           "The city's lawkeepers specialize in smuggling investigations, customs enforcement, and keeping order along the waterfront.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      sapphireBazaar: {
+        name: "The Sapphire Bazaar",
+        type: "street",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        description:
+          "The wealthiest marketplace in eastern Sanguivorum, famous for imported goods rarely found elsewhere in the Empire.",
+      },
+      tideMarket: {
+        name: "The Tide Market",
+        type: "market",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        description:
+          "Carries everything from common travel supplies to exotic imports from every corner of Fragmenta.",
+      },
+      ironAnchor: {
+        name: "The Iron Anchor",
+        type: "shop",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        shopCategory: "weapons",
+        description:
+          "Produces dependable weapons alongside anchors, chains, harpoons, and heavy ship fittings designed to endure decades at sea.",
+      },
+      seaBastionForge: {
+        name: "The Sea Bastion Forge",
+        type: "shop",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        shopCategory: "armor",
+        description:
+          "Known for corrosion-resistant armor favored by marines, captains, and professional adventurers.",
+      },
+      coralApothecary: {
+        name: "The Coral Apothecary",
+        type: "shop",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        shopCategory: "potions",
+        description:
+          "Specializes in healing tonics, antidotes, diving elixirs, and remedies derived from rare marine plants and creatures.",
+      },
+      navigatorsRein: {
+        name: "The Navigator's Rein",
+        type: "landmark",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        description:
+          "Maintains horses and pack animals for merchants continuing inland after arriving by sea.",
+      },
+      bilgeAndBarrel: {
+        name: "The Bilge & Barrel",
+        type: "inn",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        description:
+          "A legendary waterfront tavern where explorers, sailors, adventurers, and merchants exchange stories over strong drink.",
+      },
+      harborExchange: {
+        name: "The Harbor Exchange",
+        type: "landmark",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        description:
+          "Converts foreign currency, stores merchant wealth, and issues letters of credit recognized throughout the Empire.",
+      },
+      merchantsConcord: {
+        name: "The Merchant's Concord",
+        type: "guildhall",
+        district: "Commercial Quarter (The Sapphire Bazaar)",
+        description:
+          "Guild headquarters where trade disputes are settled and commercial ventures are negotiated.",
+      },
     },
   },
   arethon: {
