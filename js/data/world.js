@@ -2383,6 +2383,60 @@ const LOCATIONS = {
         description:
           "A military signal tower used to coordinate defenses along the coastline.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the lighthouse depths, smuggler's caverns, and forgotten battery
+      // get "ruin" for skeleton/zombie/animated-armor encounters alongside
+      // the bandit/hired-blade "urban" pool; the rest stay purely
+      // human-threat "urban".
+      lighthouseDepths: {
+        name: "The Lighthouse Depths",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Hidden passages beneath the ancient lighthouse whose deepest chambers remain sealed by the Kabal.",
+      },
+      smugglersCaverns: {
+        name: "Smuggler's Caverns",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Sea caves carved beneath the cliffs, once used by smugglers and now inhabited by dangerous creatures.",
+      },
+      forgottenBattery: {
+        name: "The Forgotten Battery",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Ruined coastal fortifications abandoned generations ago.",
+      },
+      echoCliffs: {
+        name: "Echo Cliffs",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "Wind-carved cliffs where strange sounds and unexplained echoes have inspired countless local legends.",
+      },
+      watchersPath: {
+        name: "The Watcher's Path",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A cliffside patrol route frequently used for scouting missions and monster investigations.",
+      },
+      fjordOverlook: {
+        name: "Fjord Overlook",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The highest accessible point in Tritonath, offering an unobstructed view of the ancient lighthouse, the narrow fjord, and the western sea.",
+      },
     },
   },
   vulcaron: {
