@@ -3124,6 +3124,67 @@ const LOCATIONS = {
         description:
           "Represents Daedaron's engineers, builders, and craftsmen.",
       },
+      // -------------------------------------------------- MILITARY QUARTER
+      // The source names both the district hub and its central production
+      // complex "The Engine Bastion" — same situation as the other
+      // cities' Sea Bastion/Great Foundry/Lighthouse Conclave, merged
+      // into one sublocation.
+      engineBastion: {
+        name: "The Engine Bastion",
+        type: "barracks",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "Engineering is as vital to war as swords — this fortress protects Daedaron's workshops and experimental facilities.",
+      },
+      hallOfIngenum: {
+        name: "Hall of Ingenum",
+        type: "landmark",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "The principal headquarters of the Empire's engineering corps.",
+      },
+      legionBarracks: {
+        name: "Legion Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "Permanent garrison assigned to defend the city's strategic industries.",
+      },
+      provingGrounds: {
+        name: "Proving Grounds",
+        type: "barracks",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "Experimental siege engines, fortifications, and battlefield innovations are tested here.",
+      },
+      engineeringArsenal: {
+        name: "Engineering Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "Stores prototypes, military equipment, and siege machinery.",
+      },
+      logisticsCommand: {
+        name: "Logistics Command",
+        type: "landmark",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "Coordinates engineering support for every Legion.",
+      },
+      houseOfRestoration: {
+        name: "House of Restoration",
+        type: "healer",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "Treats injuries common among engineers, laborers, and soldiers.",
+      },
+      observationTower: {
+        name: "The Observation Tower",
+        type: "landmark",
+        district: "Military Quarter (The Engine Bastion)",
+        description:
+          "Used to oversee construction throughout the expanding city.",
+      },
     },
   },
   silvanor: {
