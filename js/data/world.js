@@ -690,6 +690,85 @@ const LOCATIONS = {
         description:
           "The surviving stone arch from Arethon's earlier life as a trade hub. The original bridge is gone, but the arch remains as a reminder that commerce existed before the fortress.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same as City Landmarks structurally (no
+      // wrapping hub, shared district string for grouping) but tagged
+      // `dangerTags` — real combat via exploreOutcome's urban-danger branch
+      // (see engine/parser.js), reusing the bandit/mercenary/hostile-guard
+      // creatures added earlier plus "ruin"-tagged undead (skeleton/zombie/
+      // animated armor) at the cemetery, shrine, sewer, and ruined granary.
+      oldTradeRoad: {
+        name: "The Old Trade Road",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A partially abandoned street from Arethon's mercantile era. Closed shops, neglected courtyards, and forgotten storage cellars make it useful to smugglers and quest-givers.",
+      },
+      theUnderflow: {
+        name: "The Underflow",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Arethon's sewer and drainage system. Old brick channels intersect with newer military tunnels, and not every passage appears on civic maps.",
+      },
+      shrineWithoutName: {
+        name: "The Shrine Without a Name",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "A small pre-imperial shrine buried beneath later construction. Its original deity and purpose have been forgotten.",
+      },
+      fieldOfEmptyHelms: {
+        name: "The Field of Empty Helms",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Arethon's eastern cemetery, named for the helmets placed atop the graves of soldiers whose bodies were never recovered.",
+      },
+      hollowMile: {
+        name: "The Hollow Mile",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A suspected smuggling passage connecting old warehouses to the riverbank. City officials deny that it exists.",
+      },
+      lastWatch: {
+        name: "The Last Watch",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A distant wall tower used for solitary observation, disciplinary postings, and sightings too uncertain to place in official reports.",
+      },
+      fallenGranary: {
+        name: "The Fallen Granary",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "An abandoned warehouse damaged during an old siege. Parts of the interior remain unstable and officially closed.",
+      },
+      redbank: {
+        name: "The Redbank",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A stretch of river outside the fortified docks where fishermen, scavengers, ferrymen, and illicit traders gather.",
+      },
+      walkOfStandards: {
+        name: "The Walk of Standards",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A patrol route along the upper city walls. Retired campaign standards are displayed at intervals beneath protective stone canopies.",
+      },
     },
   },
   apollyon: {

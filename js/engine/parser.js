@@ -1382,8 +1382,14 @@ function cmdExplore(state) {
 function exploreOutcome(state) {
   const loc = state.currentLocation();
   const place = state.currentSublocation();
-  const urbanDanger = !!(place && place.danger);
-  const tags = urbanDanger ? ["urban"] : TERRAIN_TAGS[loc.terrain] || ["continental"];
+  // `dangerTags` lets a specific unsafe sublocation pull from more than
+  // just the generic "urban" pool (e.g. a cemetery or forgotten shrine
+  // also wants "ruin" for skeleton/zombie/animated armor) — plain
+  // `danger: true` with no `dangerTags` still means exactly ["urban"],
+  // unchanged from before this existed.
+  const dangerTags = place && (place.dangerTags || (place.danger ? ["urban"] : null));
+  const urbanDanger = !!dangerTags;
+  const tags = urbanDanger ? dangerTags : TERRAIN_TAGS[loc.terrain] || ["continental"];
   const spot = place ? place.name : loc.name;
 
   const hunt = checkKabalHunt(state, state.location);
