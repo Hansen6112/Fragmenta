@@ -3937,6 +3937,56 @@ const LOCATIONS = {
         description:
           "Shared workshops where woodworkers and craftsmen collaborate.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      canopyHeights: {
+        name: "Canopy Heights",
+        type: "residential",
+        district: "Noble Quarter (Canopy Heights)",
+        description:
+          "The highest platforms within the oldest trees are reserved for Silvanor's leaders.",
+      },
+      houseOfGreenWarden: {
+        name: "House of the Green Warden",
+        type: "landmark",
+        district: "Noble Quarter (Canopy Heights)",
+        description:
+          "Residence of Silvanor's Ascendus senator.",
+      },
+      elderBoughEstates: {
+        name: "Elder Bough Estates",
+        type: "residential",
+        district: "Noble Quarter (Canopy Heights)",
+        description:
+          "Homes of respected Dragonborn families, master foresters, and distinguished rangers.",
+      },
+      embassyGrove: {
+        name: "Embassy Grove",
+        type: "residential",
+        district: "Noble Quarter (Canopy Heights)",
+        description:
+          "Foreign dignitaries reside within carefully cultivated woodland estates.",
+      },
+      crownCanopyGardens: {
+        name: "Crown Canopy Gardens",
+        type: "landmark",
+        district: "Noble Quarter (Canopy Heights)",
+        description:
+          "An elevated garden offering breathtaking views above the forest canopy.",
+      },
+      hallOfSeasons: {
+        name: "Hall of Seasons",
+        type: "landmark",
+        district: "Noble Quarter (Canopy Heights)",
+        description:
+          "Recognizes extraordinary service in conservation, exploration, and defense.",
+      },
+      wardensCircle: {
+        name: "Warden's Circle",
+        type: "landmark",
+        district: "Noble Quarter (Canopy Heights)",
+        description:
+          "A gathering place for rangers, scholars, and civic leaders.",
+      },
     },
   },
   netturon: {
