@@ -3341,6 +3341,56 @@ const LOCATIONS = {
         description:
           "Massive lifting equipment operates continuously to load and unload heavy cargo.",
       },
+      // ------------------------------------------------- ARTISAN QUARTER
+      workshopDistrict: {
+        name: "Workshop District",
+        type: "street",
+        district: "Artisan Quarter (Workshop District)",
+        description:
+          "The most technologically advanced district in Sanguivorum.",
+      },
+      masterworkForge: {
+        name: "Masterwork Forge",
+        type: "landmark",
+        district: "Artisan Quarter (Workshop District)",
+        description:
+          "Produces precision-crafted tools, instruments, and custom commissions.",
+      },
+      stonewrightHall: {
+        name: "Stonewright Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Workshop District)",
+        description:
+          "Designs monumental architecture and advanced structural systems.",
+      },
+      weaversMeasure: {
+        name: "Weaver's Measure",
+        type: "landmark",
+        district: "Artisan Quarter (Workshop District)",
+        description:
+          "Produces specialized work clothing, uniforms, and expedition equipment.",
+      },
+      clockmakersGuild: {
+        name: "Clockmaker's Guild",
+        type: "landmark",
+        district: "Artisan Quarter (Workshop District)",
+        description:
+          "Builds precision instruments, measuring devices, and intricate mechanical works.",
+      },
+      prototypeHall: {
+        name: "Prototype Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Workshop District)",
+        description:
+          "A communal workshop where inventors test and refine new creations.",
+      },
+      timberworks: {
+        name: "Timberworks",
+        type: "landmark",
+        district: "Artisan Quarter (Workshop District)",
+        description:
+          "Produces structural beams, bridges, wagons, and machinery frames.",
+      },
     },
   },
   silvanor: {
