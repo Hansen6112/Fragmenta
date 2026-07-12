@@ -2903,12 +2903,6 @@ function resolveKill(state, creature) {
   // move it.
   const diedIndex = state.combat.activeIndex;
   const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
-  // Kessa's recruitment quest (parser.js's maybeTalkToKessa): "clear one
-  // real fight" just means winning any combat encounter after she's made
-  // the offer — a light, tutorial-weight bar, not a specific bounty.
-  if (state.flags.kessaQuestOffered && !state.flags.kessaQuestReady) {
-    state.flags.kessaQuestReady = true;
-  }
   const bounty = state.flags.isMercenary ? 1.5 : 1;
   // Scales off the creature's own encounter level (falling back to the
   // player's level for quest/job-tied creatures that skip the level roll
@@ -2931,17 +2925,6 @@ function resolveKill(state, creature) {
       out.push(`Blood Debt repaid — you're mended for ${healed} health.`, ...lines);
     }
   }
-  // Battle Scholar (Artifact): +1 Knowledge, permanently, after every kill —
-  // capped at +50 total. Applied to the tracked bonus before recomputeStats
-  // re-derives state.knowledge from scratch (bg mod + growth + gear + this).
-  if (hasEffect(state, "battle_scholar") && state.battleScholarBonus < 50) {
-    state.battleScholarBonus += 1;
-  }
-  // Living Legacy (Artifact): +1 permanent max Health after an Elite-or-
-  // stronger kill, capped +100 — same isNotableCreature check Kingslayer uses.
-  if (hasEffect(state, "living_legacy") && isNotableCreature(creature) && state.livingLegacyBonus < 100) {
-    state.livingLegacyBonus += 1;
-  }
   // Blessing of Valor (Regalia of the Crimson Vanguard 2pc): if the
   // opening attack of the fight is what landed this kill, restore 15% max
   // Health — checked here (before state.combat is nulled below) since
@@ -2949,25 +2932,6 @@ function resolveKill(state, creature) {
   if (hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.actionCounter === 1) {
     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.15));
     if (healed > 0) out.push(`Blessing of Valor — a killing opening blow steadies you; mended for ${healed} health.`, ...lines);
-  }
-  // Victor's Momentum (Divine Regalia — Ring of Conquest): +3 Attack per
-  // kill, persisting across fights and decaying on rest — the same
-  // approximation Vanguard Momentum/Passing Whisper use for "for the
-  // remainder of combat" in an engine where a kill always ends the fight.
-  // No cap was given for this one (unlike Passing Whisper's explicit +15),
-  // so it's left uncapped, relying on the same rest-decay safety valve.
-  if (hasEffect(state, "victors_momentum")) {
-    state.flags.victorsMomentumStacks = (state.flags.victorsMomentumStacks || 0) + 3;
-  }
-  // Swift Passage (Divine Regalia — Windstep Boots): defeating an enemy
-  // queues a charge that grants the next Ability or Tactic used a free
-  // cooldown — since a kill always ends this engine's single-enemy fight,
-  // that "next" use only ever happens in the PLAYER's next fight, the same
-  // "queue a charge for the next fight" pattern Forest Guardian (Vaeloris
-  // 6pc) already established (see startCombat, where the charge is
-  // transferred onto the fresh combat object).
-  if (hasEffect(state, "swift_passage")) {
-    state.flags.swiftPassageCharge = true;
   }
   // Keeper of History (Regalia of the Eternal Hour 4pc): restore 10%
   // Health on a kill. Its "10% Mana" half is a no-op (no Mana resource),
@@ -2998,6 +2962,13 @@ function resolveKill(state, creature) {
     const remaining = state.combat.enemies.filter((e) => e.alive).length;
     out.push(`${remaining} more ${remaining === 1 ? "enemy stands" : "enemies stand"} against you.`);
   }
+  // Every pure side-effect fragment that used to be hardwired inline here
+  // (Kessa's quest-ready flag, Battle Scholar, Living Legacy, Victor's
+  // Momentum, Swift Passage — none of them ever produced a printed line)
+  // now lives as an "enemy.killed" listener instead. Emitted here,
+  // deliberately before recomputeStats below, since Battle Scholar/Living
+  // Legacy/Victor's Momentum all feed stats it recomputes.
+  Events.emit("enemy.killed", { creature, state });
   state.recomputeStats(true);
   out.push(...applyRegrowth(state));
   out.push(...applyVanguardMomentum(state));
@@ -3007,6 +2978,56 @@ function resolveKill(state, creature) {
   out.push(...checkJobProgressOnKill(state, creature));
   return out;
 }
+
+// "enemy.killed" listeners — every one of these used to be a hardwired,
+// line-free fragment inline in resolveKill above. Split into separate
+// listeners (rather than one handler doing all five) so each stays as
+// easy to find/reason about as it was as its own commented block.
+Events.on("enemy.killed", ({ state }) => {
+  // Kessa's recruitment quest (parser.js's maybeTalkToKessa): "clear one
+  // real fight" just means winning any combat encounter after she's made
+  // the offer — a light, tutorial-weight bar, not a specific bounty.
+  if (state.flags.kessaQuestOffered && !state.flags.kessaQuestReady) {
+    state.flags.kessaQuestReady = true;
+  }
+});
+Events.on("enemy.killed", ({ state }) => {
+  // Battle Scholar (Artifact): +1 Knowledge, permanently, after every
+  // kill — capped at +50 total.
+  if (hasEffect(state, "battle_scholar") && state.battleScholarBonus < 50) {
+    state.battleScholarBonus += 1;
+  }
+});
+Events.on("enemy.killed", ({ creature, state }) => {
+  // Living Legacy (Artifact): +1 permanent max Health after an Elite-or-
+  // stronger kill, capped +100 — same isNotableCreature check Kingslayer uses.
+  if (hasEffect(state, "living_legacy") && isNotableCreature(creature) && state.livingLegacyBonus < 100) {
+    state.livingLegacyBonus += 1;
+  }
+});
+Events.on("enemy.killed", ({ state }) => {
+  // Victor's Momentum (Divine Regalia — Ring of Conquest): +3 Attack per
+  // kill, persisting across fights and decaying on rest — the same
+  // approximation Vanguard Momentum/Passing Whisper use for "for the
+  // remainder of combat" in an engine where a kill always ends the fight.
+  // No cap was given for this one (unlike Passing Whisper's explicit +15),
+  // so it's left uncapped, relying on the same rest-decay safety valve.
+  if (hasEffect(state, "victors_momentum")) {
+    state.flags.victorsMomentumStacks = (state.flags.victorsMomentumStacks || 0) + 3;
+  }
+});
+Events.on("enemy.killed", ({ state }) => {
+  // Swift Passage (Divine Regalia — Windstep Boots): defeating an enemy
+  // queues a charge that grants the next Ability or Tactic used a free
+  // cooldown — since a kill always ends this engine's single-enemy fight,
+  // that "next" use only ever happens in the PLAYER's next fight, the same
+  // "queue a charge for the next fight" pattern Forest Guardian (Vaeloris
+  // 6pc) already established (see startCombat, where the charge is
+  // transferred onto the fresh combat object).
+  if (hasEffect(state, "swift_passage")) {
+    state.flags.swiftPassageCharge = true;
+  }
+});
 
 function playerAttack(state) {
   if (!state.combat) return ["There's nothing here to fight."];
