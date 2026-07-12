@@ -104,7 +104,6 @@ const LOCATIONS = {
       { to: "kabal_tower", days: 4, mode: "road" },
       { to: "arethon", days: 3, mode: "road" },
       { to: "apollyon", days: 2, mode: "road" },
-      { to: "tritoneth", days: 6, mode: "road", desc: "north into the tundra" },
       { to: "aphroneth", days: 4, mode: "road", desc: "west to the coast" },
     ],
     // Zuevaron's real district layout, built quarter by quarter (same
@@ -645,6 +644,7 @@ const LOCATIONS = {
     connections: [
       { to: "zuevaron", days: 4, mode: "road", desc: "east to the capital" },
       { to: "arnoneth", days: 3, mode: "road", desc: "up the coast" },
+      { to: "tritonath", days: 4, mode: "road", desc: "north along the fjord coast" },
     ],
     // Aphroneth's real district layout, built quarter by quarter (same
     // workflow as Arethon and Zuevaron) — the Civic Quarter (The Harbor
@@ -1895,19 +1895,77 @@ const LOCATIONS = {
       },
     },
   },
-  tritoneth: {
-    name: "Tritoneth",
+  tritonath: {
+    name: "Tritonath",
+    title: "The Gate of the Western Fjords",
     nation: "sanguivorum",
-    terrain: "plains",
+    terrain: "coast",
     isCity: true,
+    type: "gate",
     danger: 2,
-    services: ["rest", "shop"],
+    services: ["rest", "shop", "healer"],
     description:
-      "A tundra city at the empire's northern edge, where the meadows give up and turn to permafrost. Summer caravans make good time; deep winter nearly doubles every journey and the sledges come out.",
+      "Built around an ancient lighthouse that predates the Great Mage War, the Kabal, and even the oldest known civilizations, Tritonath exists for a single purpose: to deny passage through the Empire's most strategically important fjord. The city is smaller than Aphroneth or Netturon, but every cliff, wall, and tower has been built with defense in mind. The fjord itself forms a natural kill zone where enemy fleets are trapped beneath the guns, ballistae, and mages stationed high above. The ancient lighthouse remains one of Fragmenta's greatest mysteries — it still burns without fuel, keeper, or known mechanism.",
     connections: [
-      { to: "zuevaron", days: 6, mode: "road" },
-      { to: "vulcaron", days: 4, mode: "road" },
+      { to: "aphroneth", days: 4, mode: "road", desc: "south along the fjord coast" },
+      { to: "netturon", days: 2, mode: "road", desc: "along the fjord" },
     ],
+    // Tritonath's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, and Aphroneth) — the Civic Quarter
+    // (The Fjord Forum) is the first. Every place carries a `district` tag
+    // for grouping in cmdLook/cmdPlaces; the Fjord Forum itself is the
+    // district's own walkable hub, so it doesn't need one.
+    sublocations: {
+      fjordForum: {
+        name: "The Fjord Forum",
+        type: "street",
+        district: "Civic Quarter (The Fjord Forum)",
+        description:
+          "The city's administrative district overlooks the narrow waterway that gives Tritonath its purpose.",
+      },
+      westernGate: {
+        name: "The Western Gate",
+        type: "gate",
+        district: "Civic Quarter (The Fjord Forum)",
+        description:
+          "The heavily fortified land entrance into Tritonath.",
+      },
+      hallOfFjordCouncil: {
+        name: "Hall of the Fjord Council",
+        type: "landmark",
+        district: "Civic Quarter (The Fjord Forum)",
+        description:
+          "Seat of the city's Ascendus senator and administrative center for the western coast.",
+      },
+      sentinelSquare: {
+        name: "Sentinel Square",
+        type: "street",
+        district: "Civic Quarter (The Fjord Forum)",
+        description:
+          "A disciplined public square where military announcements, civic ceremonies, and fleet celebrations are held.",
+      },
+      coastalLedger: {
+        name: "The Coastal Ledger",
+        type: "board",
+        district: "Civic Quarter (The Fjord Forum)",
+        description:
+          "Requests for coastal patrols, monster hunts, reconnaissance, and military contracts are posted here.",
+      },
+      watchmansWard: {
+        name: "Watchman's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Fjord Forum)",
+        description:
+          "Housing for soldiers, lighthouse attendants, and generations of families who have defended the fjord.",
+      },
+      vigilisHeadquarters: {
+        name: "Vigilis Headquarters",
+        type: "barracks",
+        district: "Civic Quarter (The Fjord Forum)",
+        description:
+          "Coordinates law enforcement and security throughout the city.",
+      },
+    },
   },
   vulcaron: {
     name: "Vulcaron",
@@ -1919,7 +1977,6 @@ const LOCATIONS = {
     description:
       "A northern city under the mountain range's shadow, closer in temperament to the frontier than to Zuevaron's polish.",
     connections: [
-      { to: "tritoneth", days: 4, mode: "road" },
       { to: "silvanor", days: 2, mode: "road" },
       { to: "apollyon", days: 3, mode: "road" },
     ],
@@ -1949,6 +2006,7 @@ const LOCATIONS = {
     connections: [
       { to: "silvanor", days: 3, mode: "road" },
       { to: "arnoneth", days: 3, mode: "road" },
+      { to: "tritonath", days: 2, mode: "road", desc: "along the fjord" },
     ],
   },
   arnoneth: {
