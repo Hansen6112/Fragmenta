@@ -1148,6 +1148,65 @@ const LOCATIONS = {
         description:
           "A lively waterfront lined with markets, performers, restaurants, and merchant stalls overlooking the sea.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other two cities'
+      // Exploration Locations batches — the salt tunnels and forgotten
+      // breakwater get "ruin" for skeleton/zombie/animated-armor
+      // encounters alongside the bandit/hired-blade "urban" pool; the
+      // rest stay purely human-threat "urban". Tide Pools deliberately
+      // does NOT get a "coast" dangerTag despite its marine setting — the
+      // only coast-tagged bestiary entries (Thunderbird, Drake, Dragon)
+      // are all rare/elite/world-boss tier, which would make this one
+      // exploration spot wildly more dangerous than its peers rather than
+      // adding flavor.
+      saltTunnels: {
+        name: "Salt Tunnels",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Ancient tunnels beneath the docks once used by smugglers and now inhabited by far more dangerous things.",
+      },
+      whisperDocks: {
+        name: "Whisper Docks",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "An abandoned section of harbor where illicit trade flourishes after sunset.",
+      },
+      tidePools: {
+        name: "Tide Pools",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "Rocky coves rich in rare marine life and valuable alchemical ingredients.",
+      },
+      forgottenBreakwater: {
+        name: "Forgotten Breakwater",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The crumbling remains of Aphroneth's original harbor defenses.",
+      },
+      deepAnchorage: {
+        name: "Deep Anchorage",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A secluded harbor where expeditions into dangerous or unknown waters are organized.",
+      },
+      gullsWatch: {
+        name: "Gull's Watch",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A cliffside overlook offering breathtaking views of Aphroneth, the harbor, and the endless western sea.",
+      },
     },
   },
   arethon: {
