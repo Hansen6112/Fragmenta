@@ -2251,6 +2251,59 @@ const LOCATIONS = {
         description:
           "A modest civilian fishing harbor supporting the city's population.",
       },
+      // ------------------------------------------------- ARTISAN QUARTER
+      // Entirely flavor-only, same principle as the other cities' military-
+      // industrial artisan quarters — none of these workshops sell goods
+      // matching an existing shop category (weapons/armor/potions/jewelry).
+      stonewrightDistrict: {
+        name: "Stonewright District",
+        type: "street",
+        district: "Artisan Quarter (Stonewright District)",
+        description:
+          "The craftsmen of Tritonath build fortifications meant to withstand centuries.",
+      },
+      ironBreaker: {
+        name: "The Iron Breaker",
+        type: "landmark",
+        district: "Artisan Quarter (Stonewright District)",
+        description:
+          "Produces siege hardware, chains, anchors, and heavy military equipment.",
+      },
+      masonsCrown: {
+        name: "Mason's Crown",
+        type: "landmark",
+        district: "Artisan Quarter (Stonewright District)",
+        description:
+          "Constructs the immense stone walls and towers that define Tritonath.",
+      },
+      sailRopeHall: {
+        name: "Sail & Rope Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Stonewright District)",
+        description:
+          "Produces sails, rigging, banners, and expedition equipment.",
+      },
+      beaconWorkshop: {
+        name: "Beacon Workshop",
+        type: "landmark",
+        district: "Artisan Quarter (Stonewright District)",
+        description:
+          "Crafts navigation tools, lenses, maps, and signal equipment.",
+      },
+      fortressWorks: {
+        name: "Fortress Works",
+        type: "landmark",
+        district: "Artisan Quarter (Stonewright District)",
+        description:
+          "Maintains the city's defensive infrastructure.",
+      },
+      timberHall: {
+        name: "Timber Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Stonewright District)",
+        description:
+          "Produces siege timbers, dock structures, and military engineering supplies.",
+      },
     },
   },
   vulcaron: {
