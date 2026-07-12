@@ -168,6 +168,73 @@ const LOCATIONS = {
         description:
           "The administrative headquarters of the Capital Watch.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      imperialExchange: {
+        name: "The Imperial Exchange",
+        type: "street",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        description:
+          "The capital's commercial heart, where goods, currency, and rumor move faster than almost anywhere else in Sanguivorum. Every specialist shop here answers to the Mercantile Concord, but none of them pool their stock with it or with each other.",
+      },
+      goldenScales: {
+        name: "The Golden Scales",
+        type: "market",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        description:
+          "The largest general merchant in the Empire, stocking goods from every nation.",
+      },
+      forgeImperialis: {
+        name: "The Forge Imperialis",
+        type: "shop",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        shopCategory: "weapons",
+        description:
+          "Master smiths forge ceremonial weapons beside equipment destined for the Imperial Legions.",
+      },
+      gildedBulwark: {
+        name: "The Gilded Bulwark",
+        type: "shop",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        shopCategory: "armor",
+        description:
+          "Renowned for producing armor for senators, officers, and the Imperial Guard.",
+      },
+      imperialApothecary: {
+        name: "The Imperial Apothecary",
+        type: "shop",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        shopCategory: "potions",
+        description:
+          "An enormous licensed alchemical house supplying everything from healing potions to rare reagents.",
+      },
+      crownStables: {
+        name: "The Crown Stables",
+        type: "landmark",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        description:
+          "Maintains the finest horses available within Sanguivorum.",
+      },
+      emperorsRest: {
+        name: "The Emperor's Rest",
+        type: "inn",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        description:
+          "The capital's premier inn, hosting diplomats, nobles, and wealthy merchants.",
+      },
+      mintExchange: {
+        name: "The Mint Exchange",
+        type: "landmark",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        description:
+          "Converts currencies from across Fragmenta while safeguarding wealth for merchants and senators.",
+      },
+      mercantileConcord: {
+        name: "The Mercantile Concord",
+        type: "guildhall",
+        district: "Commercial Quarter (The Imperial Exchange)",
+        description:
+          "The governing body of commerce within the capital.",
+      },
     },
   },
   arethon: {
