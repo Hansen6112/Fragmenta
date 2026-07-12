@@ -3987,6 +3987,35 @@ const LOCATIONS = {
         description:
           "A gathering place for rangers, scholars, and civic leaders.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      worldwoodHall: {
+        name: "The Worldwood Hall",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "Silvanor's greatest structure, grown from an immense living tree whose trunk houses government chambers, public halls, and civic gatherings.",
+      },
+      elderGrove: {
+        name: "The Elder Grove",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A sacred stand of ancient trees believed to have existed long before the city's founding.",
+      },
+      dragonsPerch: {
+        name: "Dragon's Perch",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A towering platform overlooking the forest, traditionally used by Dragonborn leaders for important ceremonies.",
+      },
+      skyBridges: {
+        name: "The Sky Bridges",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "An intricate network of elevated walkways connecting the city's upper districts through the canopy.",
+      },
     },
   },
   netturon: {
