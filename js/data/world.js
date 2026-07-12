@@ -542,6 +542,35 @@ const LOCATIONS = {
         description:
           "A private gathering place for senators, generals, and wealthy patrons.",
       },
+      // ------------------------------------------------ IMPERIAL LANDMARKS
+      grandOvum: {
+        name: "The Grand Ovum",
+        type: "landmark",
+        district: "Imperial Landmarks",
+        description:
+          "The greatest arena in Fragmenta. Champions, beasts, tournaments, and imperial spectacles are held within its colossal walls.",
+      },
+      kabalBridge: {
+        name: "The Kabal Bridge",
+        type: "landmark",
+        district: "Imperial Landmarks",
+        description:
+          "The monumental bridge leading toward the Kabal Tower, symbolizing the alliance between imperial authority and magical oversight.",
+      },
+      imperialPalace: {
+        name: "The Imperial Palace",
+        type: "landmark",
+        district: "Imperial Landmarks",
+        description:
+          "The official residence of the Imperator and the symbolic heart of Sanguivorum.",
+      },
+      eternalFlame: {
+        name: "The Eternal Flame",
+        type: "landmark",
+        district: "Imperial Landmarks",
+        description:
+          "A perpetual flame honoring those who gave their lives in service to the Empire.",
+      },
     },
   },
   arethon: {
