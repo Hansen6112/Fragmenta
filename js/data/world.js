@@ -2923,6 +2923,65 @@ const LOCATIONS = {
         description:
           "A controlled channel of molten rock flowing through the industrial district, powering foundries and smelters.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the deep mines, abandoned shaft, and forgotten forge get "ruin"
+      // for skeleton/zombie/animated-armor encounters alongside the
+      // bandit/hired-blade "urban" pool. The Magma Caverns instead get
+      // "volcanic" (not "urban") — unlike "coast" (checked and rejected
+      // for Aphroneth's Tide Pools, where the only tagged creatures were
+      // rare/elite/world-boss), "volcanic" has genuine common/uncommon
+      // wildlife (Cave Scorpion, Thornhide) alongside rarer threats
+      // (Ashwyrm, Dragon), so it adds real variety without the balance
+      // risk "coast" would have.
+      deepMines: {
+        name: "The Deep Mines",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "An immense network of mining tunnels descending deep beneath the mountains, where ancient creatures and forgotten ruins await discovery.",
+      },
+      abandonedShaft: {
+        name: "The Abandoned Shaft",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "A collapsed mine officially sealed after unexplained disappearances.",
+      },
+      magmaCaverns: {
+        name: "The Magma Caverns",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["volcanic"],
+        description:
+          "Natural volcanic chambers filled with rare minerals, lava flows, and dangerous wildlife.",
+      },
+      forgottenForge: {
+        name: "The Forgotten Forge",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The ruins of one of Vulcaron's earliest smithies, abandoned long before the Empire's rise.",
+      },
+      engineersDescent: {
+        name: "Engineer's Descent",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A staging area for expeditions investigating newly discovered tunnels and unstable mine workings.",
+      },
+      ashOverlook: {
+        name: "The Ash Overlook",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A high volcanic ridge offering breathtaking views of Vulcaron, its furnaces, and the surrounding mountain range.",
+      },
     },
   },
   silvanor: {
