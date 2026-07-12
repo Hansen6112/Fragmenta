@@ -4046,6 +4046,32 @@ const LOCATIONS = {
         description:
           "A private gathering place where generals, scholars, and instructors debate doctrine and history.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      // Source repeats "The School of Manipulum Eruditetus" here as a City
+      // Landmarks entry — already merged into the Arcane Quarter hub above,
+      // so it's not recreated as a duplicate. Only the other three City
+      // Landmarks entries are new.
+      wallOfCampaigns: {
+        name: "The Wall of Campaigns",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "An immense stone wall engraved with every major military campaign fought by Sanguivorum.",
+      },
+      fieldOfStandards: {
+        name: "The Field of Standards",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "Hundreds of retired Legion standards stand in solemn remembrance of the armies that carried them.",
+      },
+      grandWarLibrary: {
+        name: "The Grand War Library",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A monumental archive preserving military doctrine, historical campaigns, maps, and tactical treatises.",
+      },
     },
   },
   marsatum: {
