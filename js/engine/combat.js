@@ -2895,6 +2895,12 @@ function resolveKill(state, creature) {
   // move it.
   const diedIndex = state.combat.activeIndex;
   const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
+  // Kessa's recruitment quest (parser.js's maybeTalkToKessa): "clear one
+  // real fight" just means winning any combat encounter after she's made
+  // the offer — a light, tutorial-weight bar, not a specific bounty.
+  if (state.flags.kessaQuestOffered && !state.flags.kessaQuestReady) {
+    state.flags.kessaQuestReady = true;
+  }
   const bounty = state.flags.isMercenary ? 1.5 : 1;
   // Scales off the creature's own encounter level (falling back to the
   // player's level for quest/job-tied creatures that skip the level roll

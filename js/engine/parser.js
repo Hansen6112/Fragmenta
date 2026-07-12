@@ -247,6 +247,9 @@ function cmdLook(state) {
     const repLine = reputationFlavorLine(state, loc.nation);
     if (repLine) lines.push(repLine);
   }
+  if (state.location === KESSA_LOCATION && !state.flags.kessaRecruited) {
+    lines.push("A lone mercenary leans against the tavern wall, watching the room like she's pricing everyone in it.");
+  }
   return lines;
 }
 
@@ -531,22 +534,12 @@ function cmdStance(arg, state) {
   return [`${ally.name} shifts to a ${stance} stance.`];
 }
 
-// A Phase 1 test hook, not the real recruitment gate — the actual
-// reputation/quest/item thresholds for primary allies are Phase 3. For
-// now this unconditionally adds the one hardcoded ally (data/allies.js)
-// so the party-combat mechanic itself has someone to test with.
-function cmdRecruit(arg, state) {
-  const keys = Object.keys(ALLY_DEFS);
-  if (!keys.length) return ["No one is available to recruit yet."];
-  const needle = (arg || "").toLowerCase().trim();
-  const defId = needle ? keys.find((k) => k === needle || ALLY_DEFS[k].name.toLowerCase().includes(needle)) : keys[0];
-  if (!defId) return [`No one matching "${arg}" is available to recruit.`];
-  if (state.party.some((a) => a.defId === defId)) return [`${ALLY_DEFS[defId].name} already travels with you.`];
-  const ally = state.recruitAlly(defId);
-  return [
-    `${ally.name} joins your party. (${ALLY_DEFS[defId].tagline})`,
-    `Set a stance with 'stance ${ally.name.split(" ")[0]} aggressive|defensive|support', and gear them up with 'give <item> to ${ally.name.split(" ")[0]}'.`,
-  ];
+// Not the real recruitment path — allies aren't a menu you pick from.
+// Each has their own threshold to earn (reputation, a quest, an item —
+// see maybeTalkToKessa below for the first one), discovered by playing,
+// not by typing this command.
+function cmdRecruit() {
+  return ["You can't just decide to recruit someone. Word gets around about people worth traveling with — you'll have to find them, and give them a reason to trust you."];
 }
 
 // Shared-inventory equip flow for allies — same slot inference/auto-swap
@@ -774,7 +767,45 @@ function cmdExamine(arg, state) {
   return generateOpenResponse("examine " + arg, state);
 }
 
+// Kessa's recruitment gate: a quest, not a stat check — found at a
+// specific location (Arethon, a hub city on the war front, fitting for a
+// mercenary passing through), talked to by name, and earned by proving
+// yourself in a fight rather than a reputation/item threshold. Meant as
+// the first ally and a light, tutorial-weight introduction to the whole
+// party mechanic — other allies (Phase 3+) can use reputation or item
+// gates instead, per the original design. Returns null (falls through to
+// the generic cmdTalk below) unless arg actually references her by name.
+const KESSA_LOCATION = "arethon";
+function maybeTalkToKessa(arg, state) {
+  const a = (arg || "").toLowerCase();
+  if (!a.includes("kessa")) return null;
+  if (state.party.some((p) => p.defId === "kessa" && p.alive)) {
+    return ["Kessa's already at your side. No need to introduce yourselves twice."];
+  }
+  if (state.location !== KESSA_LOCATION) {
+    return ["No one by that name here. (Maybe somewhere with more mercenary traffic passing through.)"];
+  }
+  if (!state.flags.kessaQuestOffered) {
+    state.flags.kessaQuestOffered = true;
+    return [
+      `A mercenary leans off the tavern wall, watching the room like she's pricing everyone in it. "You've got the look of someone about to get themselves killed for free," she says. "Kessa. I don't work for free, but I'll work for cheap, if you're worth the trouble."`,
+      `"Prove it. Clear a real fight without running, and come find me again. Then we'll talk terms."`,
+    ];
+  }
+  if (!state.flags.kessaQuestReady) {
+    return [`"Go on, then," Kessa says, unmoved. "I'm not signing on with someone who talks a bigger fight than they can finish."`];
+  }
+  const ally = state.recruitAlly("kessa");
+  state.flags.kessaRecruited = true;
+  return [
+    `"Fine," Kessa says, pushing off the wall. "You'll do." She falls in step beside you like she's done it a hundred times before.`,
+    `${ally.name} joins your party. Set a stance with 'stance kessa aggressive|defensive|support', and gear her up with 'give <item> to kessa'.`,
+  ];
+}
+
 function cmdTalk(arg, state) {
+  const kessaLines = maybeTalkToKessa(arg, state);
+  if (kessaLines) return kessaLines;
   const loc = state.currentLocation();
   const lang = NATION_LANGUAGE[loc.nation] || "vauret";
   const name = generateNameForNation(loc.nation);
