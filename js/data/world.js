@@ -3391,6 +3391,56 @@ const LOCATIONS = {
         description:
           "Produces structural beams, bridges, wagons, and machinery frames.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      foundersHeights: {
+        name: "Founder's Heights",
+        type: "residential",
+        district: "Noble Quarter (Founder's Heights)",
+        description:
+          "Home to Daedaron's greatest inventors, engineers, and industrial patrons.",
+      },
+      houseOfMasterBuilder: {
+        name: "House of the Master Builder",
+        type: "landmark",
+        district: "Noble Quarter (Founder's Heights)",
+        description:
+          "Residence of Daedaron's Ascendus senator.",
+      },
+      inventorsEstates: {
+        name: "Inventor's Estates",
+        type: "residential",
+        district: "Noble Quarter (Founder's Heights)",
+        description:
+          "Homes belonging to celebrated engineers and wealthy industrialists.",
+      },
+      embassyCourt: {
+        name: "Embassy Court",
+        type: "residential",
+        district: "Noble Quarter (Founder's Heights)",
+        description:
+          "Hosts foreign delegations seeking Daedaron's expertise.",
+      },
+      innovationGardens: {
+        name: "Innovation Gardens",
+        type: "landmark",
+        district: "Noble Quarter (Founder's Heights)",
+        description:
+          "An elegant public garden showcasing fountains, sculptures, and ingenious mechanical displays.",
+      },
+      hallOfGreatWorks: {
+        name: "Hall of Great Works",
+        type: "landmark",
+        district: "Noble Quarter (Founder's Heights)",
+        description:
+          "Honors the inventions and infrastructure that transformed Sanguivorum.",
+      },
+      architectsCircle: {
+        name: "The Architect's Circle",
+        type: "landmark",
+        district: "Noble Quarter (Founder's Heights)",
+        description:
+          "A private gathering place where the Empire's foremost builders and engineers exchange ideas.",
+      },
     },
   },
   silvanor: {
