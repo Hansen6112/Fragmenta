@@ -3671,6 +3671,67 @@ const LOCATIONS = {
         description:
           "Coordinates sustainable harvesting and woodland commerce.",
       },
+      // ------------------------------------------------- MILITARY QUARTER
+      // Source names both the district hub and its central defense
+      // headquarters "The Ranger Citadel" — merged into one sublocation,
+      // same as the other cities' Sea Bastion/Great Foundry/Engine Bastion/
+      // Command Citadel.
+      rangerCitadel: {
+        name: "The Ranger Citadel",
+        type: "barracks",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "The Empire's foremost center for woodland warfare — headquarters of Silvanor's forest defenders and frontier rangers.",
+      },
+      hallOfWardens: {
+        name: "Hall of Wardens",
+        type: "landmark",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "Coordinates patrols throughout the surrounding wilderness.",
+      },
+      rangerBarracks: {
+        name: "Ranger Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "Housing for scouts, beast hunters, and woodland defenders.",
+      },
+      woodlandTrainingGrounds: {
+        name: "Woodland Training Grounds",
+        type: "barracks",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "Cadets learn tracking, survival, archery, and ambush tactics.",
+      },
+      forestArsenal: {
+        name: "Forest Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "Stores bows, spears, traps, and specialized woodland equipment.",
+      },
+      pathfinderCommand: {
+        name: "Pathfinder Command",
+        type: "landmark",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "Directs reconnaissance missions throughout northern Sanguivorum.",
+      },
+      houseOfRenewal: {
+        name: "House of Renewal",
+        type: "healer",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "Treats injuries sustained in the wilderness using both medicine and natural remedies.",
+      },
+      watchtreeTower: {
+        name: "Watchtree Tower",
+        type: "landmark",
+        district: "Military Quarter (The Ranger Citadel)",
+        description:
+          "A living observation tower grown from a single colossal tree overlooking the forest.",
+      },
     },
   },
   netturon: {
