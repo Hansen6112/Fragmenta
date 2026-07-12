@@ -3441,6 +3441,35 @@ const LOCATIONS = {
         description:
           "A private gathering place where the Empire's foremost builders and engineers exchange ideas.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      grandAqueduct: {
+        name: "The Grand Aqueduct",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A marvel of engineering supplying fresh water throughout the city and serving as a testament to Daedaron's ingenuity.",
+      },
+      colossusCrane: {
+        name: "The Colossus Crane",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A gigantic lifting machine capable of moving enormous stone blocks and ship components, visible from nearly every district.",
+      },
+      hallOfIngenuity: {
+        name: "The Hall of Ingenuity",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A museum and exhibition hall displaying the greatest inventions ever produced within the Empire.",
+      },
+      thousandGears: {
+        name: "The Thousand Gears",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A monumental mechanical clock whose moving gears have become the symbol of Daedaron.",
+      },
     },
   },
   silvanor: {
