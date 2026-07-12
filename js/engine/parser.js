@@ -355,7 +355,10 @@ function executeTravel(state, path, totalDays) {
         combatant = generateEnemyMage(legLoc.nation, legDanger);
       } else {
         const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
-        const pool = creaturesForTags(tags, legLoc.nation).filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id]);
+        const isHostileHere = state.flags.wanted || reputationFor(state, legLoc.nation) === "hostile";
+        const pool = creaturesForTags(tags, legLoc.nation)
+          .filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id])
+          .filter((id) => !BESTIARY[id].requiresHostility || isHostileHere);
         if (pool.length) {
           combatantLevel = rollEncounterLevel(state.level);
           const eligiblePool = creaturesEligibleAtLevel(pool, combatantLevel);
@@ -1294,20 +1297,32 @@ function cmdExplore(state) {
   return [...exploreOutcome(state), ...advanceTime(state, 30, "explore")];
 }
 
+// A sublocation flagged `danger: true` (see world.js — currently used by
+// in-city spots like sewers/ruins/smuggling routes rather than a whole
+// city) swaps the encounter pool from the city's own terrain tags to the
+// "urban" habitat tag instead — bandits, hired blades, and (only when
+// the player is actually wanted or locally hostile) a city watch patrol,
+// rather than whatever wildlife the city's outdoor terrain would imply.
 function exploreOutcome(state) {
   const loc = state.currentLocation();
-  const tags = TERRAIN_TAGS[loc.terrain] || ["continental"];
+  const place = state.currentSublocation();
+  const urbanDanger = !!(place && place.danger);
+  const tags = urbanDanger ? ["urban"] : TERRAIN_TAGS[loc.terrain] || ["continental"];
+  const spot = place ? place.name : loc.name;
 
   const hunt = checkKabalHunt(state, state.location);
   if (hunt) return hunt;
 
-  const encounterChance = Math.max(0.05, 0.35 - (state.stealthMod || 0));
+  const encounterChance = Math.max(0.05, (urbanDanger ? 0.4 : 0.35) - (state.stealthMod || 0));
   const roll = Math.random();
   if (roll < encounterChance) {
-    if (Math.random() < ENEMY_MAGE_CHANCE) {
+    if (!urbanDanger && Math.random() < ENEMY_MAGE_CHANCE) {
       return startCombat(state, generateEnemyMage(loc.nation, loc.danger || 1));
     }
-    const pool = creaturesForTags(tags, loc.nation).filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id]);
+    const isHostileHere = state.flags.wanted || reputationFor(state, loc.nation) === "hostile";
+    const pool = creaturesForTags(tags, loc.nation)
+      .filter((id) => BESTIARY[id].spawnRarity !== "unique" || !state.flags["defeated_" + id])
+      .filter((id) => !BESTIARY[id].requiresHostility || isHostileHere);
     if (pool.length) {
       const level = rollEncounterLevel(state.level);
       const eligiblePool = creaturesEligibleAtLevel(pool, level);
@@ -1318,7 +1333,8 @@ function exploreOutcome(state) {
   if (roll < 0.55) {
     const gold = Math.floor(Math.random() * 8) + 1;
     state.gold += gold;
-    return [`You search the area around ${loc.name} and turn up ${gold} gold someone else lost track of.`, ...state.gainXp(5)];
+    const where = urbanDanger ? spot : `the area around ${spot}`;
+    return [`You search ${where} and turn up ${gold} gold someone else lost track of.`, ...state.gainXp(5)];
   }
   if (roll < 0.62 && !state.knownFragments && loc.danger >= 3) {
     state.knownFragments += 1;
@@ -1328,11 +1344,17 @@ function exploreOutcome(state) {
       "It doesn't look like much. You suspect that's the point. (a Fragmenta Motus — the smallest tier, the kind even the gods don't notice)",
     ];
   }
-  const flavor = [
-    `You look around ${loc.name} a while. Nothing comes of it, but the ${getNation(loc.nation).name} air is instructive, in its way.`,
-    `Nothing here but the ordinary business of ${loc.name} going on without you.`,
-    `You find a good vantage point and just watch for a time. It's not nothing.`,
-  ];
+  const flavor = urbanDanger
+    ? [
+        `You linger in ${spot} a while. Whatever usually happens here, it doesn't happen to you today.`,
+        `Nothing comes of it this time — but ${spot} isn't the kind of place that stays quiet for long.`,
+        "You keep to the shadows and watch. It's not nothing.",
+      ]
+    : [
+        `You look around ${spot} a while. Nothing comes of it, but the ${getNation(loc.nation).name} air is instructive, in its way.`,
+        `Nothing here but the ordinary business of ${spot} going on without you.`,
+        "You find a good vantage point and just watch for a time. It's not nothing.",
+      ];
   return [flavor[Math.floor(Math.random() * flavor.length)]];
 }
 

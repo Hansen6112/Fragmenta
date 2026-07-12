@@ -23,6 +23,17 @@ const SHOP_REFRESH_DAYS = 4;
 const SHOP_STOCK_SIZE = 8;
 const SET_TO_GUILD = { "Mugamiir Safor": "mugamiir_safor", "Magma-Hearth": "magma_hearth" };
 
+// A sublocation's optional `shopCategory` (see world.js) narrows its stock
+// to matching equipment slots — Legion's Arms sells weapons, not potions.
+// Undefined (every shop so far) means no filtering at all, the original
+// generic-goods behavior.
+const SHOP_CATEGORY_SLOTS = {
+  weapons: ["mainhand"],
+  armor: ["offhand", "helmet", "chest", "gloves", "boots", "cloak"],
+  potions: ["consumable"],
+  jewelry: ["rings", "necklace", "trinkets"],
+};
+
 // Shops keep ordinary daylight hours — open through the morning and
 // afternoon, closed by evening. Checked separately from stock
 // eligibility/refresh above; a shop can exist at a location and simply
@@ -32,18 +43,32 @@ function isShopOpen(state) {
   return part === "morning" || part === "afternoon";
 }
 
-function eligibleShopItems(locId) {
+function eligibleShopItems(locId, category) {
   const loc = LOCATIONS[locId];
   if (!loc) return [];
+  const allowedSlots = category && SHOP_CATEGORY_SLOTS[category];
   const out = [];
   for (const [name, def] of Object.entries(ITEM_DEFS)) {
     if (def.source !== "shop") continue;
     if (def.region && def.region !== loc.nation) continue;
     const guild = def.set && SET_TO_GUILD[def.set];
     if (guild && GUILD_HQ[locId] !== guild) continue;
+    if (allowedSlots && !allowedSlots.includes(def.slot)) continue;
     out.push(name);
   }
   return out;
+}
+
+// A specialized shop's stock lives independently of both the city's
+// general stock and every other specialized shop in the same city — keyed
+// by city:sublocation rather than just the city id. Every shop so far has
+// no shopCategory, so this resolves to the plain city id exactly as
+// before; only a real shopCategory on the CURRENT sublocation changes it.
+function shopKeyAndCategory(state, locId) {
+  const place = state.location === locId ? state.currentSublocation() : null;
+  const category = place && place.shopCategory;
+  const key = category ? `${locId}:${state.subLocation}` : locId;
+  return { key, category };
 }
 
 // Fisher-Yates, capped to however many items actually exist for a spot.
@@ -62,14 +87,18 @@ function sampleItems(pool, n) {
 // worse experience than "gear varies, but you can always restock
 // potions." Everything else still rotates.
 function getOrRefreshShop(state, locId) {
-  let shop = state.shops[locId];
+  const { key, category } = shopKeyAndCategory(state, locId);
+  let shop = state.shops[key];
   if (!shop || state.day - shop.lastRefresh >= SHOP_REFRESH_DAYS) {
-    const pool = eligibleShopItems(locId);
-    const consumables = pool.filter((name) => ITEM_DEFS[name].slot === "consumable");
+    const pool = eligibleShopItems(locId, category);
+    // A category other than "potions" excludes consumables entirely
+    // (a weaponsmith doesn't stock healing draughts); no category, or
+    // category "potions" itself, keeps the always-in-stock behavior.
+    const consumables = category && category !== "potions" ? [] : pool.filter((name) => ITEM_DEFS[name].slot === "consumable");
     const gear = pool.filter((name) => ITEM_DEFS[name].slot !== "consumable");
     const gearStock = sampleItems(gear, Math.min(SHOP_STOCK_SIZE, gear.length));
     shop = { stock: [...consumables, ...gearStock], lastRefresh: state.day };
-    state.shops[locId] = shop;
+    state.shops[key] = shop;
   }
   return shop;
 }

@@ -362,6 +362,57 @@ const BESTIARY = {
     combatNotes: "Winning doesn't clear your name. It just buys you time before the next patrol.",
     special: true,
   },
+
+  // Urban threats — the "urban" habitat tag has existed since the
+  // terrain-tag table was written, but nothing ever actually spawned from
+  // it (no location has terrain: "city"). The in-city danger-sublocation
+  // encounter roll (see engine/parser.js exploreOutcome) is what finally
+  // reaches this pool. Nation-agnostic on purpose — a mugging or a hired
+  // blade isn't tied to one nation's soil the way a native beast is.
+  street_bandit: {
+    name: "Street Bandit",
+    native: "wherever coin runs short",
+    tags: ["urban", "ruin"],
+    hp: 10, atk: 4, def: 2, spd: 5, acc: 5, agi: 6,
+    description: "An opportunist working the back alleys and closed-up storefronts of a city's rougher quarters — quick with a knife, quicker to run if a fight turns against them.",
+    combatNotes: "Rarely alone. Watch for a second one covering the exit.",
+    archetype: "skirmisher",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    faction: "neutral",
+    group: "outlaws",
+    spawnGroup: "squad",
+  },
+  hired_blade: {
+    name: "Hired Blade",
+    native: "wherever the pay is good",
+    tags: ["urban"],
+    hp: 14, atk: 6, def: 4, spd: 6, acc: 6, agi: 5,
+    description: "A professional, not a desperate one — mercenaries who've traded a Legion or guild contract for whatever a client in a city's underworld is willing to pay instead.",
+    combatNotes: "Better trained and better armed than a street bandit. Don't mistake the calm for hesitation.",
+    archetype: "bruiser",
+    dangerClass: "normal",
+    spawnRarity: "uncommon",
+    faction: "neutral",
+    group: "outlaws",
+    spawnGroup: "squad",
+  },
+  watch_patrol: {
+    name: "Watch Patrol",
+    native: "the city's own garrison",
+    tags: ["urban"],
+    hp: 16, atk: 7, def: 6, spd: 5, acc: 7, agi: 4,
+    description:
+      "Ordinary city guards — not corrupt, not rogue, just doing their job. That job becomes fighting you the moment you're wanted or your standing turns hostile; otherwise they never draw on you at all.",
+    combatNotes: "Trained and organized. Expect more than one, and expect them to actually coordinate.",
+    archetype: "bruiser",
+    dangerClass: "elite",
+    spawnRarity: "uncommon",
+    faction: "neutral",
+    group: "watch",
+    spawnGroup: "squad",
+    requiresHostility: true, // only enters an encounter pool when the player is wanted or locally hostile-reputation — see exploreOutcome's filter
+  },
 };
 
 function creaturesForTags(tagList, nation) {
