@@ -3725,6 +3725,66 @@ const LOCATIONS = {
         description:
           "Coordinates contracts supporting the Empire's officer corps.",
       },
+      // ------------------------------------------------- MILITARY QUARTER
+      // Source names both the district hub and its central command
+      // fortress "The Command Citadel" — merged into one sublocation, same
+      // as the other cities' Sea Bastion/Great Foundry/Engine Bastion.
+      commandCitadel: {
+        name: "The Command Citadel",
+        type: "barracks",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "The intellectual heart of Sanguivorum's military — the fortress overseeing Minervon's military academies and officer corps.",
+      },
+      hallOfGenerals: {
+        name: "Hall of Generals",
+        type: "landmark",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "Preserves campaign records while serving as the city's operational command center.",
+      },
+      officerBarracks: {
+        name: "Officer Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "Housing for instructors, cadets, and visiting commanders.",
+      },
+      fieldAcademy: {
+        name: "Field Academy",
+        type: "barracks",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "Large tactical training grounds where cadets command simulated battles.",
+      },
+      imperialArsenal: {
+        name: "Imperial Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "Stores training equipment, weapons, banners, and ceremonial arms.",
+      },
+      strategicCommand: {
+        name: "Strategic Command",
+        type: "landmark",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "Coordinates officer assignments throughout the Empire.",
+      },
+      houseOfRecovery: {
+        name: "House of Recovery",
+        type: "healer",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "Treats cadets and soldiers injured during training.",
+      },
+      victoryTower: {
+        name: "Victory Tower",
+        type: "landmark",
+        district: "Military Quarter (The Command Citadel)",
+        description:
+          "A tall observation tower overlooking every academy and training field.",
+      },
     },
   },
   marsatum: {
