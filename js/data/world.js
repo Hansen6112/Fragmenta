@@ -906,6 +906,56 @@ const LOCATIONS = {
         description:
           "A peaceful garden representing both the beauty and unpredictability of love through carefully cultivated wild growth.",
       },
+      // ---------------------------------------------------- ARCANE QUARTER
+      tideConclave: {
+        name: "The Tide Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Tide Conclave)",
+        description:
+          "The Kabal's maritime branch, overseeing navigation magic, magical weather observation, and arcane threats emerging from the sea.",
+      },
+      tideConclaveHall: {
+        name: "Tide Conclave Hall",
+        type: "guildhall",
+        district: "Arcane Quarter (The Tide Conclave)",
+        description:
+          "The official Kabal headquarters within Aphroneth.",
+      },
+      registryOfNavigators: {
+        name: "Registry of Navigators",
+        type: "landmark",
+        district: "Arcane Quarter (The Tide Conclave)",
+        description:
+          "Registers licensed mages serving aboard merchant and naval vessels.",
+      },
+      chamberOfCurrents: {
+        name: "Chamber of Currents",
+        type: "landmark",
+        district: "Arcane Quarter (The Tide Conclave)",
+        description:
+          "Studies navigation magic, hydromancy, and weather manipulation.",
+      },
+      oceanicRepository: {
+        name: "Oceanic Repository",
+        type: "landmark",
+        district: "Arcane Quarter (The Tide Conclave)",
+        description:
+          "Archives magical research concerning sea monsters, storms, ocean currents, and maritime expeditions.",
+      },
+      magesAnchorage: {
+        name: "Mage's Anchorage",
+        type: "residential",
+        district: "Arcane Quarter (The Tide Conclave)",
+        description:
+          "Housing for Conclave personnel stationed in Aphroneth.",
+      },
+      beaconCircle: {
+        name: "Beacon Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The Tide Conclave)",
+        description:
+          "Reserved for sanctioned magical transportation. Like the Circle Chamber at Zuevaron, it stands ready for a network that doesn't yet exist.",
+      },
     },
   },
   arethon: {
