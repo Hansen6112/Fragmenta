@@ -1814,6 +1814,15 @@ const ITEM_DEFS = {
   "a healing tonic": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "heal", pct: 0.4 }, source: "monster" },
   "a vial of blessed water": { slot: "consumable", tier: 3, bonuses: {}, useEffect: { type: "heal", pct: 0.6 }, source: "monster" },
   "a phoenix-down elixir": { slot: "consumable", tier: 4, bonuses: {}, useEffect: { type: "heal", pct: 1.0 }, source: "monster" },
+
+  // A rare ritual find, not a normal potion — its `slot` deliberately
+  // isn't "consumable", since it isn't usable via the plain 'use' command
+  // (see useItem); it only means anything at the Sanctuary, via 'revive'
+  // (see parser.js's cmdRevive), which consumes it on success. Enters the
+  // same tier-4 monster loot pool as everything else that tier, so it's
+  // rare the same way any tier-4 drop already is (Unique-only, low
+  // dropChance) rather than needing its own bespoke rarity mechanic.
+  "a shard of returning breath": { slot: "ritual", tier: 4, bonuses: {}, revives: true, source: "monster" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

@@ -1220,7 +1220,8 @@ function resolveSpeedInitiative(state, creature) {
     if (!e.creatureObj.flurry) e.skipNormalRetaliationThisRound = true;
     const prevActive = combat.activeIndex;
     combat.activeIndex = i;
-    const result = resolveEnemyRetaliation(state, e.creatureObj, 2, 0);
+    const target = pickEnemyAttackTarget(state);
+    const result = target.kind === "ally" ? resolveEnemyAttackOnAlly(state, e.creatureObj, target.ally) : resolveEnemyRetaliation(state, e.creatureObj, 2, 0);
     combat.activeIndex = prevActive;
     lines.push(`${withThe(e.creatureObj.name, true)} is faster than you and acts first this round!`, ...result.lines);
   }
@@ -1261,7 +1262,8 @@ function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeI
       e.skipNormalRetaliationThisRound = false;
       result = { lines: [`${withThe(e.creatureObj.name, true)} already acted first this round and doesn't get a follow-up strike.`], damage: null };
     } else {
-      result = resolveEnemyRetaliation(state, e.creatureObj, atkSpread, extraDef);
+      const target = pickEnemyAttackTarget(state);
+      result = target.kind === "ally" ? resolveEnemyAttackOnAlly(state, e.creatureObj, target.ally) : resolveEnemyRetaliation(state, e.creatureObj, atkSpread, extraDef);
     }
     combat.activeIndex = prevActive;
     lines.push(...result.lines);
@@ -1271,19 +1273,82 @@ function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeI
   return { lines, damage: activeDamage };
 }
 
-// ---- Party / Allies (Phase 1 — party core combat mechanic) ----
+// ---- Party / Allies ----
 // Allies live on state.party (engine/state.js), persistent across fights —
 // combat reads/writes an ally's .health directly rather than keeping a
 // separate per-fight copy, so nothing needs to be synced back whenever a
 // fight ends (win, flee, or otherwise). They act once per round as a
 // group, all at once, right at the top of it (see beginTurn's own call
 // below) rather than getting their own Speed-based slot in the initiative
-// order — a deliberate Phase 1 simplification. Enemies don't target
-// allies yet either: for now they're pure force-multipliers who can't
-// themselves be put in danger. Permanent death, being downed, and the
-// home-base/revival system are Phase 2.
+// order — a deliberate simplification, unrelated to the death mechanic
+// below. Death IS a real threat here, in every fight, not just Boss/World
+// Boss ones: enemies split their retaliation between the player and any
+// alive allies (pickEnemyAttackTarget), and an ally who's struck below 0
+// health falls permanently (killAlly) — there's no in-fight "downed,
+// recovers after combat" state. Reviving them is deliberately not easy;
+// see parser.js's sanctuary/pray/rite/revive commands.
 function aliveAllies(state) {
   return (state.party || []).filter((a) => a.alive);
+}
+
+// The player still draws the plurality of enemy attention (they're the
+// one actually swinging a weapon at it, after all), but allies standing
+// in a fight aren't safe just for existing — the remainder is split
+// evenly across however many are currently alive.
+const ENEMY_TARGETS_ALLY_SHARE = 0.4;
+function pickEnemyAttackTarget(state) {
+  const allies = aliveAllies(state);
+  if (!allies.length) return { kind: "player" };
+  const roll = Math.random();
+  const playerShare = 1 - ENEMY_TARGETS_ALLY_SHARE;
+  if (roll < playerShare) return { kind: "player" };
+  const perAlly = ENEMY_TARGETS_ALLY_SHARE / allies.length;
+  const idx = Math.min(allies.length - 1, Math.floor((roll - playerShare) / perAlly));
+  return { kind: "ally", ally: allies[idx] };
+}
+
+// An enemy attacking an ally instead of the player — its own smaller,
+// ally-scoped sibling of resolveEnemyRetaliation, since that function's
+// mitigation pipeline is threaded through with player-only Divine
+// Regalia/Legendary/Mythic effects that have no bearing on an ally's own
+// (shared-inventory) gear. `damage` on the returned object is always
+// null, never 0 — this attack didn't target the player at all, so it
+// must not read as "the player dodged" to the dodge/riposte bonuses that
+// key off resolveOrSkipRetaliation's returned damage.
+function resolveEnemyAttackOnAlly(state, creature, ally) {
+  if (!attackConnects(creature.acc, ally.agility)) {
+    return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
+  }
+  const rawAtk = effectiveEnemyAtk(state, creature);
+  const dmg = Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round((ally.def || 0) * 0.5));
+  ally.health = Math.max(0, ally.health - dmg);
+  const lines = [`${withThe(creature.name, true)} strikes ${ally.name} for ${dmg} damage.`];
+  if (ally.health <= 0) lines.push(...killAlly(state, ally));
+  return { lines, damage: null };
+}
+
+// Permanent, not "downed for this fight" — enemies inflicting genuine,
+// lasting death is the whole point (see the file-header comment above).
+// Their shared-inventory gear returns to the pack immediately (nothing
+// about it requires the wearer to still be alive), leaving only their
+// identity for the player to decide what becomes of, via parser.js's
+// 'send <name> home'/'leave <name>' commands.
+function killAlly(state, ally) {
+  ally.alive = false;
+  ally.pendingBodyChoice = true;
+  for (const slot of EQUIP_SLOTS) {
+    if (slot === "trinkets") {
+      state.inventory.push(...ally.equipment.trinkets);
+      ally.equipment.trinkets = [];
+    } else if (ally.equipment[slot]) {
+      state.inventory.push(ally.equipment[slot]);
+      ally.equipment[slot] = null;
+    }
+  }
+  return [
+    `${ally.name} falls.`,
+    `You'll need to decide what becomes of them — 'send ${ally.name.split(" ")[0]} home' to carry the body to the Sanctuary, or 'leave ${ally.name.split(" ")[0]}' to let them go. Revival won't be easy, but it isn't impossible ('sanctuary' explains how).`,
+  ];
 }
 
 function resolveAllyActions(state) {
@@ -3038,6 +3103,20 @@ function attemptFlee(state) {
   }
 
   const combat = state.combat;
+  // A failed flee still only ever gives the current active enemy one
+  // swing (this has never looped the whole pack), but that swing can now
+  // land on an ally instead of the player — the same split
+  // pickEnemyAttackTarget uses everywhere else, rather than the full
+  // player-mitigation pipeline below (which is all player-only gear
+  // effects with no bearing on an ally).
+  const fleeTarget = pickEnemyAttackTarget(state);
+  if (fleeTarget.kind === "ally") {
+    const result = resolveEnemyAttackOnAlly(state, creature, fleeTarget.ally);
+    out.push(`You fail to get clear —`, ...result.lines);
+    const tl = tacticsLine(state);
+    if (tl) out.push(tl);
+    return out;
+  }
   let edmg = Math.max(0, randInt(effectiveEnemyAtk(state, creature) - 1, effectiveEnemyAtk(state, creature) + 1) - effectivePlayerDef(state));
   if (edmg > 0 && !combat.firstHitTakenUsed) {
     combat.firstHitTakenUsed = true;

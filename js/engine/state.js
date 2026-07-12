@@ -53,6 +53,8 @@ class GameState {
     this.activeJobs = [];
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
+    this.fallenAllies = []; // { defId, name, level, diedDay } — bodies sent to the Sanctuary, awaiting revival (see parser.js)
+    this.divineFavor = 0; // standing with the Pantheon's god of Death and Renewal — one of three revival paths
   }
 
   // Adds a new party member from ALLY_DEFS, at the player's current level,
@@ -226,6 +228,8 @@ class GameState {
       activeJobs: this.activeJobs,
       boards: this.boards,
       party: this.party,
+      fallenAllies: this.fallenAllies,
+      divineFavor: this.divineFavor,
     };
   }
 

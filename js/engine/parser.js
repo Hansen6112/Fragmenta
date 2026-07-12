@@ -53,6 +53,11 @@ const VERB_SYNONYMS = {
   recruit: ["recruit"],
   give: ["give", "hand"],
   reclaim: ["reclaim", "retrieve"],
+  sanctuary: ["sanctuary", "shrine"],
+  pray: ["pray", "offer"],
+  rite: ["rite"],
+  revive: ["revive", "resurrect"],
+  send: ["send", "carry"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -179,6 +184,21 @@ async function handleInput(rawInput, state) {
       return cmdGive(arg, state);
     case "reclaim":
       return cmdReclaim(arg, state);
+    case "sanctuary":
+      return cmdSanctuary(state);
+    case "pray":
+      return cmdPray(state);
+    case "rite":
+      return cmdAttemptRite(state);
+    case "revive":
+      return cmdRevive(arg, state);
+    case "send":
+      return cmdSendAllyHome(arg, state);
+    case "leave": {
+      const fallen = findDeadAllyPendingChoice(state, arg);
+      if (fallen) return cmdLeaveAllyBody(fallen, state);
+      return await generateOpenResponse(input, state);
+    }
     case "feint":
     case "decoy":
     case "ambush":
@@ -399,6 +419,7 @@ function cmdEquip(arg, state) {
   const slot = itemDef ? itemDef.slot : inferEquipSlot(item);
   if (!slot) return [`${item} isn't something you can equip.`];
   if (slot === "consumable") return [`${item} isn't gear — try 'use ${item}' instead.`];
+  if (!EQUIP_SLOTS.includes(slot)) return [`${item} isn't gear — it's not something you wear or wield.`];
 
   if (slot === "trinkets") {
     // Dual Focus (Artifact): raises the trinket cap from 2 to 3. Checked
@@ -547,6 +568,7 @@ function cmdGive(arg, state) {
   const slot = itemDef ? itemDef.slot : inferEquipSlot(item);
   if (!slot) return [`${item} isn't something ${ally.name} can use.`];
   if (slot === "consumable") return [`${item} isn't gear — it stays in the shared pack for anyone to 'use'.`];
+  if (!EQUIP_SLOTS.includes(slot)) return [`${item} isn't gear — it's not something ${ally.name} can wear or wield.`];
 
   const lines = [];
   if (slot === "trinkets") {
@@ -601,6 +623,140 @@ function cmdReclaim(arg, state) {
     }
   }
   return [`No one in your party has "${itemNeedle}" equipped.`];
+}
+
+// ---- Death, the Sanctuary, and revival ----
+// An ally who falls in combat (combat.js's killAlly) leaves state.party
+// with alive:false and pendingBodyChoice:true — a decision the player
+// must resolve before that slot is truly closed. 'send <name> home'
+// preserves them at the Sanctuary (state.fallenAllies) for an eventual —
+// deliberately not easy — revival; 'leave <name>' lets them go for good.
+
+function findDeadAllyPendingChoice(state, needle) {
+  const n = (needle || "").toLowerCase().trim();
+  return state.party.find((a) => !a.alive && a.pendingBodyChoice && (!n || a.name.toLowerCase().includes(n))) || null;
+}
+
+function cmdSendAllyHome(arg, state) {
+  const words = (arg || "").split(/\s+/).filter(Boolean);
+  if (words.length && words[words.length - 1] === "home") words.pop();
+  const ally = findDeadAllyPendingChoice(state, words.join(" ").trim());
+  if (!ally) return ["No one needs sending home right now."];
+  ally.pendingBodyChoice = false;
+  state.fallenAllies.push({ defId: ally.defId, name: ally.name, level: ally.level, diedDay: state.day });
+  state.party = state.party.filter((a) => a !== ally);
+  return [
+    `You carry ${ally.name}'s body to the Sanctuary and lay them to rest among the others waiting for a second chance.`,
+    `(Check on them anytime with 'sanctuary'. Revival needs the Rite of Second Breath, a shard of returning breath, or enough of the god of Death and Renewal's favor.)`,
+  ];
+}
+
+function cmdLeaveAllyBody(ally, state) {
+  ally.pendingBodyChoice = false;
+  state.party = state.party.filter((a) => a !== ally);
+  return [`You leave ${ally.name} where they fell. Whatever comes next for them, it won't be your doing.`];
+}
+
+const DIVINE_FAVOR_REVIVAL_THRESHOLD = 100;
+const RITE_OF_SECOND_BREATH_LEVEL_REQ = 12;
+
+function cmdSanctuary(state) {
+  const lines = [
+    "== The Sanctuary ==",
+    "Not a place on any map — wherever the Pantheon's god of Death and Renewal still has any attention left to spare.",
+    "",
+  ];
+  if (!state.fallenAllies.length) {
+    lines.push("No one waits here. (Not yet, and hopefully not soon.)");
+  } else {
+    lines.push("Waiting for a second chance:");
+    for (const f of state.fallenAllies) lines.push(`  ${f.name} — fell on day ${f.diedDay}`);
+  }
+  lines.push("");
+  lines.push(`Favor of the god of Death and Renewal: ${state.divineFavor}/${DIVINE_FAVOR_REVIVAL_THRESHOLD} (raise it with 'pray')`);
+  lines.push(
+    state.flags.riteOfSecondBreathComplete
+      ? "The Rite of Second Breath: sworn. Always available."
+      : `The Rite of Second Breath: not yet sworn (try 'rite' at level ${RITE_OF_SECOND_BREATH_LEVEL_REQ}+, and something of real worth to surrender).`
+  );
+  lines.push("A shard of returning breath, if you're carrying one, works here on its own.");
+  if (state.fallenAllies.length) lines.push("('revive <name>' when you're ready)");
+  return lines;
+}
+
+// Raising favor costs more each time — a slow, ordinary devotion, not a
+// grind you can brute-force your way through in an afternoon.
+function cmdPray(state) {
+  const cost = 10 + state.divineFavor;
+  if (state.gold < cost) {
+    return [`You have nothing left to offer that the god of Death and Renewal would notice. (Praying costs gold — you have ${state.gold}, need ${cost}.)`];
+  }
+  state.gold -= cost;
+  const gain = Math.max(1, Math.round(8 - state.divineFavor / 15));
+  state.divineFavor += gain;
+  const lines = [`You give what you can and speak the old, unanswerable prayer. Something, somewhere, notices. (+${gain} favor, -${cost} gold)`];
+  if (state.divineFavor >= DIVINE_FAVOR_REVIVAL_THRESHOLD && !state.flags.favorThresholdAnnounced) {
+    state.flags.favorThresholdAnnounced = true;
+    lines.push("For the first time, the prayer actually feels like it reached somewhere. (Your favor alone may now be enough to call someone back — see 'sanctuary'.)");
+  }
+  return lines;
+}
+
+// A one-time, deliberately costly ritual — not a repeatable grind like
+// prayer, and not guaranteed by anything you're carrying. Once sworn, it
+// stays available for every future revival, no further cost.
+function cmdAttemptRite(state) {
+  if (state.flags.riteOfSecondBreathComplete) {
+    return ["You've already walked the Rite of Second Breath. Its arrangement holds — you may call on it whenever you need to."];
+  }
+  if (state.level < RITE_OF_SECOND_BREATH_LEVEL_REQ) {
+    return [`The Rite of Second Breath isn't something you're ready to survive yet. (needs level ${RITE_OF_SECOND_BREATH_LEVEL_REQ}+; you are ${state.level})`];
+  }
+  const idx = state.inventory.findIndex((i) => {
+    const def = getItemDef(i);
+    return def && def.tier >= 3;
+  });
+  if (idx < 0) return ["The Rite demands something of real worth to surrender — a relic, not a trinket. (needs a tier 3+ item)"];
+  const sacrificed = state.inventory.splice(idx, 1)[0];
+  state.flags.riteOfSecondBreathComplete = true;
+  return [
+    `You surrender ${sacrificed} into the dark and speak words that were never meant to be spoken by the living.`,
+    "Something answers. Not kindly, not gently, but it answers. The Rite of Second Breath is yours now, for as long as you need it.",
+  ];
+}
+
+function cmdRevive(arg, state) {
+  if (!state.fallenAllies.length) return ["No one is waiting at the Sanctuary."];
+  const needle = (arg || "").toLowerCase().trim();
+  const idx = needle ? state.fallenAllies.findIndex((a) => a.name.toLowerCase().includes(needle)) : state.fallenAllies.length === 1 ? 0 : -1;
+  if (idx < 0) return [needle ? `No one at the Sanctuary matches "${needle}".` : "Revive whom? Name one of the fallen."];
+  const fallen = state.fallenAllies[idx];
+
+  let method = null;
+  const ritualIdx = state.inventory.findIndex((i) => {
+    const def = getItemDef(i);
+    return def && def.revives;
+  });
+  if (state.flags.riteOfSecondBreathComplete) method = "rite";
+  else if (ritualIdx >= 0) method = "item";
+  else if (state.divineFavor >= DIVINE_FAVOR_REVIVAL_THRESHOLD) method = "favor";
+
+  if (!method) {
+    return [
+      `${fallen.name} isn't coming back yet. Revival needs one of: the Rite of Second Breath ('rite'), a shard of returning breath, ` +
+        `or ${DIVINE_FAVOR_REVIVAL_THRESHOLD} favor with the god of Death and Renewal (currently ${state.divineFavor}, raised with 'pray').`,
+    ];
+  }
+  if (method === "item") state.inventory.splice(ritualIdx, 1);
+  else if (method === "favor") state.divineFavor -= DIVINE_FAVOR_REVIVAL_THRESHOLD;
+  state.fallenAllies.splice(idx, 1);
+  const ally = state.recruitAlly(fallen.defId);
+
+  const lines = [`${fallen.name} draws breath again. It is not a gentle thing to watch.`];
+  if (method === "rite") lines.push("The Rite of Second Breath holds true.");
+  else if (method === "item") lines.push("The shard of returning breath crumbles to ash, spent.");
+  else lines.push(`The god of Death and Renewal's favor is spent. (-${DIVINE_FAVOR_REVIVAL_THRESHOLD} favor)`);
+  return ally ? lines : [`Something went wrong bringing ${fallen.name} back.`];
 }
 
 function cmdExamine(arg, state) {
@@ -715,6 +871,8 @@ function cmdStatus(state) {
     xpLine,
     `Gold: ${state.gold}`,
     `Fragmenta shards found: ${state.knownFragments}`,
+    ...(state.party.length ? [`Party: ${state.party.map((a) => a.name).join(", ")}`] : []),
+    ...(state.fallenAllies.length ? [`Awaiting revival at the Sanctuary: ${state.fallenAllies.map((a) => a.name).join(", ")}`] : []),
   ];
 }
 
@@ -1001,7 +1159,11 @@ function cmdHelp() {
     "'choose <element>' to open a second element and its ability.",
     "Party: party (view allies), stance <name> aggressive|defensive|support,",
     "give <item> to <name>, reclaim <item> from <name>. Allies act",
-    "automatically each round of a fight based on their stance.",
+    "automatically each round of a fight based on their stance, and death",
+    "is a real risk for them in every fight, not just the big ones.",
+    "If an ally falls: send <name> home (to the Sanctuary) or leave <name>.",
+    "Sanctuary: sanctuary (check on the fallen), pray (raise divine favor),",
+    "rite (a one-time, costly path to revival), revive <name>.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];
