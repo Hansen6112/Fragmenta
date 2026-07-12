@@ -3658,6 +3658,73 @@ const LOCATIONS = {
         description:
           "Coordinates education, public works, and civic affairs throughout the city.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      officersExchange: {
+        name: "Officer's Exchange",
+        type: "street",
+        district: "Commercial Quarter (Officer's Exchange)",
+        description:
+          "Every merchant serves those preparing for campaign.",
+      },
+      quartermastersSupply: {
+        name: "The Quartermaster's Supply",
+        type: "market",
+        district: "Commercial Quarter (Officer's Exchange)",
+        description:
+          "Carries expedition gear, field equipment, maps, and military supplies.",
+      },
+      commandForge: {
+        name: "Command Forge",
+        type: "shop",
+        district: "Commercial Quarter (Officer's Exchange)",
+        shopCategory: "weapons",
+        description:
+          "Produces officer weapons, ceremonial blades, and finely balanced military arms.",
+      },
+      legionPlate: {
+        name: "Legion Plate",
+        type: "shop",
+        district: "Commercial Quarter (Officer's Exchange)",
+        shopCategory: "armor",
+        description:
+          "Specializes in officer armor, command insignia, and decorated military equipment.",
+      },
+      scholarsElixirs: {
+        name: "Scholar's Elixirs",
+        type: "shop",
+        district: "Commercial Quarter (Officer's Exchange)",
+        shopCategory: "potions",
+        description:
+          "Produces battlefield medicines, stimulants, memory tonics, and tactical supplies.",
+      },
+      courierStables: {
+        name: "Courier Stables",
+        type: "landmark",
+        district: "Commercial Quarter (Officer's Exchange)",
+        description:
+          "Maintains swift horses for messengers and military officers.",
+      },
+      generalsTable: {
+        name: "The General's Table",
+        type: "inn",
+        district: "Commercial Quarter (Officer's Exchange)",
+        description:
+          "A respected inn where officers, instructors, and distinguished visitors gather to discuss campaigns over dinner.",
+      },
+      officersTreasury: {
+        name: "Officer's Treasury",
+        type: "landmark",
+        district: "Commercial Quarter (Officer's Exchange)",
+        description:
+          "Provides financial services for officers, scholars, and military institutions.",
+      },
+      militarySuppliersGuild: {
+        name: "Military Supplier's Guild",
+        type: "guildhall",
+        district: "Commercial Quarter (Officer's Exchange)",
+        description:
+          "Coordinates contracts supporting the Empire's officer corps.",
+      },
     },
   },
   marsatum: {
