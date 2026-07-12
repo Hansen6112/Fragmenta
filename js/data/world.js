@@ -2693,6 +2693,56 @@ const LOCATIONS = {
         description:
           "Records miracles, masterworks, and centuries of the city's religious history.",
       },
+      // ---------------------------------------------------- ARCANE QUARTER
+      emberConclave: {
+        name: "The Ember Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Ember Conclave)",
+        description:
+          "The Kabal's center for studying fire magic, metallurgy, and volcanic phenomena.",
+      },
+      emberConclaveHall: {
+        name: "Ember Conclave Hall",
+        type: "guildhall",
+        district: "Arcane Quarter (The Ember Conclave)",
+        description:
+          "Official headquarters of the Kabal within Vulcaron.",
+      },
+      registryOfArtificers: {
+        name: "Registry of Artificers",
+        type: "landmark",
+        district: "Arcane Quarter (The Ember Conclave)",
+        description:
+          "Registers licensed magical craftsmen and smith-mages.",
+      },
+      chamberOfFlame: {
+        name: "Chamber of Flame",
+        type: "landmark",
+        district: "Arcane Quarter (The Ember Conclave)",
+        description:
+          "Advanced instruction in fire magic and magical metallurgy.",
+      },
+      archiveOfEmbers: {
+        name: "Archive of Embers",
+        type: "landmark",
+        district: "Arcane Quarter (The Ember Conclave)",
+        description:
+          "Contains research concerning volcanic activity, magical alloys, and elemental phenomena.",
+      },
+      mageQuarters: {
+        name: "Mage Quarters",
+        type: "residential",
+        district: "Arcane Quarter (The Ember Conclave)",
+        description:
+          "Housing for resident Conclave scholars.",
+      },
+      forgeCircle: {
+        name: "Forge Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The Ember Conclave)",
+        description:
+          "Reserved for sanctioned magical transportation. Like its counterparts elsewhere in the Empire, it stands ready for a network that doesn't yet exist.",
+      },
     },
   },
   silvanor: {
