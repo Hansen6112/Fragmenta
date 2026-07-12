@@ -71,6 +71,19 @@ function advanceTime(state, minutes, reason) {
   Events.emit("time.advanced", { minutes, reason: reason || "unknown", state });
   if (state.day !== previousDay) {
     Events.emit("day.started", { day: state.day, state });
+    // Fatigue only ever WORSENS on a day rollover (sleep is the only thing
+    // that clears it, handled directly in cmdSleep) — suppressed here when
+    // `reason === "rest"` so a rest/sleep call that itself crosses midnight
+    // can't print a contradictory "you feel tired" moment before cmdSleep's
+    // own "the exhaustion lifts" line.
+    if (reason !== "rest") {
+      const previousTier = fatigueTierForDays(previousDay - state.lastSleptDay);
+      const currentTier = fatigueTierForDays(state.day - state.lastSleptDay);
+      if (currentTier && currentTier !== previousTier) {
+        state.recomputeStats(true);
+        lines.push(`You haven't slept in ${state.day - state.lastSleptDay} day(s). You feel ${currentTier.label.toLowerCase()}.`);
+      }
+    }
   }
   if (currentDaypart !== previousDaypart) {
     Events.emit("daypart.changed", { previous: previousDaypart, current: currentDaypart, state });

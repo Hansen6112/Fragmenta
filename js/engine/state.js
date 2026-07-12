@@ -11,6 +11,23 @@ const BASE_SPEED = 5;
 const BASE_ACCURACY = 5;
 const BASE_AGILITY = 5;
 
+// Fatigue: how many days without a full sleep before each debuff kicks
+// in. Checked from most-severe down so the worst applicable tier wins.
+// Player-only — allies don't track their own time independently.
+const FATIGUE_TIERS = [
+  { minDays: 3, id: "dead_man_walking", label: "Dead Man Walking", mult: 0.5 },
+  { minDays: 2, id: "exhausted", label: "Exhausted", mult: 0.8 },
+  { minDays: 1, id: "tired", label: "Tired", mult: 0.9 },
+];
+
+function fatigueTierForDays(daysSinceSleep) {
+  return FATIGUE_TIERS.find((t) => daysSinceSleep >= t.minDays) || null;
+}
+
+function fatigueTier(state) {
+  return fatigueTierForDays(state.day - state.lastSleptDay);
+}
+
 class GameState {
   constructor() {
     this.playerName = "Wanderer";
@@ -47,6 +64,7 @@ class GameState {
     this.day = 1;
     this.hour = 8; // world clock — see engine/time.js's advanceTime/getDaypart
     this.minute = 0;
+    this.lastSleptDay = 1; // last day a full 'sleep' was completed — see fatigueTier below
     this.flags = {};
     this.visited = new Set();
     this.combat = null; // { creatureId, hp, name } when engaged
@@ -144,6 +162,21 @@ class GameState {
       this.atk = Math.round(this.atk * 1.5);
       this.def = Math.round(this.def * 1.25);
     }
+    // Fatigue: going too long without a full sleep saps every combat/
+    // utility stat (not max Health — this shouldn't put you at death's
+    // door on its own, just make you worse at everything). Cleared by
+    // cmdSleep updating lastSleptDay; see engine/time.js for the daily
+    // narration and FATIGUE_TIERS below for the thresholds.
+    const fatigue = fatigueTier(this);
+    if (fatigue) {
+      this.atk = Math.round(this.atk * fatigue.mult);
+      this.def = Math.round(this.def * fatigue.mult);
+      this.magic = Math.round(this.magic * fatigue.mult);
+      this.knowledge = Math.round(this.knowledge * fatigue.mult);
+      this.speed = Math.round(this.speed * fatigue.mult);
+      this.accuracy = Math.round(this.accuracy * fatigue.mult);
+      this.agility = Math.round(this.agility * fatigue.mult);
+    }
     if (healOnGain) {
       this.health += Math.max(0, this.maxHealth - oldMaxHealth);
     } else {
@@ -226,6 +259,7 @@ class GameState {
       day: this.day,
       hour: this.hour,
       minute: this.minute,
+      lastSleptDay: this.lastSleptDay,
       flags: this.flags,
       visited: Array.from(this.visited),
       knownFragments: this.knownFragments,
@@ -242,6 +276,10 @@ class GameState {
   static fromJSON(data) {
     const s = new GameState();
     Object.assign(s, data);
+    // Saves from before fatigue existed have no lastSleptDay — treat them
+    // as just having slept, rather than retroactively penalizing whatever
+    // day count they'd already reached.
+    if (data.lastSleptDay == null) s.lastSleptDay = s.day;
     s.visited = new Set(data.visited || []);
     if (Array.isArray(data.equipment)) {
       // Pre-slot save format: return those items to inventory rather than

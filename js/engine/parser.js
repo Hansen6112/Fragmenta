@@ -913,7 +913,14 @@ function cmdSleep(state) {
   if (!loc.services || !loc.services.includes("rest")) {
     return ["There's nowhere safe to sleep here. Better to keep moving."];
   }
-  return performRest(state, loc, state.maxHealth, 480, "sleep through the night");
+  const wasFatigued = !!fatigueTier(state);
+  const lines = performRest(state, loc, state.maxHealth, 480, "sleep through the night");
+  state.lastSleptDay = state.day; // the day you WAKE on, after performRest's own advanceTime call
+  if (wasFatigued) {
+    state.recomputeStats(true);
+    lines.push("The exhaustion lifts. You feel like yourself again.");
+  }
+  return lines;
 }
 
 function cmdStatus(state) {
@@ -927,8 +934,10 @@ function cmdStatus(state) {
     state.flags.isMage && state.primaryElement
       ? `Element: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? ` / ${ELEMENTS[state.secondaryElement].name}` : ""}${state.tertiaryElement ? ` / ${ELEMENTS[state.tertiaryElement].name}` : ""}`
       : null;
+  const fatigue = fatigueTier(state);
   return [
     `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}, ${formatTime(state)} (${getDaypart(state.hour)})`,
+    ...(fatigue ? [`Fatigue: ${fatigue.label} (${Math.round((1 - fatigue.mult) * 100)}% stat penalty) — sleep it off.`] : []),
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
     `Magic: ${state.magic}   Knowledge: ${state.knowledge}   Speed: ${state.speed}`,
@@ -1264,6 +1273,8 @@ function cmdHelp() {
     "Time passes as you act (talking, exploring, buying, fighting, ...) —",
     "status shows the day, clock, and time of day. rest is a quick,",
     "cheap partial heal; sleep is a full night's rest and a full heal.",
+    "Go too long without sleeping and fatigue sets in — a stat penalty",
+    "that grows daily until you sleep it off. Status shows your fatigue.",
     "You gain XP from kills, jobs, and contracts, and level up automatically",
     "(1-25) — each background grows differently: a fighter's levels favor",
     "attack/defense/health, a mage's favor magic and knowledge.",
