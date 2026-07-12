@@ -3838,6 +3838,64 @@ const LOCATIONS = {
         description:
           "Preserves scripture, philosophical works, and centuries of theological scholarship.",
       },
+      // ----------------------------------------------------- ARCANE QUARTER
+      // Source lists "The School of Manipulum Eruditetus" as both this
+      // quarter's hub AND, later, as a standalone entry under "City
+      // Landmarks" — the same flagship-building-shares-the-quarter-name
+      // pattern seen elsewhere this session (Sea Bastion, Great Foundry,
+      // Engine Bastion, Command Citadel), just spanning two sections of the
+      // source document instead of one. Merged into a single sublocation
+      // here (combining both blurbs) so the City Landmarks batch doesn't
+      // recreate an identically-named, permanently-unreachable duplicate.
+      schoolOfManipulumEruditetus: {
+        name: "The School of Manipulum Eruditetus",
+        type: "guildhall",
+        district: "Arcane Quarter (The School of Manipulum Eruditetus)",
+        description:
+          "The Empire's foremost institution for military magic and advanced strategic education. Many of Sanguivorum's greatest battle mages receive their education here before serving alongside the Legions — the most prestigious military academy in Fragmenta, producing the Empire's greatest commanders, strategists, and battle mages.",
+      },
+      grandLectureHall: {
+        name: "Grand Lecture Hall",
+        type: "landmark",
+        district: "Arcane Quarter (The School of Manipulum Eruditetus)",
+        description:
+          "The central academy where military strategy and magical theory are taught.",
+      },
+      registryOfScholars: {
+        name: "Registry of Scholars",
+        type: "landmark",
+        district: "Arcane Quarter (The School of Manipulum Eruditetus)",
+        description:
+          "Registers battle mages, instructors, and advanced magical researchers.",
+      },
+      chamberOfTheory: {
+        name: "Chamber of Theory",
+        type: "landmark",
+        district: "Arcane Quarter (The School of Manipulum Eruditetus)",
+        description:
+          "Dedicated to tactical spellcraft, magical logistics, and battlefield coordination.",
+      },
+      grandRepository: {
+        name: "Grand Repository",
+        type: "landmark",
+        district: "Arcane Quarter (The School of Manipulum Eruditetus)",
+        description:
+          "One of the greatest libraries in the Empire, containing military history, magical research, and strategic doctrine.",
+      },
+      scholarsResidence: {
+        name: "Scholar's Residence",
+        type: "residential",
+        district: "Arcane Quarter (The School of Manipulum Eruditetus)",
+        description:
+          "Housing for professors, students, and visiting scholars.",
+      },
+      eruditusCircle: {
+        name: "Eruditus Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The School of Manipulum Eruditetus)",
+        description:
+          "Reserved for sanctioned magical transportation.",
+      },
     },
   },
   marsatum: {
