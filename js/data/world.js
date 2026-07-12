@@ -105,6 +105,7 @@ const LOCATIONS = {
       { to: "arethon", days: 3, mode: "road" },
       { to: "apollyon", days: 2, mode: "road" },
       { to: "tritoneth", days: 6, mode: "road", desc: "north into the tundra" },
+      { to: "aphroneth", days: 4, mode: "road", desc: "west to the coast" },
     ],
     // Zuevaron's real district layout, built quarter by quarter (same
     // workflow as Arethon) — the Civic Quarter (The Imperial Forum) is
@@ -627,6 +628,78 @@ const LOCATIONS = {
         dangerTags: ["urban"],
         description:
           "The highest observation tower in Zuevaron, offering a view across the capital and surrounding countryside.",
+      },
+    },
+  },
+  aphroneth: {
+    name: "Aphroneth",
+    title: "The Jewel of the Western Sea",
+    nation: "sanguivorum",
+    terrain: "coast",
+    isCity: true,
+    type: "gate",
+    danger: 1,
+    services: ["rest", "shop", "healer"],
+    description:
+      "The premier commercial port of Sanguivorum, Aphroneth is the Empire's window to the world. Merchant fleets arrive daily carrying goods, cultures, and ideas from every nation. More foreign tongues are spoken here than anywhere else in Sanguivorum, and fortunes are won with a single successful voyage. As the Empire's most cosmopolitan city, Aphroneth balances imperial order with the constant rhythm of international commerce.",
+    connections: [
+      { to: "zuevaron", days: 4, mode: "road", desc: "east to the capital" },
+      { to: "arnoneth", days: 3, mode: "road", desc: "up the coast" },
+    ],
+    // Aphroneth's real district layout, built quarter by quarter (same
+    // workflow as Arethon and Zuevaron) — the Civic Quarter (The Harbor
+    // Forum) is the first. Every place carries a `district` tag for
+    // grouping in cmdLook/cmdPlaces; the Harbor Forum itself is the
+    // district's own walkable hub, so it doesn't need one.
+    sublocations: {
+      harborForum: {
+        name: "The Harbor Forum",
+        type: "street",
+        district: "Civic Quarter (The Harbor Forum)",
+        description:
+          "The administrative heart of Aphroneth, where maritime law, commerce, and imperial governance intersect.",
+      },
+      harborGate: {
+        name: "The Harbor Gate",
+        type: "gate",
+        district: "Civic Quarter (The Harbor Forum)",
+        description:
+          "The monumental entrance connecting the bustling docks to the city beyond. Nearly every foreign traveler begins their journey through Aphroneth here.",
+      },
+      hallOfTideSenate: {
+        name: "The Hall of the Tide Senate",
+        type: "landmark",
+        district: "Civic Quarter (The Harbor Forum)",
+        description:
+          "The seat of the city's Ascendus senator. Trade law, harbor policy, and civic administration are directed from these chambers.",
+      },
+      harborSquare: {
+        name: "Harbor Square",
+        type: "street",
+        district: "Civic Quarter (The Harbor Forum)",
+        description:
+          "The city's central plaza where merchants negotiate contracts, musicians entertain travelers, and public ceremonies celebrate successful expeditions.",
+      },
+      marinersLedger: {
+        name: "The Mariner's Ledger",
+        type: "board",
+        district: "Civic Quarter (The Harbor Forum)",
+        description:
+          "Requests for escorts, shipping contracts, monster hunts, courier work, and merchant commissions fill its notice boards daily.",
+      },
+      sailorsWard: {
+        name: "Sailor's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Harbor Forum)",
+        description:
+          "Home to generations of sailors, dockworkers, merchants, and fishing families whose livelihoods depend upon the harbor.",
+      },
+      harborWatchHeadquarters: {
+        name: "Harbor Watch Headquarters",
+        type: "barracks",
+        district: "Civic Quarter (The Harbor Forum)",
+        description:
+          "The city's lawkeepers specialize in smuggling investigations, customs enforcement, and keeping order along the waterfront.",
       },
     },
   },
@@ -1383,6 +1456,7 @@ const LOCATIONS = {
     connections: [
       { to: "netturon", days: 3, mode: "road" },
       { to: "decearon", days: 2, mode: "road" },
+      { to: "aphroneth", days: 3, mode: "road", desc: "down the coast" },
     ],
   },
   decearon: {
