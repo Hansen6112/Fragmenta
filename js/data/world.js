@@ -829,6 +829,83 @@ const LOCATIONS = {
         description:
           "Treats injured sailors, marines, and dockworkers returning from dangerous voyages.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      // Patron deity Seressa and her faith, the Heartward Communion
+      // (compassion, fellowship, genuine human connection) — the Grand
+      // Heartward Shrine and Chamber of Reflection default prayer to her;
+      // Garden Sanctuary is explicitly Religion-tagged and about seeking
+      // peace through love's unpredictability, so it gets the same
+      // treatment. Pilgrim's Rest, House of the Amorites, Fountain of
+      // Bonds, and Hall of Devotion stay flavor-only — lodging, clergy
+      // residence, a ceremony venue, and a lore hall, none of them framed
+      // as a place to actually pray.
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "The spiritual heart of Aphroneth, devoted to Seressa and her faith, the Heartward Communion, whose teachings of compassion, fellowship, and genuine human connection have made the city renowned for its hospitality. Candlelight and soft music carry from every open shrine door.",
+      },
+      grandHeartwardShrine: {
+        name: "The Grand Heartward Shrine",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Seressa"],
+        description:
+          "The greatest Heartward Shrine in Sanguivorum. Weddings are celebrated beside the Fountain of Bonds while sailors departing on long voyages seek blessings for safe return and joyful reunion.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "A circular sanctuary containing twelve equal chapels honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Welcomes pilgrims, travelers, and those with nowhere else to stay, regardless of wealth or homeland.",
+      },
+      houseOfAmorites: {
+        name: "House of the Amorites",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Aphroneth's clergy. The Amorites serve as counselors, matchmakers, wedding officiants, and mediators for broken relationships.",
+      },
+      chamberOfReflection: {
+        name: "Chamber of Reflection",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Seressa"],
+        description:
+          "A quiet sanctuary where the heartbroken seek guidance and clarity beneath soft candlelight.",
+      },
+      fountainOfBonds: {
+        name: "Fountain of Bonds",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "The most famous wedding site in the city, where countless vows have been exchanged beneath blooming roses.",
+      },
+      hallOfDevotion: {
+        name: "Hall of Devotion",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Filled with murals depicting legendary romances, acts of sacrifice, and lifelong friendships remembered by the Communion.",
+      },
+      gardenSanctuary: {
+        name: "Garden Sanctuary",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Seressa"],
+        description:
+          "A peaceful garden representing both the beauty and unpredictability of love through carefully cultivated wild growth.",
+      },
     },
   },
   arethon: {
