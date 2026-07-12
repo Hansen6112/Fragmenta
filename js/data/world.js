@@ -3586,17 +3586,79 @@ const LOCATIONS = {
   },
   minervon: {
     name: "Minervon",
+    title: "The Crucible of Command",
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
     danger: 1,
     services: ["rest", "shop"],
-    description: "A studious little city that likes to think of itself as Apollyon's quieter cousin.",
+    description:
+      "No city has produced more generals, strategists, or military scholars than Minervon. Here, battles are fought long before armies ever march. Every street reflects discipline and preparation, from the orderly parade grounds to the lecture halls where tomorrow's commanders study the victories and failures of centuries past. While Arethon creates soldiers, Minervon creates leaders.",
     connections: [
       { to: "apollyon", days: 3, mode: "road" },
       { to: "decearon", days: 3, mode: "road" },
       { to: "victolath", days: 3, mode: "road" },
     ],
+    // Minervon's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron, and
+    // Daedaron) — the Civic Quarter (The Scholar's Forum) is the first.
+    // Every place carries a `district` tag for grouping in
+    // cmdLook/cmdPlaces; the Scholar's Forum itself is the district's own
+    // walkable hub, so it doesn't need one. Minervon is an existing stub
+    // (exact name match, no rename needed like Vulcaron) — its prior
+    // one-line stub description and services/connections are preserved,
+    // with title and full sublocations layered on top.
+    sublocations: {
+      scholarsForum: {
+        name: "The Scholar's Forum",
+        type: "street",
+        district: "Civic Quarter (The Scholar's Forum)",
+        description:
+          "The administrative heart of Minervon, where military education and civic governance are held in equal esteem.",
+      },
+      commandGate: {
+        name: "The Command Gate",
+        type: "gate",
+        district: "Civic Quarter (The Scholar's Forum)",
+        description:
+          "The principal entrance to the city, flanked by statues of legendary commanders.",
+      },
+      hallOfCommand: {
+        name: "Hall of Command",
+        type: "landmark",
+        district: "Civic Quarter (The Scholar's Forum)",
+        description:
+          "The seat of Minervon's Ascendus senator and the administrative center for the city's military institutions.",
+      },
+      victorySquare: {
+        name: "Victory Square",
+        type: "street",
+        district: "Civic Quarter (The Scholar's Forum)",
+        description:
+          "A ceremonial plaza where cadets graduate, officers are commissioned, and military victories are celebrated.",
+      },
+      strategistsLedger: {
+        name: "The Strategist's Ledger",
+        type: "board",
+        district: "Civic Quarter (The Scholar's Forum)",
+        description:
+          "Posts tactical exercises, courier assignments, officer requests, reconnaissance missions, and academic commissions.",
+      },
+      scholarsWard: {
+        name: "Scholar's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Scholar's Forum)",
+        description:
+          "Home to professors, retired officers, tacticians, and generations of military families.",
+      },
+      civicAdministration: {
+        name: "Civic Administration",
+        type: "landmark",
+        district: "Civic Quarter (The Scholar's Forum)",
+        description:
+          "Coordinates education, public works, and civic affairs throughout the city.",
+      },
+    },
   },
   marsatum: {
     name: "Marsatum",
