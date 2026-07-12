@@ -2576,6 +2576,67 @@ const LOCATIONS = {
         description:
           "Headquarters of Sanguivorum's most influential smithing guild.",
       },
+      // -------------------------------------------------- MILITARY QUARTER
+      // The source names both the district hub and the Legion's central
+      // production complex "The Great Foundry" — same situation as
+      // Aphroneth's Sea Bastion and Tritonath's Lighthouse Conclave,
+      // merged into one sublocation.
+      greatFoundry: {
+        name: "The Great Foundry",
+        type: "barracks",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "The military-industrial heart of the Empire — a massive complex producing weapons, armor, siege engines, and military equipment for every Legion.",
+      },
+      hallOfEngineers: {
+        name: "Hall of Engineers",
+        type: "landmark",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "The headquarters of Ingenum's greatest military engineers.",
+      },
+      legionBarracks: {
+        name: "Legion Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "Home to soldiers assigned to defend Vulcaron's vital industries.",
+      },
+      testingGrounds: {
+        name: "The Testing Grounds",
+        type: "barracks",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "Experimental siege weapons and military equipment are tested here before deployment.",
+      },
+      imperialArsenal: {
+        name: "Imperial Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "The Empire's largest secure weapons repository.",
+      },
+      quartermasterDepot: {
+        name: "Quartermaster Depot",
+        type: "landmark",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "Coordinates military production and distribution across Sanguivorum.",
+      },
+      houseOfRecovery: {
+        name: "House of Recovery",
+        type: "healer",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "Treats industrial injuries, burns, and wounded soldiers.",
+      },
+      furnaceBastion: {
+        name: "Furnace Bastion",
+        type: "landmark",
+        district: "Military Quarter (The Great Foundry)",
+        description:
+          "A towering fortress overlooking the city and its volcanic approaches.",
+      },
     },
   },
   silvanor: {
