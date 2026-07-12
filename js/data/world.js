@@ -273,6 +273,85 @@ const LOCATIONS = {
         description:
           "The local merchant association hall. Trade disputes, caravan partnerships, shipping claims, and commercial licenses are negotiated here.",
       },
+      // ---------------------------------------------------- MILITARY QUARTER
+      // Mostly off-limits, administrative, or ceremonial spaces rather than
+      // player-usable services — "landmark" (flavor, no mechanical hooks)
+      // covers most of it honestly. The Red Arsenal and Quartermaster's
+      // Ledger both read like shops at a glance, but the text is explicit
+      // that neither is open to civilians, so neither gets a shopCategory.
+      // The House of Returning is a natural home for a real "healer"
+      // mechanic if one gets built later — "healer" has sat unused in
+      // every city's top-level services list since it was first written.
+      easternCitadel: {
+        name: "The Eastern Citadel",
+        type: "barracks",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "The fortress-within-the-fortress, walled off even from the rest of Arethon. Everything here runs on Legion time and Legion authorization — checkpoints at every approach, and no one wanders in by accident.",
+      },
+      bastionOfEasternWatch: {
+        name: "The Bastion of the Eastern Watch",
+        type: "landmark",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "Arethon's defining structure and the headquarters of its Legion command. It overlooks the border approaches and dominates the skyline with layered walls, signal towers, and artillery platforms.",
+      },
+      hallOfStandards: {
+        name: "The Hall of Standards",
+        type: "landmark",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "The formal Legion headquarters within the citadel. Unit standards, campaign records, casualty rolls, and commendations are preserved beneath guarded arches.",
+      },
+      stoneCohorts: {
+        name: "The Stone Cohorts",
+        type: "barracks",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "The principal barracks complex. Its long buildings house rotating Legion units, frontier scouts, engineers, and reserve formations.",
+      },
+      fieldOfIron: {
+        name: "The Field of Iron",
+        type: "barracks",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "Arethon's primary training ground. Soldiers drill in formation, test weapons, conduct mock breaches, and train for desert and river combat.",
+      },
+      redArsenal: {
+        name: "The Red Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "The secured weapon and armor storehouse supplying the city's garrison. Civilian access is forbidden without military authorization.",
+      },
+      enginesYard: {
+        name: "The Engines' Yard",
+        type: "landmark",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "A fortified open yard filled with ballistae, mobile towers, rams, and siege mechanisms. Ingenum engineers constantly test and modify equipment here.",
+      },
+      quartermastersLedger: {
+        name: "The Quartermaster's Ledger",
+        type: "landmark",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "The distribution office for military equipment, rations, uniforms, and replacement gear. Nothing leaves without a signature, seal, and recorded destination.",
+      },
+      houseOfReturning: {
+        name: "The House of Returning",
+        type: "landmark",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "Arethon's military hospital. Wounded soldiers arrive here directly from the gates, docks, and frontier posts.",
+      },
+      officersColonnade: {
+        name: "The Officers' Colonnade",
+        type: "landmark",
+        district: "Military Quarter (The Eastern Citadel)",
+        description:
+          "A restrained assembly hall where commanders meet, dine, plan operations, and receive official visitors.",
+      },
     },
   },
   apollyon: {
