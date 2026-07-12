@@ -76,6 +76,7 @@ const LOCATIONS = {
     nation: "kabal",
     terrain: "wasteland",
     isCity: true,
+    type: "landmark",
     danger: 5,
     services: ["guild"],
     description:
@@ -93,6 +94,7 @@ const LOCATIONS = {
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
+    type: "gate",
     danger: 1,
     services: ["rest", "shop", "healer"],
     description:
@@ -106,19 +108,19 @@ const LOCATIONS = {
     sublocations: {
       tavern: {
         name: "The Bronze Ledger",
-        services: ["rest"],
+        type: "inn",
         description:
           "A tidy inn named, everyone assumes, for the Senate's own accounting rooms — a joke the innkeeper never confirms or denies. Off-duty clerks and Legion pay-officers share the long tables, comparing whose posting is worse.",
       },
       market: {
         name: "The Ingenum Concourse",
-        services: ["shop"],
+        type: "market",
         description:
           "A colonnaded market built to Ingenum specification, every stall the same width, every awning the same red. Efficient to a fault — you can find anything here in under a minute, and no one will chat with you while you look.",
       },
       senateSteps: {
         name: "The Senate Steps",
-        services: [],
+        type: "landmark",
         description:
           "Wide Ingenum-cut steps facing the Senate house, where citizens read the day's postings aloud to whoever's within earshot — half news, half performance. \"A citizen is a tool that knows itself,\" someone always mutters, like it's supposed to be comforting.",
       },
@@ -129,6 +131,7 @@ const LOCATIONS = {
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
+    type: "gate",
     danger: 2,
     services: ["rest", "shop", "healer", "guild"],
     description:
@@ -143,19 +146,19 @@ const LOCATIONS = {
     sublocations: {
       tavern: {
         name: "The Twelve Roads",
-        services: ["rest"],
+        type: "inn",
         description:
           "Named for the roads that meet here, and busy at every hour a column happens to be rotating through. A mercenary leans off the tavern wall most nights, watching the room like she's pricing everyone in it.",
       },
       market: {
         name: "The Column Market",
-        services: ["shop"],
+        type: "market",
         description:
           "Stalls packed in tight along the old supply road, smelling of oiled leather and unspent orders. Half the trade here is legitimate quartermaster surplus; the other half, no one asks too closely about.",
       },
       muster: {
         name: "The Legion Muster",
-        services: [],
+        type: "barracks",
         description:
           "A drilling yard where Legion columns stage before rotating out to the Desert War front. Officers post the casualty lists here first, before anywhere else in the city — Arethon reads them before it reads anything.",
       },
@@ -338,6 +341,7 @@ const LOCATIONS = {
     nation: "vaeloris",
     terrain: "forest",
     isCity: true,
+    type: "gate",
     danger: 2,
     services: ["rest", "shop", "healer", "guild"],
     description:
@@ -352,19 +356,19 @@ const LOCATIONS = {
     sublocations: {
       hollow: {
         name: "The Root Hollow",
-        services: ["rest"],
+        type: "inn",
         description:
           "A rest-house grown into the Arbor's own roots rather than built beside them — elven carpenters shaped the wood centuries ago and it's simply kept growing since. Sleep here and you half-dream of rings countable in the walls.",
       },
       market: {
         name: "The Canopy Market",
-        services: ["shop"],
+        type: "market",
         description:
           "Stalls strung between lower branches and reached by rope bridge, trading in elven, lizardfolk, and dragonborn goods side by side — the one place in the triarchy where all three actually barter face to face.",
       },
       boughs: {
         name: "The Witnessed Boughs",
-        services: ["guild"],
+        type: "guildhall",
         description:
           "Climb high enough and the upper branches go quiet in a way that isn't natural silence. The Witnessed are said to keep council somewhere up here; you never quite see them, but standing still long enough, you feel seen back.",
       },
@@ -417,6 +421,7 @@ const LOCATIONS = {
     nation: "vaeloris",
     terrain: "swamp",
     isCity: false,
+    type: "wilderness",
     danger: 5,
     services: [],
     description:
@@ -516,6 +521,7 @@ const LOCATIONS = {
     nation: "sahrimor",
     terrain: "desert",
     isCity: true,
+    type: "gate",
     danger: 3,
     services: ["rest", "shop", "healer", "guild"],
     description:
@@ -531,19 +537,19 @@ const LOCATIONS = {
     sublocations: {
       tavern: {
         name: "The Waterworth Rest",
-        services: ["rest"],
+        type: "inn",
         description:
           "A rest-house that charges for its water before it charges for the room, per Sahrimor custom — pay it without complaint and the innkeeper warms up considerably. Caravan guards trade war-front rumors over lukewarm tea.",
       },
       market: {
         name: "The Caravan Bazaar",
-        services: ["shop"],
+        type: "market",
         description:
           "A sprawl of stalls that never fully closes, restocked by whichever caravan rolled in most recently. Everything's priced in water-equivalents first, gold second — a habit that confuses outsiders and no one bothers explaining.",
       },
       cistern: {
         name: "The Cistern Court",
-        services: [],
+        type: "landmark",
         description:
           "The public cistern and the law court that governs it share the same courtyard, deliberately — water disputes here get settled in view of the water itself. The Merchant King's seal is stamped on every rationing notice.",
       },
@@ -678,6 +684,7 @@ const LOCATIONS = {
     nation: "thraekor",
     terrain: "volcanic",
     isCity: true,
+    type: "gate",
     danger: 4,
     services: ["rest", "shop", "guild"],
     description:
@@ -686,19 +693,19 @@ const LOCATIONS = {
     sublocations: {
       tavern: {
         name: "The Ash-Counted Hearth",
-        services: ["rest"],
+        type: "inn",
         description:
           "Named half for the volcanic hearth-fires and half for the count kept on everyone who passes through — visitors are logged coming in and logged again going out, and the innkeeper does both without seeming to look up.",
       },
       market: {
         name: "The Cinder Market",
-        services: ["shop"],
+        type: "market",
         description:
           "Stalls set back from the ash-fall line, trading in what the mercenary trade actually needs: rations, rope, and gear that can survive a march through live volcanic ground.",
       },
       guildhall: {
         name: "The Magma-Hearth Guildhall",
-        services: ["guild"],
+        type: "guildhall",
         description:
           "Seat of the Magma-Hearth Guild — Thraekor's mercenary institution, heavy infantry and siege specialists first, everything else second. Contract boards line the entry hall, updated the moment a confederation war needs bodies.",
       },
@@ -781,6 +788,7 @@ const LOCATIONS = {
     nation: "norrvael",
     terrain: "mountain",
     isCity: true,
+    type: "gate",
     danger: 3,
     services: ["rest", "shop", "healer", "guild"],
     description:
@@ -794,19 +802,19 @@ const LOCATIONS = {
     sublocations: {
       tavern: {
         name: "The Sleeping Wyrm",
-        services: ["rest"],
+        type: "inn",
         description:
           "Named for the dragon the old stories say sleeps under the mountains here, slowly waking. Regulars swear the floor hums some nights. The innkeeper swears it's just the cellar, and pours another round before anyone can ask twice.",
       },
       market: {
         name: "The Canyon Road Bazaar",
-        services: ["shop"],
+        type: "market",
         description:
           "Stalls lining the switchback where the canyon road opens into the city proper — the island's commercial spine ends here, so whatever Norrvael trades in eventually passes through this market.",
       },
       cliffhall: {
         name: "The Cliff-Hall",
-        services: ["guild"],
+        type: "guildhall",
         description:
           "Empress Violetta Dravenkov's seat, built into the cliff face above the canyon road so the whole city has to look up to see it. House Dravenkov business is conducted here, and very little of it is explained to outsiders.",
       },

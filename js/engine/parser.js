@@ -9,6 +9,7 @@ const VERB_SYNONYMS = {
   look: ["look", "l", "observe"],
   go: ["go", "travel", "walk", "head", "move", "enter", "return"],
   map: ["map", "atlas", "locations"],
+  places: ["places", "nearby"],
   inventory: ["inventory", "i", "inv", "items"],
   take: ["take", "get", "grab", "pickup", "pick"],
   drop: ["drop", "discard"],
@@ -133,6 +134,8 @@ async function handleInput(rawInput, state) {
       return cmdGo(arg, state);
     case "map":
       return cmdMap(state);
+    case "places":
+      return cmdPlaces(state);
     case "inventory":
       return cmdInventory(state);
     case "take":
@@ -249,6 +252,7 @@ function cmdLook(state) {
   const loc = state.currentLocation();
   state.visit(state.location);
   const place = state.currentSublocation();
+  const active = place || loc; // whichever place you're actually standing in, for the services/commands hints below
   const lines = place ? [`== ${place.name} ==`, place.description] : [`== ${loc.name} ==`, loc.description];
   if (place) {
     const others = Object.values(loc.sublocations)
@@ -256,18 +260,20 @@ function cmdLook(state) {
       .map((s) => s.name);
     lines.push(`Other places in ${loc.name}: ${others.join(", ")}.`);
     lines.push("(go back to return to the square)");
-    if (place.services && place.services.length) {
-      lines.push(`Services available: ${place.services.join(", ")}.`);
-    }
   } else {
     const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
     lines.push(`Paths from here: ${exits}.`);
-    if (loc.services && loc.services.length) {
-      lines.push(`Services available: ${loc.services.join(", ")}.`);
-    }
     if (loc.sublocations) {
       lines.push(`Around the city: ${Object.values(loc.sublocations).map((s) => s.name).join(", ")}.`);
     }
+  }
+  const services = effectiveServices(active);
+  if (services.length) {
+    lines.push(`Services available: ${services.join(", ")}.`);
+  }
+  const commands = effectiveCommands(active);
+  if (commands.length) {
+    lines.push(`Things to do here: ${commands.join(", ")}.`);
   }
   if (state.flags.isBruise && loc.nation === "kabal") {
     lines.push("You are standing in the one place in the world you have the most reason to fear. Every minute here is borrowed.");
@@ -397,6 +403,29 @@ function cmdMap(state) {
     lines.push(`  -> ${t.name} (${getNation(t.nation).name}) — ~${c.days} day(s) by ${c.mode}${c.desc ? ", " + c.desc : ""}`);
   }
   lines.push(`Visited so far: ${state.visited.size} location(s).`);
+  return lines;
+}
+
+// A slimmer version of cmdLook's "other places nearby" line, with none of
+// the full description — just what's reachable from right here, whether
+// that's a city's own sublocations or another city entirely.
+function cmdPlaces(state) {
+  const loc = state.currentLocation();
+  const place = state.currentSublocation();
+  const lines = [];
+  if (place) {
+    const others = Object.values(loc.sublocations)
+      .filter((s) => s !== place)
+      .map((s) => s.name);
+    lines.push(`From ${place.name}, you can reach: ${others.join(", ")}.`);
+    lines.push("(go back to return to the square)");
+  } else {
+    if (loc.sublocations) {
+      lines.push(`Around ${loc.name}: ${Object.values(loc.sublocations).map((s) => s.name).join(", ")}.`);
+    }
+    const exits = loc.connections.map((c) => LOCATIONS[c.to].name).join(", ");
+    lines.push(`Farther afield: ${exits}.`);
+  }
   return lines;
 }
 
@@ -898,8 +927,7 @@ function randomRumor(state) {
 // (see world.js), or the whole city otherwise (every city that hasn't
 // been broken up yet keeps working exactly as before).
 function hasService(state, service) {
-  const place = state.currentPlace();
-  return !!(place.services && place.services.includes(service));
+  return effectiveServices(state.currentPlace()).includes(service);
 }
 
 // Shared by cmdRest (a quick, 1-hour breather) and cmdSleep (a full
@@ -939,7 +967,7 @@ function performRest(state, loc, healAmount, minutes, verb) {
 // time. 'sleep' (below) is the full 8-hour version.
 function cmdRest(state) {
   const loc = state.currentPlace();
-  if (!loc.services || !loc.services.includes("rest")) {
+  if (!effectiveServices(loc).includes("rest")) {
     return ["There's nowhere safe to rest here. Better to keep moving."];
   }
   return performRest(state, loc, Math.ceil(state.maxHealth * 0.12), 60, "rest a while");
@@ -952,7 +980,7 @@ function cmdRest(state) {
 // scale a smaller number past where it should stop.
 function cmdSleep(state) {
   const loc = state.currentPlace();
-  if (!loc.services || !loc.services.includes("rest")) {
+  if (!effectiveServices(loc).includes("rest")) {
     return ["There's nowhere safe to sleep here. Better to keep moving."];
   }
   const wasFatigued = !!fatigueTier(state);
@@ -1219,7 +1247,7 @@ function cmdSign(arg, state) {
 // somewhere you have to actually be, not a menu available from anywhere.
 function cmdShop(state) {
   const loc = state.currentPlace();
-  if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
+  if (!effectiveServices(loc).includes("shop")) return ["There's no shop here."];
   if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   const shop = getOrRefreshShop(state, state.location);
   const lines = [`== Shop: ${loc.name} ==`];
@@ -1237,7 +1265,7 @@ function cmdShop(state) {
 
 function cmdBuy(arg, state) {
   const loc = state.currentPlace();
-  if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
+  if (!effectiveServices(loc).includes("shop")) return ["There's no shop here."];
   if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   const num = parseInt((arg.match(/\d+/) || [])[0], 10);
   if (!num) return ["Buy which one? (buy <number> — see 'shop' for the list)"];
@@ -1248,7 +1276,7 @@ function cmdBuy(arg, state) {
 
 function cmdSell(arg, state) {
   const loc = state.currentPlace();
-  if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here to sell to."];
+  if (!effectiveServices(loc).includes("shop")) return ["There's no shop here to sell to."];
   if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
   if (!arg) return ["Sell what?"];
   const result = sellInventoryItem(state, arg.toLowerCase());
