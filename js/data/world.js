@@ -768,6 +768,67 @@ const LOCATIONS = {
         description:
           "Guild headquarters where trade disputes are settled and commercial ventures are negotiated.",
       },
+      // -------------------------------------------------- MILITARY QUARTER
+      // The source list names the district's hub and its central fortress
+      // both "The Sea Bastion" — one entry here rather than two identically
+      // named places, folding the district overview and the fortress's own
+      // role into a single authored description.
+      seaBastion: {
+        name: "The Sea Bastion",
+        type: "barracks",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "A heavily fortified district responsible for defending Sanguivorum's busiest harbor — the fortress overlooking Aphroneth's harbor entrance, coordinating all coastal defenses.",
+      },
+      hallOfAdmirals: {
+        name: "Hall of Admirals",
+        type: "landmark",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "Command center for the city's naval officers and harbor defense fleet.",
+      },
+      marineBarracks: {
+        name: "Marine Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "Home to elite marines charged with defending the docks and escorting important vessels.",
+      },
+      breakwaterGrounds: {
+        name: "Breakwater Grounds",
+        type: "barracks",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "Training yards where marines practice boarding actions, shield formations, and coastal warfare.",
+      },
+      navalArsenal: {
+        name: "Naval Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "A secure armory storing weapons, armor, siege engines, and naval equipment.",
+      },
+      signalTower: {
+        name: "Signal Tower",
+        type: "landmark",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "Beacon fires, signal flags, and mirrors coordinate ships approaching the harbor from leagues away.",
+      },
+      quartermastersDock: {
+        name: "Quartermaster's Dock",
+        type: "landmark",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "Supplies military vessels and oversees logistics for coastal patrols.",
+      },
+      houseOfCalmWaters: {
+        name: "House of Calm Waters",
+        type: "healer",
+        district: "Military Quarter (The Sea Bastion)",
+        description:
+          "Treats injured sailors, marines, and dockworkers returning from dangerous voyages.",
+      },
     },
   },
   arethon: {

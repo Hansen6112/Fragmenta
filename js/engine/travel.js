@@ -92,11 +92,24 @@ function findSublocationByName(loc, query) {
     const name = normalizeName(sub.name);
     if (name === q || normalizeName(id) === q) return id;
   }
+  // Among substring matches, prefer the closest name length rather than
+  // simply the first one found in insertion order — otherwise a shorter
+  // hub name that's a strict prefix of a longer building's name (e.g. "The
+  // Sea Bastion" vs. "The Sea Bastion Forge") would always lose to
+  // whichever entry happens to come first in the object.
+  let best = null;
+  let bestDiff = Infinity;
   for (const [id, sub] of Object.entries(loc.sublocations)) {
     const name = normalizeName(sub.name);
-    if (name.includes(q) || q.includes(name)) return id;
+    if (name.includes(q) || q.includes(name)) {
+      const diff = Math.abs(name.length - q.length);
+      if (diff < bestDiff) {
+        best = id;
+        bestDiff = diff;
+      }
+    }
   }
-  return null;
+  return best;
 }
 
 // "go back"/"go square"/"go <city's own name>" from inside one of a
