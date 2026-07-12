@@ -1965,6 +1965,73 @@ const LOCATIONS = {
         description:
           "Coordinates law enforcement and security throughout the city.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      breakwaterMarket: {
+        name: "Breakwater Market",
+        type: "street",
+        district: "Commercial Quarter (Breakwater Market)",
+        description:
+          "A practical marketplace serving soldiers, sailors, and travelers rather than wealthy merchants.",
+      },
+      fjordExchange: {
+        name: "The Fjord Exchange",
+        type: "market",
+        district: "Commercial Quarter (Breakwater Market)",
+        description:
+          "Stocks expedition supplies, preserved food, climbing equipment, and travel necessities.",
+      },
+      stonewakeForge: {
+        name: "Stonewake Forge",
+        type: "shop",
+        district: "Commercial Quarter (Breakwater Market)",
+        shopCategory: "weapons",
+        description:
+          "Produces dependable military weapons, siege hardware, anchors, and coastal defenses.",
+      },
+      bastionArmory: {
+        name: "Bastion Armory",
+        type: "shop",
+        district: "Commercial Quarter (Breakwater Market)",
+        shopCategory: "armor",
+        description:
+          "Crafts armor designed for harsh coastal weather and prolonged military campaigns.",
+      },
+      tideglassApothecary: {
+        name: "Tideglass Apothecary",
+        type: "shop",
+        district: "Commercial Quarter (Breakwater Market)",
+        shopCategory: "potions",
+        description:
+          "Specializes in cold-weather medicines, healing tonics, antidotes, and remedies for long sea voyages.",
+      },
+      cliffStables: {
+        name: "Cliff Stables",
+        type: "landmark",
+        district: "Commercial Quarter (Breakwater Market)",
+        description:
+          "Maintains horses used by military couriers traveling inland.",
+      },
+      beaconsRest: {
+        name: "The Beacon's Rest",
+        type: "inn",
+        district: "Commercial Quarter (Breakwater Market)",
+        description:
+          "A respected inn where sailors, scouts, and officers gather after long patrols.",
+      },
+      coastTreasury: {
+        name: "Coast Treasury",
+        type: "landmark",
+        district: "Commercial Quarter (Breakwater Market)",
+        description:
+          "Provides secure financial services for merchants, officers, and visiting travelers.",
+      },
+      harborProvisioners: {
+        name: "Harbor Provisioners",
+        type: "landmark",
+        district: "Commercial Quarter (Breakwater Market)",
+        description:
+          "Coordinates civilian supplies entering the fortress city.",
+      },
     },
   },
   vulcaron: {
