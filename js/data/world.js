@@ -2509,6 +2509,73 @@ const LOCATIONS = {
         description:
           "Maintains order throughout the city's industrial districts.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      moltenMarket: {
+        name: "The Molten Market",
+        type: "street",
+        district: "Commercial Quarter (The Molten Market)",
+        description:
+          "A marketplace built around craftsmanship rather than luxury.",
+      },
+      ironExchange: {
+        name: "The Iron Exchange",
+        type: "market",
+        district: "Commercial Quarter (The Molten Market)",
+        description:
+          "Stocks mining equipment, travel supplies, tools, and everyday necessities.",
+      },
+      emberheartForge: {
+        name: "Emberheart Forge",
+        type: "shop",
+        district: "Commercial Quarter (The Molten Market)",
+        shopCategory: "weapons",
+        description:
+          "Renowned throughout Fragmenta for producing exceptional weapons forged from the finest Vulcaron steel.",
+      },
+      bastionPlateworks: {
+        name: "Bastion Plateworks",
+        type: "shop",
+        district: "Commercial Quarter (The Molten Market)",
+        shopCategory: "armor",
+        description:
+          "Creates heavy armor trusted by Legion veterans across the Empire.",
+      },
+      ashenCrucible: {
+        name: "Ashen Crucible",
+        type: "shop",
+        district: "Commercial Quarter (The Molten Market)",
+        shopCategory: "potions",
+        description:
+          "Specializes in fire-resistant salves, explosive compounds, mineral reagents, and industrial chemicals.",
+      },
+      packmasterStables: {
+        name: "Packmaster Stables",
+        type: "landmark",
+        district: "Commercial Quarter (The Molten Market)",
+        description:
+          "Maintains mules and pack animals used throughout the surrounding mines.",
+      },
+      smolderingTankard: {
+        name: "The Smoldering Tankard",
+        type: "inn",
+        district: "Commercial Quarter (The Molten Market)",
+        description:
+          "A favorite gathering place for miners, engineers, and visiting adventurers.",
+      },
+      ironReserve: {
+        name: "Iron Reserve",
+        type: "landmark",
+        district: "Commercial Quarter (The Molten Market)",
+        description:
+          "Stores merchant wealth and finances mining operations.",
+      },
+      guildOfSmiths: {
+        name: "Guild of Smiths",
+        type: "guildhall",
+        district: "Commercial Quarter (The Molten Market)",
+        description:
+          "Headquarters of Sanguivorum's most influential smithing guild.",
+      },
     },
   },
   silvanor: {
