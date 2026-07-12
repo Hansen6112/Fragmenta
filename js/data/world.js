@@ -3946,6 +3946,56 @@ const LOCATIONS = {
         description:
           "Maintains the vast transport wagons serving the Legions.",
       },
+      // ----------------------------------------------------- ARTISAN QUARTER
+      academyWard: {
+        name: "Academy Ward",
+        type: "street",
+        district: "Artisan Quarter (Academy Ward)",
+        description:
+          "Every craftsman here serves education and war.",
+      },
+      officersForge: {
+        name: "Officer's Forge",
+        type: "landmark",
+        district: "Artisan Quarter (Academy Ward)",
+        description:
+          "Produces ceremonial weapons, medals, and presentation arms.",
+      },
+      stonewrightAcademy: {
+        name: "Stonewright Academy",
+        type: "landmark",
+        district: "Artisan Quarter (Academy Ward)",
+        description:
+          "Constructs fortifications, monuments, and military architecture.",
+      },
+      standardWeaver: {
+        name: "Standard Weaver",
+        type: "landmark",
+        district: "Artisan Quarter (Academy Ward)",
+        description:
+          "Creates uniforms, banners, officer cloaks, and academy robes.",
+      },
+      cartographersHall: {
+        name: "Cartographer's Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Academy Ward)",
+        description:
+          "Produces maps, surveying equipment, navigation charts, and military atlases.",
+      },
+      tacticalWorkshop: {
+        name: "Tactical Workshop",
+        type: "landmark",
+        district: "Artisan Quarter (Academy Ward)",
+        description:
+          "Builds training equipment, siege models, and educational tools.",
+      },
+      timberCorps: {
+        name: "Timber Corps",
+        type: "landmark",
+        district: "Artisan Quarter (Academy Ward)",
+        description:
+          "Constructs wagons, bridges, siege frames, and academy facilities.",
+      },
     },
   },
   marsatum: {
