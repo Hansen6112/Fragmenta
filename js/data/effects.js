@@ -66,7 +66,7 @@ const EFFECT_DEFS = {
   tactical_memory: { name: "Tactical Memory", category: "utility", description: "Once per fight, the first time a tactic (Feint/Decoy/Disarm) enters cooldown, 20% chance to immediately cut that cooldown by 1 (minimum 1)." },
   ambush_sense: { name: "Ambush Sense", category: "utility", description: "Reduces the chance of hostile creatures getting an opening ambush on you by 25%. Currently inert — no enemy-ambush mechanic exists yet." },
   trailwise: { name: "Trailwise", category: "utility", description: "Reduces the chance of a negative random travel encounter by 10% (relative). Doesn't affect scripted or quest-tied encounters." },
-  merchants_eye: { name: "Merchant's Eye", category: "utility", description: "Shop purchase prices -5%, sale prices +5%. Currently inert — no shop/buy/sell system exists yet." },
+  merchants_eye: { name: "Merchant's Eye", category: "utility", description: "Shop purchase prices -5%, sale prices +5%." },
 
   // ---- Set-only bonuses (data/sets.js) — never appear on an item's own
   // `effects` array; granted purely by reaching a set's 6-piece threshold.

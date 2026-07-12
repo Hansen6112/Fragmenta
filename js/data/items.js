@@ -25,8 +25,8 @@
  *   - "contract" — a specific hand-authored guild contract, one-off
  *   - "monster"  — the general random combat-kill loot table (see
  *                  COMBAT_LOOT_POOL / rollCreatureLoot below)
- *   - "shop"     — reserved for a future shop/buy-sell system. Tagged for
- *                  when that exists; not obtainable today.
+ *   - "shop"     — buyable at a location whose services list "shop" (see
+ *                  engine/shop.js for stock eligibility/pricing/refresh).
  *   - "faction"  — reserved for a future reputation/faction-reward system.
  *                  Tagged for when that exists; not obtainable today.
  * "contract" items beyond the two Legendary capstones below are similarly
@@ -1883,6 +1883,38 @@ function formatItemBonuses(item) {
 function formatItemLine(item) {
   const bonusText = formatItemBonuses(item);
   return bonusText ? `${item} (${bonusText})` : item;
+}
+
+// Shop pricing (engine/shop.js). Buy price scales quadratically with
+// tier — 20/80/180/320/500/720/980/1280 gold for tiers 1-8, though shop
+// STOCK is currently only ever tier 1-3 (see items above's source:"shop"
+// entries); a player's own tier 4+ loot is still sellable at that same
+// formula's rate. Merchant's Eye (a long-authored-but-inert effect on
+// several items — "Shop purchase prices -5%, sale prices +5%") and its
+// Sahrimor 2pc upgrade to 10% are the only price modifiers.
+function shopBuyPrice(itemName, state) {
+  const def = getItemDef(itemName);
+  if (!def) return null;
+  const base = 20 * def.tier * def.tier;
+  const discount = state ? merchantsEyeRate(state) : 0;
+  return Math.max(1, Math.round(base * (1 - discount)));
+}
+
+const SHOP_SELL_RATE = 0.4;
+// Ritual items (slot: "ritual", e.g. "a shard of returning breath")
+// aren't sellable — they're a rare quest resource, not commodity gear;
+// see engine/parser.js's cmdEquip for the same exclusion on the equip side.
+function shopSellPrice(itemName, state) {
+  const def = getItemDef(itemName);
+  if (!def || def.slot === "ritual") return null;
+  const base = Math.round(20 * def.tier * def.tier * SHOP_SELL_RATE);
+  const bonus = state ? merchantsEyeRate(state) : 0;
+  return Math.max(1, Math.round(base * (1 + bonus)));
+}
+
+function merchantsEyeRate(state) {
+  if (!hasEffect(state, "merchants_eye")) return 0;
+  return hasSetTier(state, "Sahrimor", 2) ? 0.1 : 0.05;
 }
 
 // Sums every equipped item's bonus to a given stat (atk/def/health/magic/

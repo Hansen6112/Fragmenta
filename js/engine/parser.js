@@ -58,6 +58,9 @@ const VERB_SYNONYMS = {
   rite: ["rite"],
   revive: ["revive", "resurrect"],
   send: ["send", "carry"],
+  shop: ["shop", "store", "market"],
+  buy: ["buy", "purchase"],
+  sell: ["sell"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -168,6 +171,12 @@ async function handleInput(rawInput, state) {
       return cmdAccept(arg, state);
     case "sign":
       return cmdSign(arg, state);
+    case "shop":
+      return cmdShop(state);
+    case "buy":
+      return cmdBuy(arg, state);
+    case "sell":
+      return cmdSell(arg, state);
     case "skills":
       return cmdSkills(state);
     case "choose":
@@ -1127,6 +1136,44 @@ function cmdSign(arg, state) {
   return [`Contract signed: ${result.job.title}.`, `Objective: ${describeJobObjective(result.job)}.`];
 }
 
+// Location-gated the same way cmdRest checks loc.services — a shop is
+// somewhere you have to actually be, not a menu available from anywhere.
+function cmdShop(state) {
+  const loc = state.currentLocation();
+  if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
+  const shop = getOrRefreshShop(state, state.location);
+  const lines = [`== Shop: ${loc.name} ==`];
+  if (!shop.stock.length) {
+    lines.push("Nothing worth selling here right now. Check back in a few days.");
+  } else {
+    shop.stock.forEach((item, i) => {
+      lines.push(`${i + 1}. ${formatItemLine(item)} — ${shopBuyPrice(item, state)} gold`);
+    });
+    lines.push("(buy <number> to purchase, sell <item> to sell something from your pack)");
+  }
+  lines.push(`Gold: ${state.gold}`);
+  return lines;
+}
+
+function cmdBuy(arg, state) {
+  const loc = state.currentLocation();
+  if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here."];
+  const num = parseInt((arg.match(/\d+/) || [])[0], 10);
+  if (!num) return ["Buy which one? (buy <number> — see 'shop' for the list)"];
+  const result = buyShopItem(state, state.location, num - 1);
+  if (!result.ok) return [result.message];
+  return [`You buy ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold left)`];
+}
+
+function cmdSell(arg, state) {
+  const loc = state.currentLocation();
+  if (!loc.services || !loc.services.includes("shop")) return ["There's no shop here to sell to."];
+  if (!arg) return ["Sell what?"];
+  const result = sellInventoryItem(state, arg.toLowerCase());
+  if (!result.ok) return [result.message];
+  return [`You sell ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold total)`];
+}
+
 function cmdExplore(state) {
   const loc = state.currentLocation();
   const tags = TERRAIN_TAGS[loc.terrain] || ["continental"];
@@ -1181,6 +1228,9 @@ function cmdHelp() {
     "Work: board (city job board), accept <number>, contracts (guild-only,",
     "at Nocturne/Vorseth), sign <number>. Bounty jobs resolve the moment",
     "you win a big enough fight; courier jobs resolve the moment you arrive.",
+    "Shop: shop (view a location's stock, wherever 'services' lists shop),",
+    "buy <number>, sell <item>. Stock varies by nation and rotates every",
+    "few days, so it's worth checking back.",
     "Tactics: skills (list what Knowledge has unlocked). Fighters/scouts use",
     "feint/decoy/ambush/disarm alongside fight/flee once unlocked. Mages",
     "fight through their chosen element instead, and get their own signature",

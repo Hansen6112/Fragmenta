@@ -52,6 +52,7 @@ class GameState {
     this.reputation = initialReputation(); // factionId -> -100..100, all 0 until a background is applied
     this.activeJobs = [];
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
+    this.shops = {}; // locationId -> { stock: [...itemNames], lastRefresh: day } — see engine/shop.js
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
     this.fallenAllies = []; // { defId, name, level, diedDay } — bodies sent to the Sanctuary, awaiting revival (see parser.js)
     this.divineFavor = 0; // standing with the Pantheon's god of Death and Renewal — one of three revival paths
@@ -227,6 +228,7 @@ class GameState {
       reputation: this.reputation,
       activeJobs: this.activeJobs,
       boards: this.boards,
+      shops: this.shops,
       party: this.party,
       fallenAllies: this.fallenAllies,
       divineFavor: this.divineFavor,

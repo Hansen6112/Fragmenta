@@ -91,7 +91,7 @@ const SETS = {
   Sahrimor: {
     theme: "Travel, commerce, speed.",
     bonuses: {
-      2: { special: "sahrimor_merchants_eye_10", description: "Merchant's Eye becomes 10% (currently inert — no shop system yet)" },
+      2: { special: "sahrimor_merchants_eye_10", description: "Merchant's Eye becomes 10%" },
       4: { special: "sahrimor_trailwise_20", description: "Trailwise becomes 20%" },
       6: { effects: ["master_merchant"], description: "Master Merchant — completed job/contract gold +10%" },
     },
