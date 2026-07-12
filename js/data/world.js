@@ -426,6 +426,60 @@ const LOCATIONS = {
         description:
           "A temple archive containing burial rolls, campaign blessings, oaths, marriages, pilgrim accounts, and records of religious service.",
       },
+      // ------------------------------------------------------- ARCANE QUARTER
+      // Flavor-only, same as most of the Military Quarter — the Conclave is
+      // Kabal administration (mage registration, aptitude testing, artifact
+      // custody), not the Mugamiir Safor/Magma-Hearth kind of guild
+      // GUILD_HQ/contracts gates to, so "guildhall" here is thematic only.
+      theConclave: {
+        name: "The Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Conclave)",
+        description:
+          "Arethon's smallest quarter and its most watched. Kabal robes move differently through a crowd than anyone else's — not hurried, never quite idle either — and every door here has a reason to be locked.",
+      },
+      conclaveHallOfArethon: {
+        name: "The Conclave Hall of Arethon",
+        type: "guildhall",
+        district: "Arcane Quarter (The Conclave)",
+        description:
+          "The official Kabal presence in the city. Registered mages, civic authorities, and Legion officers meet here when magical matters affect the frontier.",
+      },
+      registryOfConduits: {
+        name: "The Registry of Conduits",
+        type: "landmark",
+        district: "Arcane Quarter (The Conclave)",
+        description:
+          "The office responsible for recording mages, conduits, magical affiliations, and authorized practice. Its records are precise and closely guarded.",
+      },
+      chamberOfRecognition: {
+        name: "The Chamber of Recognition",
+        type: "landmark",
+        district: "Arcane Quarter (The Conclave)",
+        description:
+          "A controlled examination room used to identify magical aptitude and assess unstable or newly awakened practitioners.",
+      },
+      easternRepository: {
+        name: "The Eastern Repository",
+        type: "landmark",
+        district: "Arcane Quarter (The Conclave)",
+        description:
+          "A compact arcane archive containing regional magical reports, approved texts, creature records, and classified frontier observations.",
+      },
+      veiledDormitory: {
+        name: "The Veiled Dormitory",
+        type: "residential",
+        district: "Arcane Quarter (The Conclave)",
+        description:
+          "Housing for Conclave personnel, visiting mages, apprentices, and Kabal functionaries posted temporarily to Arethon.",
+      },
+      sealedCourt: {
+        name: "The Sealed Court",
+        type: "landmark",
+        district: "Arcane Quarter (The Conclave)",
+        description:
+          "A secure chamber for dangerous artifacts, confiscated magical objects, and evidence awaiting transfer to the Kabal Tower.",
+      },
     },
   },
   apollyon: {
