@@ -499,6 +499,49 @@ const LOCATIONS = {
         description:
           "A gathering place for master craftsmen and engineers.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      goldenHeights: {
+        name: "The Golden Heights",
+        type: "residential",
+        district: "Noble Quarter (The Golden Heights)",
+        description:
+          "Terraced above the rest of the capital, close enough to smell the river and far enough not to hear it. Senators, generals, and foreign dignitaries all keep an address here, whether or not they ever sleep in it.",
+      },
+      senatorialEstates: {
+        name: "The Senatorial Estates",
+        type: "residential",
+        district: "Noble Quarter (The Golden Heights)",
+        description:
+          "Residences of the Empire's most influential families.",
+      },
+      embassyRow: {
+        name: "The Embassy Row",
+        type: "residential",
+        district: "Noble Quarter (The Golden Heights)",
+        description:
+          "Foreign embassies from every major nation.",
+      },
+      imperialGardens: {
+        name: "The Imperial Gardens",
+        type: "landmark",
+        district: "Noble Quarter (The Golden Heights)",
+        description:
+          "Meticulously maintained gardens reserved for official ceremonies.",
+      },
+      hallOfHonors: {
+        name: "The Hall of Honors",
+        type: "landmark",
+        district: "Noble Quarter (The Golden Heights)",
+        description:
+          "Where imperial awards and noble titles are bestowed.",
+      },
+      nobleClub: {
+        name: "The Noble Club",
+        type: "landmark",
+        district: "Noble Quarter (The Golden Heights)",
+        description:
+          "A private gathering place for senators, generals, and wealthy patrons.",
+      },
     },
   },
   arethon: {
