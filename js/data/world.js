@@ -4824,6 +4824,67 @@ const LOCATIONS = {
         description:
           "Coordinates trade supporting Victorath's military economy.",
       },
+      // ------------------------------------------------- MILITARY QUARTER
+      // Source names both the district hub and its central fortress "The
+      // Crown Citadel" — merged into one sublocation, same pattern as Sea
+      // Bastion/Great Foundry/Engine Bastion/Command Citadel/Ranger
+      // Citadel in earlier cities.
+      crownCitadel: {
+        name: "The Crown Citadel",
+        type: "barracks",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "The military soul of Victorath — the city's immense fortress and headquarters of its Legion command.",
+      },
+      hallOfVictors: {
+        name: "Hall of Victors",
+        type: "landmark",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "A chamber preserving battle honors, campaign records, and the names of legendary commanders.",
+      },
+      legionBarracks: {
+        name: "Legion Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "Housing for Victorath's standing Legion garrison.",
+      },
+      fieldOfChampions: {
+        name: "Field of Champions",
+        type: "barracks",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "Training grounds emphasizing aggressive tactics, dueling, and coordinated battlefield maneuvers.",
+      },
+      crownArsenal: {
+        name: "Crown Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "Stores weapons, armor, standards, and military equipment.",
+      },
+      legionCommand: {
+        name: "Legion Command",
+        type: "landmark",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "Coordinates regional military operations and officer deployments.",
+      },
+      houseOfValor: {
+        name: "House of Valor",
+        type: "healer",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "Provides care for wounded soldiers while honoring those who gave everything in service.",
+      },
+      triumphTower: {
+        name: "Triumph Tower",
+        type: "landmark",
+        district: "Military Quarter (The Crown Citadel)",
+        description:
+          "A commanding watchtower crowned by the city's ever-flying Legion standard.",
+      },
     },
   },
 
