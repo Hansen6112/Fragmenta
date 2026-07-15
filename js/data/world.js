@@ -5090,6 +5090,56 @@ const LOCATIONS = {
         description:
           "Builds wagons, siege equipment, bridges, and military infrastructure.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      victorsHeights: {
+        name: "Victor's Heights",
+        type: "residential",
+        district: "Noble Quarter (Victor's Heights)",
+        description:
+          "Home to Victorath's commanders, decorated heroes, and respected civic leaders.",
+      },
+      houseOfVictor: {
+        name: "House of the Victor",
+        type: "landmark",
+        district: "Noble Quarter (Victor's Heights)",
+        description:
+          "Residence of Victorath's Ascendus senator.",
+      },
+      heroesEstates: {
+        name: "Hero's Estates",
+        type: "residential",
+        district: "Noble Quarter (Victor's Heights)",
+        description:
+          "Homes of distinguished generals, decorated veterans, and influential families.",
+      },
+      embassyHall: {
+        name: "Embassy Hall",
+        type: "residential",
+        district: "Noble Quarter (Victor's Heights)",
+        description:
+          "Hosts diplomatic representatives and military observers.",
+      },
+      gardenOfHeroes: {
+        name: "Garden of Heroes",
+        type: "landmark",
+        district: "Noble Quarter (Victor's Heights)",
+        description:
+          "A beautifully maintained memorial honoring those whose actions secured the Empire's greatest victories.",
+      },
+      hallOfLaurels: {
+        name: "Hall of Laurels",
+        type: "landmark",
+        district: "Noble Quarter (Victor's Heights)",
+        description:
+          "The Empire's highest civic hall for recognizing acts of extraordinary courage and leadership.",
+      },
+      commandersCircle: {
+        name: "Commander's Circle",
+        type: "landmark",
+        district: "Noble Quarter (Victor's Heights)",
+        description:
+          "An exclusive gathering place where generals, governors, and honored veterans share strategy and fellowship.",
+      },
     },
   },
 
