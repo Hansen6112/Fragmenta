@@ -4669,17 +4669,79 @@ const LOCATIONS = {
   },
   marsatum: {
     name: "Marsatum",
+    title: "The Western Shield",
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
     danger: 3,
     services: ["rest", "guild"],
     description:
-      "A tense frontier city facing the generations-long cold war with Vaeloris across the treeline. Soldiers here talk about The Stump the way people elsewhere talk about weather — constantly, and never quite honestly.",
+      "Standing where civilization gives way to the untamed borders of Vaeloris, Marsatum has endured centuries of tension without ever breaking. Unlike Arethon, whose strength lies in rapid response, Marsatum embodies steadfast defense. Massive walls, disciplined garrisons, and generations of veteran soldiers have earned the city a reputation as the Empire's immovable bulwark. Every stone reminds its people that holding the line is often the greatest victory.",
     connections: [
       { to: "decearon", days: 4, mode: "road" },
       { to: "victorath", days: 2, mode: "road" },
     ],
+    // Marsatum's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron,
+    // Daedaron, Minervon, Silvanor, and Victorath) — the Civic Quarter
+    // (The Bastion Forum) is the first. Every place carries a `district`
+    // tag for grouping in cmdLook/cmdPlaces; the Bastion Forum itself is
+    // the district's own walkable hub, so it doesn't need one. Marsatum
+    // is an existing stub (exact name match, no rename needed, same as
+    // Vulcaron/Minervon/Silvanor) — its prior danger level and services
+    // (rest, guild) are preserved; terrain stays "plains". Patron deity
+    // Xalaxar.
+    sublocations: {
+      bastionForum: {
+        name: "The Bastion Forum",
+        type: "street",
+        district: "Civic Quarter (The Bastion Forum)",
+        description:
+          "The administrative heart of Marsatum, where every civic decision serves the defense of the western frontier.",
+      },
+      westernGate: {
+        name: "The Western Gate",
+        type: "gate",
+        district: "Civic Quarter (The Bastion Forum)",
+        description:
+          "A towering fortress gate that has withstood countless sieges and serves as the primary entrance into the city.",
+      },
+      hallOfShield: {
+        name: "Hall of the Shield",
+        type: "landmark",
+        district: "Civic Quarter (The Bastion Forum)",
+        description:
+          "Seat of Marsatum's Ascendus senator and center of western frontier administration.",
+      },
+      bastionSquare: {
+        name: "Bastion Square",
+        type: "street",
+        district: "Civic Quarter (The Bastion Forum)",
+        description:
+          "The city's central gathering place where military honors, civic ceremonies, and public announcements are held.",
+      },
+      defendersLedger: {
+        name: "The Defender's Ledger",
+        type: "board",
+        district: "Civic Quarter (The Bastion Forum)",
+        description:
+          "Patrol assignments, monster hunts, frontier escorts, and military contracts are posted daily.",
+      },
+      veteransWard: {
+        name: "Veteran's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Bastion Forum)",
+        description:
+          "Home to retired Legionnaires, frontier families, and generations of defenders.",
+      },
+      frontierVigilisHeadquarters: {
+        name: "Frontier Vigilis Headquarters",
+        type: "barracks",
+        district: "Civic Quarter (The Bastion Forum)",
+        description:
+          "Maintains law and order while coordinating closely with the Legion.",
+      },
+    },
   },
   victorath: {
     name: "Victorath",
