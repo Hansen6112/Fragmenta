@@ -5171,6 +5171,62 @@ const LOCATIONS = {
         description:
           "A beacon that has never been allowed to extinguish, representing the Empire's eternal vigilance.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the abandoned fort and crumbling ramparts get "ruin" for
+      // skeleton/zombie/animated-armor encounters alongside the bandit/
+      // hired-blade "urban" pool. The Watcher's Trail, The Fallen
+      // Battlefield, Frontier Outpost, and Bastion Overlook are all
+      // preserved or still-active maintained sites, so they stay "urban"
+      // only.
+      forgottenFort: {
+        name: "The Forgotten Fort",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "An abandoned border fortress rumored to conceal hidden passages, forgotten supplies, and lingering dangers.",
+      },
+      oldRamparts: {
+        name: "The Old Ramparts",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Crumbling defensive walls from Marsatum's earliest expansion, now reclaimed by nature.",
+      },
+      watchersTrail: {
+        name: "The Watcher's Trail",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A patrol route stretching deep into the frontier, often serving as the starting point for military expeditions.",
+      },
+      fallenBattlefield: {
+        name: "The Fallen Battlefield",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The site of one of the Empire's most hard-fought defensive victories, preserved as a place of remembrance.",
+      },
+      frontierOutpost: {
+        name: "Frontier Outpost",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A forward command post where scouting missions, supply runs, and border investigations originate.",
+      },
+      bastionOverlook: {
+        name: "Bastion Overlook",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A high bluff overlooking the western frontier, offering a commanding view of the forests beyond the Empire's walls.",
+      },
     },
   },
   victorath: {
