@@ -2280,6 +2280,56 @@ const LOCATIONS = {
         description:
           "Produces parchment, inks, maps, journals, illuminated manuscripts, and calligraphy supplies.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      scholarsHeights: {
+        name: "Scholar's Heights",
+        type: "residential",
+        district: "Noble Quarter (Scholar's Heights)",
+        description:
+          "Home to Guild Historia's senior scholars and Apollyon's civic leaders.",
+      },
+      houseOfGrandArchivist: {
+        name: "House of the Grand Archivist",
+        type: "landmark",
+        district: "Noble Quarter (Scholar's Heights)",
+        description:
+          "Residence of Apollyon's Ascendus senator.",
+      },
+      historiansEstates: {
+        name: "Historian's Estates",
+        type: "residential",
+        district: "Noble Quarter (Scholar's Heights)",
+        description:
+          "Homes of renowned scholars, collectors, and Guild Historia masters.",
+      },
+      embassyHall: {
+        name: "Embassy Hall",
+        type: "residential",
+        district: "Noble Quarter (Scholar's Heights)",
+        description:
+          "Hosts foreign scholars and diplomatic representatives seeking access to the archives.",
+      },
+      memorialGardens: {
+        name: "Memorial Gardens",
+        type: "landmark",
+        district: "Noble Quarter (Scholar's Heights)",
+        description:
+          "A peaceful garden where monuments commemorate the greatest historians and explorers of Fragmenta.",
+      },
+      hallOfLegacy: {
+        name: "Hall of Legacy",
+        type: "landmark",
+        district: "Noble Quarter (Scholar's Heights)",
+        description:
+          "Recognizes extraordinary contributions to scholarship, preservation, and historical discovery.",
+      },
+      archivistsCircle: {
+        name: "The Archivist's Circle",
+        type: "landmark",
+        district: "Noble Quarter (Scholar's Heights)",
+        description:
+          "A private gathering place where historians, archaeologists, and philosophers debate the mysteries of the past.",
+      },
     },
   },
   tritonath: {
