@@ -5098,6 +5098,66 @@ const LOCATIONS = {
         description:
           "Massive coastal fortifications protecting the harbor approaches.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // "Ruin" goes to the two places actually described as decayed/collapsed
+      // (Wrecker's Graveyard's "remains of ships lost over centuries",
+      // Forgotten Slipway's "abandoned... long forgotten"), same standard as
+      // Vulcaron's Abandoned Shaft/Forgotten Forge — active-but-secluded spots
+      // (Old Lighthouse, Stormwatch Point, Breakwater Walk) stay "urban" only,
+      // matching Aphroneth's Gull's Watch/Deep Anchorage. The Sea Caves adds
+      // "cave" alongside "urban"/"ruin" — like "volcanic" for Vulcaron's Magma
+      // Caverns, "cave" has genuine common-tier wildlife (Stoneback Beetle,
+      // Cave Scorpion) rather than only rare/elite/world-boss (the reason
+      // "coast" was rejected for Aphroneth's Tide Pools), so it adds real
+      // variety without unbalancing this one spot.
+      theSeaCaves: {
+        name: "The Sea Caves",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin", "cave"],
+        description:
+          "Ancient caverns beneath the cliffs occasionally used by smugglers and far more dangerous inhabitants.",
+      },
+      wreckersGraveyard: {
+        name: "The Wrecker's Graveyard",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "A rocky coastline littered with the remains of ships lost over centuries.",
+      },
+      oldLighthouse: {
+        name: "The Old Lighthouse",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A decommissioned beacon predating Nepturon's current harbor defenses.",
+      },
+      forgottenSlipway: {
+        name: "The Forgotten Slipway",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "An abandoned military dock whose original purpose has long been forgotten.",
+      },
+      stormwatchPoint: {
+        name: "Stormwatch Point",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A cliffside observation post monitoring dangerous weather and unusual activity at sea.",
+      },
+      breakwaterWalk: {
+        name: "The Breakwater Walk",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A fortified promenade stretching along the harbor walls, offering sweeping views of Sanguivorum's western fleet.",
+      },
     },
   },
   arnoneth: {
