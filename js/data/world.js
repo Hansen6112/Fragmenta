@@ -4885,6 +4885,59 @@ const LOCATIONS = {
         description:
           "A commanding watchtower crowned by the city's ever-flying Legion standard.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "The people of Victorath look to Veylana, believing that destiny is shaped by courage, resolve, and the willingness to seize the decisive moment.",
+      },
+      grandTempleOfVeylana: {
+        name: "The Grand Temple of Veylana",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Veylana"],
+        description:
+          "The foremost sanctuary dedicated to Veylana in Sanguivorum. Commanders seek guidance before campaigns, while victorious soldiers return to offer gratitude for fortune's favor.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Provides lodging for pilgrims, veterans, and travelers.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Victorath's clergy.",
+      },
+      gardenOfFortune: {
+        name: "Garden of Fortune",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Veylana"],
+        description:
+          "A peaceful memorial garden celebrating hope, destiny, and those whose courage changed history.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Preserves sacred texts, military blessings, and records of historic victories.",
+      },
     },
   },
 
