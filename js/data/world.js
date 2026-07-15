@@ -2330,6 +2330,31 @@ const LOCATIONS = {
         description:
           "A private gathering place where historians, archaeologists, and philosophers debate the mysteries of the past.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      // Source repeats "Guild Historia" here — already merged into the
+      // Arcane Quarter hub, so it's not recreated as a duplicate. Only
+      // the other three City Landmarks entries are new.
+      grandArchive: {
+        name: "The Grand Archive",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A colossal library containing millions of scrolls, codices, maps, and records spanning thousands of years.",
+      },
+      hallOfAges: {
+        name: "The Hall of Ages",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A museum displaying the Empire's most significant relics, artifacts, and archaeological discoveries.",
+      },
+      memoryObelisk: {
+        name: "The Memory Obelisk",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A towering monument engraved with the names of individuals whose contributions forever changed Fragmenta.",
+      },
     },
   },
   tritonath: {
