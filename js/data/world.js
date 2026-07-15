@@ -4935,6 +4935,56 @@ const LOCATIONS = {
         description:
           "Preserves scripture, military memorials, and the city's religious history.",
       },
+      // ----------------------------------------------------- ARCANE QUARTER
+      frontierConclave: {
+        name: "The Frontier Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Frontier Conclave)",
+        description:
+          "The Kabal's western headquarters specializes in defensive magic, battlefield support, and monitoring magical activity along the frontier.",
+      },
+      frontierConclaveHall: {
+        name: "Frontier Conclave Hall",
+        type: "landmark",
+        district: "Arcane Quarter (The Frontier Conclave)",
+        description:
+          "Official headquarters of the Kabal within Marsatum.",
+      },
+      registryOfWardens: {
+        name: "Registry of Wardens",
+        type: "landmark",
+        district: "Arcane Quarter (The Frontier Conclave)",
+        description:
+          "Registers frontier mages and military spellcasters.",
+      },
+      chamberOfWards: {
+        name: "Chamber of Wards",
+        type: "landmark",
+        district: "Arcane Quarter (The Frontier Conclave)",
+        description:
+          "Instruction in defensive magic, protective barriers, and battlefield support.",
+      },
+      archiveOfVigilance: {
+        name: "Archive of Vigilance",
+        type: "landmark",
+        district: "Arcane Quarter (The Frontier Conclave)",
+        description:
+          "Contains records of frontier magical activity, hostile creatures, and defensive research.",
+      },
+      mageBarracks: {
+        name: "Mage Barracks",
+        type: "residential",
+        district: "Arcane Quarter (The Frontier Conclave)",
+        description:
+          "Housing for Conclave personnel assigned to the western frontier.",
+      },
+      wardenCircle: {
+        name: "Warden Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The Frontier Conclave)",
+        description:
+          "Reserved for sanctioned magical transportation.",
+      },
     },
   },
   victorath: {
