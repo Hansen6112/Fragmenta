@@ -4741,6 +4741,73 @@ const LOCATIONS = {
         description:
           "Maintains law and order while coordinating closely with the Legion.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      bastionMarket: {
+        name: "Bastion Market",
+        type: "street",
+        district: "Commercial Quarter (Bastion Market)",
+        description:
+          "A marketplace built around endurance rather than luxury.",
+      },
+      frontierSupply: {
+        name: "Frontier Supply",
+        type: "market",
+        district: "Commercial Quarter (Bastion Market)",
+        description:
+          "Stocks expedition gear, preserved provisions, repair kits, and survival equipment.",
+      },
+      shieldbreakerForge: {
+        name: "Shieldbreaker Forge",
+        type: "shop",
+        district: "Commercial Quarter (Bastion Market)",
+        shopCategory: "weapons",
+        description:
+          "Produces dependable weapons built to withstand years of military service.",
+      },
+      ironBastion: {
+        name: "The Iron Bastion",
+        type: "shop",
+        district: "Commercial Quarter (Bastion Market)",
+        shopCategory: "armor",
+        description:
+          "Known for exceptionally durable heavy armor favored by frontier veterans.",
+      },
+      stonerootRemedies: {
+        name: "Stoneroot Remedies",
+        type: "shop",
+        district: "Commercial Quarter (Bastion Market)",
+        shopCategory: "potions",
+        description:
+          "Produces battlefield medicines, antitoxins, and remedies for long patrols.",
+      },
+      legionStables: {
+        name: "Legion Stables",
+        type: "landmark",
+        district: "Commercial Quarter (Bastion Market)",
+        description:
+          "Maintains hardy frontier horses bred for endurance.",
+      },
+      lastWatch: {
+        name: "The Last Watch",
+        type: "inn",
+        district: "Commercial Quarter (Bastion Market)",
+        description:
+          "A quiet inn frequented by soldiers, scouts, and weary travelers returning from the frontier.",
+      },
+      bastionTreasury: {
+        name: "Bastion Treasury",
+        type: "landmark",
+        district: "Commercial Quarter (Bastion Market)",
+        description:
+          "Handles military payroll, merchant accounts, and secure storage.",
+      },
+      frontierMerchantGuild: {
+        name: "Frontier Merchant Guild",
+        type: "guildhall",
+        district: "Commercial Quarter (Bastion Market)",
+        description:
+          "Coordinates commerce supplying the western frontier.",
+      },
     },
   },
   victorath: {
