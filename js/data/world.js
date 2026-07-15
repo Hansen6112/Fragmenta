@@ -4808,6 +4808,80 @@ const LOCATIONS = {
         description:
           "Coordinates commerce supplying the western frontier.",
       },
+      // ------------------------------------------------- MILITARY QUARTER
+      // Unlike the usual hub/flagship-building name collisions in other
+      // cities, the hub here ("The Western Bastion") and its primary
+      // fortress ("The Great Bastion") are genuinely distinct names, so no
+      // merge is needed. Note: the source also names a Military Quarter
+      // building "Hall of Guardians" and, separately, a Noble Quarter honor
+      // hall the exact same thing — a real naming collision (unlike the
+      // intentional hub/flagship echo pattern). Per the user, the Noble
+      // Quarter one is renamed "Hall of Distinguished Service" below to
+      // keep both independently reachable; this Military Quarter building
+      // keeps the source name as written.
+      westernBastion: {
+        name: "The Western Bastion",
+        type: "street",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "The largest military complex on Sanguivorum's western border.",
+      },
+      greatBastion: {
+        name: "The Great Bastion",
+        type: "barracks",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "The primary fortress defending Marsatum and coordinating western military operations.",
+      },
+      hallOfGuardians: {
+        name: "Hall of Guardians",
+        type: "landmark",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "Strategic headquarters overseeing frontier defenses.",
+      },
+      legionBarracks: {
+        name: "Legion Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "Housing for the permanent western garrison.",
+      },
+      defendersGrounds: {
+        name: "Defender's Grounds",
+        type: "barracks",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "Large training fields emphasizing shield formations, endurance, and defensive warfare.",
+      },
+      westernArsenal: {
+        name: "Western Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "Stores weapons, armor, siege equipment, and emergency supplies.",
+      },
+      frontierCommand: {
+        name: "Frontier Command",
+        type: "landmark",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "Coordinates patrols, forts, and outposts across the western border.",
+      },
+      houseOfRecovery: {
+        name: "House of Recovery",
+        type: "healer",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "Treats wounded soldiers returning from patrol.",
+      },
+      sentinelTower: {
+        name: "Sentinel Tower",
+        type: "landmark",
+        district: "Military Quarter (The Western Bastion)",
+        description:
+          "The tallest military watchtower overlooking the western frontier.",
+      },
     },
   },
   victorath: {
