@@ -5038,6 +5038,58 @@ const LOCATIONS = {
         description:
           "A staging area for supply trains and merchant caravans.",
       },
+      // ----------------------------------------------------- ARTISAN QUARTER
+      laurelsWard: {
+        name: "Laurels Ward",
+        type: "street",
+        district: "Artisan Quarter (Laurels Ward)",
+        description:
+          "Master craftsmen create equipment worthy of heroes.",
+      },
+      victorsForge: {
+        name: "Victor's Forge",
+        type: "shop",
+        district: "Artisan Quarter (Laurels Ward)",
+        shopCategory: "weapons",
+        description:
+          "Produces masterwork weapons commissioned for champions, officers, and distinguished adventurers.",
+      },
+      stoneOfTriumph: {
+        name: "Stone of Triumph",
+        type: "landmark",
+        district: "Artisan Quarter (Laurels Ward)",
+        description:
+          "Constructs monuments, memorials, and military architecture.",
+      },
+      standardWeaver: {
+        name: "Standard Weaver",
+        type: "landmark",
+        district: "Artisan Quarter (Laurels Ward)",
+        description:
+          "Produces Legion banners, ceremonial cloaks, and formal military attire.",
+      },
+      medalwrightHall: {
+        name: "Medalwright Hall",
+        type: "shop",
+        district: "Artisan Quarter (Laurels Ward)",
+        shopCategory: "jewelry",
+        description:
+          "Crafts medals, signet rings, ceremonial decorations, and officer insignia.",
+      },
+      championsWorkshop: {
+        name: "Champion's Workshop",
+        type: "landmark",
+        district: "Artisan Quarter (Laurels Ward)",
+        description:
+          "Produces custom military equipment and commemorative works.",
+      },
+      legionCarpenter: {
+        name: "Legion Carpenter",
+        type: "landmark",
+        district: "Artisan Quarter (Laurels Ward)",
+        description:
+          "Builds wagons, siege equipment, bridges, and military infrastructure.",
+      },
     },
   },
 
