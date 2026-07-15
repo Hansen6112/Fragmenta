@@ -4988,6 +4988,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation.",
       },
+      // ------------------------------------------------------ TRADE QUARTER
+      victoryExchange: {
+        name: "Victory Exchange",
+        type: "street",
+        district: "Trade Quarter (Victory Exchange)",
+        description:
+          "A logistical district ensuring the city's military remains ready.",
+      },
+      legionGate: {
+        name: "Legion Gate",
+        type: "gate",
+        district: "Trade Quarter (Victory Exchange)",
+        description:
+          "Primary entrance for military caravans and official convoys.",
+      },
+      militaryCustoms: {
+        name: "Military Customs",
+        type: "landmark",
+        district: "Trade Quarter (Victory Exchange)",
+        description:
+          "Inspects supplies destined for regional forts and Legions.",
+      },
+      victoryWarehouses: {
+        name: "Victory Warehouses",
+        type: "landmark",
+        district: "Trade Quarter (Victory Exchange)",
+        description:
+          "Stores provisions, weapons, uniforms, and reserve equipment.",
+      },
+      quartermasterHall: {
+        name: "Quartermaster Hall",
+        type: "landmark",
+        district: "Trade Quarter (Victory Exchange)",
+        description:
+          "Coordinates military logistics throughout the surrounding region.",
+      },
+      supplyOffice: {
+        name: "Supply Office",
+        type: "landmark",
+        district: "Trade Quarter (Victory Exchange)",
+        description:
+          "Oversees transportation and distribution of essential resources.",
+      },
+      caravanYard: {
+        name: "Caravan Yard",
+        type: "landmark",
+        district: "Trade Quarter (Victory Exchange)",
+        description:
+          "A staging area for supply trains and merchant caravans.",
+      },
     },
   },
 
