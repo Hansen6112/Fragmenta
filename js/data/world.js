@@ -2223,6 +2223,63 @@ const LOCATIONS = {
         description:
           "Supplies expeditions before they depart into the unknown.",
       },
+      // ----------------------------------------------------- ARTISAN QUARTER
+      restorationWard: {
+        name: "Restoration Ward",
+        type: "street",
+        district: "Artisan Quarter (Restoration Ward)",
+        description:
+          "Master craftsmen dedicated to preserving the past.",
+      },
+      // Described as restoring/reproducing "ceremonial weapons" and
+      // "historical arms" for study and display — same ceremonial framing
+      // as Minervon's Officer's Forge, which stayed flavor-only rather
+      // than getting a real weapons shopCategory (unlike Silvanor's
+      // Heartwood Forge, Victorath's Victor's Forge, and Marsatum's
+      // Sentinel Forge, which explicitly described functional combat gear).
+      legacyForge: {
+        name: "Legacy Forge",
+        type: "landmark",
+        district: "Artisan Quarter (Restoration Ward)",
+        description:
+          "Restores ceremonial weapons and reproduces historical arms using traditional techniques.",
+      },
+      stoneConservatory: {
+        name: "Stone Conservatory",
+        type: "landmark",
+        district: "Artisan Quarter (Restoration Ward)",
+        description:
+          "Repairs monuments, ruins, and historical architecture.",
+      },
+      archivistTailors: {
+        name: "Archivist Tailors",
+        type: "landmark",
+        district: "Artisan Quarter (Restoration Ward)",
+        description:
+          "Produces archival cloth, protective wrappings, and expedition garments.",
+      },
+      relicJewelers: {
+        name: "Relic Jewelers",
+        type: "shop",
+        district: "Artisan Quarter (Restoration Ward)",
+        shopCategory: "jewelry",
+        description:
+          "Restores crowns, jewelry, seals, and precious artifacts recovered from ancient civilizations.",
+      },
+      conservatorsWorkshop: {
+        name: "Conservator's Workshop",
+        type: "landmark",
+        district: "Artisan Quarter (Restoration Ward)",
+        description:
+          "A collaborative workshop where damaged relics are restored for study and display.",
+      },
+      scribesWorkshop: {
+        name: "Scribe's Workshop",
+        type: "landmark",
+        district: "Artisan Quarter (Restoration Ward)",
+        description:
+          "Produces parchment, inks, maps, journals, illuminated manuscripts, and calligraphy supplies.",
+      },
     },
   },
   tritonath: {
