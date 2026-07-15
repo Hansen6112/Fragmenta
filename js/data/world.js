@@ -2063,6 +2063,59 @@ const LOCATIONS = {
         description:
           "An observation tower overlooking both the city and the surrounding ruins.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "The faithful of Mortasha believe that death is not oblivion, but remembrance. Every life leaves behind a story, and preserving those stories is among the highest forms of devotion.",
+      },
+      grandTempleOfMortasha: {
+        name: "The Grand Temple of Mortasha",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Mortasha"],
+        description:
+          "The greatest sanctuary dedicated to Mortasha in Sanguivorum. Families preserve ancestral records here, while historians honor those whose lives shaped the Empire.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Welcomes pilgrims, mourners, scholars, and travelers.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Apollyon's clergy and caretakers of sacred memorials.",
+      },
+      gardenOfRemembrance: {
+        name: "Garden of Remembrance",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Mortasha"],
+        description:
+          "A tranquil sanctuary where engraved stones preserve the names of generations long passed.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Maintains sacred texts, genealogies, funeral records, and centuries of ecclesiastical history.",
+      },
     },
   },
   tritonath: {
