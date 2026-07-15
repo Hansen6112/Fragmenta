@@ -4808,6 +4808,114 @@ const LOCATIONS = {
         description:
           "A towering command structure that communicates with the fleet using beacon fires, banners, and magical signaling.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      // The source lists the Grand Temple only as "[Canonical Grand Temple
+      // Name of Chronaeus]" — following the naming convention used for
+      // every other patron deity's primary temple in Sanguivorum ("The
+      // Grand Temple of X"), since Chronaeus has no existing canonical name
+      // established elsewhere in the data.
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Time governs every fleet. The tides, seasons, watches, and voyages all obey a rhythm greater than mankind. For this reason, Nepturon honors Chronaeus, whose teachings emphasize patience, precision, and respecting the passage of time.",
+      },
+      grandTempleOfChronaeus: {
+        name: "The Grand Temple of Chronaeus",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Chronaeus"],
+        description:
+          "The foremost temple of Chronaeus in Sanguivorum, where captains seek wisdom before long voyages and sailors give thanks for returning in their appointed time.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve equal shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Provides lodging for pilgrims, sailors, and travelers.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Nepturon's clergy and center of the local faith.",
+      },
+      gardenOfReflection: {
+        name: "Garden of Reflection",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Chronaeus"],
+        description:
+          "A quiet courtyard where flowing water marks the passing of time.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Preserves sacred texts, maritime records, and centuries of religious history.",
+      },
+      // ---------------------------------------------------- ARCANE QUARTER
+      aqualisEruditus: {
+        name: "The Aqualis Eruditus",
+        type: "street",
+        district: "Arcane Quarter (The Aqualis Eruditus)",
+        description:
+          "The Empire's premier academy of naval warfare, maritime magic, and oceanic research. It serves as the naval counterpart to Minervon's School of Manipulum Eruditetus.",
+      },
+      hallOfTides: {
+        name: "Hall of Tides",
+        type: "landmark",
+        district: "Arcane Quarter (The Aqualis Eruditus)",
+        description:
+          "Primary lecture hall where naval strategy and magical navigation are taught.",
+      },
+      registryOfNavigators: {
+        name: "Registry of Navigators",
+        type: "landmark",
+        district: "Arcane Quarter (The Aqualis Eruditus)",
+        description:
+          "Registers naval mages and licensed maritime practitioners.",
+      },
+      chamberOfCurrents: {
+        name: "Chamber of Currents",
+        type: "landmark",
+        district: "Arcane Quarter (The Aqualis Eruditus)",
+        description:
+          "Advanced instruction in hydromancy, weather manipulation, and maritime spellcraft.",
+      },
+      oceanicRepository: {
+        name: "Oceanic Repository",
+        type: "landmark",
+        district: "Arcane Quarter (The Aqualis Eruditus)",
+        description:
+          "Maintains the Empire's largest archive concerning sea monsters, ocean currents, magical storms, and naval expeditions.",
+      },
+      cadetResidence: {
+        name: "Cadet Residence",
+        type: "residential",
+        district: "Arcane Quarter (The Aqualis Eruditus)",
+        description:
+          "Housing for students and instructors of the Eruditus.",
+      },
+      beaconCircle: {
+        name: "Beacon Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The Aqualis Eruditus)",
+        description:
+          "Reserved for sanctioned magical transportation.",
+      },
     },
   },
   arnoneth: {
