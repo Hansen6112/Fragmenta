@@ -1935,6 +1935,73 @@ const LOCATIONS = {
         description:
           "Maintains birth records, census rolls, property deeds, and official imperial documents.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      antiquarianMarket: {
+        name: "Antiquarian Market",
+        type: "street",
+        district: "Commercial Quarter (Antiquarian Market)",
+        description:
+          "Every merchant specializes in preserving, restoring, or discovering history.",
+      },
+      theAntiquary: {
+        name: "The Antiquary",
+        type: "market",
+        district: "Commercial Quarter (Antiquarian Market)",
+        description:
+          "Stocks expedition gear, journals, inks, parchment, surveying tools, and scholarly supplies.",
+      },
+      relicForge: {
+        name: "Relic Forge",
+        type: "shop",
+        district: "Commercial Quarter (Antiquarian Market)",
+        shopCategory: "weapons",
+        description:
+          "Produces precision excavation tools, restoration implements, ceremonial weapons, and replica artifacts.",
+      },
+      curatorsArmory: {
+        name: "Curator's Armory",
+        type: "shop",
+        district: "Commercial Quarter (Antiquarian Market)",
+        shopCategory: "armor",
+        description:
+          "Crafts equipment designed for archaeologists, explorers, and relic hunters venturing into ancient ruins.",
+      },
+      preservationLaboratory: {
+        name: "Preservation Laboratory",
+        type: "shop",
+        district: "Commercial Quarter (Antiquarian Market)",
+        shopCategory: "potions",
+        description:
+          "Produces preservation oils, restoration chemicals, inks, adhesives, and alchemical compounds for artifact conservation.",
+      },
+      expeditionStables: {
+        name: "Expedition Stables",
+        type: "landmark",
+        district: "Commercial Quarter (Antiquarian Market)",
+        description:
+          "Maintains mounts used by archaeological expeditions and scholarly caravans.",
+      },
+      dustAndQuill: {
+        name: "The Dust & Quill",
+        type: "inn",
+        district: "Commercial Quarter (Antiquarian Market)",
+        description:
+          "A favorite gathering place for explorers returning with discoveries from across Fragmenta.",
+      },
+      imperialDepository: {
+        name: "Imperial Depository",
+        type: "landmark",
+        district: "Commercial Quarter (Antiquarian Market)",
+        description:
+          "Provides secure vaults for wealthy collectors, museums, and expedition funding.",
+      },
+      guildExchange: {
+        name: "Guild Exchange",
+        type: "guildhall",
+        district: "Commercial Quarter (Antiquarian Market)",
+        description:
+          "Coordinates research expeditions and artifact acquisitions throughout the continent.",
+      },
     },
   },
   tritonath: {
