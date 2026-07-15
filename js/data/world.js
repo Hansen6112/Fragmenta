@@ -5142,6 +5142,35 @@ const LOCATIONS = {
         description:
           "A respected gathering place where retired officers mentor younger commanders.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      wallOfAges: {
+        name: "The Wall of Ages",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "An immense defensive wall that has protected Marsatum for centuries, bearing the scars of countless sieges.",
+      },
+      shieldMonument: {
+        name: "The Shield Monument",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A colossal stone shield standing in the city's central square, symbolizing unwavering resolve.",
+      },
+      guardiansKeep: {
+        name: "Guardian's Keep",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The oldest fortress in Marsatum, continuously occupied since the city's founding.",
+      },
+      eternalWatchfire: {
+        name: "The Eternal Watchfire",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A beacon that has never been allowed to extinguish, representing the Empire's eternal vigilance.",
+      },
     },
   },
   victorath: {
