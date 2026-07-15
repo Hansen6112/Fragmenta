@@ -4677,6 +4677,137 @@ const LOCATIONS = {
         description:
           "The city watch maintains discipline ashore while coordinating closely with naval authorities.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      fleetMarket: {
+        name: "Fleet Market",
+        type: "street",
+        district: "Commercial Quarter (Fleet Market)",
+        description:
+          "Built to supply fleets rather than merchants.",
+      },
+      fleetProvisions: {
+        name: "Fleet Provisions",
+        type: "market",
+        district: "Commercial Quarter (Fleet Market)",
+        description:
+          "Stocks durable equipment, expedition supplies, preserved food, and travel necessities.",
+      },
+      theIronKeel: {
+        name: "The Iron Keel",
+        type: "shop",
+        district: "Commercial Quarter (Fleet Market)",
+        shopCategory: "weapons",
+        description:
+          "Produces military-grade weapons alongside anchors, chains, reinforced hull fittings, and siege hardware.",
+      },
+      theDeepGuard: {
+        name: "The Deep Guard",
+        type: "shop",
+        district: "Commercial Quarter (Fleet Market)",
+        shopCategory: "armor",
+        description:
+          "Specializes in marine armor, boarding shields, and equipment designed for prolonged exposure to saltwater.",
+      },
+      theSaltApothecary: {
+        name: "The Salt Apothecary",
+        type: "shop",
+        district: "Commercial Quarter (Fleet Market)",
+        shopCategory: "potions",
+        description:
+          "Provides medicines for sailors, antidotes, sea remedies, diving tonics, and emergency medical supplies.",
+      },
+      cavalryPierStables: {
+        name: "Cavalry Pier Stables",
+        type: "landmark",
+        district: "Commercial Quarter (Fleet Market)",
+        description:
+          "Maintains mounts for officers and military couriers traveling inland.",
+      },
+      theAdmiralsRest: {
+        name: "The Admiral's Rest",
+        type: "inn",
+        district: "Commercial Quarter (Fleet Market)",
+        description:
+          "A respectable inn favored by naval officers, visiting dignitaries, and experienced captains.",
+      },
+      fleetTreasury: {
+        name: "Fleet Treasury",
+        type: "landmark",
+        district: "Commercial Quarter (Fleet Market)",
+        description:
+          "Handles military payroll, merchant accounts, and secure naval contracts.",
+      },
+      navalSupplyOffice: {
+        name: "Naval Supply Office",
+        type: "guildhall",
+        district: "Commercial Quarter (Fleet Market)",
+        description:
+          "Coordinates procurement for fleets operating across Sanguivorum's western waters.",
+      },
+      // -------------------------------------------------- MILITARY QUARTER
+      admiraltyCitadel: {
+        name: "The Admiralty Citadel",
+        type: "barracks",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "The beating heart of Sanguivorum's navy.",
+      },
+      admiraltyFortress: {
+        name: "Admiralty Fortress",
+        type: "landmark",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "The headquarters of the Legionus Aqualis and the supreme command of the western fleet.",
+      },
+      hallOfCaptains: {
+        name: "Hall of Captains",
+        type: "landmark",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "Planning chambers where campaigns, patrol routes, and naval deployments are directed.",
+      },
+      marineBarracks: {
+        name: "Marine Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "Housing for the Empire's elite marines and boarding specialists.",
+      },
+      boardingGrounds: {
+        name: "Boarding Grounds",
+        type: "landmark",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "Purpose-built training ships allow sailors and marines to practice combat before ever reaching open water.",
+      },
+      navalArsenal: {
+        name: "Naval Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "Stores weapons, armor, siege engines, and naval ordnance.",
+      },
+      quartermasterFleetDepot: {
+        name: "Quartermaster Fleet Depot",
+        type: "landmark",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "Coordinates supplies for every vessel stationed in Nepturon.",
+      },
+      houseOfSafeHarbor: {
+        name: "House of Safe Harbor",
+        type: "healer",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "Treats sailors, marines, and those injured during naval engagements.",
+      },
+      signalBastion: {
+        name: "Signal Bastion",
+        type: "landmark",
+        district: "Military Quarter (The Admiralty Citadel)",
+        description:
+          "A towering command structure that communicates with the fleet using beacon fires, banners, and magical signaling.",
+      },
     },
   },
   arnoneth: {
