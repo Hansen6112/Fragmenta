@@ -5086,6 +5086,62 @@ const LOCATIONS = {
         description:
           "Produces bridges, watchtowers, siege timbers, and frontier buildings.",
       },
+      // --------------------------------------------------- NOBLE QUARTER
+      guardianHeights: {
+        name: "Guardian Heights",
+        type: "residential",
+        district: "Noble Quarter (Guardian Heights)",
+        description:
+          "Home to Marsatum's commanders, veteran families, and civic leaders.",
+      },
+      houseOfWesternWarden: {
+        name: "House of the Western Warden",
+        type: "landmark",
+        district: "Noble Quarter (Guardian Heights)",
+        description:
+          "Residence of Marsatum's Ascendus senator.",
+      },
+      defenderEstates: {
+        name: "Defender Estates",
+        type: "residential",
+        district: "Noble Quarter (Guardian Heights)",
+        description:
+          "Homes of distinguished officers and respected frontier families.",
+      },
+      embassyHall: {
+        name: "Embassy Hall",
+        type: "residential",
+        district: "Noble Quarter (Guardian Heights)",
+        description:
+          "Receives official delegations from neighboring nations.",
+      },
+      gardenOfResolve: {
+        name: "Garden of Resolve",
+        type: "landmark",
+        district: "Noble Quarter (Guardian Heights)",
+        description:
+          "A solemn memorial honoring every generation that defended the western border.",
+      },
+      // Source names this "Hall of Guardians" — identical to the Military
+      // Quarter building of the same name. Per the user, renamed to "Hall
+      // of Distinguished Service" to keep both independently reachable,
+      // matching the same civic-honor-hall role every other city's Noble
+      // Quarter has under a unique name (e.g. Minervon's Hall of Triumphs,
+      // Victorath's Hall of Laurels).
+      hallOfDistinguishedService: {
+        name: "Hall of Distinguished Service",
+        type: "landmark",
+        district: "Noble Quarter (Guardian Heights)",
+        description:
+          "Recognizes extraordinary courage and lifelong military service.",
+      },
+      veteransCircle: {
+        name: "Veteran's Circle",
+        type: "landmark",
+        district: "Noble Quarter (Guardian Heights)",
+        description:
+          "A respected gathering place where retired officers mentor younger commanders.",
+      },
     },
   },
   victorath: {
