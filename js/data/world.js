@@ -2002,6 +2002,67 @@ const LOCATIONS = {
         description:
           "Coordinates research expeditions and artifact acquisitions throughout the continent.",
       },
+      // ------------------------------------------------- MILITARY QUARTER
+      // Source names both the district hub and its central fortress "The
+      // Archive Bastion" — merged into one sublocation, same pattern as
+      // Sea Bastion/Great Foundry/Engine Bastion/Command Citadel/Ranger
+      // Citadel/Crown Citadel in earlier cities.
+      archiveBastion: {
+        name: "The Archive Bastion",
+        type: "barracks",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "Knowledge must be defended as fiercely as any fortress — the fortress protecting Guild Historia and the city's irreplaceable collections.",
+      },
+      hallOfCustodians: {
+        name: "Hall of Custodians",
+        type: "landmark",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "Headquarters of the elite guardians assigned to protect Apollyon's archives.",
+      },
+      custodianBarracks: {
+        name: "Custodian Barracks",
+        type: "barracks",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "Housing for soldiers specially trained in artifact protection and archive defense.",
+      },
+      preservationGrounds: {
+        name: "Preservation Grounds",
+        type: "barracks",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "Custodians train in urban defense, artifact recovery, and protection of irreplaceable relics.",
+      },
+      archiveArsenal: {
+        name: "Archive Arsenal",
+        type: "landmark",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "Stores weapons and equipment dedicated to defending the city's priceless collections.",
+      },
+      expeditionCommand: {
+        name: "Expedition Command",
+        type: "landmark",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "Coordinates security for archaeological expeditions.",
+      },
+      houseOfRestoration: {
+        name: "House of Restoration",
+        type: "healer",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "Treats explorers, soldiers, and scholars injured during expeditions.",
+      },
+      sentinelArchiveTower: {
+        name: "Sentinel Archive Tower",
+        type: "landmark",
+        district: "Military Quarter (The Archive Bastion)",
+        description:
+          "An observation tower overlooking both the city and the surrounding ruins.",
+      },
     },
   },
   tritonath: {
