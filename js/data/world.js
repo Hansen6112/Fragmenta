@@ -1856,6 +1856,7 @@ const LOCATIONS = {
   },
   apollyon: {
     name: "Apollyon",
+    title: "The Eternal Archive",
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
@@ -1863,7 +1864,7 @@ const LOCATIONS = {
     danger: 1,
     services: ["rest", "shop", "guild"],
     description:
-      "The knowledge city. Guild Historia keeps its archive here, floor after floor of Sanguivorum's official memory — and, if the rumors that never quite die are true, a rather different memory kept somewhere the guild doesn't advertise.",
+      "While other cities preserve the Empire through steel or commerce, Apollyon preserves it through memory. Home to the renowned Guild Historia, the city safeguards the written history of Sanguivorum and countless civilizations that came before it. Historians, archaeologists, scribes, cartographers, librarians, and relic hunters all pass through its gates. Here, every artifact has a story, every ruin has a record, and every life is worthy of remembrance.",
     connections: [
       { to: "arethon", days: 2, mode: "road" },
       { to: "zuevaron", days: 2, mode: "road" },
@@ -1871,28 +1872,68 @@ const LOCATIONS = {
       { to: "minervon", days: 3, mode: "road" },
       { to: "daedaron", days: 3, mode: "road" },
     ],
-    // A generic 3-place stub, same shape as Zuevaron's old placeholder —
-    // used as scratch space by the engine-mechanism tests (sublocations,
-    // area types, shop) now that Zuevaron's own sublocations are being
-    // replaced by its real district layout batch by batch.
+    // Apollyon's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron,
+    // Daedaron, Minervon, Silvanor, Victorath, and Marsatum) — the Civic
+    // Quarter (The Archivist's Forum) is the first. Every place carries a
+    // `district` tag for grouping in cmdLook/cmdPlaces; the Archivist's
+    // Forum itself is the district's own walkable hub, so it doesn't need
+    // one. Apollyon's prior generic 3-place stub (formerly reused as
+    // scratch space by the engine-mechanism tests) has been fully
+    // replaced — those tests (drive_sublocations.js, drive_areatypes.js,
+    // drive_shop.js, drive_arethon_engine.js) were migrated to Sahurim
+    // instead. Prior danger level (1), services (rest, shop, guild), and
+    // road connections are preserved; terrain stays "plains". Patron
+    // deity Mortasha.
     sublocations: {
-      tavern: {
-        name: "The Scrivener's Rest",
-        type: "inn",
+      archivistsForum: {
+        name: "The Archivist's Forum",
+        type: "street",
+        district: "Civic Quarter (The Archivist's Forum)",
         description:
-          "A quiet inn favored by visiting scholars and guild couriers, its common room lined with retired shelving from the Archive's last renovation.",
+          "The administrative center where history itself is protected by law.",
       },
-      market: {
-        name: "The Archivist's Concourse",
-        type: "market",
+      chronicleGate: {
+        name: "The Chronicle Gate",
+        type: "gate",
+        district: "Civic Quarter (The Archivist's Forum)",
         description:
-          "A small market catering to the Archive's constant foot traffic — copyists, couriers, and researchers passing through, more paper and ink for sale here than anywhere else in the Empire.",
+          "The principal entrance to Apollyon, adorned with statues depicting the great ages of Fragmenta.",
       },
-      readingSteps: {
-        name: "The Reading Steps",
+      hallOfRecords: {
+        name: "Hall of Records",
         type: "landmark",
+        district: "Civic Quarter (The Archivist's Forum)",
         description:
-          "Wide stone steps outside the Archive's main entrance, worn smooth by generations of scholars sitting to read newly copied pages in the sun.",
+          "Seat of Apollyon's Ascendus senator and administrative headquarters for the city's civic archives.",
+      },
+      chronicleSquare: {
+        name: "Chronicle Square",
+        type: "street",
+        district: "Civic Quarter (The Archivist's Forum)",
+        description:
+          "A quiet public plaza where historians unveil discoveries, scholars lecture, and civic ceremonies commemorate the past.",
+      },
+      historiansLedger: {
+        name: "The Historian's Ledger",
+        type: "board",
+        district: "Civic Quarter (The Archivist's Forum)",
+        description:
+          "Expeditions, archaeological contracts, relic recoveries, research commissions, and historical investigations are posted here.",
+      },
+      scholarsQuarter: {
+        name: "Scholar's Quarter",
+        type: "residential",
+        district: "Civic Quarter (The Archivist's Forum)",
+        description:
+          "Home to scribes, professors, archivists, and generations of historians.",
+      },
+      civicRegistry: {
+        name: "Civic Registry",
+        type: "landmark",
+        district: "Civic Quarter (The Archivist's Forum)",
+        description:
+          "Maintains birth records, census rolls, property deeds, and official imperial documents.",
       },
     },
   },
