@@ -4916,6 +4916,109 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation.",
       },
+      // ----------------------------------------------------- TRADE QUARTER
+      grandDrydocks: {
+        name: "The Grand Drydocks",
+        type: "docks",
+        district: "Trade Quarter (The Grand Drydocks)",
+        description:
+          "The industrial harbor responsible for building and maintaining the Empire's fleets.",
+      },
+      fleetHarbor: {
+        name: "Fleet Harbor",
+        type: "docks",
+        district: "Trade Quarter (The Grand Drydocks)",
+        description:
+          "Military harbor where warships enter and depart.",
+      },
+      navalCustomsOffice: {
+        name: "Naval Customs Office",
+        type: "landmark",
+        district: "Trade Quarter (The Grand Drydocks)",
+        description:
+          "Processes military cargo and authorized civilian shipments.",
+      },
+      theGreatDrydocks: {
+        name: "The Great Drydocks",
+        type: "docks",
+        district: "Trade Quarter (The Grand Drydocks)",
+        description:
+          "Massive enclosed docks where imperial vessels are constructed and repaired.",
+      },
+      fleetWarehouses: {
+        name: "Fleet Warehouses",
+        type: "landmark",
+        district: "Trade Quarter (The Grand Drydocks)",
+        description:
+          "Stores food, lumber, sailcloth, weapons, and naval equipment.",
+      },
+      harborLogisticsBureau: {
+        name: "Harbor Logistics Bureau",
+        type: "guildhall",
+        district: "Trade Quarter (The Grand Drydocks)",
+        description:
+          "Coordinates supply chains for fleets operating across the western coast.",
+      },
+      dockmastersOffice: {
+        name: "Dockmaster's Office",
+        type: "landmark",
+        district: "Trade Quarter (The Grand Drydocks)",
+        description:
+          "Assigns berths, oversees repairs, and manages naval traffic.",
+      },
+      // --------------------------------------------------- ARTISAN QUARTER
+      // No jeweler in this quarter's source (same as Aphroneth's Shipwright's
+      // Ward) — every named workshop here stays flavor-only rather than a
+      // real shop, matching that precedent.
+      shipwrightDistrict: {
+        name: "Shipwright District",
+        type: "street",
+        district: "Artisan Quarter (Shipwright District)",
+        description:
+          "Everything required to build a fleet can be found here.",
+      },
+      ironTide: {
+        name: "The Iron Tide",
+        type: "landmark",
+        district: "Artisan Quarter (Shipwright District)",
+        description:
+          "Produces naval hardware, anchors, reinforced chains, and heavy fittings.",
+      },
+      sailwrightHall: {
+        name: "Sailwright Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Shipwright District)",
+        description:
+          "Crafts sails, naval banners, and expedition canvas.",
+      },
+      navigatorsCompass: {
+        name: "Navigator's Compass",
+        type: "landmark",
+        district: "Artisan Quarter (Shipwright District)",
+        description:
+          "Specializes in maps, compasses, sextants, charts, and navigation instruments.",
+      },
+      theRopewalk: {
+        name: "The Ropewalk",
+        type: "landmark",
+        district: "Artisan Quarter (Shipwright District)",
+        description:
+          "Produces rigging, rope, and heavy cable.",
+      },
+      imperialDrydockWorks: {
+        name: "Imperial Drydock Works",
+        type: "landmark",
+        district: "Artisan Quarter (Shipwright District)",
+        description:
+          "Constructs and repairs military vessels.",
+      },
+      harborCarpenter: {
+        name: "Harbor Carpenter",
+        type: "landmark",
+        district: "Artisan Quarter (Shipwright District)",
+        description:
+          "Produces masts, docks, siege timbers, and structural components.",
+      },
     },
   },
   arnoneth: {
