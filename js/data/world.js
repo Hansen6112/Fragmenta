@@ -5035,6 +5035,57 @@ const LOCATIONS = {
         description:
           "Maintains caravans supporting the frontier.",
       },
+      // ----------------------------------------------------- ARTISAN QUARTER
+      ironwoodWard: {
+        name: "Ironwood Ward",
+        type: "street",
+        district: "Artisan Quarter (Ironwood Ward)",
+        description:
+          "Craftsmanship focused on reliability above all else.",
+      },
+      sentinelForge: {
+        name: "Sentinel Forge",
+        type: "shop",
+        district: "Artisan Quarter (Ironwood Ward)",
+        shopCategory: "weapons",
+        description:
+          "Produces dependable military weapons and tools built for longevity.",
+      },
+      stonewrightHall: {
+        name: "Stonewright Hall",
+        type: "landmark",
+        district: "Artisan Quarter (Ironwood Ward)",
+        description:
+          "Constructs walls, towers, and fortifications throughout the western frontier.",
+      },
+      frontierClothiers: {
+        name: "Frontier Clothiers",
+        type: "landmark",
+        district: "Artisan Quarter (Ironwood Ward)",
+        description:
+          "Produces heavy cloaks, uniforms, and durable travel clothing.",
+      },
+      wardensOutfitter: {
+        name: "Warden's Outfitter",
+        type: "landmark",
+        district: "Artisan Quarter (Ironwood Ward)",
+        description:
+          "Specializes in survival gear, field equipment, maps, and navigation tools.",
+      },
+      siegeWorkshop: {
+        name: "Siege Workshop",
+        type: "landmark",
+        district: "Artisan Quarter (Ironwood Ward)",
+        description:
+          "Constructs defensive engines, wagons, and military equipment.",
+      },
+      ironwoodCarpentry: {
+        name: "Ironwood Carpentry",
+        type: "landmark",
+        district: "Artisan Quarter (Ironwood Ward)",
+        description:
+          "Produces bridges, watchtowers, siege timbers, and frontier buildings.",
+      },
     },
   },
   victorath: {
