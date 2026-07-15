@@ -5169,6 +5169,62 @@ const LOCATIONS = {
         description:
           "The preserved battlefield where Victorath's defining victory was won, now serving as both memorial and place of study.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the ruined stronghold and the ancient crypt get "ruin" for
+      // skeleton/zombie/animated-armor encounters alongside the bandit/
+      // hired-blade "urban" pool. The Old Encampment, The Victory Trail,
+      // Scout Command, and Hero's Summit are all preserved/still-active
+      // maintained sites rather than actual ruins, so they stay "urban"
+      // only.
+      fallenFortress: {
+        name: "The Fallen Fortress",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The ruined enemy stronghold captured during Victorath's founding campaign, now hiding forgotten passages and lingering dangers.",
+      },
+      championsCrypt: {
+        name: "Champion's Crypt",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The burial place of legendary heroes, protected by ancient wards and sacred tradition.",
+      },
+      oldEncampment: {
+        name: "The Old Encampment",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The preserved remains of the Legion camp from the city's founding battle.",
+      },
+      victoryTrail: {
+        name: "The Victory Trail",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A commemorative route following the decisive movements of the historic campaign.",
+      },
+      scoutCommand: {
+        name: "Scout Command",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A forward command post dispatching reconnaissance missions, patrols, and frontier investigations.",
+      },
+      heroesSummit: {
+        name: "Hero's Summit",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A high ridge overlooking Victorath and the historic battlefield, offering one of the most inspiring views in western Sanguivorum.",
+      },
     },
   },
 
