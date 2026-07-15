@@ -2116,6 +2116,63 @@ const LOCATIONS = {
         description:
           "Maintains sacred texts, genealogies, funeral records, and centuries of ecclesiastical history.",
       },
+      // ----------------------------------------------------- ARCANE QUARTER
+      // Source lists "Guild Historia" as both this quarter's hub AND,
+      // later, as a standalone entry under "City Landmarks" — the same
+      // flagship-building-shares-the-quarter-name pattern seen in
+      // Minervon's School of Manipulum Eruditetus. Merged into a single
+      // sublocation here (combining both blurbs) so the upcoming City
+      // Landmarks batch won't recreate an identically-named, unreachable
+      // duplicate.
+      guildHistoria: {
+        name: "Guild Historia",
+        type: "guildhall",
+        district: "Arcane Quarter (Guild Historia)",
+        description:
+          "The greatest historical institution in Fragmenta, dedicated to preserving knowledge before it is lost forever — the most comprehensive historical institution in Fragmenta, preserving the collective memory of civilizations across the continent.",
+      },
+      grandHallOfHistoria: {
+        name: "Grand Hall of Historia",
+        type: "landmark",
+        district: "Arcane Quarter (Guild Historia)",
+        description:
+          "The central headquarters of Guild Historia and the largest historical archive in the Empire.",
+      },
+      registryOfExpeditions: {
+        name: "Registry of Expeditions",
+        type: "landmark",
+        district: "Arcane Quarter (Guild Historia)",
+        description:
+          "Coordinates archaeological expeditions, relic recovery teams, and historical surveys.",
+      },
+      chamberOfRestoration: {
+        name: "Chamber of Restoration",
+        type: "landmark",
+        district: "Arcane Quarter (Guild Historia)",
+        description:
+          "Studies magical preservation, artifact restoration, and ancient enchantments.",
+      },
+      theGrandRepository: {
+        name: "The Grand Repository",
+        type: "landmark",
+        district: "Arcane Quarter (Guild Historia)",
+        description:
+          "An immense library containing historical records, maps, journals, recovered relics, and ancient manuscripts.",
+      },
+      scholarsResidence: {
+        name: "Scholar's Residence",
+        type: "residential",
+        district: "Arcane Quarter (Guild Historia)",
+        description:
+          "Housing for historians, librarians, archaeologists, and visiting researchers.",
+      },
+      archiveCircle: {
+        name: "Archive Circle",
+        type: "landmark",
+        district: "Arcane Quarter (Guild Historia)",
+        description:
+          "Reserved for sanctioned magical transportation of priceless historical materials.",
+      },
     },
   },
   tritonath: {
