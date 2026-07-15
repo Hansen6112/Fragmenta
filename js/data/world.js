@@ -4985,6 +4985,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation.",
       },
+      // ------------------------------------------------------ TRADE QUARTER
+      caravanExchange: {
+        name: "The Caravan Exchange",
+        type: "street",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "The logistical center supporting every western fort and frontier settlement.",
+      },
+      frontierGate: {
+        name: "Frontier Gate",
+        type: "gate",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Primary entrance for military caravans and civilian merchants.",
+      },
+      customsHall: {
+        name: "Customs Hall",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Inspects cargo entering from the western frontier.",
+      },
+      supplyWarehouses: {
+        name: "Supply Warehouses",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Stores food, equipment, construction materials, and emergency reserves.",
+      },
+      quartermasterExchange: {
+        name: "Quartermaster Exchange",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Coordinates supplies for forts and outposts throughout the region.",
+      },
+      freightOffice: {
+        name: "Freight Office",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Organizes transportation throughout western Sanguivorum.",
+      },
+      wagonYard: {
+        name: "Wagon Yard",
+        type: "landmark",
+        district: "Trade Quarter (The Caravan Exchange)",
+        description:
+          "Maintains caravans supporting the frontier.",
+      },
     },
   },
   victorath: {
