@@ -4757,6 +4757,73 @@ const LOCATIONS = {
         description:
           "The headquarters of Victorath's city watch and civil administration.",
       },
+      // ------------------------------------------------ COMMERCIAL QUARTER
+      crownMarket: {
+        name: "Crown Market",
+        type: "street",
+        district: "Commercial Quarter (Crown Market)",
+        description:
+          "Commerce here serves soldiers, veterans, and travelers alike.",
+      },
+      victorsSupply: {
+        name: "The Victor's Supply",
+        type: "market",
+        district: "Commercial Quarter (Crown Market)",
+        description:
+          "Carries expedition equipment, military provisions, and quality travel goods.",
+      },
+      crownforge: {
+        name: "Crownforge",
+        type: "shop",
+        district: "Commercial Quarter (Crown Market)",
+        shopCategory: "weapons",
+        description:
+          "Famous for producing finely balanced swords, polearms, and officer weapons worthy of champions.",
+      },
+      goldenShield: {
+        name: "The Golden Shield",
+        type: "shop",
+        district: "Commercial Quarter (Crown Market)",
+        shopCategory: "armor",
+        description:
+          "Crafts ceremonial armor alongside battle-tested equipment for seasoned Legionnaires.",
+      },
+      fortunesFlask: {
+        name: "Fortune's Flask",
+        type: "shop",
+        district: "Commercial Quarter (Crown Market)",
+        shopCategory: "potions",
+        description:
+          "Produces battlefield medicines, endurance tonics, and restorative elixirs.",
+      },
+      victoryStables: {
+        name: "Victory Stables",
+        type: "landmark",
+        district: "Commercial Quarter (Crown Market)",
+        description:
+          "Maintains swift cavalry horses and dependable courier mounts.",
+      },
+      laureledLion: {
+        name: "The Laureled Lion",
+        type: "inn",
+        district: "Commercial Quarter (Crown Market)",
+        description:
+          "A celebrated inn where veterans recount campaigns and young recruits dream of earning their own glory.",
+      },
+      triumphTreasury: {
+        name: "Triumph Treasury",
+        type: "landmark",
+        district: "Commercial Quarter (Crown Market)",
+        description:
+          "Provides secure financial services for officers, merchants, and visiting dignitaries.",
+      },
+      merchantLegionGuild: {
+        name: "Merchant Legion Guild",
+        type: "guildhall",
+        district: "Commercial Quarter (Crown Market)",
+        description:
+          "Coordinates trade supporting Victorath's military economy.",
+      },
     },
   },
 
