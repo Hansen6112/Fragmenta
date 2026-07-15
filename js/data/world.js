@@ -2422,10 +2422,10 @@ const LOCATIONS = {
     danger: 2,
     services: ["rest", "shop", "healer"],
     description:
-      "Built around an ancient lighthouse that predates the Great Mage War, the Kabal, and even the oldest known civilizations, Tritonath exists for a single purpose: to deny passage through the Empire's most strategically important fjord. The city is smaller than Aphroneth or Netturon, but every cliff, wall, and tower has been built with defense in mind. The fjord itself forms a natural kill zone where enemy fleets are trapped beneath the guns, ballistae, and mages stationed high above. The ancient lighthouse remains one of Fragmenta's greatest mysteries — it still burns without fuel, keeper, or known mechanism.",
+      "Built around an ancient lighthouse that predates the Great Mage War, the Kabal, and even the oldest known civilizations, Tritonath exists for a single purpose: to deny passage through the Empire's most strategically important fjord. The city is smaller than Aphroneth or Nepturon, but every cliff, wall, and tower has been built with defense in mind. The fjord itself forms a natural kill zone where enemy fleets are trapped beneath the guns, ballistae, and mages stationed high above. The ancient lighthouse remains one of Fragmenta's greatest mysteries — it still burns without fuel, keeper, or known mechanism.",
     connections: [
       { to: "aphroneth", days: 4, mode: "road", desc: "south along the fjord coast" },
-      { to: "netturon", days: 2, mode: "road", desc: "along the fjord" },
+      { to: "nepturon", days: 2, mode: "road", desc: "along the fjord" },
     ],
     // Tritonath's real district layout, built quarter by quarter (same
     // workflow as Arethon, Zuevaron, and Aphroneth) — the Civic Quarter
@@ -4056,7 +4056,7 @@ const LOCATIONS = {
       "Silvanor is unlike any other city in Sanguivorum. Rather than conquering the ancient forest, its founders learned to build within it. Great halls are grown instead of quarried, bridges weave through colossal branches, and homes rest among living trunks that have stood for centuries. It is the cultural heart of Sanguivorum's Dragonborn population and the Empire's foremost authority on forestry, conservation, and wilderness survival. Here, civilization exists not in opposition to nature, but in partnership with it.",
     connections: [
       { to: "vulcaron", days: 2, mode: "road" },
-      { to: "netturon", days: 3, mode: "road" },
+      { to: "nepturon", days: 3, mode: "road" },
     ],
     // Silvanor's real district layout, built quarter by quarter (same
     // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron,
@@ -4595,19 +4595,89 @@ const LOCATIONS = {
       },
     },
   },
-  netturon: {
-    name: "Netturon",
+  nepturon: {
+    name: "Nepturon",
+    title: "The Shield Upon the Sea",
     nation: "sanguivorum",
-    terrain: "plains",
+    terrain: "coast",
     isCity: true,
     danger: 1,
     services: ["rest", "shop"],
-    description: "A western meadow town near the fjord coast, where the Legionus Aqualis keeps a permanent garrison and no one fishes without a permit.",
+    description:
+      "Where Aphroneth welcomes the world, Nepturon guards it. Every harbor, drydock, and avenue exists to support Sanguivorum's naval supremacy. Warships dominate the skyline, disciplined marines patrol the streets, and the city's heartbeat is measured by the departure and return of imperial fleets. More than a city, Nepturon is a permanent naval installation with a civilian population built around it. It is also home to the Aqualis Eruditus, the Empire's foremost academy of naval warfare and maritime magic.",
     connections: [
       { to: "silvanor", days: 3, mode: "road" },
       { to: "arnoneth", days: 3, mode: "road" },
       { to: "tritonath", days: 2, mode: "road", desc: "along the fjord" },
     ],
+    // Nepturon's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron,
+    // Daedaron, Minervon, Silvanor, Victorath, Marsatum, and Apollyon) —
+    // the Civic Quarter (The Admiralty Forum) is the first. Every place
+    // carries a `district` tag for grouping in cmdLook/cmdPlaces; the
+    // Admiralty Forum itself is the district's own walkable hub, so it
+    // doesn't need one. Nepturon replaces the existing "netturon" stub —
+    // near-identical name, same situation as Tritonath/Tritoneth and
+    // Victorath/Victolath, another accidental letter-swap during
+    // reference-pulling (the old stub's own lore — "near the fjord coast,
+    // where the Legionus Aqualis keeps a permanent garrison" — matches
+    // Nepturon's naval-installation theme too closely to be coincidence).
+    // Terrain corrected from "plains" to "coast" to match the new lore's
+    // harbor/drydock/fleet setting (same kind of correction as Silvanor's
+    // forest terrain fix). Prior danger level (1), services (rest, shop),
+    // and road connections (Silvanor/Arnoneth/Tritonath) are preserved.
+    // Patron deity Chronaeus.
+    sublocations: {
+      admiraltyForum: {
+        name: "The Admiralty Forum",
+        type: "street",
+        district: "Civic Quarter (The Admiralty Forum)",
+        description:
+          "The administrative heart of Nepturon, where every decision serves the fleet.",
+      },
+      admiralsGate: {
+        name: "The Admiral's Gate",
+        type: "gate",
+        district: "Civic Quarter (The Admiralty Forum)",
+        description:
+          "The fortified entrance to the city where military convoys and official visitors arrive beneath the banners of the Legionus Aqualis.",
+      },
+      hallOfAdmiralty: {
+        name: "Hall of Admiralty",
+        type: "landmark",
+        district: "Civic Quarter (The Admiralty Forum)",
+        description:
+          "Seat of Nepturon's Ascendus senator and the administrative headquarters of the city's naval command.",
+      },
+      victorySquare: {
+        name: "Victory Square",
+        type: "street",
+        district: "Civic Quarter (The Admiralty Forum)",
+        description:
+          "A broad parade ground where fleets are welcomed home and officers receive commendations.",
+      },
+      navalLedger: {
+        name: "The Naval Ledger",
+        type: "board",
+        district: "Civic Quarter (The Admiralty Forum)",
+        description:
+          "Naval patrols, escort contracts, coastal investigations, and military commissions are posted here.",
+      },
+      officersWard: {
+        name: "Officer's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Admiralty Forum)",
+        description:
+          "Home to naval officers, academy instructors, and long-serving military families.",
+      },
+      harborVigilisHeadquarters: {
+        name: "Harbor Vigilis Headquarters",
+        type: "barracks",
+        district: "Civic Quarter (The Admiralty Forum)",
+        description:
+          "The city watch maintains discipline ashore while coordinating closely with naval authorities.",
+      },
+    },
   },
   arnoneth: {
     name: "Arnoneth",
@@ -4618,7 +4688,7 @@ const LOCATIONS = {
     services: ["rest"],
     description: "A fjord-adjacent town whose harbor is entirely the Legionus Aqualis's to permit or deny.",
     connections: [
-      { to: "netturon", days: 3, mode: "road" },
+      { to: "nepturon", days: 3, mode: "road" },
       { to: "decearon", days: 2, mode: "road" },
       { to: "aphroneth", days: 3, mode: "road", desc: "down the coast" },
     ],
