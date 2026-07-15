@@ -5140,6 +5140,35 @@ const LOCATIONS = {
         description:
           "An exclusive gathering place where generals, governors, and honored veterans share strategy and fellowship.",
       },
+      // ------------------------------------------------ CITY LANDMARKS
+      crownOfVictory: {
+        name: "The Crown of Victory",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A colossal triumphal arch commemorating the battle that gave Victorath its name.",
+      },
+      eternalStandard: {
+        name: "The Eternal Standard",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A towering Legion banner that is never lowered, representing the enduring spirit of Sanguivorum.",
+      },
+      heroesWalk: {
+        name: "Hero's Walk",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A grand boulevard lined with statues of the Empire's greatest champions.",
+      },
+      fieldOfTriumph: {
+        name: "The Field of Triumph",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The preserved battlefield where Victorath's defining victory was won, now serving as both memorial and place of study.",
+      },
     },
   },
 
