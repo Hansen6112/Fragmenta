@@ -5019,6 +5019,85 @@ const LOCATIONS = {
         description:
           "Produces masts, docks, siege timbers, and structural components.",
       },
+      // ----------------------------------------------------- NOBLE QUARTER
+      officersHeights: {
+        name: "Officer's Heights",
+        type: "residential",
+        district: "Noble Quarter (Officer's Heights)",
+        description:
+          "Reserved for admirals, senior officers, academy masters, and distinguished naval families.",
+      },
+      admiraltyHouse: {
+        name: "Admiralty House",
+        type: "landmark",
+        district: "Noble Quarter (Officer's Heights)",
+        description:
+          "Residence of the city's senior naval commander.",
+      },
+      commandEstates: {
+        name: "Command Estates",
+        type: "residential",
+        district: "Noble Quarter (Officer's Heights)",
+        description:
+          "Homes of decorated admirals and naval officials.",
+      },
+      embassyRow: {
+        name: "Embassy Row",
+        type: "residential",
+        district: "Noble Quarter (Officer's Heights)",
+        description:
+          "Foreign naval attachés and diplomatic representatives.",
+      },
+      victoryGardens: {
+        name: "Victory Gardens",
+        type: "landmark",
+        district: "Noble Quarter (Officer's Heights)",
+        description:
+          "Formal gardens overlooking the harbor where military ceremonies are held.",
+      },
+      hallOfNavalHonors: {
+        name: "Hall of Naval Honors",
+        type: "landmark",
+        district: "Noble Quarter (Officer's Heights)",
+        description:
+          "Recognizes extraordinary service at sea.",
+      },
+      captainsCircle: {
+        name: "Captain's Circle",
+        type: "landmark",
+        district: "Noble Quarter (Officer's Heights)",
+        description:
+          "An exclusive gathering place for senior naval officers and academy instructors.",
+      },
+      // --------------------------------------------------- CITY LANDMARKS
+      grandFleetAnchorage: {
+        name: "The Grand Fleet Anchorage",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The largest concentration of imperial warships in Fragmenta.",
+      },
+      admiraltySpire: {
+        name: "The Admiralty Spire",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "The tallest structure in Nepturon, used to coordinate fleet movements across the western sea.",
+      },
+      wallOfOaths: {
+        name: "The Wall of Oaths",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "A memorial engraved with the names of sailors and marines who never returned from duty.",
+      },
+      harborBatteries: {
+        name: "The Harbor Batteries",
+        type: "landmark",
+        district: "City Landmarks",
+        description:
+          "Massive coastal fortifications protecting the harbor approaches.",
+      },
     },
   },
   arnoneth: {
