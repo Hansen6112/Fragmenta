@@ -2355,6 +2355,61 @@ const LOCATIONS = {
         description:
           "A towering monument engraved with the names of individuals whose contributions forever changed Fragmenta.",
       },
+      // ------------------------------------------------- EXPLORATION LOCATIONS
+      // Standalone and unsafe, same structure as the other cities' batches
+      // — the sealed vaults, forgotten catacombs, and ruined repository
+      // get "ruin" for skeleton/zombie/animated-armor encounters alongside
+      // the bandit/hired-blade "urban" pool. The Excavation Fields,
+      // Explorer's Encampment, and The Scholar's Overlook are all
+      // still-active, maintained sites, so they stay "urban" only.
+      sealedVaults: {
+        name: "The Sealed Vaults",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Ancient subterranean repositories containing relics too dangerous or mysterious for public study.",
+      },
+      forgottenCatacombs: {
+        name: "The Forgotten Catacombs",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "Burial chambers beneath the city holding generations of history — and secrets never meant to be rediscovered.",
+      },
+      excavationFields: {
+        name: "The Excavation Fields",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "An active archaeological site where new discoveries are made throughout the year.",
+      },
+      lostRepository: {
+        name: "The Lost Repository",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban", "ruin"],
+        description:
+          "The ruins of an archive that predates the founding of Sanguivorum, its surviving records written in forgotten tongues.",
+      },
+      explorersEncampment: {
+        name: "Explorer's Encampment",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "The departure point for expeditions into ancient ruins, lost temples, and forgotten civilizations.",
+      },
+      scholarsOverlook: {
+        name: "The Scholar's Overlook",
+        type: "ruins",
+        district: "Exploration Locations",
+        dangerTags: ["urban"],
+        description:
+          "A quiet terrace overlooking Apollyon, where historians gather to reflect on the enduring legacy of the Empire and the countless stories still waiting to be uncovered.",
+      },
     },
   },
   tritonath: {
