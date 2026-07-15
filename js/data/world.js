@@ -4882,6 +4882,59 @@ const LOCATIONS = {
         description:
           "The tallest military watchtower overlooking the western frontier.",
       },
+      // ------------------------------------------------- RELIGIOUS QUARTER
+      sacredPrecinct: {
+        name: "The Sacred Precinct",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "The people of Marsatum honor Xalaxar, believing that true strength is measured not by conquest but by the resolve to endure hardship without yielding.",
+      },
+      grandTempleOfXalaxar: {
+        name: "The Grand Temple of Xalaxar",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Xalaxar"],
+        description:
+          "The greatest temple dedicated to Xalaxar in Sanguivorum. Legionnaires departing for the frontier seek blessings of resilience, while returning veterans offer thanks for surviving another campaign.",
+      },
+      hallOfTwelve: {
+        name: "Hall of the Twelve",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Aelthyr", "Mortasha", "Veylana", "Kar'Mhal", "Ithrien", "Seressa", "Nystros", "Xalaxar", "Aethyra", "Pyreith", "Aqualis", "Chronaeus"],
+        description:
+          "Contains twelve shrines honoring every deity of Fragmenta.",
+      },
+      pilgrimsRest: {
+        name: "Pilgrim's Rest",
+        type: "inn",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Provides shelter for pilgrims, soldiers, and weary travelers.",
+      },
+      houseOfFaithful: {
+        name: "House of the Faithful",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Residence of Marsatum's clergy.",
+      },
+      gardenOfEndurance: {
+        name: "Garden of Endurance",
+        type: "temple",
+        district: "Religious Quarter (The Sacred Precinct)",
+        gods: ["Xalaxar"],
+        description:
+          "A simple stone garden where weathered monuments symbolize perseverance through adversity.",
+      },
+      sacredArchives: {
+        name: "Sacred Archives",
+        type: "landmark",
+        district: "Religious Quarter (The Sacred Precinct)",
+        description:
+          "Preserves scripture, military memorials, and the city's religious history.",
+      },
     },
   },
   victorath: {
