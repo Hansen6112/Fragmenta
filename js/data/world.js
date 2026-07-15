@@ -4938,6 +4938,56 @@ const LOCATIONS = {
         description:
           "Preserves sacred texts, military blessings, and records of historic victories.",
       },
+      // ----------------------------------------------------- ARCANE QUARTER
+      crownConclave: {
+        name: "The Crown Conclave",
+        type: "guildhall",
+        district: "Arcane Quarter (The Crown Conclave)",
+        description:
+          "The Kabal's regional headquarters studies battlefield magic, probability, and tactical arcana.",
+      },
+      crownConclaveHall: {
+        name: "Crown Conclave Hall",
+        type: "landmark",
+        district: "Arcane Quarter (The Crown Conclave)",
+        description:
+          "Official headquarters of the Kabal within Victorath.",
+      },
+      registryOfBattleMages: {
+        name: "Registry of Battle Mages",
+        type: "landmark",
+        district: "Arcane Quarter (The Crown Conclave)",
+        description:
+          "Registers military spellcasters and licensed magical specialists.",
+      },
+      chamberOfFortune: {
+        name: "Chamber of Fortune",
+        type: "landmark",
+        district: "Arcane Quarter (The Crown Conclave)",
+        description:
+          "Focuses on battlefield coordination, tactical spellcraft, and magical support.",
+      },
+      archiveOfCampaigns: {
+        name: "Archive of Campaigns",
+        type: "landmark",
+        district: "Arcane Quarter (The Crown Conclave)",
+        description:
+          "Maintains magical records of famous battles and military research.",
+      },
+      mageQuarters: {
+        name: "Mage Quarters",
+        type: "residential",
+        district: "Arcane Quarter (The Crown Conclave)",
+        description:
+          "Housing for Conclave instructors and military mages.",
+      },
+      victoryCircle: {
+        name: "Victory Circle",
+        type: "landmark",
+        district: "Arcane Quarter (The Crown Conclave)",
+        description:
+          "Reserved for sanctioned magical transportation.",
+      },
     },
   },
 
