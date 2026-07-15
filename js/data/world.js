@@ -2173,6 +2173,56 @@ const LOCATIONS = {
         description:
           "Reserved for sanctioned magical transportation of priceless historical materials.",
       },
+      // ------------------------------------------------------ TRADE QUARTER
+      expeditionQuarter: {
+        name: "The Expedition Quarter",
+        type: "street",
+        district: "Trade Quarter (The Expedition Quarter)",
+        description:
+          "The logistical center supporting historical expeditions throughout Fragmenta.",
+      },
+      explorersGate: {
+        name: "Explorer's Gate",
+        type: "gate",
+        district: "Trade Quarter (The Expedition Quarter)",
+        description:
+          "The departure point for archaeological caravans and scholarly expeditions.",
+      },
+      imperialCustoms: {
+        name: "Imperial Customs",
+        type: "landmark",
+        district: "Trade Quarter (The Expedition Quarter)",
+        description:
+          "Records relics and recovered artifacts entering the city.",
+      },
+      preservationVaults: {
+        name: "Preservation Vaults",
+        type: "landmark",
+        district: "Trade Quarter (The Expedition Quarter)",
+        description:
+          "Climate-controlled storage for newly recovered historical treasures.",
+      },
+      expeditionHall: {
+        name: "Expedition Hall",
+        type: "landmark",
+        district: "Trade Quarter (The Expedition Quarter)",
+        description:
+          "Organizes exploration teams, supply caravans, and research missions.",
+      },
+      surveyorsOffice: {
+        name: "Surveyor's Office",
+        type: "landmark",
+        district: "Trade Quarter (The Expedition Quarter)",
+        description:
+          "Maintains official maps and records of newly explored regions.",
+      },
+      caravanDepot: {
+        name: "Caravan Depot",
+        type: "landmark",
+        district: "Trade Quarter (The Expedition Quarter)",
+        description:
+          "Supplies expeditions before they depart into the unknown.",
+      },
     },
   },
   tritonath: {
