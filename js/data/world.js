@@ -4134,7 +4134,7 @@ const LOCATIONS = {
     connections: [
       { to: "apollyon", days: 3, mode: "road" },
       { to: "decearon", days: 3, mode: "road" },
-      { to: "victolath", days: 3, mode: "road" },
+      { to: "victorath", days: 3, mode: "road" },
     ],
     // Minervon's real district layout, built quarter by quarter (same
     // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron, and
@@ -4678,23 +4678,86 @@ const LOCATIONS = {
       "A tense frontier city facing the generations-long cold war with Vaeloris across the treeline. Soldiers here talk about The Stump the way people elsewhere talk about weather — constantly, and never quite honestly.",
     connections: [
       { to: "decearon", days: 4, mode: "road" },
-      { to: "victolath", days: 2, mode: "road" },
+      { to: "victorath", days: 2, mode: "road" },
     ],
   },
-  victolath: {
-    name: "Victolath",
+  victorath: {
+    name: "Victorath",
+    title: "The City of the Victor's Crown",
     nation: "sanguivorum",
     terrain: "plains",
     isCity: true,
     danger: 3,
     services: ["rest", "guild"],
     description:
-      "Sits near the burned clearing everyone calls The Stump, the scar left by the Reclamation War fifty-some years back. The border with Vaeloris is close enough here that the forest is visible from the wall.",
+      "Where Marsatum is the shield that refuses to break, Victorath is the sword that strikes back. Built upon the site of one of Sanguivorum's greatest military victories, the city has become a monument to courage, sacrifice, and decisive leadership. Legion banners fly from every tower, triumphal arches commemorate legendary campaigns, and every citizen grows up hearing the stories of heroes who turned defeat into victory. It is the spiritual home of those who believe fortune favors the bold.",
     connections: [
       { to: "marsatum", days: 2, mode: "road" },
       { to: "minervon", days: 3, mode: "road" },
       { to: "the_rivers_gate", days: 5, mode: "road", desc: "into the treeline" },
     ],
+    // Victorath's real district layout, built quarter by quarter (same
+    // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron,
+    // Daedaron, Minervon, and Silvanor) — the Civic Quarter (The Triumph
+    // Forum) is the first. Every place carries a `district` tag for
+    // grouping in cmdLook/cmdPlaces; the Triumph Forum itself is the
+    // district's own walkable hub, so it doesn't need one. Victorath
+    // replaces the existing "victolath" stub — near-identical name, same
+    // situation as Tritonath/Tritoneth, confirmed by the user as another
+    // accidental letter-swap during reference-pulling. Its prior danger
+    // level and services (rest, guild) are preserved; terrain stays
+    // "plains" since the new lore doesn't specify otherwise.
+    sublocations: {
+      triumphForum: {
+        name: "The Triumph Forum",
+        type: "street",
+        district: "Civic Quarter (The Triumph Forum)",
+        description:
+          "The administrative heart of Victorath, where military tradition shapes civic life.",
+      },
+      victorsGate: {
+        name: "The Victor's Gate",
+        type: "gate",
+        district: "Civic Quarter (The Triumph Forum)",
+        description:
+          "A monumental gate adorned with reliefs depicting the city's founding victory.",
+      },
+      hallOfTriumph: {
+        name: "Hall of Triumph",
+        type: "landmark",
+        district: "Civic Quarter (The Triumph Forum)",
+        description:
+          "The seat of Victorath's Ascendus senator and the city's administrative authority.",
+      },
+      victoryPlaza: {
+        name: "Victory Plaza",
+        type: "street",
+        district: "Civic Quarter (The Triumph Forum)",
+        description:
+          "A grand public square where military parades, commemorations, and civic celebrations are held.",
+      },
+      victorsLedger: {
+        name: "The Victor's Ledger",
+        type: "board",
+        district: "Civic Quarter (The Triumph Forum)",
+        description:
+          "Posts military commissions, escort contracts, bounty notices, reconnaissance missions, and civic requests.",
+      },
+      legionnairesWard: {
+        name: "Legionnaire's Ward",
+        type: "residential",
+        district: "Civic Quarter (The Triumph Forum)",
+        description:
+          "Home to decorated veterans, active officers, and families whose service spans generations.",
+      },
+      crownVigilisHeadquarters: {
+        name: "Crown Vigilis Headquarters",
+        type: "barracks",
+        district: "Civic Quarter (The Triumph Forum)",
+        description:
+          "The headquarters of Victorath's city watch and civil administration.",
+      },
+    },
   },
 
   // --------------------------------------------------------------- VAELORIS
@@ -4708,7 +4771,7 @@ const LOCATIONS = {
     description:
       "The northern threshold of Vaeloris, where the Sylvara river begins its run south and the Kabal keeps a sovereign bridge that answers to neither nation on its banks. Ask no questions about what crosses at night.",
     connections: [
-      { to: "victolath", days: 5, mode: "road" },
+      { to: "victorath", days: 5, mode: "road" },
       { to: "arethon", days: 9, mode: "road" },
       { to: "sylmae", days: 6, mode: "river", desc: "downriver, 6 days by boat, 28 by foot" },
     ],
