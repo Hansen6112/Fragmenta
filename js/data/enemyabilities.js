@@ -48,6 +48,10 @@ const STATUS_EFFECTS = {
   spatial_fracture: { name: "Spatial Fracture", debuff: { def: -6, agi: -6 }, stackable: false, turns: 2 },
   unsteady: { name: "Unsteady", debuff: { spd: -5, acc: -8 }, stackable: false, turns: 2 },
   off_balance: { name: "Off Balance", debuff: { def: -5, agi: -5 }, stackable: false, turns: 2 },
+  blight: { name: "Blight", dot: { pctMaxHp: 0.02 }, debuff: { def: -5 }, stackable: false, turns: 3 },
+  // Blight Seed's own consume-at-5-stacks-and-become-Blight conversion has
+  // no engine hook — same unwired escalation as Constrict above.
+  blight_seed: { name: "Blight Seed", debuff: {}, stackable: true, maxStacks: 5, turns: 99, escalatesAt: 5, escalatesTo: "blight" },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -384,6 +388,37 @@ const ENEMY_ABILITIES = {
   phantom_strike: { name: "Phantom Strike", type: "active", cooldown: 3, dmgMult: 1.55, inflict: { status: "disoriented", chance: 1 } },
   veilstep: { name: "Veilstep", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 1 } },
   mirror_hunt: { name: "Mirror Hunt", type: "active", cooldown: 5, dmgMult: 1.95, bonusVsStatus: { status: "disoriented", mult: 1.3 } },
+
+  // ---- Dreadroot (Magical Creatures D) ----
+  // Corrupted Grove/Blighted Soil/Heart of Corruption and the Grave Bloom
+  // active are all mid-fight-summon or reacts-to-a-summoned-ally-dying
+  // mechanics — skipped outright rather than declared inert, same
+  // reasoning as Brood Sovereign above (nothing to react to without the
+  // summon system this project has deliberately not built).
+  root_harvest: { name: "Root Harvest", type: "active", cooldown: 5, dmgMult: 1.7, healOnHitPct: 0.5 },
+  withering_roots: { name: "Withering Roots", type: "active", cooldown: 4, dmgMult: 1.5, aoe: true, inflict: { status: "blight_seed", chance: 1 } },
+
+  // ---- Elementals (Magical Creatures D) ----
+  // Elemental Form's Manifest/Ethereal toggle (different damage-dealt/
+  // damage-taken multipliers every 2 turns) and Arcane Core (which reads
+  // that same toggle state) have no engine hook — declared for fidelity
+  // only, same as Diamond Shell's periodic shield above.
+  elemental_form: { name: "Elemental Form", type: "passive", trigger: "periodicFormToggle", everyNTurns: 2 },
+  arcane_core: { name: "Arcane Core", type: "passive", trigger: "onFormToggle", manifestDmgReductionPct: 0.15, etherealDmgBonusPct: 0.15 },
+  primal_core: { name: "Primal Core", type: "passive", trigger: "everyPctHealthLostStacking", pct: 0.25, selfBuff: { atk: 5, def: 5 } },
+  // Elemental Strike's source text gives 7 element-specific status
+  // variants but no cooldown or Attack% at all — Fire/Burn is used as the
+  // single representative variant (matching Breath Weapon/Inherited
+  // Breath's own element simplification above), with a cooldown and
+  // damage multiplier inferred to match this tier's other actives.
+  elemental_strike: { name: "Elemental Strike", type: "active", cooldown: 2, dmgMult: 1.3, inflict: { status: "burning", chance: 1 } },
+  elemental_surge: { name: "Elemental Surge", type: "active", cooldown: 5, dmgMult: 1.8, bonusVsStatus: { status: "burning", mult: 1.25 } },
+  // Drops the "remove one negative status effect" clause (no cleanse
+  // hook, same as several abilities above).
+  elemental_shift: { name: "Elemental Shift", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { spd: 10, turns: 1 } },
+  // Cataclysm is explicitly marked "(To be finalized when individual
+  // elemental variants are expanded.)" in the codex itself — there is no
+  // spec to implement, so it's skipped rather than approximated.
 };
 
 function getEnemyAbility(id) {
