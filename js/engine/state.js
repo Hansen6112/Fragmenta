@@ -108,6 +108,12 @@ class GameState {
       stance: "aggressive",
       equipment: emptyEquipment(),
       alive: true,
+      // Hidden 0-100 relationship meter — never shown to the player as a
+      // raw number, same design as Ovum Reputation (engine/arena.js).
+      // Raised by shared experience (engine/jobs.js's job.completed
+      // listener, for now); nothing currently reads it for a reveal —
+      // that's future companion-quest work, not built yet.
+      relationship: 0,
     };
     // Some allies (Hadrian — data/hadrian.js) arrive already wearing
     // their own signature gear rather than starting empty-handed like

@@ -97,6 +97,19 @@ Events.on("job.completed", ({ job, state }) => {
   if (job.kind === "guild") state.flags["completed_" + job.id] = true;
 });
 
+// Companion relationship meter (engine/state.js's recruitAlly): a small,
+// flat bump for every ally currently along for the ride, board job or
+// guild contract alike, regardless of difficulty — "completing jobs
+// with the player" is the shared experience that counts, not how hard
+// any one of them was. Hidden 0-100 scale, same as Ovum Reputation.
+const RELATIONSHIP_PER_JOB = 2;
+Events.on("job.completed", ({ state }) => {
+  for (const ally of state.party) {
+    if (!ally.alive) continue;
+    ally.relationship = Math.min(100, (ally.relationship || 0) + RELATIONSHIP_PER_JOB);
+  }
+});
+
 // Called from combat.js the moment a creature falls.
 function checkJobProgressOnKill(state, creature) {
   const candidates = state.activeJobs.filter((j) => j.type === "bounty" && meetsBountyRequirement(creature, j.difficulty));
