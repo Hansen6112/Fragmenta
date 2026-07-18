@@ -398,11 +398,14 @@ const ENEMY_ABILITIES = {
   mirror_hunt: { name: "Mirror Hunt", type: "active", cooldown: 5, dmgMult: 1.95, bonusVsStatus: { status: "disoriented", mult: 1.3 } },
 
   // ---- Dreadroot (Magical Creatures D) ----
-  // Corrupted Grove/Blighted Soil/Heart of Corruption and the Grave Bloom
-  // active are all mid-fight-summon or reacts-to-a-summoned-ally-dying
-  // mechanics — skipped outright rather than declared inert, same
-  // reasoning as Brood Sovereign above (nothing to react to without the
-  // summon system this project has deliberately not built).
+  // Corrupted Grove and Grave Bloom are now real (see the Summoner
+  // support block further down, once a mid-fight summon mechanic
+  // existed) — registered there rather than here since they're shared
+  // infrastructure with Burrow Call/Nest Call/Brood Call. Blighted Soil/
+  // Heart of Corruption still react to a summoned ALLY dying, which
+  // nothing in this engine tracks distinctly from any other roster member
+  // dying — still skipped outright, same reasoning as Brood Sovereign
+  // above.
   root_harvest: { name: "Root Harvest", type: "active", cooldown: 5, dmgMult: 1.7, healOnHitPct: 0.5 },
   withering_roots: { name: "Withering Roots", type: "active", cooldown: 4, dmgMult: 1.5, aoe: true, inflict: { status: "blight_seed", chance: 1 } },
 
@@ -454,9 +457,11 @@ const ENEMY_ABILITIES = {
   // other AoE finishers, since Bloated Sul-Daun also uses this directly
   // as a normal active, not only via the unwired Volatile Corpse trigger.
   putrid_burst: { name: "Putrid Burst", type: "active", cooldown: 5, dmgMult: 1.6, aoe: true, inflict: { status: "corpse_rot", chance: 1 } },
-  // Not yet wired — reacts to another allied Sul-Daun dying, which this
-  // project's summon-free design never produces (matches Blighted Soil/
-  // Sovereign Predator above).
+  // Not yet wired — reacts specifically to another allied Sul-Daun dying;
+  // no Sul-Daun ability actually summons Sul-Daun (see the Summoner
+  // support block further down for what does exist), so this has nothing
+  // to react to regardless (matches Blighted Soil/Sovereign Predator
+  // above).
   unending_horde: { name: "Unending Horde", type: "passive", trigger: "onAlliedSulDaunDeath", selfBuff: { atk: 2 }, healPctMaxHpOnTrigger: 0.05 },
   // Drops the "targets already suffering Corpse Rot also lose 10 Defense"
   // conditional add-on debuff — inflict has no "only if already has
@@ -599,6 +604,25 @@ const ENEMY_ABILITIES = {
   cataclysmic_slam: { name: "Cataclysmic Slam", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true },
   elemental_convergence: { name: "Elemental Convergence", type: "active", cooldown: 5, dmgMult: 1.9, inflict: { status: "burning", chance: 1 } },
   guardians_judgment: { name: "Guardian's Judgment", type: "active", cooldown: 6, dmgMult: 2.4 },
+
+  // ---- Summoner support (see resolveEnemySummon/buildSummonedEnemyRecord
+  // in engine/combat.js) — these were skipped outright in earlier codex
+  // batches for lacking a mid-fight summon mechanic; now that one exists,
+  // they're wired for real. Every `creatureId`/`pool` entry below points
+  // at a real BESTIARY id — reusing "giantRat"/"stoneback_beetle"/
+  // "zombie"/"skeleton" rather than inventing new ones for creatures the
+  // codex names but this bestiary never gave a real entry ("Root Zombie",
+  // "Rot Hound").
+  burrow_call: { name: "Burrow Call", type: "active", cooldown: 6, dmgMult: 0, summon: { creatureId: "giantRat", countMin: 2, countMax: 3, maxActive: 6 } },
+  nest_call: { name: "Nest Call", type: "active", cooldown: 5, dmgMult: 0, oncePerCombat: true, summon: { creatureId: "stoneback_beetle", count: 2, onlyIfAlliesBelow: 4 } },
+  brood_call: { name: "Brood Call", type: "active", cooldown: 6, dmgMult: 0, summon: { creatureId: "valdrekKethLarva", count: 2, maxActive: 4 } },
+  // Drops the "allied undead gain +10 Accuracy/+10% Attack for 3 turns"
+  // clause — packAuraBuff only reaches packmates sharing this creature's
+  // own `group`, which the summoned Zombie/Skeleton don't have.
+  // Grave Bloom and Corrupted Grove share one capKey — the codex caps
+  // Dreadroot at "4 summons" total, not 4 from each ability separately.
+  grave_bloom: { name: "Grave Bloom", type: "active", cooldown: 6, dmgMult: 0, summon: { pool: ["zombie", "skeleton"], count: 2, maxActive: 4, capKey: "dreadroot_undead" } },
+  corrupted_grove: { name: "Corrupted Grove", type: "passive", trigger: "periodicSummon", everyNTurns: 3, pool: ["zombie", "skeleton"], count: 1, maxActive: 4, healPctIfMaxed: 0.05, capKey: "dreadroot_undead" },
 };
 
 function getEnemyAbility(id) {

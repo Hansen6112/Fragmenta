@@ -73,6 +73,7 @@ const PER_ENEMY_FIELDS = [
   // several creatures each track their own cooldowns/stacks independently.
   "abilityCooldowns", "selfBuffs", "passiveOnceFlags", "firstActiveUsed",
   "healthLostStacks", "hitsTakenFromPlayer", "lastAttackTargetKind", "consecutiveTargetStacks",
+  "summonSourceKey", // null for anything rolled into the fight normally; set to the summoning ability's own id for anything summoned mid-fight — see resolveEnemySummon
 ];
 
 function wireActiveEnemyProxy(combat) {
@@ -1499,6 +1500,13 @@ function resolveSpeedInitiative(state, creature) {
 // player-or-ally roll, exactly as before this engine existed.
 function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
   const abilityCtx = resolveEnemyActiveAbility(state, creatureObj);
+  // Summons (Burrow Call, Nest Call, Brood Call, Grave Bloom) are a pure
+  // support action — nothing is attacked, so this returns before ever
+  // reaching the aoe/single-target damage paths below.
+  if (abilityCtx && abilityCtx.summon) {
+    const lines = resolveEnemySummon(state, creatureObj.level, abilityCtx.summon, abilityCtx.id, creatureObj.name);
+    return { lines, damage: null };
+  }
   if (abilityCtx && abilityCtx.aoe) {
     const lines = [];
     const playerResult = resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx);
@@ -1610,10 +1618,26 @@ function resolveEnemyActiveAbility(state, creature) {
   const combat = state.combat;
   const enemy = combat.enemies[combat.activeIndex];
   const cooldowns = enemy.abilityCooldowns || (enemy.abilityCooldowns = {});
-  const eligible = creature.actives.filter((id) => !(cooldowns[id] > 0) && getEnemyAbility(id));
+  const eligible = creature.actives.filter((id) => {
+    const a = getEnemyAbility(id);
+    if (!a || cooldowns[id] > 0) return false;
+    // Nest Call-style: "may successfully summon only once per encounter" —
+    // reuses passiveOnceFlags (already there for oncePerCombat passives)
+    // rather than a separate field just for actives.
+    if (a.oncePerCombat && enemy.passiveOnceFlags[id]) return false;
+    // Nest Call's own "only if fewer than N allies remain" gate — checked
+    // here so the creature simply doesn't pick this active at all when the
+    // pack is still healthy, rather than picking it and no-oping.
+    if (a.summon && a.summon.onlyIfAlliesBelow != null) {
+      const allyCount = combat.enemies.filter((e) => e.alive).length;
+      if (allyCount >= a.summon.onlyIfAlliesBelow) return false;
+    }
+    return true;
+  });
   if (!eligible.length) return null;
   const abilityId = eligible[Math.floor(Math.random() * eligible.length)];
   const ability = getEnemyAbility(abilityId);
+  if (ability.oncePerCombat) enemy.passiveOnceFlags[abilityId] = true;
   cooldowns[abilityId] = ability.cooldown;
   let dmgMult = ability.dmgMult;
   // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
@@ -1645,6 +1669,7 @@ function resolveEnemyActiveAbility(state, creature) {
     }
   }
   return {
+    id: abilityId,
     name: ability.name,
     dmgMult,
     aoe: !!ability.aoe,
@@ -1654,7 +1679,91 @@ function resolveEnemyActiveAbility(state, creature) {
     healOnHitPct: ability.healOnHitPct,
     healSelfPct: ability.healSelfPct,
     packAuraBuff: ability.packAuraBuff,
+    summon: ability.summon,
   };
+}
+
+// Builds one summoned enemy in the exact shape startCombat's own roster
+// uses (see the `enemies` array built there) — a summon mid-fight is
+// otherwise indistinguishable from a creature that was in the encounter
+// from the start: it can be targeted, it acts on its own initiative, it
+// pays out its own XP/gold/loot on death. `sourceKey` (the summoning
+// ability's own id) is what resolveEnemySummon below counts against a
+// spec's maxActive cap.
+function buildSummonedEnemyRecord(id, creature, sourceKey) {
+  return {
+    creatureId: id,
+    creatureObj: creature,
+    dynamicCreature: false,
+    name: creature.name,
+    hp: creature.hp,
+    maxHp: creature.hp,
+    alive: true,
+    skipNormalRetaliationThisRound: false,
+    disarmed: false,
+    corroded: false,
+    enemyAtkPenalty: 0,
+    enemyDefPenalty: 0,
+    enemyStunned: false,
+    burn: null,
+    bleed: null,
+    lastDamageType: null,
+    hamstringApplied: false,
+    reinforcedAttackCount: 0,
+    abilityCooldowns: {},
+    selfBuffs: [],
+    passiveOnceFlags: {},
+    firstActiveUsed: false,
+    healthLostStacks: 0,
+    hitsTakenFromPlayer: 0,
+    lastAttackTargetKind: null,
+    consecutiveTargetStacks: 0,
+    summonSourceKey: sourceKey,
+  };
+}
+
+// Summoner archetype support (Burrow Call, Nest Call, Brood Call, Grave
+// Bloom, Corrupted Grove): adds 1+ new enemies to the roster mid-fight.
+// `spec` shape: { creatureId } or { pool: [ids] } picks what to summon
+// (a fixed species or a random one per summon); `count`/`countMin`/
+// `countMax` how many; `maxActive` caps how many summons FROM THIS SAME
+// SPEC can be alive at once (already-summoned-and-killed ones don't
+// count against it, matching the codex's own "no more than N active"
+// wording, not "no more than N ever"). `sourceKey` is the summoning
+// ability's own id, stamped onto every summoned record so this count is
+// scoped to this one ability even if several abilities summon in the
+// same fight. Caller decides the summoned creatures' level — always the
+// summoner's own level, same as ordinary pack members share the anchor's.
+function resolveEnemySummon(state, level, spec, sourceKey, summonerName) {
+  const combat = state.combat;
+  // `capKey` lets two different summoning abilities on the SAME creature
+  // (Dreadroot's Grave Bloom active and Corrupted Grove passive both cap
+  // at "4 summons" against one shared undead-army count, per the codex)
+  // count against one shared pool instead of each getting its own 4.
+  const key = spec.capKey || sourceKey;
+  const maxActive = spec.maxActive;
+  const alreadyActive = maxActive != null
+    ? combat.enemies.filter((e) => e.alive && e.summonSourceKey === key).length
+    : 0;
+  const room = maxActive != null ? Math.max(0, maxActive - alreadyActive) : Infinity;
+  let count = spec.count != null ? spec.count : randInt(spec.countMin, spec.countMax);
+  count = Math.min(count, room);
+  if (count <= 0) {
+    return [`${withThe(summonerName, true)} tries to call for reinforcements, but none answer.`];
+  }
+  const summoned = [];
+  for (let i = 0; i < count; i++) {
+    const id = spec.creatureId || spec.pool[Math.floor(Math.random() * spec.pool.length)];
+    const template = BESTIARY[id];
+    if (!template) continue;
+    const creature = buildFightCreature(template, level, template.dangerClass);
+    combat.enemies.push(buildSummonedEnemyRecord(id, creature, key));
+    summoned.push(creature.name);
+  }
+  if (!summoned.length) {
+    return [`${withThe(summonerName, true)} tries to call for reinforcements, but none answer.`];
+  }
+  return [`${withThe(summonerName, true)} calls for reinforcements — ${summoned.join(", ")} ${summoned.length === 1 ? "joins" : "join"} the fight!`];
 }
 
 // Buffs every OTHER alive packmate sharing this creature's own `group`
@@ -2543,6 +2652,28 @@ function tickEnemyPassives(state, e) {
         e.healthLostStacks = stacks;
         lines.push(`${withThe(creature.name, true)} grows more dangerous as the fight wears on.`);
       }
+    } else if (p.trigger === "periodicSummon") {
+      // Corrupted Grove: "at the end of every third turn" — counted per
+      // round here (this creature's own passive tick already only runs
+      // once per round), reusing passiveOnceFlags as a plain counter the
+      // same way healthStagedBuff's own flagKey does above.
+      const counterKey = pid + ":turns";
+      const turns = (e.passiveOnceFlags[counterKey] || 0) + 1;
+      e.passiveOnceFlags[counterKey] = turns;
+      if (turns % p.everyNTurns === 0) {
+        const capKey = p.capKey || pid;
+        const alreadyActive = state.combat.enemies.filter((x) => x.alive && x.summonSourceKey === capKey).length;
+        if (p.maxActive != null && alreadyActive >= p.maxActive) {
+          if (p.healPctIfMaxed) {
+            const heal = Math.max(1, Math.round(e.maxHp * p.healPctIfMaxed));
+            const before = e.hp;
+            e.hp = Math.min(e.maxHp, e.hp + heal);
+            if (e.hp > before) lines.push(`${withThe(creature.name, true)} recovers ${e.hp - before} health, its grove already at full strength.`);
+          }
+        } else {
+          lines.push(...resolveEnemySummon(state, creature.level, p, pid, creature.name));
+        }
+      }
     }
   }
   return lines;
@@ -2797,6 +2928,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     hitsTakenFromPlayer: 0, // Adaptive Fighter's after-3-hits-from-the-same-target counter
     lastAttackTargetKind: null, // Relentless Pursuit's consecutive-same-target tracking: "player" or an ally's name
     consecutiveTargetStacks: 0,
+    summonSourceKey: null, // this roster came from the normal pack/leader roll, not a mid-fight summon
   }));
   const creature = enemies[0].creatureObj;
   state.combat = {

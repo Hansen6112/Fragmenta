@@ -840,7 +840,7 @@ const BESTIARY = {
     group: "rat",
     spawnGroup: "solitary",
     passives: ["endless_swarm"],
-    actives: ["earth_tunnel"],
+    actives: ["earth_tunnel", "burrow_call"],
   },
   // ---- Felines ----
   wildcat: {
@@ -1400,7 +1400,7 @@ const BESTIARY = {
     group: "kethrhovael",
     spawnGroup: "solitary",
     passives: ["royal_pheromones"],
-    actives: ["crushing_mandibles"],
+    actives: ["crushing_mandibles", "nest_call"],
   },
   // ---- Magical Creatures A (Master Enemy Codex): Draven-Drak, Skrel-Drak.
   // Ancient Draven-Drak skipped — already exists as "Dragon" (World Boss).
@@ -1546,7 +1546,7 @@ const BESTIARY = {
     group: "valdrek_keth",
     spawnGroup: "solitary",
     passives: ["adaptive_carapace", "diamond_shell"],
-    actives: ["crystal_impalement", "crystal_ram"],
+    actives: ["crystal_impalement", "crystal_ram", "brood_call"],
   },
   // ---- Voreth-Mauth ----
   elderVorethMauth: {
@@ -1830,7 +1830,8 @@ const BESTIARY = {
     faction: "wild",
     group: "vaelorn_dreadroot",
     spawnGroup: "solitary",
-    actives: ["root_harvest", "withering_roots"],
+    passives: ["corrupted_grove"],
+    actives: ["root_harvest", "withering_roots", "grave_bloom"],
   },
   // ---- Elementals ----
   lesserElemental: {
