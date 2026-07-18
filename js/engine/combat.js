@@ -1616,6 +1616,15 @@ function resolveEnemyActiveAbility(state, creature) {
   if (ability.bonusVsHealthAbovePct && state.health >= state.maxHealth * ability.bonusVsHealthAbovePct.pct) {
     dmgMult *= ability.bonusVsHealthAbovePct.mult;
   }
+  // Apex Instinct (Rau-Thauln): unlike the ability-specific bonuses above,
+  // this applies to EVERY active the creature has, so it lives on the
+  // passive itself rather than needing to be copy-pasted onto each one.
+  for (const pid of creature.passives || []) {
+    const p = getEnemyAbility(pid);
+    if (p && p.trigger === "bonusVsHealthBelowPctAlways" && state.health <= state.maxHealth * p.pct) {
+      dmgMult *= p.mult;
+    }
+  }
   return {
     name: ability.name,
     dmgMult,

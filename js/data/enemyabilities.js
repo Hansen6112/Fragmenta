@@ -44,6 +44,10 @@ const STATUS_EFFECTS = {
   drowsy: { name: "Drowsy", debuff: { spd: -10, acc: -5 }, stackable: false, turns: 2, escalatesAt: 2, escalatesTo: "asleep" },
   asleep: { name: "Asleep", debuff: {}, stackable: false, turns: 1 },
   disoriented: { name: "Disoriented", debuff: { acc: -10, spd: -5 }, stackable: false, turns: 2 },
+  intimidated: { name: "Intimidated", debuff: { atkPct: -0.1, acc: -8, spd: -5 }, stackable: false, turns: 2 },
+  spatial_fracture: { name: "Spatial Fracture", debuff: { def: -6, agi: -6 }, stackable: false, turns: 2 },
+  unsteady: { name: "Unsteady", debuff: { spd: -5, acc: -8 }, stackable: false, turns: 2 },
+  off_balance: { name: "Off Balance", debuff: { def: -5, agi: -5 }, stackable: false, turns: 2 },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -328,6 +332,58 @@ const ENEMY_ABILITIES = {
   crystal_hide: { name: "Crystal Hide", type: "passive", trigger: "flatDamageReduction", pct: 0.15 },
   crystal_hide_reflect: { name: "Crystal Hide", type: "passive", trigger: "onHitTaken", reflectPctOfAtk: 0.1 },
   somersault_charge: { name: "Somersault Charge", type: "active", cooldown: 5, dmgMult: 2.2 },
+
+  // ---- Rau-Thauln — Thaun/Maur/Ravek/Vaelin/Voreth (Magical Creatures C)
+  // ----
+  // Apex Instinct is shared by all five sub-families — see the new
+  // bonusVsHealthBelowPctAlways check in resolveEnemyActiveAbility above,
+  // which (unlike the ability-specific bonusVsHealthBelowPct field) applies
+  // regardless of which active the creature happens to use.
+  apex_instinct: { name: "Apex Instinct", type: "passive", trigger: "bonusVsHealthBelowPctAlways", pct: 0.5, mult: 1.15 },
+  // ---- Thaun ----
+  predators_presence: { name: "Predator's Presence", type: "passive", trigger: "combatStartDebuff", debuff: { atkPct: -0.1, acc: -8, spd: -5 }, turns: 2 },
+  // Not yet wired — reacts to the player being inflicted with Intimidated/
+  // Broken Will, which (like Sovereign Predator's Draven-Drak namesake,
+  // Ancient Instinct) has no on-inflict dispatch hook.
+  sovereign_predator: { name: "Sovereign Predator", type: "passive", trigger: "onPlayerIntimidated", selfBuff: { atk: 3, def: 2 }, maxStacks: 5 },
+  crushing_maul: { name: "Crushing Maul", type: "active", cooldown: 3, dmgMult: 1.7, bonusVsStatus: { status: "intimidated", mult: 1.2 } },
+  // Escalation to Broken Will (only applicable to already-Intimidated
+  // targets) is dropped — always reapplies/refreshes Intimidated instead,
+  // same simplification as Constrict's own unwired escalation above.
+  dread_roar: { name: "Dread Roar", type: "active", cooldown: 5, dmgMult: 0, aoe: true, inflict: { status: "intimidated", chance: 1 } },
+  kings_hunt: { name: "King's Hunt", type: "active", cooldown: 6, dmgMult: 2.3, bonusVsStatus: { status: "intimidated", mult: 1.4 }, healOnHitPct: 0.2 },
+  // ---- Maur ----
+  // Blink Predator/Master Blink Predator/Perfect Blink all react to Phase
+  // Shift specifically having just been used — no dispatch hook for
+  // "after using ability X" beyond the one-shot firstAttack case (see
+  // Crystal Momentum above for the same gap).
+  blink_predator: { name: "Blink Predator", type: "passive", trigger: "onActiveUse", watchFor: "phase_shift", selfBuff: { acc: 15, atkPct: 0.15, turns: 1 } },
+  master_blink_predator: { name: "Master Blink Predator", type: "passive", trigger: "onActiveUse", watchFor: "phase_shift", ignoreDefensePct: 0.25 },
+  perfect_blink: { name: "Perfect Blink", type: "passive", trigger: "onActiveUse", watchFor: "phase_shift", dodgeChanceBonus: 0.2, turns: 1 },
+  blink_strike: { name: "Blink Strike", type: "active", cooldown: 3, dmgMult: 1.6, inflict: { status: "spatial_fracture", chance: 1 } },
+  phase_shift: { name: "Phase Shift", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, spd: 15, turns: 1 } },
+  rift_rend: { name: "Rift Rend", type: "active", cooldown: 5, dmgMult: 1.95, bonusVsStatus: { status: "spatial_fracture", mult: 1.3 } },
+  impossible_pursuit: { name: "Impossible Pursuit", type: "active", cooldown: 6, dmgMult: 2.2, bonusVsHealthBelowPct: { pct: 0.5, mult: 1.4 } },
+  // ---- Ravek ----
+  tunnel_hunter: { name: "Tunnel Hunter", type: "passive", trigger: "onActiveUse", watchFor: "tunnel_shift", selfBuff: { spd: 10, atkPct: 0.15, turns: 1 } },
+  master_tunnel_hunter: { name: "Master Tunnel Hunter", type: "passive", trigger: "onActiveUse", watchFor: "tunnel_shift", ignoreDefensePct: 0.2 },
+  living_tunnel_network: { name: "Living Tunnel Network", type: "passive", trigger: "onActiveUse", watchFor: "tunnel_shift", dmgReductionPct: 0.15, turns: 1 },
+  burrow_assault: { name: "Burrow Assault", type: "active", cooldown: 3, dmgMult: 1.55, inflict: { status: "unsteady", chance: 1 } },
+  tunnel_shift: { name: "Tunnel Shift", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 1 } },
+  cavebreaker: { name: "Cavebreaker", type: "active", cooldown: 5, dmgMult: 1.9, bonusVsStatus: { status: "unsteady", mult: 1.3 } },
+  volcanic_ambush: { name: "Volcanic Ambush", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true, inflict: { status: "unsteady", chance: 1 } },
+  // ---- Vaelin ----
+  canopy_hunter: { name: "Canopy Hunter", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.15, critChanceBonus: 0.25 },
+  master_canopy_hunter: { name: "Master Canopy Hunter", type: "passive", trigger: "onCrit", selfBuff: { spd: 10, acc: 10, turns: 1 } },
+  diving_pounce: { name: "Diving Pounce", type: "active", cooldown: 3, dmgMult: 1.6, inflict: { status: "off_balance", chance: 1 } },
+  branchbound_retreat: { name: "Branchbound Retreat", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 1 } },
+  death_from_above: { name: "Death From Above", type: "active", cooldown: 5, dmgMult: 2.0, bonusVsStatus: { status: "off_balance", mult: 1.3 } },
+  // ---- Voreth ----
+  illusory_form: { name: "Illusory Form", type: "passive", trigger: "independentMissChance", chance: 0.25 },
+  perfect_illusion: { name: "Perfect Illusion", type: "passive", trigger: "onMirrorScalesProc", selfBuff: { spd: 10, acc: 10, turns: 1 } },
+  phantom_strike: { name: "Phantom Strike", type: "active", cooldown: 3, dmgMult: 1.55, inflict: { status: "disoriented", chance: 1 } },
+  veilstep: { name: "Veilstep", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 1 } },
+  mirror_hunt: { name: "Mirror Hunt", type: "active", cooldown: 5, dmgMult: 1.95, bonusVsStatus: { status: "disoriented", mult: 1.3 } },
 };
 
 function getEnemyAbility(id) {
