@@ -48,6 +48,8 @@ const STATUS_EFFECTS = {
   spatial_fracture: { name: "Spatial Fracture", debuff: { def: -6, agi: -6 }, stackable: false, turns: 2 },
   unsteady: { name: "Unsteady", debuff: { spd: -5, acc: -8 }, stackable: false, turns: 2 },
   off_balance: { name: "Off Balance", debuff: { def: -5, agi: -5 }, stackable: false, turns: 2 },
+  corpse_rot: { name: "Corpse Rot", debuff: { def: -5 }, stackable: false, turns: 3 },
+  rooted: { name: "Rooted", debuff: { agi: -20, spd: -10 }, stackable: false, turns: 2 },
   blight: { name: "Blight", dot: { pctMaxHp: 0.02 }, debuff: { def: -5 }, stackable: false, turns: 3 },
   // Blight Seed's own consume-at-5-stacks-and-become-Blight conversion has
   // no engine hook — same unwired escalation as Constrict above.
@@ -419,6 +421,41 @@ const ENEMY_ABILITIES = {
   // Cataclysm is explicitly marked "(To be finalized when individual
   // elemental variants are expanded.)" in the codex itself — there is no
   // spec to implement, so it's skipped rather than approximated.
+
+  // ---- Sul-Daun (Undead A) ----
+  // Sul-Keth's own abilities (Bone Slash, Shield Crush, Bone Prison, Bone
+  // Storm, Grave Formation, Hollow Frame, Reinforced Bones, Reassemble,
+  // Runic Bones, Ossified Commander) were already authored during the
+  // original engine build and need nothing new here. Relentless Dead
+  // (Standard Sul-Daun only, which is skipped — already "Zombie") would
+  // need an enemy-side cheat-death hook the engine doesn't have, so it's
+  // never referenced by any tier actually added below.
+  putrid_bite: { name: "Putrid Bite", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "corpse_rot", chance: 1 } },
+  grasping_dead: { name: "Grasping Dead", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { spd: -15, agi: -10, turns: 2 }, chance: 1 } },
+  // Drops the "only while below 50% Health" gate and "immune to forced
+  // movement" clause — regenPerTurn already only fires while not at full
+  // Health, which is close enough to the intent.
+  rootbound: { name: "Rootbound", type: "passive", trigger: "regenPerTurn", pct: 0.03 },
+  root_snare: { name: "Root Snare", type: "active", cooldown: 4, dmgMult: 1.3, inflict: { status: "rooted", chance: 1 } },
+  // Drops the Fire-specific extra reduction — flatDamageReduction doesn't
+  // distinguish incoming damage by element.
+  ancient_preservation: { name: "Ancient Preservation", type: "passive", trigger: "flatDamageReduction", pct: 0.1 },
+  crushing_grip: { name: "Crushing Grip", type: "active", cooldown: 4, dmgMult: 1.7, bonusVsStatus: { status: "rooted", mult: 1.4 } },
+  // Not yet wired — "cast an active on death" has no hook (matches
+  // Reassemble's reformOnDeath trigger above, also declared but unwired).
+  volatile_corpse: { name: "Volatile Corpse", type: "passive", trigger: "castActiveOnDeath", castsAbility: "putrid_burst" },
+  // Cooldown is inferred (the source gives none) to match this tier's
+  // other AoE finishers, since Bloated Sul-Daun also uses this directly
+  // as a normal active, not only via the unwired Volatile Corpse trigger.
+  putrid_burst: { name: "Putrid Burst", type: "active", cooldown: 5, dmgMult: 1.6, aoe: true, inflict: { status: "corpse_rot", chance: 1 } },
+  // Not yet wired — reacts to another allied Sul-Daun dying, which this
+  // project's summon-free design never produces (matches Blighted Soil/
+  // Sovereign Predator above).
+  unending_horde: { name: "Unending Horde", type: "passive", trigger: "onAlliedSulDaunDeath", selfBuff: { atk: 2 }, healPctMaxHpOnTrigger: 0.05 },
+  // Drops the "targets already suffering Corpse Rot also lose 10 Defense"
+  // conditional add-on debuff — inflict has no "only if already has
+  // status X" branch, matching several dropped conditionals above.
+  grave_tide: { name: "Grave Tide", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true },
 };
 
 function getEnemyAbility(id) {
