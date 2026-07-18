@@ -54,6 +54,8 @@ const STATUS_EFFECTS = {
   // Blight Seed's own consume-at-5-stacks-and-become-Blight conversion has
   // no engine hook — same unwired escalation as Constrict above.
   blight_seed: { name: "Blight Seed", debuff: {}, stackable: true, maxStacks: 5, turns: 99, escalatesAt: 5, escalatesTo: "blight" },
+  soulbound: { name: "Soulbound", debuff: {}, stackable: false, turns: 3 },
+  fear: { name: "Feared", debuff: { atkPct: -0.15, acc: -10 }, stackable: false, turns: 2 },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -456,6 +458,88 @@ const ENEMY_ABILITIES = {
   // conditional add-on debuff — inflict has no "only if already has
   // status X" branch, matching several dropped conditionals above.
   grave_tide: { name: "Grave Tide", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true },
+
+  // ---- Sul-Rau (Undead B) ----
+  // Marked Quarry (a single-target lock the creature selects at combat
+  // start and can't be forced off) has no dispatch hook — every ability
+  // below that conditioned a bonus on "if target is the Marked Quarry"
+  // drops that clause and keeps its unconditional base multiplier.
+  black_ichor: { name: "Black Ichor", type: "passive", trigger: "regenPerTurn", pct: 0.05 },
+  unfinished_vengeance: { name: "Unfinished Vengeance", type: "passive", trigger: "markedQuarrySelect" },
+  living_memory: { name: "Living Memory", type: "passive", trigger: "accuracyReductionImmune" },
+  sever_the_heart: { name: "Sever the Heart", type: "active", cooldown: 4, dmgMult: 2.0 },
+  relentless_assault: { name: "Relentless Assault", type: "active", cooldown: 3, dmgMult: 1.7 },
+  soul_rend: { name: "Soul Rend", type: "active", cooldown: 5, dmgMult: 1.9, inflict: { custom: { def: -15, turns: 3 }, chance: 1 } },
+  execute_the_guilty: { name: "Execute the Guilty", type: "active", cooldown: 5, dmgMult: 2.2, bonusVsHealthBelowPct: { pct: 0.35, mult: 1.6 } },
+  rage_unbound: { name: "Rage Unbound", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atk: 20, spd: 10 }, oncePerCombat: true },
+  death_frenzy: { name: "Death Frenzy", type: "active", cooldown: 5, dmgMult: 1.8, aoe: true },
+  endless_pursuit: { name: "Endless Pursuit", type: "active", cooldown: 6, dmgMult: 0, selfBuff: { spd: 25, atkPct: 0.2, turns: 3 } },
+
+  // ---- Voran-Daun (Undead B) ----
+  living_heart: { name: "Living Heart", type: "passive", trigger: "regenPerTurn", pct: 0.04 },
+  // Residual Memory's chance-based counter — see the new counterChance/
+  // counterPctOfAtk branch in applyEnemyOnHitTakenPassives above.
+  residual_memory: { name: "Residual Memory", type: "passive", trigger: "onHitTaken", counterChance: 0.25, counterPctOfAtk: 1.0 },
+  flesh_hammer: { name: "Flesh Hammer", type: "active", cooldown: 3, dmgMult: 1.7, inflict: { custom: { spd: -10, turns: 2 }, chance: 1 } },
+  rending_claw: { name: "Rending Claw", type: "active", cooldown: 4, dmgMult: 1.8, inflict: { status: "bleed", chance: 1 } },
+  // Four Living Hearts (an enemy-side cheat-death: survive at 0 Health by
+  // losing a "heart" instead) has no engine hook — matches Relentless
+  // Dead above, also declared but unwired for the same reason.
+  four_living_hearts: { name: "Four Living Hearts", type: "passive", trigger: "heartCheatDeath", hearts: 4 },
+  unstoppable_momentum: { name: "Unstoppable Momentum", type: "passive", trigger: "stunKnockbackImmune" },
+  // Perfect Fleshcraft's damage cap — see the new damageCapPctMaxHp branch
+  // in applyEnemyFlatDamageReduction above.
+  perfect_fleshcraft: { name: "Perfect Fleshcraft", type: "passive", trigger: "damageCapPctMaxHp", pct: 0.2 },
+  catastrophic_slam: { name: "Catastrophic Slam", type: "active", cooldown: 5, dmgMult: 2.2, aoe: true },
+  // Flesh Reconstruction's self-heal — see the new healSelfPct branch
+  // resolveEnemyRetaliation now applies alongside healOnHitPct above.
+  flesh_reconstruction: { name: "Flesh Reconstruction", type: "active", cooldown: 6, dmgMult: 0, healSelfPct: 0.25 },
+  // Drops the "heal 5% max Health per Bleeding enemy" clause — no hook
+  // scans every combatant's status list from inside an active's resolver.
+  harvest_of_limbs: { name: "Harvest of Limbs", type: "active", cooldown: 6, dmgMult: 2.1 },
+
+  // ---- Mauven-Sulei (Undead B) ----
+  // Ethereal Form's Manifest/feeding-state toggle (and everything that
+  // reads it — Refusal of the River, Veil of Agony, Endless Torment) has
+  // no engine hook, matching Elemental Form's own toggle above. Their
+  // actives below still work as ordinary attacks independent of the
+  // unwired toggle state.
+  ethereal_form: { name: "Ethereal Form", type: "passive", trigger: "etherealToggle" },
+  refusal_of_the_river: { name: "Refusal of the River", type: "passive", trigger: "etherealCheatDeath" },
+  veil_of_agony: { name: "Veil of Agony", type: "passive", trigger: "accuracyReductionImmune" },
+  endless_torment: { name: "Endless Torment", type: "passive", trigger: "etherealRegen", pct: 0.05 },
+  soul_drain: { name: "Soul Drain", type: "active", cooldown: 5, dmgMult: 2.2 },
+  wail_beyond_death: { name: "Wail Beyond Death", type: "active", cooldown: 5, dmgMult: 1.7, aoe: true, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 } },
+  spirit_rend: { name: "Spirit Rend", type: "active", cooldown: 4, dmgMult: 1.9 },
+  ghostly_grasp: { name: "Ghostly Grasp", type: "active", cooldown: 4, dmgMult: 1.6, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
+  death_wail: { name: "Death Wail", type: "active", cooldown: 6, dmgMult: 2.0, aoe: true, inflict: { status: "soulbound", chance: 1 } },
+  // Drops the "refresh Soulbound" clause — heal-on-use is the only part
+  // that carries over cleanly as an unconditional bonus.
+  eternal_grasp: { name: "Eternal Grasp", type: "active", cooldown: 6, dmgMult: 2.1, bonusVsStatus: { status: "soulbound", mult: 1.0 }, healOnHitPct: 0.15 },
+
+  // ---- Orvuin (Undead B) ----
+  // Reuses the combat-start-debuff hook Draconic/Predator's Presence
+  // introduced — Haunting Presence is worded as a continuous while-alive
+  // aura rather than a one-shot opener, but a single applied-once debuff
+  // that lasts most of a normal fight is a close enough approximation.
+  haunting_presence: { name: "Haunting Presence", type: "passive", trigger: "combatStartDebuff", debuff: { acc: -5 }, turns: 3 },
+  spectral_touch: { name: "Spectral Touch", type: "active", cooldown: 3, dmgMult: 1.4 },
+  // Not yet wired — applies its debuff to whoever THIS creature hits on
+  // ANY attack (not just its actives), which the passive-dispatch surface
+  // doesn't cover.
+  lingering_regret: { name: "Lingering Regret", type: "passive", trigger: "debuffOnHitDealt", debuff: { atkPct: -0.1 }, turns: 1 },
+  soul_chill: { name: "Soul Chill", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
+  // Not yet wired — reacts to ANY combatant dying, which resolveKill
+  // doesn't currently broadcast to other alive enemies (matches Blighted
+  // Soil above).
+  echoes_of_death: { name: "Echoes of Death", type: "passive", trigger: "onAnyDeath", selfBuff: { atk: 4, acc: 4 } },
+  wail_of_the_forgotten: { name: "Wail of the Forgotten", type: "active", cooldown: 5, dmgMult: 1.5, aoe: true, inflict: { status: "fear", chance: 1 } },
+  soul_rend_orvuin: { name: "Soul Rend", type: "active", cooldown: 4, dmgMult: 1.8 },
+  deathly_lament: { name: "Deathly Lament", type: "active", cooldown: 5, dmgMult: 1.7, inflict: { custom: { acc: -15, turns: 3 }, chance: 1 } },
+  endless_mourning: { name: "Endless Mourning", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { acc: 15, agi: 15 }, oncePerCombat: true },
+  // Drops the "+10% per defeated creature" scaling clause — no
+  // death-counter tracking (matches Echoes of Death's own gap above).
+  death_chorus: { name: "Death Chorus", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true, inflict: { status: "fear", chance: 1 } },
 };
 
 function getEnemyAbility(id) {

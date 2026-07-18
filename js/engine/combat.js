@@ -1319,7 +1319,19 @@ function applyEnemyFlatDamageReduction(dmg, creature) {
     const ability = getEnemyAbility(id);
     if (ability && ability.trigger === "flatDamageReduction") mult *= (1 - ability.pct);
   }
-  return mult === 1 ? dmg : Math.max(0, Math.round(dmg * mult));
+  let result = mult === 1 ? dmg : Math.max(0, Math.round(dmg * mult));
+  // Perfect Fleshcraft (Grand Voran-Daun): no single hit can exceed a
+  // fixed fraction of this creature's own max Health, regardless of how
+  // hard it landed. `creature.hp` is the species template's max — the
+  // live remaining Health lives on the per-fight enemy record instead.
+  for (const id of creature.passives) {
+    const ability = getEnemyAbility(id);
+    if (ability && ability.trigger === "damageCapPctMaxHp") {
+      const cap = Math.round((creature.hp || 0) * ability.pct);
+      if (cap > 0) result = Math.min(result, cap);
+    }
+  }
+  return result;
 }
 
 function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
@@ -1337,6 +1349,13 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
     if (ability.inflictStatusOnAttacker && state.combat) {
       const spec = getStatusEffect(ability.inflictStatusOnAttacker);
       if (spec) applyPlayerStatus(state, ability.inflictStatusOnAttacker, spec);
+    }
+    // Residual Memory (Lesser Voran-Daun): a CHANCE-based counter, unlike
+    // Barbed Hide's guaranteed reflect above — same silent damage-only
+    // path, no message line.
+    if (ability.counterChance && ability.counterPctOfAtk && Math.random() < ability.counterChance) {
+      const counter = Math.max(0, Math.round((creature.atk || 0) * ability.counterPctOfAtk));
+      if (counter > 0) state.health = Math.max(0, state.health - counter);
     }
   }
 }
@@ -1633,6 +1652,7 @@ function resolveEnemyActiveAbility(state, creature) {
     selfDebuff: ability.selfDebuff,
     selfBuff: ability.selfBuff,
     healOnHitPct: ability.healOnHitPct,
+    healSelfPct: ability.healSelfPct,
     packAuraBuff: ability.packAuraBuff,
   };
 }
@@ -2422,6 +2442,13 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     if (abilityCtx.selfBuff) applyEnemySelfModifier(combat, creature, abilityCtx.selfBuff);
     if (abilityCtx.healOnHitPct && edmg > 0) {
       const heal = Math.round(edmg * abilityCtx.healOnHitPct);
+      if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
+    }
+    // Flesh Reconstruction (Grand Voran-Daun): a flat self-heal off max
+    // Health, independent of whether this particular use dealt damage —
+    // unlike healOnHitPct above, which only ever pays out on a landed hit.
+    if (abilityCtx.healSelfPct) {
+      const heal = Math.round(combat.maxHp * abilityCtx.healSelfPct);
       if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
     }
     if (abilityCtx.packAuraBuff) applyPackAuraBuff(combat, creature, abilityCtx.packAuraBuff);
