@@ -81,6 +81,12 @@ function resolveJob(state, job) {
   }
 
   Events.emit("job.completed", { job, state });
+  // Hadrian's relationship-threshold dialogue (engine/hadrianquest.js)
+  // needs to actually reach the player, unlike the two silent listeners
+  // above — called explicitly here rather than through the event, same
+  // reasoning as concludeArenaFightWon/concludeHadrianAmbush being
+  // explicit calls instead of listeners.
+  lines.push(...maybeAdvanceHadrianQuest(state));
   return lines;
 }
 

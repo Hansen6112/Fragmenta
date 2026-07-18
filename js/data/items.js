@@ -1851,6 +1851,29 @@ const ITEM_DEFS = {
   "Bloodbound Champion Gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, source: "companion" },
   "Bloodbound Champion Boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "companion" },
   "Crimson Champion's Sash": { slot: "cloak", tier: 3, bonuses: { atk: 2, knowledge: 1 }, source: "companion" },
+
+  // ---- Legendary ascension: "The Bloodbound Champion's Regalia" ----
+  // (data/hadrianquest.js's HADRIAN_ASCENSION_MAP, Hadrian's Personal
+  // Quest "History's Sting") — swapped in wholesale on quest completion,
+  // replacing the Superior-tier starting versions above rather than
+  // upgrading them in place, so those base items still exist unchanged
+  // for a playthrough that hasn't finished the quest yet. Named passives
+  // (Unbroken Momentum/Steadfast Gaze/Iron Faith/Champion's Grip/
+  // Grounded Resolve/Paid in Blood) and the 6pc set bonus are wired in
+  // engine/companion.js, gated on all six pieces being equipped together
+  // (see hasAscendedRegalia) — there's no partial 2pc/4pc state to model
+  // since the ascension happens atomically, all six at once.
+  "Ascended Bloodbound Champion's Maul": { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, source: "companion" },
+  "Ascended Bloodbound Champion Helm": { slot: "helmet", tier: 5, bonuses: { def: 7 }, source: "companion" },
+  "Ascended Bloodbound Champion Cuirass": { slot: "chest", tier: 5, bonuses: { def: 7 }, source: "companion" },
+  "Ascended Bloodbound Champion Gauntlets": { slot: "gloves", tier: 5, bonuses: { atk: 8 }, source: "companion" },
+  "Ascended Bloodbound Champion Boots": { slot: "boots", tier: 5, bonuses: { def: 7 }, source: "companion" },
+  "Ascended Crimson Champion's Sash": { slot: "cloak", tier: 5, bonuses: { atk: 5, knowledge: 3 }, source: "companion" },
+
+  // ---- Companion Trinkets (Section 11.5) — fill Hadrian's two Trinket
+  // slots for the first time, only on Personal Quest completion. ----
+  "The Roll of the Ferratum": { slot: "trinkets", tier: 5, bonuses: { def: 3, knowledge: 3 }, source: "companion" },
+  "Astra Sa'Lahru's Broken Crest": { slot: "trinkets", tier: 5, bonuses: { atk: 4, def: 4 }, source: "companion" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

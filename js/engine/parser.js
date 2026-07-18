@@ -389,6 +389,25 @@ function executeTravel(state, path, totalDays) {
     return lines;
   }
 
+  // Hadrian's Personal Quest finale (engine/hadrianquest.js): once the
+  // quest is unlocked (relationship 50) and not yet completed, EVERY
+  // arrival at the Black Sands is a guaranteed confrontation — not
+  // gated to a first visit like the Thalvora ambush, since the player
+  // may need to travel there more than once before actually going.
+  const blackSandsConfrontationGuaranteed =
+    destId === "black_sands" &&
+    state.flags.hadrianQuestUnlocked &&
+    !state.flags.hadrianQuestCompleted &&
+    state.party.some((p) => p.defId === "hadrian" && p.alive);
+  if (blackSandsConfrontationGuaranteed) {
+    lines.push(...advanceTime(state, totalDays * 1440, "travel"));
+    state.location = destId;
+    state.subLocation = null;
+    state.visit(destId);
+    lines.push(...checkBlackSandsConfrontation(state, destId));
+    return lines;
+  }
+
   // roll encounters per leg
   for (let i = 1; i < path.length; i++) {
     const legLoc = LOCATIONS[path[i]];

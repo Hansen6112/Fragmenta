@@ -1819,14 +1819,24 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
     return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
   }
   const rawAtk = effectiveEnemyAtk(state, creature);
-  // bonusDefAmount: Champion's Challenge's temporary +Def (engine/companion.js) — 0 for any ally without one.
-  const effectiveDef = (ally.def || 0) + (ally.bonusDefAmount || 0);
+  // effectiveAllyDef (engine/companion.js): base Def plus every temporary/
+  // permanent companion bonus (Champion's Challenge, the Legendary
+  // ascension's flat set bonus, No Name Forgotten, Brothers in Arms/
+  // Honor Beyond Death) — all zero for any ally without one (Kessa).
+  const effectiveDef = effectiveAllyDef(ally);
   let dmg = abilityCtx
     ? Math.max(0, Math.round(rawAtk * abilityCtx.dmgMult) - Math.round(effectiveDef * 0.5))
     : Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round(effectiveDef * 0.5));
+  // Legion's Memory / Brothers in Arms (engine/companion.js): Hadrian may
+  // redirect part of this hit onto himself, or buff himself reactively,
+  // BEFORE the target's own mitigation runs — a no-op unless Hadrian is
+  // in the party, ascended/trinketed, and it's a DIFFERENT ally being hit.
+  const protection = maybeHadrianAllyProtection(state, ally, dmg);
+  dmg = protection.dmg;
   // Companion Ability Engine (engine/companion.js): taunt/Unbroken Will
-  // damage reduction and Champion's Resolve's non-fatal floor for a kit-
-  // bearing ally — a no-op for any ally without one (Kessa).
+  // damage reduction, Honor Beyond Death's fatal-hit save, and Champion's
+  // Resolve's non-fatal floor for a kit-bearing ally — a no-op for any
+  // ally without one (Kessa).
   const mitigation = applyCompanionDamageTaken(ally, dmg);
   dmg = mitigation.dmg;
   // The Grand Ovum (engine/arena.js): a non-lethal bout protects allies
@@ -1836,7 +1846,7 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
   ally.health = Math.max(arenaFloor, ally.health - dmg);
   const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
-  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...mitigation.lines];
+  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...protection.lines, ...mitigation.lines];
   // Last Bastion's automatic retaliation (engine/companion.js) — a no-op
   // for any ally without one.
   lines.push(...maybeCompanionRetaliate(state, ally, creature));
@@ -3736,6 +3746,10 @@ function resolveKill(state, creature) {
     // path) — the same "last enemy of five falls" moment as any other
     // fight, just with its own recruitment-offer follow-up.
     if (state.combat.isHadrianAmbush) out.push(...concludeHadrianAmbush(state));
+    // Hadrian's Personal Quest finale (engine/hadrianquest.js) — the
+    // Bruised Mage and Astra Sa'Lahru's Revenant fall together as one
+    // encounter's last-enemy-standing moment.
+    if (state.combat.isHadrianQuestFinale) out.push(...concludeHadrianQuestFinale(state));
     if (state.combat === combatBeforeConclusion) state.combat = null;
     // The fight is genuinely over (last enemy down) — charge its time
     // cost once here, not per-kill within a pack.

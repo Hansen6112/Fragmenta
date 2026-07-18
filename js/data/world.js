@@ -7115,7 +7115,25 @@ const LOCATIONS = {
     connections: [
       { to: "sahurim", days: 17, mode: "road" },
       { to: "kolven", days: 1, mode: "bridge", desc: "toll and inspection, no bypass" },
+      { to: "black_sands", days: 4, mode: "road", desc: "no guide will take you further than the edge" },
     ],
+  },
+  // Sahrimor's southern cursed territory — established in the Master
+  // Reference as "home to nightmare creatures and a cold that should not
+  // exist in the middle of a killing desert." Wilderness, not a city —
+  // the site of Hadrian's Personal Quest confrontation
+  // (engine/hadrianquest.js's checkBlackSandsConfrontation).
+  black_sands: {
+    name: "The Black Sands",
+    nation: "sahrimor",
+    terrain: "desert",
+    isCity: false,
+    type: "wilderness",
+    danger: 5,
+    services: [],
+    description:
+      "The sand underfoot is the color of char, and the cold has no business existing this deep in a desert. Whatever swallowed the expeditions that came looking for what's buried here didn't need to chase them — most of them walked in on their own.",
+    connections: [{ to: "myssara", days: 4, mode: "road" }],
   },
   nocturne: {
     name: "Nocturne",

@@ -13,16 +13,36 @@
  * pieces of Hadrian's kit have no real mechanical hook to attach to yet
  * and are left as flavor/declared-but-inert rather than faked:
  *   - His Poison/Toxic/Decay vulnerability (data/hadrian.js's
- *     HADRIAN.vulnerability) maps onto the `venom` status effect, but
- *     nothing in this engine currently inflicts a status effect on an
- *     ALLY (only on the player) — so this multiplier has no live trigger
- *     today. Kept as data for whenever that changes.
+ *     HADRIAN.vulnerability) and its Iron Faith offset (below) map onto
+ *     the `venom` status effect, but nothing in this engine currently
+ *     inflicts a status effect on an ALLY (only on the player) — so
+ *     neither multiplier has a live trigger today. Kept as data for
+ *     whenever that changes.
+ *   - Steadfast Gaze (Accuracy-reduction immunity) and Grounded Resolve
+ *     (Initiative-reduction resistance), both from the Legendary
+ *     ascension below — nothing currently reduces an ALLY's Accuracy or
+ *     Speed either (only an enemy's, via the player's own Disarm/
+ *     Groundbreaker), so both are declared and otherwise inert.
  *   - Groundbreaker's -10 Accuracy debuff on enemies IS wired (see
  *     applyGroundbreakerAccuracyDebuff/tickGroundbreakerDebuffs below).
  *
  * "Ally danger threshold" (used by both Target Switching and Ally
  * Protection in the source record, but never given an exact number
  * there) is this implementation's own choice: 40% of max Health.
+ *
+ * ---- Legendary ascension ("The Bloodbound Champion's Regalia") ----
+ * Hadrian's Personal Quest reward (data/hadrianquest.js). Since the
+ * ascension happens atomically — all six pieces swapped in at once on
+ * quest completion, never gradually — there's no partial 2pc/4pc set
+ * state to model; hasAscendedRegalia below is a single boolean standing
+ * in for the whole ladder (2pc/4pc/6pc effects all apply together, or
+ * none do). Legion's Memory's "+15% damage reduction for 2 turns" for
+ * the OTHER (non-Hadrian, possibly non-kit-bearing) ally it protects has
+ * no generic buff-duration hook to attach to for an ally like Kessa, who
+ * carries no companion fields at all — so that half is applied as an
+ * immediate flat discount on the single hit being redirected, rather
+ * than a genuine 2-turn window. Hadrian's own share of that same buff
+ * IS a real 2-turn window, since he already has the fields for it.
  */
 
 // ---- Per-ally per-fight state ----
@@ -51,6 +71,16 @@ function ensureCompanionFields(ally) {
   ally.combatStartHealth = ally.health;
   ally.healthLostPctThisCombat = 0;
   ally.roundsInCombat = 0;
+  // Legendary ascension (see file header) — permanent-for-this-fight
+  // bonuses set once at combat start, plus the reactive/consumable
+  // fields its Trinkets and set bonus use.
+  ally.ascendedSetDefBonus = 0; // "2pc" flat +3 Def, always on while ascended
+  ally.noNameForgottenDefBonus = 0; // Trinket I, set at combat start
+  ally.paidInBloodStacks = 0; // Sash passive, +1 Atk per kill this combat
+  ally.finalRespectPct = 0; // Trinket II, consumed by the next successful hit
+  ally.reactiveDefBonus = 0; // Brothers in Arms / Honor Beyond Death
+  ally.reactiveAtkBonus = 0;
+  ally.reactiveBuffTurnsLeft = 0;
 }
 
 // combat.js's startCombat calls this once per alive kit-bearing ally
@@ -61,7 +91,24 @@ function resetCompanionCombatState(state) {
     if (!ALLY_DEFS[ally.defId] || !ALLY_DEFS[ally.defId].abilityKit) continue;
     ally._companionFieldsReady = false;
     ensureCompanionFields(ally);
+    if (hasAscendedRegalia(ally)) {
+      ally.ascendedSetDefBonus = 3; // "2pc" of "The Unbroken Champion"
+      if (ally.equipment.trinkets.includes("The Roll of the Ferratum")) {
+        // No Name Forgotten: Defense equal to the number of OTHER living
+        // allies, capped at +4.
+        const others = aliveAllies(state).filter((a) => a !== ally).length;
+        ally.noNameForgottenDefBonus = Math.min(4, others);
+      }
+    }
   }
+}
+
+// Whether every one of Hadrian's six starting pieces has been swapped
+// for its ascended replacement (data/hadrianquest.js's
+// HADRIAN_ASCENSION_MAP) — see file header on why this is a single
+// boolean, not a partial-tier count.
+function hasAscendedRegalia(ally) {
+  return Object.entries(HADRIAN_ASCENSION_MAP).every(([slot, name]) => ally.equipment[slot] === name);
 }
 
 // combat.js's beginTurn calls this every round for every alive
@@ -98,6 +145,17 @@ function tickCompanionCombatTimers(state) {
       if (ally.ultimateTurnsLeft === 0) {
         ally.ultimateAtkPct = 0;
         ally.ultimateDefPct = 0;
+      }
+    }
+    // Brothers in Arms / Honor Beyond Death (Legendary ascension) share
+    // this one reactive-buff timer — see maybeHadrianAllyProtection and
+    // applyCompanionDamageTaken for why additive stacking (rather than
+    // one clobbering the other) is the right call here.
+    if (ally.reactiveBuffTurnsLeft > 0) {
+      ally.reactiveBuffTurnsLeft -= 1;
+      if (ally.reactiveBuffTurnsLeft === 0) {
+        ally.reactiveDefBonus = 0;
+        ally.reactiveAtkBonus = 0;
       }
     }
   }
@@ -164,6 +222,50 @@ function isAnyoneInRealDanger(state, protectingAlly) {
   const t = 0.25;
   if (state.health / state.maxHealth < t) return true;
   return aliveAllies(state).some((a) => a !== protectingAlly && a.health / a.maxHealth < t);
+}
+
+// Flat Attack bonus from Brothers in Arms/Honor Beyond Death's reactive
+// buff plus Paid in Blood's per-kill stacking (Legendary ascension,
+// Sash passive) — added to ally.atk before any ability's own multiplier.
+function hadrianFlatAtkBonus(ally) {
+  return (ally.reactiveAtkBonus || 0) + (hasAscendedRegalia(ally) ? ally.paidInBloodStacks || 0 : 0);
+}
+
+// Total Defense an ascended-or-not Hadrian brings to a hit taken:
+// his own stat, Champion's Challenge's timed bonus, the reactive buff
+// (Brothers in Arms/Honor Beyond Death), the "2pc" ascension flat bonus,
+// and No Name Forgotten's per-fight bonus. combat.js's
+// resolveEnemyAttackOnAlly calls this instead of reading ally.def
+// directly for ANY ally (not just Hadrian) — it's all zeroes for a
+// non-kit-bearing ally like Kessa, so this is a safe drop-in there too.
+function effectiveAllyDef(ally) {
+  return (
+    (ally.def || 0) +
+    (ally.bonusDefAmount || 0) +
+    (ally.reactiveDefBonus || 0) +
+    (ally.ascendedSetDefBonus || 0) +
+    (ally.noNameForgottenDefBonus || 0)
+  );
+}
+
+// Worthy Foe (Trinket II — bonus vs Elite/Boss/World Boss) and Final
+// Respect (Trinket II — +50% on the next successful hit after Honor
+// Beyond Death triggers, then consumed) — applied to a FINAL damage
+// number right before it's subtracted from an enemy's hp, at every one
+// of Hadrian's damage-dealing call sites (active abilities, his basic
+// fallback attack, and Last Bastion's retaliation).
+const WORTHY_FOE_BONUS_BY_TIER = { elite: 0.1, boss: 0.15, world_boss: 0.2 };
+function applyHadrianOutgoingDamageBonuses(ally, dmg, targetCreature) {
+  let d = dmg;
+  if (ally.equipment.trinkets.includes("Astra Sa'Lahru's Broken Crest")) {
+    const tierBonus = WORTHY_FOE_BONUS_BY_TIER[targetCreature.dangerClass] || 0;
+    if (tierBonus) d = Math.round(d * (1 + tierBonus));
+  }
+  if (ally.finalRespectPct > 0) {
+    d = Math.round(d * (1 + ally.finalRespectPct));
+    ally.finalRespectPct = 0;
+  }
+  return d;
 }
 
 function abilityReady(ally, ability) {
@@ -256,15 +358,21 @@ function resolveCompanionAction(state, ally) {
 // allyAggressiveAction already uses for Kessa, targeting the same
 // highest-tier/closest-to-death enemy Hadrian's kit always prefers.
 function basicCompanionAttack(state, ally, enemies) {
+  const kit = ALLY_DEFS[ally.defId].abilityKit;
   const target = pickHadrianTarget(enemies);
-  if (!attackConnects(ally.accuracy, target.creatureObj.agi, veteranBonusPct(ally, ALLY_DEFS[ally.defId].abilityKit))) {
+  if (!attackConnects(ally.accuracy, target.creatureObj.agi, veteranBonusPct(ally, kit))) {
     return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
   }
-  const dmg = Math.max(1, randInt(Math.round(ally.atk * 0.85), Math.round(ally.atk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5));
+  const atk = ally.atk + hadrianFlatAtkBonus(ally);
+  let dmg = Math.max(1, randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5));
+  dmg = applyHadrianOutgoingDamageBonuses(ally, dmg, target.creatureObj);
   target.hp -= dmg;
   target.lastDamageType = "physical";
   const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
-  if (target.hp <= 0 && target.alive) lines.push(...killEnemyAsAlly(state, target));
+  if (target.hp <= 0 && target.alive) {
+    lines.push(...killEnemyAsAlly(state, target));
+    onHadrianKill(state, ally, kit);
+  }
   return lines;
 }
 
@@ -286,7 +394,10 @@ function killEnemyAsAlly(state, target) {
 // and the handful of stateful side effects (taunt windows, Empowered
 // Strike, self-heal/cleanse) his kit actually needs.
 function useHadrianActive(state, ally, kit, ability, enemies) {
-  ally.abilityCooldowns[ability.id] = ability.cooldown;
+  // "The Unbroken Champion" 4pc: abilities used while Defensive or
+  // Support have their cooldown reduced by 1 turn.
+  const cdrActive = hasAscendedRegalia(ally) && (ally.stance === "defensive" || ally.stance === "support");
+  ally.abilityCooldowns[ability.id] = Math.max(0, ability.cooldown - (cdrActive ? 1 : 0));
   const lines = [];
   const veteranPct = veteranBonusPct(ally, kit);
 
@@ -302,8 +413,15 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   if (ability.id === "unyielding_advance") {
     const healAmount = Math.round(ally.maxHealth * ability.healPct);
     ally.health = Math.min(ally.maxHealth, ally.health + healAmount);
-    ally.passiveOnceFlags = {}; // "removes all negative status effects" — no ally status system exists yet (see file header), so this just clears his own once-per-combat gates as the nearest equivalent of a fresh start
-    ally.empoweredStrikePct = ability.empoweredStrikePct;
+    // "Removes all negative status effects" is a no-op here — no ally
+    // status system exists yet (see file header) — deliberately NOT
+    // clearing ally.passiveOnceFlags, which gates once-per-combat safety
+    // nets (Champion's Resolve, Honor Beyond Death, ...) rather than
+    // anything resembling a negative status; clearing it would let
+    // those re-trigger mid-fight, which isn't the intent.
+    // Champion's Grip (ascended Gauntlets): Empowered Strike's bonus
+    // rises from +30% to +45%.
+    ally.empoweredStrikePct = hasAscendedRegalia(ally) ? ability.empoweredStrikePct + 0.15 : ability.empoweredStrikePct;
     ally.empoweredStrikeTurnsLeft = ability.empoweredStrikeTurns;
     lines.push(`${ally.name} plants his maul and steadies himself, mending for ${healAmount} health.`);
     return lines;
@@ -318,6 +436,7 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   }
 
   // Crushing Blow / Groundbreaker — direct damage.
+  const ascended = hasAscendedRegalia(ally);
   const target = pickHadrianTarget(enemies);
   const atkBonus = 1 + (ally.ultimateTurnsLeft > 0 ? ally.ultimateAtkPct : 0);
   if (!attackConnects(ally.accuracy, target.creatureObj.agi, veteranPct)) {
@@ -327,9 +446,13 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   const empowered = ability.consumesEmpoweredStrike && ally.empoweredStrikeTurnsLeft > 0;
   const empoweredMult = empowered ? 1 + ally.empoweredStrikePct : 1;
   if (empowered) { ally.empoweredStrikePct = 0; ally.empoweredStrikeTurnsLeft = 0; }
-  const baseAtk = ally.atk * atkBonus * empoweredMult;
-  const defIgnore = ability.defIgnorePct || 0;
-  const primaryDmg = Math.max(1, Math.round(baseAtk * ability.atkMult) - Math.round((target.creatureObj.def || 0) * (1 - defIgnore) * 0.5));
+  const baseAtk = (ally.atk + hadrianFlatAtkBonus(ally)) * atkBonus * empoweredMult;
+  // Unbroken Momentum (ascended Maul): Crushing Blow's Defense-ignore
+  // rises from 20% to 30%; Groundbreaker's splash rises from 60% to 75%.
+  const defIgnore = (ability.defIgnorePct || 0) + (ascended && ability.id === "crushing_blow" ? 0.1 : 0);
+  const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (ascended ? 0.15 : 0) : 0;
+  let primaryDmg = Math.max(1, Math.round(baseAtk * ability.atkMult) - Math.round((target.creatureObj.def || 0) * (1 - defIgnore) * 0.5));
+  primaryDmg = applyHadrianOutgoingDamageBonuses(ally, primaryDmg, target.creatureObj);
   target.hp -= primaryDmg;
   target.lastDamageType = "physical";
   lines.push(`${ally.name} lands ${ability.name} on ${withThe(target.creatureObj.name, false)} for ${primaryDmg} damage.`);
@@ -339,7 +462,8 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   if (ability.splashAll) {
     for (const e of enemies) {
       if (e === target || !e.alive) continue;
-      const splashDmg = Math.max(1, Math.round(baseAtk * ability.splashAtkMult) - Math.round((e.creatureObj.def || 0) * 0.5));
+      let splashDmg = Math.max(1, Math.round(baseAtk * splashAtkMult) - Math.round((e.creatureObj.def || 0) * 0.5));
+      splashDmg = applyHadrianOutgoingDamageBonuses(ally, splashDmg, e.creatureObj);
       e.hp -= splashDmg;
       e.lastDamageType = "physical";
       lines.push(`The blow's shockwave catches ${withThe(e.creatureObj.name, false)} for ${splashDmg} damage.`);
@@ -349,8 +473,18 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
     if (ability.accuracyDebuff && target.alive) applyGroundbreakerAccuracyDebuff(state, target, ability.accuracyDebuff, ability.accuracyDebuffTurns);
   }
 
-  if (killedAny) maybeTriggerBloodboundParagon(state, ally, kit);
+  if (killedAny) onHadrianKill(state, ally, kit);
   return lines;
+}
+
+// On any kill Hadrian lands, by any means (an Active, his basic fallback
+// attack, or Last Bastion's retaliation): Bloodbound Paragon (Section
+// 8.4) as before, plus Paid in Blood (ascended Sash passive) — +1 Attack
+// for the rest of THIS combat, stacking indefinitely, reset at the next
+// combat's start (resetCompanionCombatState).
+function onHadrianKill(state, ally, kit) {
+  maybeTriggerBloodboundParagon(state, ally, kit);
+  if (hasAscendedRegalia(ally)) ally.paidInBloodStacks = (ally.paidInBloodStacks || 0) + 1;
 }
 
 // Bloodbound Paragon (Section 8.4, level 25): on a killing blow, cleanse
@@ -387,6 +521,32 @@ function applyCompanionDamageTaken(ally, rawDmg) {
   if (unbrokenWill && ally.health / ally.maxHealth < unbrokenWill.threshold) reductionPct += unbrokenWill.dmgReductionPct;
   dmg = Math.max(0, Math.round(dmg * (1 - Math.min(0.9, reductionPct))));
 
+  // Honor Beyond Death (Trinket II, Legendary ascension): takes priority
+  // over Champion's Resolve on any hit that would be FATAL — checked
+  // first, and explicitly, per the source record's own dev note that
+  // this overkill interaction needed a real priority check rather than
+  // whichever effect happened to run first in code. Champion's Resolve
+  // below only ever considers non-fatal hits (projected > 0), so the two
+  // are naturally mutually exclusive by hit severity, not by ordering
+  // alone — but Honor Beyond Death is still checked first to make that
+  // priority explicit rather than incidental.
+  const projectedFatal = ally.health - dmg;
+  if (
+    ally.equipment.trinkets.includes("Astra Sa'Lahru's Broken Crest") &&
+    !ally.passiveOnceFlags.honor_beyond_death &&
+    projectedFatal <= 0
+  ) {
+    ally.passiveOnceFlags.honor_beyond_death = true;
+    dmg = Math.max(0, ally.health - 1);
+    ally.reactiveDefBonus = (ally.reactiveDefBonus || 0) + 5;
+    ally.reactiveAtkBonus = (ally.reactiveAtkBonus || 0) + 5;
+    ally.reactiveBuffTurnsLeft = Math.max(ally.reactiveBuffTurnsLeft || 0, 3);
+    ally.finalRespectPct = 0.5;
+    lines.push(`${ally.name} refuses the killing blow outright — Honor Beyond Death holds him at the very edge, and he comes back swinging harder for it.`);
+    ally.healthLostPctThisCombat = Math.min(1, Math.max(ally.healthLostPctThisCombat, (ally.combatStartHealth - (ally.health - dmg)) / ally.maxHealth));
+    return { dmg, lines };
+  }
+
   const resolve = kit.passives.find((p) => p.id === "champions_resolve" && ally.level >= p.level);
   const projected = ally.health - dmg;
   if (resolve && !ally.passiveOnceFlags.champions_resolve && projected > 0 && projected < ally.maxHealth * resolve.floorPct) {
@@ -399,6 +559,50 @@ function applyCompanionDamageTaken(ally, rawDmg) {
   return { dmg, lines };
 }
 
+// Legion's Memory (6pc ascended set bonus) and Brothers in Arms (Trinket
+// I) both react to a DIFFERENT ally crossing the 30% Health threshold —
+// checked from combat.js's resolveEnemyAttackOnAlly BEFORE the target's
+// own mitigation (applyCompanionDamageTaken above), since Legion's
+// Memory redirects part of the incoming hit rather than just buffing
+// Hadrian afterward. Both can fire independently on the same hit — the
+// source record never states they're exclusive. No-ops if Hadrian isn't
+// in the party, isn't the one being hit, or the target isn't actually
+// about to cross that threshold.
+function maybeHadrianAllyProtection(state, targetAlly, dmg) {
+  const hadrian = aliveAllies(state).find((a) => a.defId === "hadrian" && a !== targetAlly);
+  if (!hadrian) return { dmg, lines: [] };
+  ensureCompanionFields(hadrian);
+  if ((targetAlly.health - dmg) / targetAlly.maxHealth >= 0.3) return { dmg, lines: [] };
+  const lines = [];
+  let remaining = dmg;
+
+  if (hasAscendedRegalia(hadrian) && !hadrian.passiveOnceFlags.legions_memory) {
+    hadrian.passiveOnceFlags.legions_memory = true;
+    // "+15% damage reduction for 2 turns" for the protected ally has no
+    // generic buff-duration hook for a non-kit-bearing ally (Kessa) —
+    // applied here as a flat 15% discount on this one hit instead (see
+    // file header). Hadrian's own share is a real 2-turn window, since
+    // he already has the fields for it.
+    remaining = Math.round(remaining * 0.85);
+    const redirected = Math.round(remaining * 0.5);
+    remaining -= redirected;
+    hadrian.health = Math.max(0, hadrian.health - redirected);
+    hadrian.dmgReductionPct = Math.max(hadrian.dmgReductionPct || 0, 0.15);
+    hadrian.dmgReductionTurnsLeft = Math.max(hadrian.dmgReductionTurnsLeft || 0, 2);
+    lines.push(`${hadrian.name} steps into it before it fully lands — "Not her. Me." — taking ${redirected} of the blow himself.`);
+  }
+
+  if (hadrian.equipment.trinkets.includes("The Roll of the Ferratum") && !hadrian.passiveOnceFlags.brothers_in_arms) {
+    hadrian.passiveOnceFlags.brothers_in_arms = true;
+    hadrian.reactiveDefBonus = (hadrian.reactiveDefBonus || 0) + 4;
+    hadrian.reactiveAtkBonus = (hadrian.reactiveAtkBonus || 0) + 2;
+    hadrian.reactiveBuffTurnsLeft = Math.max(hadrian.reactiveBuffTurnsLeft || 0, 2);
+    lines.push(`${hadrian.name}'s grip tightens on his maul. "Not while I'm standing."`);
+  }
+
+  return { dmg: remaining, lines };
+}
+
 // combat.js's resolveEnemyAttackOnAlly calls this right after applying
 // damage — Last Bastion's automatic retaliation against whichever enemy
 // just struck him, boosted by Veteran of a Hundred Battles' scaling
@@ -409,11 +613,17 @@ function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
   const idx = state.combat.enemies.findIndex((e) => e.creatureObj === creatureThatAttacked);
   if (idx === -1 || !state.combat.enemies[idx].alive) return [];
   const record = state.combat.enemies[idx];
-  const veteranPct = veteranBonusPct(ally, def.abilityKit);
-  const dmg = Math.max(1, Math.round(ally.atk * (ally.retaliatePct + veteranPct)) - Math.round((record.creatureObj.def || 0) * 0.5));
+  const kit = def.abilityKit;
+  const veteranPct = veteranBonusPct(ally, kit);
+  const atk = ally.atk + hadrianFlatAtkBonus(ally);
+  let dmg = Math.max(1, Math.round(atk * (ally.retaliatePct + veteranPct)) - Math.round((record.creatureObj.def || 0) * 0.5));
+  dmg = applyHadrianOutgoingDamageBonuses(ally, dmg, record.creatureObj);
   record.hp -= dmg;
   record.lastDamageType = "physical";
   const lines = [`${ally.name} answers the blow, retaliating against ${withThe(creatureThatAttacked.name, false)} for ${dmg} damage.`];
-  if (record.hp <= 0 && record.alive) lines.push(...killEnemyAsAlly(state, record));
+  if (record.hp <= 0 && record.alive) {
+    lines.push(...killEnemyAsAlly(state, record));
+    onHadrianKill(state, ally, kit);
+  }
   return lines;
 }
