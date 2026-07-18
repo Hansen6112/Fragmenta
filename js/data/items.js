@@ -1859,6 +1859,17 @@ for (const [name, def] of Object.entries(ITEM_DEFS)) {
   REGIONAL_LOOT_POOL[def.region][def.tier].push(name);
 }
 
+// Derived at load time: every "arena"/"arena_champion"-sourced item — the
+// Legendary and Mythic rewards reserved specifically for the Grand Ovum
+// (engine/arena.js), completely separate from rollCreatureLoot's tier-1-4
+// COMBAT_LOOT_POOL above (Legendary+ never drops from an ordinary kill).
+const ARENA_LOOT_POOL = [];
+const ARENA_CHAMPION_LOOT_POOL = [];
+for (const [name, def] of Object.entries(ITEM_DEFS)) {
+  if (def.source === "arena") ARENA_LOOT_POOL.push(name);
+  if (def.source === "arena_champion") ARENA_CHAMPION_LOOT_POOL.push(name);
+}
+
 // Derived at load time: every "job"-sourced item that also carries a
 // `region` tag, grouped by [region][tier] — consulted by data/jobs.js's
 // rewardForDifficulty so a job posted on a given nation's board can hand

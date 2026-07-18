@@ -87,6 +87,10 @@ class GameState {
       rank: "copper",
       streak: 0, // consecutive wins — resets to 0 on any loss
       championDefeated: false,
+      championHintGiven: false, // gates the "you've earned a shot at the Champion" line to once
+      tournamentRound: 0, // >0 while mid-tournament — 0 means no tournament in progress
+      tournamentTotal: 0,
+      tournamentPurseAccrued: 0, // gold banked so far this tournament, doubled on a full clear
     };
   }
 
@@ -130,7 +134,10 @@ class GameState {
     this.soulLedgerDefBonus = 0;
     this.archiveEternalSeen = [];
     this.archiveEternalKnowledgeBonus = 0;
-    this.arena = { participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false };
+    this.arena = {
+      participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false,
+      championHintGiven: false, tournamentRound: 0, tournamentTotal: 0, tournamentPurseAccrued: 0,
+    };
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
@@ -324,7 +331,10 @@ class GameState {
     // the constructor's own default already covers that (Object.assign
     // above never touched it). A save mid-arena-development missing just
     // one newer sub-field still gets that field's default filled in.
-    s.arena = Object.assign({ participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false }, data.arena || {});
+    s.arena = Object.assign({
+      participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false,
+      championHintGiven: false, tournamentRound: 0, tournamentTotal: 0, tournamentPurseAccrued: 0,
+    }, data.arena || {});
     // Normalizes away anything that can't be a valid current sublocation:
     // saves from before this existed (undefined), a city that's never had
     // sublocations, or a stale id left over from a since-changed city.

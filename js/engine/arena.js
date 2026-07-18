@@ -18,7 +18,7 @@
 // fights"), and whether the fight was materially uneven (outnumbered,
 // or a lone high-tier beast) — all four are the exact multipliers the
 // user described, each additive-on-top rather than replacing the base.
-const ARENA_FIGHT_TYPE_WEIGHT = { duel: 1.0, team: 1.3, beast: 1.5, deathmatch: 1.8, tournament: 1.5 };
+const ARENA_FIGHT_TYPE_WEIGHT = { duel: 1.0, team: 1.3, beast: 1.5, deathmatch: 1.8, tournament: 1.5, champion: 2.0 };
 
 // Accepts a few spellings ("death match", "death-match") for the same
 // fight type — cmdArena below normalizes the raw arg's spaces/hyphens
@@ -58,11 +58,14 @@ function arenaRankInfo(state) {
 
 // Difficulty multiplier for a freshly-generated opponent: rank baseline
 // plus the current win streak (capped) — "the fights should increase in
-// difficulty [with] more back to back wins."
+// difficulty [with] more back to back wins." — plus, while a tournament is
+// running, an extra per-round escalation on top of that (round 3 hits
+// harder than round 1 even at the same rank/streak).
 function arenaDifficultyMultiplier(state) {
   const rankInfo = arenaRankInfo(state);
   const streak = Math.min(state.arena.streak, 10);
-  return 1 + rankInfo.tierIndex * 0.15 + streak * 0.05;
+  const tournamentRoundBonus = state.arena.tournamentRound > 0 ? (state.arena.tournamentRound - 1) * 0.12 : 0;
+  return 1 + rankInfo.tierIndex * 0.15 + streak * 0.05 + tournamentRoundBonus;
 }
 
 // A dynamically-generated combatant, same shape as data/enemymages.js's
@@ -126,9 +129,18 @@ function pickArenaBeast(state) {
   return { id, creature: buildFightCreature(BESTIARY[id], level, BESTIARY[id].dangerClass) };
 }
 
-// Starts any of the four fight types this phase supports. Tournament
-// rounds (Phase 3) call this directly per round rather than duplicating
-// its setup.
+// How many back-to-back rounds a Tournament runs — "multiple fights in a
+// row... but no chance to heal in-between fights." Concretely enforced by
+// concludeArenaFightWon below chaining straight into the next round
+// itself, so the player never gets a turn between bouts to rest or use
+// an item.
+const TOURNAMENT_ROUNDS = 3;
+
+// Starts a Duel/Team/Beast/Death Match/Tournament-round fight. Tournament
+// rounds share this exact setup — only the escalating stat multiplier
+// (arenaDifficultyMultiplier's tournamentRoundBonus) and the chained
+// win-handling in concludeArenaFightWon make a Tournament round different
+// from an ordinary duel.
 function startArenaFight(state, fightType) {
   const rankInfo = arenaRankInfo(state);
   let lines;
@@ -167,6 +179,47 @@ function startArenaFight(state, fightType) {
   return lines;
 }
 
+// The Champion bout — offered only once Crimson is reached (or on a
+// rematch, once already defeated once — see cmdArena's gate). Still
+// non-lethal like every arena fight except Death Match: beating him earns
+// his respect and his recruitment, not his life.
+function startChampionFight(state) {
+  const champion = Object.assign({}, ARENA_CHAMPION, {
+    native: "Ovum-trained",
+    friendly: false,
+    dangerClass: "world_boss",
+    spawnRarity: "unique",
+  });
+  const lines = startCombat(state, champion);
+  state.combat.isArenaFight = true;
+  state.combat.arenaFightType = "champion";
+  state.combat.arenaLethal = false;
+  state.combat.arenaOpponentTierIndex = ARENA_RANKS[ARENA_RANKS.length - 1].tierIndex;
+  state.combat.arenaUneven = false;
+  return [
+    `The gate the Game Master normally reserves for beast fights opens instead on a man in scarred leather, already loosening his shoulders. Corvath Ilesse doesn't posture — he just waits for you to be ready.`,
+    ...lines,
+  ];
+}
+
+// Legendary/Mythic Arena rewards (data/items.js's ARENA_LOOT_POOL/
+// ARENA_CHAMPION_LOOT_POOL) — reserved for the Grand Ovum specifically,
+// entirely separate from rollCreatureLoot's tier-1-4 monster pool, which
+// never rolls Legendary+ (see that file's own header comment on why).
+function maybeArenaLootDrop(state, fightType) {
+  if (fightType === "champion") {
+    if (!ARENA_CHAMPION_LOOT_POOL.length) return [];
+    const item = ARENA_CHAMPION_LOOT_POOL[Math.floor(Math.random() * ARENA_CHAMPION_LOOT_POOL.length)];
+    state.inventory.push(item);
+    return [`He offers something from his own kit, too: ${formatItemLine(item)}.`];
+  }
+  const chance = 0.05 + arenaRankInfo(state).tierIndex * 0.015;
+  if (Math.random() >= chance || !ARENA_LOOT_POOL.length) return [];
+  const item = ARENA_LOOT_POOL[Math.floor(Math.random() * ARENA_LOOT_POOL.length)];
+  state.inventory.push(item);
+  return [`The Game Master tosses in something extra from the vault: ${formatItemLine(item)}.`];
+}
+
 // Called from resolveKill (combat.js), just before state.combat is
 // nulled on the final kill of a fully-won arena match. Not called at all
 // for a loss — see maybeArenaNonLethalLoss below, which handles that
@@ -179,9 +232,53 @@ function concludeArenaFightWon(state) {
   state.arena.streak += 1;
   const gain = arenaReputationGain(state, fightType, combat.arenaOpponentTierIndex, combat.arenaUneven);
   state.arena.reputation = Math.min(100, state.arena.reputation + gain);
+
+  if (fightType === "champion") {
+    const firstDefeat = !state.arena.championDefeated;
+    state.arena.championDefeated = true;
+    state.arena.rank = "champion";
+    const purse = arenaGoldPurse(state, fightType);
+    state.gold += purse;
+    lines.push(`Corvath offers you a hand up rather than pretending the bout wasn't close. "Eleven years," he says, "and I mean that as a compliment, not a complaint."`);
+    lines.push(`The Game Master doesn't bother hiding her smile. "Champion rank. About time someone actually earned it." She presses ${purse} gold into your hand — "not from the house purse. From mine."`);
+    lines.push(...maybeArenaLootDrop(state, fightType));
+    if (firstDefeat) {
+      const recruited = state.recruitAlly("the_champion");
+      if (recruited) {
+        lines.push(`"I've spent eleven years fighting for this ring," Corvath says. "I wouldn't mind seeing what's past it, for once. If you'll have me."`);
+        lines.push(`${recruited.name} joins your party. Set a stance with 'stance corvath aggressive|defensive|support', and gear him up with 'give <item> to corvath'.`);
+      }
+    }
+    return lines;
+  }
+
+  if (fightType === "tournament") {
+    const purse = arenaGoldPurse(state, fightType);
+    state.gold += purse;
+    state.arena.tournamentPurseAccrued += purse;
+    lines.push(`Round ${state.arena.tournamentRound} of ${state.arena.tournamentTotal} won — ${purse} gold banked.`);
+    lines.push(...maybeArenaLootDrop(state, fightType));
+    if (state.arena.tournamentRound < state.arena.tournamentTotal) {
+      state.arena.tournamentRound += 1;
+      lines.push(...maybeArenaRankUp(state));
+      lines.push(`No time to catch your breath — round ${state.arena.tournamentRound} of ${state.arena.tournamentTotal} starts now.`);
+      lines.push(...startArenaFight(state, "tournament"));
+      return lines;
+    }
+    const bonus = state.arena.tournamentPurseAccrued;
+    state.gold += bonus;
+    lines.push(`You've swept all ${state.arena.tournamentTotal} rounds! The Game Master doubles the purse: another ${bonus} gold.`);
+    state.arena.tournamentRound = 0;
+    state.arena.tournamentTotal = 0;
+    state.arena.tournamentPurseAccrued = 0;
+    lines.push(...maybeArenaRankUp(state));
+    return lines;
+  }
+
   const purse = arenaGoldPurse(state, fightType);
   state.gold += purse;
   lines.push(`The crowd roars. The Game Master tosses you ${purse} gold from the prize purse.`);
+  lines.push(...maybeArenaLootDrop(state, fightType));
   lines.push(...maybeArenaRankUp(state));
   return lines;
 }
@@ -194,7 +291,8 @@ function maybeArenaRankUp(state) {
   if (next && next.id !== "champion" && state.arena.reputation >= next.repThreshold) {
     state.arena.rank = next.id;
     lines.push(`Word travels fast in the Ovum — you've been moved up to ${next.name} rank.`);
-  } else if (next && next.id === "champion" && current.id === "crimson" && state.arena.reputation >= current.repThreshold) {
+  } else if (next && next.id === "champion" && current.id === "crimson" && state.arena.reputation >= current.repThreshold && !state.arena.championHintGiven) {
+    state.arena.championHintGiven = true;
     lines.push(`The Game Master watches you a moment longer than usual. You've earned a shot at the Champion — talk to her about it.`);
   }
   return lines;
@@ -211,9 +309,16 @@ function maybeArenaNonLethalLoss(state) {
   const combat = state.combat;
   if (!combat || !combat.isArenaFight || combat.arenaLethal) return null;
   state.arena.streak = 0;
+  const wasTournament = combat.arenaFightType === "tournament" && state.arena.tournamentRound > 0;
+  if (wasTournament) {
+    state.arena.tournamentRound = 0;
+    state.arena.tournamentTotal = 0;
+    state.arena.tournamentPurseAccrued = 0;
+  }
   const { healed } = applyHeal(state, state.maxHealth);
   state.combat = null;
-  return `The Game Master calls it before it goes any further. You're carried out, patched up, and back on your feet${healed > 0 ? ` (fully healed)` : ""} — no rank lost, but the streak's broken. "Everyone loses one eventually," she says. "Come back when you're ready."`;
+  const tournamentNote = wasTournament ? " The tournament ends here — whatever you'd already banked stays banked." : "";
+  return `The Game Master calls it before it goes any further. You're carried out, patched up, and back on your feet${healed > 0 ? ` (fully healed)` : ""} — no rank lost, but the streak's broken.${tournamentNote} "Everyone loses one eventually," she says. "Come back when you're ready."`;
 }
 
 function cmdArena(arg, state) {
@@ -225,17 +330,34 @@ function cmdArena(arg, state) {
   if (!a) {
     const rankInfo = arenaRankInfo(state);
     const streakLine = state.arena.streak > 0 ? ` Riding a ${state.arena.streak}-win streak.` : "";
+    const championLine = rankInfo.id === "crimson" || state.arena.championDefeated ? ` 'fight champion' is on the table.` : "";
     return [
-      `Ovum rank: ${rankInfo.name}.${streakLine}`,
-      `Fight types available: 'fight duel', 'fight team', 'fight beast', 'fight deathmatch'.`,
+      `Ovum rank: ${rankInfo.name}.${streakLine}${championLine}`,
+      `Fight types available: 'fight duel', 'fight team', 'fight beast', 'fight deathmatch', 'fight tournament'.`,
     ];
   }
-  const fightType = ARENA_FIGHT_TYPE_ALIASES[a];
-  if (!fightType) return [`No fight type called "${a}". Try 'fight duel', 'fight team', 'fight beast', or 'fight deathmatch'.`];
+  const isKnownType = a === "champion" || a === "tournament" || a === "tournaments" || !!ARENA_FIGHT_TYPE_ALIASES[a];
+  if (!isKnownType) {
+    return [`No fight type called "${a}". Try 'fight duel', 'fight team', 'fight beast', 'fight deathmatch', or 'fight tournament'.`];
+  }
   if (state.location !== "zuevaron" || state.subLocation !== "grandOvum") {
     return ["You need to be in the Grand Ovum itself to answer a bout."];
   }
-  return startArenaFight(state, fightType);
+  if (a === "champion") {
+    const rankInfo = arenaRankInfo(state);
+    if (rankInfo.id !== "crimson" && !state.arena.championDefeated) return [GAME_MASTER.championLocked];
+    return startChampionFight(state);
+  }
+  if (a === "tournament" || a === "tournaments") {
+    state.arena.tournamentRound = 1;
+    state.arena.tournamentTotal = TOURNAMENT_ROUNDS;
+    state.arena.tournamentPurseAccrued = 0;
+    return [
+      `The Game Master grins. "Tournament rules: ${TOURNAMENT_ROUNDS} bouts, back to back, no patching up between them. Win them all and the purse doubles. Lose one and you keep whatever you've already banked." Round 1 begins.`,
+      ...startArenaFight(state, "tournament"),
+    ];
+  }
+  return startArenaFight(state, ARENA_FIGHT_TYPE_ALIASES[a]);
 }
 
 // engine/parser.js's cmdTalk gate, following maybeTalkToKessa's exact
@@ -250,6 +372,10 @@ function maybeTalkToGameMaster(arg, state) {
     state.arena.participant = true;
     lines.push(GAME_MASTER.greetingFirstTime);
     lines.push(`You're signed on. Say 'fight duel' whenever you want to step into the ring.`);
+  } else if (state.arena.championDefeated) {
+    lines.push(GAME_MASTER.championAlreadyBeaten);
+  } else if (arenaRankInfo(state).id === "crimson") {
+    lines.push(GAME_MASTER.championUnlocked);
   } else {
     lines.push(GAME_MASTER.greetingReturning);
   }

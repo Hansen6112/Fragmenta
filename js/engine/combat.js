@@ -3691,9 +3691,14 @@ function resolveKill(state, creature) {
     // The Grand Ovum (engine/arena.js): read while state.combat still
     // exists, same reasoning as Blessing of Valor/Keeper of History above
     // — a won arena match's reputation/streak/prize payout on top of the
-    // ordinary gold/XP/loot this kill already produced.
+    // ordinary gold/XP/loot this kill already produced. A won Tournament
+    // round chains straight into the next round's startArenaFight from
+    // inside concludeArenaFightWon, replacing state.combat with a fresh
+    // fight rather than leaving it null — only null out the ORIGINAL
+    // combat object, so that replacement survives.
+    const combatBeforeConclusion = state.combat;
     if (state.combat.isArenaFight) out.push(...concludeArenaFightWon(state));
-    state.combat = null;
+    if (state.combat === combatBeforeConclusion) state.combat = null;
     // The fight is genuinely over (last enemy down) — charge its time
     // cost once here, not per-kill within a pack.
     out.push(...advanceTime(state, randInt(10, 30), "combat"));
