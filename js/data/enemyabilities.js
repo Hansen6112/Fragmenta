@@ -36,6 +36,14 @@ const STATUS_EFFECTS = {
   restrained: { name: "Restrained", debuff: { agi: -20 }, stackable: false, turns: 2 },
   pinned: { name: "Pinned", debuff: { spd: -20, agi: -15, acc: -10 }, stackable: false, turns: 2 },
   buried: { name: "Buried", debuff: { acc: -20 }, stackable: false, turns: 1 },
+  // Drowsy's own "becomes Asleep at the end of the 2nd turn" transform,
+  // and Asleep's skip-your-turn/+crit-chance clauses, have no engine hook
+  // (nothing currently reads a status's escalatesAt/escalatesTo outside of
+  // Constrict's own declared-but-unwired fields above) — declared for
+  // fidelity, not dispatched.
+  drowsy: { name: "Drowsy", debuff: { spd: -10, acc: -5 }, stackable: false, turns: 2, escalatesAt: 2, escalatesTo: "asleep" },
+  asleep: { name: "Asleep", debuff: {}, stackable: false, turns: 1 },
+  disoriented: { name: "Disoriented", debuff: { acc: -10, spd: -5 }, stackable: false, turns: 2 },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -276,6 +284,50 @@ const ENEMY_ABILITIES = {
   sovereign_territory: { name: "Sovereign Territory", type: "passive", trigger: "onPlayerElementalStatusInflicted", healPctMaxHp: 0.03 },
   inherited_breath: { name: "Inherited Breath", type: "active", cooldown: 4, dmgMult: 1.8, inflict: { status: "burning", chance: 1 } },
   dragons_challenge: { name: "Dragon's Challenge", type: "active", cooldown: 6, dmgMult: 2.4, bonusVsStatus: { status: "burning", mult: 1.5 } },
+
+  // ---- Valdrek-Keth / Voreth-Mauth / Voreth-Sael / Lorvaun-Nauri
+  // (Magical Creatures B) ----
+  adaptive_carapace: { name: "Adaptive Carapace", type: "passive", trigger: "everyPctHealthLostStacking", pct: 0.25, selfBuff: { spd: 5, acc: 5 } },
+  skitter_assault: { name: "Skitter Assault", type: "active", cooldown: 2, dmgMult: 1.1, selfBuff: { spd: 10, turns: 1 } },
+  crystal_bite: { name: "Crystal Bite", type: "active", cooldown: 3, dmgMult: 1.45, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
+  // Defense-ignore clauses (Piercing Tail/Crystal Ram/Crystal Impalement/
+  // Somersault Charge below) have no engine hook — dropped, dmgMult-only.
+  piercing_tail: { name: "Piercing Tail", type: "active", cooldown: 3, dmgMult: 1.6 },
+  crystal_ram: { name: "Crystal Ram", type: "active", cooldown: 4, dmgMult: 1.8 },
+  crystal_impalement: { name: "Crystal Impalement", type: "active", cooldown: 5, dmgMult: 2.2 },
+  // Not yet wired — a periodic (every-3rd-turn) temporary shield has no
+  // matching trigger shape (periodicRandomBuff is permanent-stat-only).
+  diamond_shell: { name: "Diamond Shell", type: "passive", trigger: "periodicTemporaryShield", everyNTurns: 3, durationTurns: 2, dmgReductionPct: 0.35 },
+  // Brood Call (mid-fight summoning) and Brood Sovereign (reacts only to
+  // a summoned Larva dying) are both skipped outright rather than
+  // declared inert — Brood Sovereign would have literally nothing to react
+  // to without Brood Call, unlike every other "not yet wired" entry above,
+  // which at least describes a real single-creature mechanic.
+  powdered_wings: { name: "Powdered Wings", type: "passive", trigger: "onHitTaken", inflictStatusOnAttacker: "drowsy" },
+  dust_cloud: { name: "Dust Cloud", type: "active", cooldown: 3, dmgMult: 0.8, inflict: { status: "drowsy", chance: 1 } },
+  // Thick Dust's whole effect ("Dust Cloud hits everyone instead") is
+  // represented by giving Elder Voreth-Mauth this AoE variant directly,
+  // rather than a separate passive that does nothing on its own.
+  dust_cloud_aoe: { name: "Dust Cloud", type: "active", cooldown: 3, dmgMult: 0.8, aoe: true, inflict: { status: "drowsy", chance: 1 } },
+  startled_flight: { name: "Startled Flight", type: "active", cooldown: 4, dmgMult: 1.0, selfBuff: { agi: 20, spd: 10, turns: 1 } },
+  dream_mist: { name: "Dream Mist", type: "active", cooldown: 5, dmgMult: 1.0, aoe: true, inflict: { status: "drowsy", chance: 1 } },
+  // Not yet wired — an independent post-Accuracy-check miss chance has no
+  // hook in the player's own attackConnects roll.
+  mirror_scales: { name: "Mirror Scales", type: "passive", trigger: "independentMissChance", chance: 0.2 },
+  // Reacts only to Mirror Scales actually triggering, so it's equally
+  // unwired for the same reason.
+  distorted_reality: { name: "Distorted Reality", type: "passive", trigger: "onMirrorScalesProc", selfBuff: { spd: 10, acc: 10, turns: 1 } },
+  reflection_strike: { name: "Reflection Strike", type: "active", cooldown: 2, dmgMult: 1.45, inflict: { status: "disoriented", chance: 1 } },
+  ripple_veil: { name: "Ripple Veil", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 10, turns: 1 } },
+  mirrored_assault: { name: "Mirrored Assault", type: "active", cooldown: 5, dmgMult: 1.8, bonusVsStatus: { status: "disoriented", mult: 1.25 } },
+  // Not yet wired — no hook fires when a creature uses a specific active,
+  // only firstAttack-style one-shot bonuses (see Ambush/Patient Hunter
+  // above).
+  crystal_momentum: { name: "Crystal Momentum", type: "passive", trigger: "onActiveUse", selfBuff: { atkPct: 0.1, spd: 5, turns: 2 } },
+  crystal_gore: { name: "Crystal Gore", type: "active", cooldown: 3, dmgMult: 1.55 },
+  crystal_hide: { name: "Crystal Hide", type: "passive", trigger: "flatDamageReduction", pct: 0.15 },
+  crystal_hide_reflect: { name: "Crystal Hide", type: "passive", trigger: "onHitTaken", reflectPctOfAtk: 0.1 },
+  somersault_charge: { name: "Somersault Charge", type: "active", cooldown: 5, dmgMult: 2.2 },
 };
 
 function getEnemyAbility(id) {

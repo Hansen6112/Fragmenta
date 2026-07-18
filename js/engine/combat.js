@@ -1326,9 +1326,17 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
   if (dmgDealt <= 0) return;
   for (const id of creature.passives) {
     const ability = getEnemyAbility(id);
-    if (ability && ability.trigger === "onHitTaken" && ability.reflectPctOfAtk) {
+    if (!ability || ability.trigger !== "onHitTaken") continue;
+    if (ability.reflectPctOfAtk) {
       const reflect = Math.max(0, Math.round((creature.atk || 0) * ability.reflectPctOfAtk));
       if (reflect > 0) state.health = Math.max(0, state.health - reflect);
+    }
+    // Powdered Wings-style: the creature inflicts a status back on
+    // whoever just struck it (silent, like the reflect above — this
+    // function only returns a number, no message line to attach to).
+    if (ability.inflictStatusOnAttacker && state.combat) {
+      const spec = getStatusEffect(ability.inflictStatusOnAttacker);
+      if (spec) applyPlayerStatus(state, ability.inflictStatusOnAttacker, spec);
     }
   }
 }

@@ -1482,6 +1482,124 @@ const BESTIARY = {
     passives: ["ancient_draconic_insight", "sovereign_territory"],
     actives: ["inherited_breath", "wing_buffet", "tail_slam", "dragons_challenge"],
   },
+  // ---- Magical Creatures B (Master Enemy Codex): Valdrek-Keth, Voreth-
+  // Mauth, Voreth-Sael, Lorvaun-Nauri. Valdrek-Keth Diamond Tail skipped
+  // (already "Diamond Tail"), base Voreth-Mauth skipped (already
+  // "Veilwing"), base Voreth-Sael skipped (already "Mirrorfish"), base
+  // Lorvaun-Nauri skipped (already "Ridgeback Boar" — whose own flavor
+  // text already foreshadows "Elders learn the Somersault Charge").
+  // Mauth-Sulei (Spirit Companion/Bound Familiar/Eternal Companion) is
+  // skipped for this pass and flagged as a follow-up: every entry in that
+  // family only ever spawns bonded to a specific enemy mage encounter
+  // ("Level Range: Matches bonded mage", "Rewards: None"), which is a
+  // companion-pairing system layered on top of the existing enemy-mage
+  // NPCs (task #15) rather than a standalone wild creature — the same
+  // category of non-creature meta-system already deferred for Mauth-Nauri
+  // Summon Template earlier in this project. ----
+  // ---- Valdrek-Keth ----
+  valdrekKethLarva: {
+    name: "Valdrek-Keth Larva",
+    native: "Valdrek-Keth Larva",
+    tags: ["volcanic"],
+    nations: ["thraekor"],
+    hp: 65, atk: 18, def: 8, spd: 18, acc: 6, agi: 20,
+    description: "A fist-sized crystalline scorpion-kin, swarming in the ash fields in numbers that make up for its fragile shell.",
+    combatNotes: "From the Fragmenta Master Enemy Codex.",
+    archetype: "assassin",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    faction: "wild",
+    group: "valdrek_keth",
+    spawnGroup: "pack",
+    passives: ["adaptive_carapace"],
+    actives: ["skitter_assault", "crystal_bite"],
+  },
+  valdrekKethHunter: {
+    name: "Valdrek-Keth Hunter",
+    native: "Valdrek-Keth Hunter",
+    tags: ["volcanic"],
+    nations: ["thraekor"],
+    hp: 97, atk: 20, def: 12, spd: 13, acc: 7, agi: 14,
+    description: "Grown past its larval fragility, its crystal-plated tail now a weapon in its own right.",
+    combatNotes: "From the Fragmenta Master Enemy Codex.",
+    archetype: "bruiser",
+    dangerClass: "elite",
+    spawnRarity: "uncommon",
+    faction: "wild",
+    group: "valdrek_keth",
+    spawnGroup: "pack",
+    passives: ["adaptive_carapace"],
+    actives: ["piercing_tail", "crystal_ram"],
+  },
+  valdrekKethBroodQueen: {
+    name: "Valdrek-Keth Brood Queen",
+    native: "Valdrek-Keth Brood Queen",
+    tags: ["volcanic", "cave"],
+    nations: ["thraekor"],
+    hp: 130, atk: 12, def: 12, spd: 6, acc: 9, agi: 6,
+    description: "Ruler of a crystal brood cavern, encased in a shell said to be harder than worked diamond.",
+    combatNotes: "From the Fragmenta Master Enemy Codex.",
+    archetype: "leader",
+    dangerClass: "world_boss",
+    spawnRarity: "unique",
+    faction: "wild",
+    group: "valdrek_keth",
+    spawnGroup: "solitary",
+    passives: ["adaptive_carapace", "diamond_shell"],
+    actives: ["crystal_impalement", "crystal_ram"],
+  },
+  // ---- Voreth-Mauth ----
+  elderVorethMauth: {
+    name: "Elder Voreth-Mauth",
+    native: "Elder Voreth-Mauth",
+    tags: ["tundra", "forest"],
+    nations: ["norrvael"],
+    hp: 47, atk: 7, def: 7, spd: 19, acc: 8, agi: 22,
+    description: "An old, larger moth of the frozen groves, its wing-dust thick enough to drop prey without a single touch.",
+    combatNotes: "From the Fragmenta Master Enemy Codex.",
+    archetype: "controller",
+    dangerClass: "elite",
+    spawnRarity: "uncommon",
+    faction: "wild",
+    group: "voreth_mauth",
+    spawnGroup: "pack",
+    passives: ["powdered_wings"],
+    actives: ["dust_cloud_aoe", "dream_mist", "startled_flight"],
+  },
+  // ---- Voreth-Sael ----
+  elderVorethSael: {
+    name: "Elder Voreth-Sael",
+    native: "Elder Voreth-Sael",
+    tags: ["lake", "cave"],
+    hp: 63, atk: 13, def: 8, spd: 18, acc: 7, agi: 22,
+    description: "An ancient mirror-scaled fish said to live in sacred springs, its reflection dangerous long before its bite is.",
+    combatNotes: "From the Fragmenta Master Enemy Codex.",
+    archetype: "controller",
+    dangerClass: "elite",
+    spawnRarity: "uncommon",
+    faction: "wild",
+    group: "voreth_sael",
+    spawnGroup: "pack",
+    passives: ["mirror_scales", "distorted_reality"],
+    actives: ["reflection_strike", "ripple_veil", "mirrored_assault"],
+  },
+  // ---- Lorvaun-Nauri ----
+  elderLorvaunNauri: {
+    name: "Elder Lorvaun-Nauri",
+    native: "Elder Lorvaun-Nauri",
+    tags: ["forest", "hills"],
+    hp: 92, atk: 17, def: 13, spd: 9, acc: 6, agi: 9,
+    description: "A scarred boar elder whose crystalline ridge has hardened into a weapon it now knows how to truly use.",
+    combatNotes: "Learned the Somersault Charge — do not stand in a straight line with one.",
+    archetype: "bruiser",
+    dangerClass: "elite",
+    spawnRarity: "rare",
+    faction: "wild",
+    group: "lorvaun_nauri",
+    spawnGroup: "pack",
+    passives: ["crystal_momentum", "crystal_hide", "crystal_hide_reflect"],
+    actives: ["crystal_gore", "somersault_charge"],
+  },
 };
 
 function creaturesForTags(tagList, nation) {
