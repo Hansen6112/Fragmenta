@@ -69,6 +69,10 @@ const PER_ENEMY_FIELDS = [
   "corroded", "disarmed", "enemyAtkPenalty", "enemyDefPenalty", "enemyStunned",
   "hamstringApplied", "burn", "bleed", "reinforcedAttackCount", "lastDamageType",
   "skipNormalRetaliationThisRound",
+  // Enemy Ability Engine (data/enemyabilities.js) — per-enemy so a pack of
+  // several creatures each track their own cooldowns/stacks independently.
+  "abilityCooldowns", "selfBuffs", "passiveOnceFlags", "firstActiveUsed",
+  "healthLostStacks", "hitsTakenFromPlayer", "lastAttackTargetKind", "consecutiveTargetStacks",
 ];
 
 function wireActiveEnemyProxy(combat) {
@@ -148,7 +152,202 @@ function attackConnects(attackerAccuracy, defenderAgility) {
 function effectivePlayerDef(state) {
   const combat = state.combat;
   const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
-  return state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0);
+  // Ordered Mind (Regalia): +2 Defense (cap +12) every time a negative
+  // status is resisted/ignored — see applyPlayerStatus. Calm Waters
+  // (Regalia): a temporary Defense bonus whenever Cleansing Current clears
+  // a status — see applyStatusCleanseOnHeal.
+  const calmWatersDef = combat.calmWatersTurns > 0 ? combat.calmWatersDefBonus || 0 : 0;
+  const base = state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0) + (combat.orderedMindDefStacks || 0) + calmWatersDef;
+  // Enemy Ability Engine (data/enemyabilities.js): a Defense-reducing
+  // status an enemy's active ability just inflicted (Shield Crush, ...),
+  // summed across whatever's currently active in combat.playerStatuses.
+  // Already negative (a debuff's own `def` value IS the signed delta —
+  // -10 means "10 less Defense"), so it's added, not subtracted.
+  const penalty = playerStatusStatTotal(state, "def");
+  if (penalty >= 0) return base;
+  // Bedrock (Regalia): Defense reductions can never push effective Defense
+  // below 75% of its own unreduced base — floors the penalty rather than
+  // negating it outright, unlike Unbreakable/Corrosionproof below (which
+  // shrink or fully ignore the FIRST reduction at the moment it's applied).
+  const reduced = base + penalty;
+  return hasEffect(state, "bedrock") ? Math.max(reduced, Math.round(base * 0.75)) : reduced;
+}
+
+// ---- Enemy Ability Engine: player-facing status effects ----
+// state.combat.playerStatuses is keyed by a status id (STATUS_EFFECTS'
+// own keys for named statuses; "custom:<abilityId>:<stat>" for one-off
+// magnitudes an ability defines inline via `inflict.custom` — namespaced
+// per stat so, e.g., a Defense-reducing custom debuff and an
+// Accuracy-reducing one from different abilities never collide or
+// overwrite each other). Each entry: { name, debuff: {...}, dot: {...},
+// turnsLeft, stacks }. Reapplying a non-stacking entry refreshes its
+// duration in place, matching the codex's own repeated "does not stack;
+// reapplication refreshes the duration" wording; Bleed/Constrict stack
+// instead, up to their own cap.
+function playerStatusStatTotal(state, statKey) {
+  const statuses = (state.combat && state.combat.playerStatuses) || {};
+  let total = 0;
+  for (const entry of Object.values(statuses)) {
+    if (!entry.debuff) continue;
+    const stacks = entry.stacks || 1;
+    if (typeof entry.debuff[statKey] === "number") total += entry.debuff[statKey] * stacks;
+  }
+  return total;
+}
+function playerStatusStatPctTotal(state, statKey) {
+  const statuses = (state.combat && state.combat.playerStatuses) || {};
+  let total = 0;
+  for (const entry of Object.values(statuses)) {
+    if (!entry.debuff) continue;
+    if (typeof entry.debuff[statKey] === "number") total += entry.debuff[statKey];
+  }
+  return total;
+}
+function effectivePlayerAgility(state) {
+  const pct = playerStatusStatPctTotal(state, "agiPct");
+  const base = state.agility + playerStatusStatTotal(state, "agi");
+  return Math.max(0, Math.round(base * (1 + pct)));
+}
+function effectivePlayerAccuracy(state) {
+  return Math.max(0, state.accuracy + playerStatusStatTotal(state, "acc"));
+}
+function effectivePlayerSpeedForInitiative(state) {
+  const pct = playerStatusStatPctTotal(state, "spdPct");
+  const base = state.speed + playerStatusStatTotal(state, "spd");
+  return Math.max(0, Math.round(base * (1 + pct)));
+}
+
+// Applies (or refreshes/stacks) a status onto the player, after checking
+// every defensive effect that can intercept it — Immutable (Artifact, full
+// negation, always), Fortune's Favor (Regalia, 35% chance to fail), Nature's
+// Persistence (Regalia, the first crowd-control-shaped status each combat —
+// anything with a `debuff`, as opposed to a pure damage-over-time like
+// Bleed/Venom/Burning — is ignored), and Unbreakable/Corrosionproof
+// specifically softening a Defense reduction. `spec` is either a
+// STATUS_EFFECTS entry (named) or a raw { debuff, dot, turns } shape for an
+// ability's own `inflict.custom`. Returns any line worth printing, or [].
+function applyPlayerStatus(state, key, spec, sourceName) {
+  const combat = state.combat;
+  if (!combat) return [];
+  const label = spec.name || key;
+  if (hasEffect(state, "immutable")) {
+    return [`Immutable turns ${label} aside completely.`];
+  }
+  if (hasEffect(state, "fortunes_favor") && Math.random() < 0.35) {
+    combat.orderedMindDefStacks = Math.min(12, (combat.orderedMindDefStacks || 0) + 2);
+    return [`Fortune's Favor lets ${label} simply fail to take hold.`];
+  }
+  const isCrowdControl = !!spec.debuff && !spec.dot;
+  if (isCrowdControl && hasEffect(state, "natures_persistence") && !combat.naturesPersistenceUsed) {
+    combat.naturesPersistenceUsed = true;
+    if (hasEffect(state, "ordered_mind")) combat.orderedMindDefStacks = Math.min(12, (combat.orderedMindDefStacks || 0) + 2);
+    return [`Nature's Persistence shrugs off ${label} entirely.`];
+  }
+  let turns = spec.turns != null ? spec.turns : 2;
+  // Blessing of Acceptance (Regalia of the Final Veil 2pc): every negative
+  // status lands with 1 fewer round of duration (never below 1).
+  if (hasEffect(state, "blessing_of_acceptance")) turns = Math.max(1, turns - 1);
+  let debuff = spec.debuff;
+  if (debuff && debuff.def && (hasEffect(state, "unbreakable") || hasEffect(state, "corrosionproof"))) {
+    // Unbreakable (Legendary): the FIRST Defense reduction each fight is
+    // ignored outright. Corrosionproof (defensive utility): every
+    // Defense-reducing status lands 2 points softer, floored at 0.
+    if (hasEffect(state, "unbreakable") && !combat.unbreakableUsed) {
+      combat.unbreakableUsed = true;
+      return [`Unbreakable ignores the Defense loss from ${label} entirely.`];
+    }
+    if (hasEffect(state, "corrosionproof")) {
+      debuff = { ...debuff, def: Math.min(0, debuff.def + 2) };
+    }
+  }
+  const existing = combat.playerStatuses[key];
+  if (spec.stackable) {
+    const stacks = Math.min(spec.maxStacks || 1, (existing ? existing.stacks : 0) + 1);
+    combat.playerStatuses[key] = { name: label, debuff, dot: spec.dot, turnsLeft: turns, stacks };
+  } else {
+    combat.playerStatuses[key] = { name: label, debuff, dot: spec.dot, turnsLeft: turns, stacks: 1 };
+  }
+  return [`${sourceName ? withThe(sourceName, true) + " inflicts" : "You suffer"} ${label}.`];
+}
+
+// Rolls and applies whatever `inflict` an active ability specifies —
+// either a named STATUS_EFFECTS entry (`{ status, chance }`) or a bespoke
+// one-off magnitude (`{ custom: { ...debuff, turns }, chance }`) that
+// doesn't match any named status. Called from resolveEnemyRetaliation
+// after a hit lands.
+function applyAbilityInflict(state, inflict, sourceName) {
+  if (!inflict || Math.random() >= (inflict.chance != null ? inflict.chance : 1)) return [];
+  if (inflict.status) {
+    const def = getStatusEffect(inflict.status);
+    if (!def) return [];
+    return applyPlayerStatus(state, inflict.status, def, sourceName);
+  }
+  if (inflict.custom) {
+    const { turns, ...debuff } = inflict.custom;
+    return applyPlayerStatus(state, "custom:" + sourceName + ":" + Object.keys(debuff).join(","), { debuff, turns, name: sourceName }, sourceName);
+  }
+  return [];
+}
+
+// Ticks every active player status by one turn: damage-over-time first
+// (Heatproof halves Burning specifically, per its own wording), then
+// duration. Called from beginTurn, the same place enemy-side burn/bleed
+// already tick.
+function tickPlayerStatuses(state) {
+  const combat = state.combat;
+  const lines = [];
+  for (const [key, entry] of Object.entries(combat.playerStatuses)) {
+    if (entry.dot) {
+      const stacks = entry.stacks || 1;
+      let dmg = Math.max(0, Math.round(state.maxHealth * entry.dot.pctMaxHp * stacks));
+      if (key === "burning" && hasEffect(state, "heatproof")) dmg = Math.floor(dmg / 2);
+      if (dmg > 0) {
+        applyPlayerDamage(state, dmg);
+        lines.push(`${entry.name} saps ${dmg} health.`);
+        if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+      }
+    }
+    entry.turnsLeft -= 1;
+    if (entry.turnsLeft <= 0) delete combat.playerStatuses[key];
+  }
+  return lines;
+}
+
+// Cleansing Current / Calm Waters (Regalia): whenever the player is
+// healed, Cleansing Current clears one random active status, and if it
+// actually cleared something, Calm Waters grants a temporary Defense/Magic
+// bonus on top. Called from applyHeal.
+function applyStatusCleanseOnHeal(state) {
+  if (!hasEffect(state, "cleansing_current")) return [];
+  const combat = state.combat;
+  if (!combat || !combat.playerStatuses) return [];
+  const keys = Object.keys(combat.playerStatuses);
+  if (!keys.length) return [];
+  const key = keys[Math.floor(Math.random() * keys.length)];
+  const cleared = combat.playerStatuses[key];
+  delete combat.playerStatuses[key];
+  const lines = [`Cleansing Current washes away ${cleared.name}.`];
+  if (hasEffect(state, "calm_waters")) {
+    combat.calmWatersDefBonus = Math.min(12, (combat.calmWatersDefBonus || 0) + 4);
+    combat.calmWatersMagicBonus = Math.min(12, (combat.calmWatersMagicBonus || 0) + 4);
+    combat.calmWatersTurns = 2;
+    lines.push(`Calm Waters settles over you — +4 Defense, +4 Magic for 2 rounds.`);
+  }
+  return lines;
+}
+
+// Mercy of the Veil (Regalia of the Final Veil 4pc): the first time each
+// combat the player's Health drops below 40%, every active status is
+// removed outright. Checked anywhere player Health just changed downward,
+// the same reactive-safety-net pattern Hold the Line/Rooted Resolve use.
+function checkMercyOfTheVeil(state) {
+  const combat = state.combat;
+  if (!combat || !hasEffect(state, "mercy_of_the_veil") || combat.mercyOfTheVeilUsed) return [];
+  if (state.health > state.maxHealth * 0.4) return [];
+  combat.mercyOfTheVeilUsed = true;
+  const hadAny = Object.keys(combat.playerStatuses || {}).length > 0;
+  combat.playerStatuses = {};
+  return hadAny ? [`Mercy of the Veil strips away every affliction clinging to you.`] : [];
 }
 
 // Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
@@ -270,7 +469,10 @@ function effectiveMagic(state) {
   const avatarOfChaosMagic = (combat && combat.avatarOfChaosMagicBonus) || 0;
   const workRefinesMagic = (combat && combat.workRefinesMagicStacks) || 0;
   const avatarOfCreationMagic = (combat && combat.avatarOfCreationMagicStacks) || 0;
-  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic;
+  // Calm Waters (Regalia): a temporary Magic bonus granted whenever
+  // Cleansing Current clears a status — see applyStatusCleanseOnHeal.
+  const calmWatersMagic = combat && combat.calmWatersTurns > 0 ? combat.calmWatersMagicBonus || 0 : 0;
+  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic;
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -365,6 +567,10 @@ function applyHeal(state, amount) {
     combat.defBuffTurns = Math.max(combat.defBuffTurns, 2);
     combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 5));
   }
+  // Cleansing Current / Calm Waters (Regalia): now genuinely live —
+  // combat.playerStatuses (Enemy Ability Engine) means there's finally
+  // something for a heal to cleanse. See applyStatusCleanseOnHeal.
+  if (healed > 0 && combat) lines.push(...applyStatusCleanseOnHeal(state));
   return { healed, lines };
 }
 
@@ -1094,7 +1300,37 @@ function rollPlayerDamage(state, creature, activeElement) {
   if (state.combat && state.combat.avatarOfPassingTurns > 0) {
     applyHeal(state, Math.round(dmg * 0.3));
   }
+  // Enemy Ability Engine (data/enemyabilities.js): flat damage reduction
+  // (Thick Hide-style) and on-hit reflect (Barbed Hide/Quills-style)
+  // passives, read off the target creature's own `passives` array. Silent
+  // like Soul Leech/Avatar of War/Passing above — this function only
+  // returns a number, no message line to attach to.
+  if (state.combat && creature.passives && creature.passives.length) {
+    dmg = applyEnemyFlatDamageReduction(dmg, creature);
+    applyEnemyOnHitTakenPassives(state, creature, dmg);
+  }
+  if (state.combat) state.combat.hitsTakenFromPlayer = (state.combat.hitsTakenFromPlayer || 0) + 1;
   return dmg;
+}
+
+function applyEnemyFlatDamageReduction(dmg, creature) {
+  let mult = 1;
+  for (const id of creature.passives) {
+    const ability = getEnemyAbility(id);
+    if (ability && ability.trigger === "flatDamageReduction") mult *= (1 - ability.pct);
+  }
+  return mult === 1 ? dmg : Math.max(0, Math.round(dmg * mult));
+}
+
+function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
+  if (dmgDealt <= 0) return;
+  for (const id of creature.passives) {
+    const ability = getEnemyAbility(id);
+    if (ability && ability.trigger === "onHitTaken" && ability.reflectPctOfAtk) {
+      const reflect = Math.max(0, Math.round((creature.atk || 0) * ability.reflectPctOfAtk));
+      if (reflect > 0) state.health = Math.max(0, state.health - reflect);
+    }
+  }
 }
 
 // Picks which element flavors this particular hit — alternates between
@@ -1173,7 +1409,7 @@ function enemyActsFirst(state, creature) {
   // Haste, Speed, or Turn-order manipulation has no effect on you" — a
   // flat, unconditional immunity to ever losing the initiative order.
   if (hasEffect(state, "unhurried_step")) return false;
-  return (creature.spd || 0) > state.speed;
+  return (creature.spd || 0) > effectivePlayerSpeedForInitiative(state);
 }
 
 // Resolves this round's turn order and, if the enemy is faster, lets it
@@ -1220,12 +1456,37 @@ function resolveSpeedInitiative(state, creature) {
     if (!e.creatureObj.flurry) e.skipNormalRetaliationThisRound = true;
     const prevActive = combat.activeIndex;
     combat.activeIndex = i;
-    const target = pickEnemyAttackTarget(state);
-    const result = target.kind === "ally" ? resolveEnemyAttackOnAlly(state, e.creatureObj, target.ally) : resolveEnemyRetaliation(state, e.creatureObj, 2, 0);
+    const result = resolveEnemyAction(state, e.creatureObj, 2, 0);
     combat.activeIndex = prevActive;
     lines.push(`${withThe(e.creatureObj.name, true)} is faster than you and acts first this round!`, ...result.lines);
   }
   return lines;
+}
+
+// Shared by both resolveSpeedInitiative and resolveOrSkipRetaliation: one
+// enemy's whole action for the round — try an Active ability first
+// (Enemy Ability Engine), and if it's an AoE one, resolve it against the
+// player AND every alive ally instead of the usual single pickEnemyAttackTarget
+// roll (an AoE active always hits the whole party, not a coin-flip subset
+// of it). Otherwise falls straight through to the existing single-target
+// player-or-ally roll, exactly as before this engine existed.
+function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
+  const abilityCtx = resolveEnemyActiveAbility(state, creatureObj);
+  if (abilityCtx && abilityCtx.aoe) {
+    const lines = [];
+    const playerResult = resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx);
+    lines.push(...playerResult.lines);
+    for (const ally of aliveAllies(state)) {
+      if (!state.combat) break;
+      const allyResult = resolveEnemyAttackOnAlly(state, creatureObj, ally, abilityCtx);
+      lines.push(...allyResult.lines);
+    }
+    return { lines, damage: playerResult.damage };
+  }
+  const target = pickEnemyAttackTarget(state);
+  return target.kind === "ally"
+    ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, abilityCtx)
+    : resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx);
 }
 
 // Shared by every action that lets the enemy retaliate after the
@@ -1262,8 +1523,7 @@ function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeI
       e.skipNormalRetaliationThisRound = false;
       result = { lines: [`${withThe(e.creatureObj.name, true)} already acted first this round and doesn't get a follow-up strike.`], damage: null };
     } else {
-      const target = pickEnemyAttackTarget(state);
-      result = target.kind === "ally" ? resolveEnemyAttackOnAlly(state, e.creatureObj, target.ally) : resolveEnemyRetaliation(state, e.creatureObj, atkSpread, extraDef);
+      result = resolveEnemyAction(state, e.creatureObj, atkSpread, extraDef);
     }
     combat.activeIndex = prevActive;
     lines.push(...result.lines);
@@ -1307,6 +1567,58 @@ function pickEnemyAttackTarget(state) {
   return { kind: "ally", ally: allies[idx] };
 }
 
+// Enemy Ability Engine (data/enemyabilities.js): picks one off-cooldown
+// Active ability from this creature's own `actives` list, puts it on
+// cooldown, resolves any conditional damage-multiplier bonuses (a
+// first-attack bonus if this is its first active use this fight, bonus
+// damage against a status the player/target is suffering, bonus damage
+// against a Health threshold), and returns a context object
+// resolveEnemyRetaliation/resolveEnemyAttackOnAlly read to replace their
+// usual flat attack roll — or null, meaning this creature just makes a
+// normal attack this turn (no eligible ability, or it has none at all —
+// every BESTIARY creature without an `actives` array behaves exactly as
+// it did before this engine existed).
+function resolveEnemyActiveAbility(state, creature) {
+  if (!creature.actives || !creature.actives.length) return null;
+  const combat = state.combat;
+  const enemy = combat.enemies[combat.activeIndex];
+  const cooldowns = enemy.abilityCooldowns || (enemy.abilityCooldowns = {});
+  const eligible = creature.actives.filter((id) => !(cooldowns[id] > 0) && getEnemyAbility(id));
+  if (!eligible.length) return null;
+  const abilityId = eligible[Math.floor(Math.random() * eligible.length)];
+  const ability = getEnemyAbility(abilityId);
+  cooldowns[abilityId] = ability.cooldown;
+  let dmgMult = ability.dmgMult;
+  // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
+  // Predator) apply to whichever active this creature happens to use
+  // first each fight, not to one specific ability by name.
+  if (!enemy.firstActiveUsed) {
+    for (const pid of creature.passives || []) {
+      const p = getEnemyAbility(pid);
+      if (p && p.trigger === "firstAttack" && p.dmgMultBonus) dmgMult *= p.dmgMultBonus;
+    }
+  }
+  enemy.firstActiveUsed = true;
+  if (ability.bonusVsStatus && combat.playerStatuses && combat.playerStatuses[ability.bonusVsStatus.status]) {
+    dmgMult *= ability.bonusVsStatus.mult;
+  }
+  if (ability.bonusVsHealthBelowPct && state.health <= state.maxHealth * ability.bonusVsHealthBelowPct.pct) {
+    dmgMult *= ability.bonusVsHealthBelowPct.mult;
+  }
+  if (ability.bonusVsHealthAbovePct && state.health >= state.maxHealth * ability.bonusVsHealthAbovePct.pct) {
+    dmgMult *= ability.bonusVsHealthAbovePct.mult;
+  }
+  return {
+    name: ability.name,
+    dmgMult,
+    aoe: !!ability.aoe,
+    inflict: ability.inflict,
+    selfDebuff: ability.selfDebuff,
+    selfBuff: ability.selfBuff,
+    healOnHitPct: ability.healOnHitPct,
+  };
+}
+
 // An enemy attacking an ally instead of the player — its own smaller,
 // ally-scoped sibling of resolveEnemyRetaliation, since that function's
 // mitigation pipeline is threaded through with player-only Divine
@@ -1315,15 +1627,33 @@ function pickEnemyAttackTarget(state) {
 // null, never 0 — this attack didn't target the player at all, so it
 // must not read as "the player dodged" to the dodge/riposte bonuses that
 // key off resolveOrSkipRetaliation's returned damage.
-function resolveEnemyAttackOnAlly(state, creature, ally) {
+// abilityCtx (Enemy Ability Engine, data/enemyabilities.js): set only when
+// this same action is an AoE active ability also striking every ally —
+// the player-facing half already resolved the ability's own selection/
+// cooldown/name/self-buff bookkeeping, so this just needs the resolved
+// dmgMult to scale the hit the same way.
+function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   if (!attackConnects(creature.acc, ally.agility)) {
     return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
   }
   const rawAtk = effectiveEnemyAtk(state, creature);
-  const dmg = Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round((ally.def || 0) * 0.5));
+  const dmg = abilityCtx
+    ? Math.max(0, Math.round(rawAtk * abilityCtx.dmgMult) - Math.round((ally.def || 0) * 0.5))
+    : Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round((ally.def || 0) * 0.5));
   ally.health = Math.max(0, ally.health - dmg);
-  const lines = [`${withThe(creature.name, true)} strikes ${ally.name} for ${dmg} damage.`];
-  if (ally.health <= 0) lines.push(...killAlly(state, ally));
+  const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
+  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`];
+  if (ally.health <= 0) {
+    lines.push(...killAlly(state, ally));
+    // Enemy Ability Engine: Predator's Momentum-style "after defeating an
+    // enemy" passives — the only thing this engine's creatures can
+    // actually defeat mid-fight is a party member, since the player's own
+    // death simply ends the game rather than continuing the encounter.
+    for (const pid of creature.passives || []) {
+      const p = getEnemyAbility(pid);
+      if (p && p.trigger === "onKill") applyEnemySelfModifier(state.combat, creature, p.selfBuff);
+    }
+  }
   return { lines, damage: null };
 }
 
@@ -1527,6 +1857,7 @@ function beginTurn(state) {
   // that added complexity.
   if (combat.avatarOfTimeTurns > 0) combat.avatarOfTimeTurns -= 1;
   if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
+  if (combat.calmWatersTurns > 0) combat.calmWatersTurns -= 1;
   if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
   // round spent in combat grants +1 Attack/+1 Defense, capped +10/+10.
@@ -1608,7 +1939,26 @@ function beginTurn(state) {
         }
       }
     }
+    // Enemy Ability Engine: this creature's own self-buff countdown and
+    // recurring Health-based/regen passives — same per-enemy, every-round
+    // cadence as burn/bleed above.
+    lines.push(...tickEnemyPassives(state, e));
+    if (e.hp <= 0 && e.alive) {
+      combat.activeIndex = i;
+      lines.push(...resolveKill(state, e.creatureObj));
+      if (!state.combat) return lines;
+      if (i !== playerTargetIndex && combat.enemies[playerTargetIndex] && combat.enemies[playerTargetIndex].alive) {
+        combat.activeIndex = playerTargetIndex;
+      }
+    }
   }
+  // Enemy Ability Engine: the player's own active statuses (Bleed, Venom,
+  // Constrict, Pinned, ...) tick the same way, right after every enemy's
+  // own burn/bleed/passive upkeep above. tickPlayerStatuses handles its
+  // own death-check per DOT tick internally (mirroring the enemy-side
+  // burn/bleed loop above), so nothing further is needed here.
+  lines.push(...tickPlayerStatuses(state));
+  if (state.health <= 0) return lines;
   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
   // Regeneration HoT set up once at combat start (see startCombat),
   // ticked here identically in shape to burn/bleed but healing instead of
@@ -1822,7 +2172,17 @@ function applyUnbrokenLine(state, dmg) {
   return reduced;
 }
 
-function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
+// abilityCtx (Enemy Ability Engine, data/enemyabilities.js): when set,
+// this creature is using a named Active ability instead of its plain
+// retaliation — resolveEnemyActiveAbility (below) already resolved which
+// one, its cooldown, and any conditional damage-multiplier bonuses, so
+// this just needs to use the resolved dmgMult (a fixed % of Attack,
+// deterministic rather than the usual randInt spread — the codex phrases
+// every active as "Deal X% Attack," not a range) and, after the hit lands,
+// roll any `inflict`/apply any `selfBuff`/`selfDebuff`/`healOnHitPct` it
+// specifies. Elemental creatures (enemy mages) never carry `actives`, so
+// abilityCtx only ever reaches the physical branch below.
+function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCtx) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
   // Reinforced (Divine Regalia — Forgeguard Buckler): every 3rd enemy
@@ -1848,7 +2208,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
   // once-per-3-rounds negation, Guardian Spirit/Guided Footsteps' first-
   // attack charge, evasion charges, ...) ever get consumed on an attack
   // that was going to miss on its own merits anyway.
-  if (!attackConnects(creature.acc, state.agility)) {
+  if (!attackConnects(creature.acc, effectivePlayerAgility(state))) {
     return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
   }
   // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
@@ -1982,7 +2342,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     return { lines, damage: edmg };
   }
   const atk = effectiveEnemyAtk(state, creature);
-  let edmg = Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef);
+  let edmg = abilityCtx
+    ? Math.max(0, Math.round(atk * abilityCtx.dmgMult) - effectivePlayerDef(state) - bonusDef)
+    : Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef);
   if (edmg > 0 && !combat.firstHitTakenUsed) {
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
@@ -2004,9 +2366,115 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
     combat.adaptiveTidePhysicalStacks = Math.min(5, (combat.adaptiveTidePhysicalStacks || 0) + 1);
   }
   if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
-  const lines = [edmg > 0 ? `${withThe(creature.name, true)} hits back for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
+  const verb = abilityCtx ? `uses ${abilityCtx.name} on you` : "hits back";
+  const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
+  // Enemy Ability Engine: the ability's own consequences, resolved after
+  // its damage has actually landed and been applied above — a status it
+  // may inflict on the player, a self-buff/self-debuff on the creature
+  // itself (both turn-limited, ticked in beginTurn), and healing the
+  // creature for a fraction of the damage it just dealt.
+  if (abilityCtx) {
+    if (abilityCtx.inflict) lines.push(...applyAbilityInflict(state, abilityCtx.inflict, creature.name));
+    if (abilityCtx.selfDebuff) applyEnemySelfModifier(combat, creature, abilityCtx.selfDebuff);
+    if (abilityCtx.selfBuff) applyEnemySelfModifier(combat, creature, abilityCtx.selfBuff);
+    if (abilityCtx.healOnHitPct && edmg > 0) {
+      const heal = Math.round(edmg * abilityCtx.healOnHitPct);
+      if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
+    }
+  }
+  if (edmg > 0) lines.push(...checkMercyOfTheVeil(state));
   if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
   return { lines, damage: edmg };
+}
+
+// Applies a temporary self-modifier from an active ability directly onto
+// the ACTING creature's own (already-per-fight-cloned, so safe to mutate)
+// stats — Reckless Charge's self-Defense-penalty, Savage Rush's self-Speed
+// buff, and so on. `sign` is -1 for a selfDebuff, +1 for a selfBuff (both
+// specs use the same shape: positive amounts meaning "grant this much",
+// the sign here just decides whether that amount helps or hurts). Reversed
+// exactly, turn for turn, in beginTurn's per-enemy loop below.
+// spec's own values are already correctly signed (selfDebuff: { def: -10 },
+// selfBuff: { spd: 15 }) — no sign flip needed here, just apply them.
+function applyEnemySelfModifier(combat, creature, spec) {
+  const enemy = combat.enemies[combat.activeIndex];
+  const turns = spec.turns || 1;
+  for (const [stat, amount] of Object.entries(spec)) {
+    if (stat === "turns" || typeof amount !== "number") continue;
+    creature[stat] = (creature[stat] || 0) + amount;
+    enemy.selfBuffs.push({ stat, amount, turnsLeft: turns });
+  }
+}
+
+// Adds a PERMANENT-for-the-fight self-buff directly onto a creature's own
+// stats — used by the once-per-combat/staged/stacking Health-based
+// passives below (Cornered, Unyielding, King's Fury, ...), which the
+// codex phrases as "until the end of combat"/"for the encounter" rather
+// than a plain few-turn window, so unlike applyEnemySelfModifier's
+// selfBuffs bookkeeping, nothing here ever reverses it. `xPct` keys scale
+// the stat's CURRENT value (Cornered's +20% Attack); plain keys add flat.
+function applyPermanentSelfBuff(creature, buff) {
+  if (!buff) return;
+  for (const [stat, amount] of Object.entries(buff)) {
+    if (stat === "turns" || typeof amount !== "number") continue;
+    if (stat.endsWith("Pct")) {
+      const baseStat = stat.slice(0, -3);
+      creature[baseStat] = Math.round((creature[baseStat] || 0) * (1 + amount));
+    } else {
+      creature[stat] = (creature[stat] || 0) + amount;
+    }
+  }
+}
+
+// Enemy Ability Engine: per-round passive upkeep for one alive enemy —
+// reversing any expired temporary self-buff/self-debuff from an Active
+// (Reckless Charge's -Defense, Savage Rush's +Speed, ...), plus the
+// recurring Health-based/regen passives that fire every round regardless
+// of whether this creature's own action this round was an Active or a
+// plain attack (resolveEnemyActiveAbility only ever resolves the reactive,
+// "when I act" passives — firstAttack/bonusVsX — not these).
+function tickEnemyPassives(state, e) {
+  const lines = [];
+  const creature = e.creatureObj;
+  e.selfBuffs = (e.selfBuffs || []).filter((b) => {
+    b.turnsLeft -= 1;
+    if (b.turnsLeft > 0) return true;
+    creature[b.stat] = (creature[b.stat] || 0) - b.amount;
+    return false;
+  });
+  if (!e.alive || e.maxHp <= 0) return lines;
+  for (const pid of creature.passives || []) {
+    const p = getEnemyAbility(pid);
+    if (!p) continue;
+    if (p.trigger === "regenPerTurn" && e.hp > 0 && e.hp < e.maxHp) {
+      const heal = Math.max(1, Math.round(e.maxHp * p.pct));
+      const before = e.hp;
+      e.hp = Math.min(e.maxHp, e.hp + heal);
+      if (e.hp > before) lines.push(`${withThe(creature.name, true)} recovers ${e.hp - before} health.`);
+    } else if (p.trigger === "healthBelowPct" && !e.passiveOnceFlags[pid] && e.hp / e.maxHp <= p.threshold) {
+      e.passiveOnceFlags[pid] = true;
+      applyPermanentSelfBuff(creature, p.selfBuff);
+      lines.push(`${withThe(creature.name, true)} is hurt, and hits back harder for it.`);
+    } else if (p.trigger === "healthStagedBuff") {
+      const flagKey = pid + ":stage";
+      const reached = (p.stages || []).filter((s) => e.hp / e.maxHp <= s).length;
+      const already = e.passiveOnceFlags[flagKey] || 0;
+      if (reached > already) {
+        for (let n = already; n < reached; n++) applyPermanentSelfBuff(creature, p.selfBuff);
+        e.passiveOnceFlags[flagKey] = reached;
+        lines.push(`${withThe(creature.name, true)} grows steadier under punishment.`);
+      }
+    } else if (p.trigger === "everyPctHealthLostStacking") {
+      const lostFraction = 1 - e.hp / e.maxHp;
+      const stacks = Math.floor(lostFraction / p.pct);
+      if (stacks > e.healthLostStacks) {
+        for (let n = e.healthLostStacks; n < stacks; n++) applyPermanentSelfBuff(creature, p.selfBuff);
+        e.healthLostStacks = stacks;
+        lines.push(`${withThe(creature.name, true)} grows more dangerous as the fight wears on.`);
+      }
+    }
+  }
+  return lines;
 }
 
 // Riposte: a free follow-up hit whenever the enemy's retaliation dealt
@@ -2019,7 +2487,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef) {
 function maybeRiposte(state, creature) {
   if (!hasEffect(state, "riposte")) return [];
   if (!state.combat || state.combat.hp <= 0) return [];
-  if (!attackConnects(state.accuracy, creature.agi)) {
+  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
     return [`You seize the opening, but the riposte doesn't land.`];
   }
   // Clash of Steel (Divine Regalia — Gauntlets of the Unyielding): +50% to
@@ -2246,6 +2714,18 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit this creature, for resolveKill's damage-type-flavored death line
     hamstringApplied: false, // gates Hamstring (once per target per fight)
     reinforcedAttackCount: 0, // Reinforced's (Divine Regalia) every-3rd-enemy-attack counter
+    // Enemy Ability Engine (data/enemyabilities.js) — every field below is
+    // scoped per-enemy so a pack of several creatures each track their own
+    // cooldowns/stacks/history independently, same reasoning as everything
+    // above.
+    abilityCooldowns: {}, // abilityId -> turns remaining before reuse
+    selfBuffs: [], // [{ stat, amount, pct, turns }] — this creature's own temporary self-modifiers from its actives/passives
+    passiveOnceFlags: {}, // triggerId -> true, for oncePerCombat passives (Cornered, Apex Predator, Shed Skin, ...)
+    firstActiveUsed: false, // gates firstAttack-triggered passives (Ambush, Silent Hunter, Patient Hunter, ...)
+    healthLostStacks: 0, // King's Fury/Sky Sovereign/Ancient Predator's every-20%/25%-health-lost stack count
+    hitsTakenFromPlayer: 0, // Adaptive Fighter's after-3-hits-from-the-same-target counter
+    lastAttackTargetKind: null, // Relentless Pursuit's consecutive-same-target tracking: "player" or an ally's name
+    consecutiveTargetStacks: 0,
   }));
   const creature = enemies[0].creatureObj;
   state.combat = {
@@ -2371,6 +2851,18 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     avatarOfTimeUsed: false, // gates Avatar of Time's (Regalia of the Eternal Hour 6pc) below-25%-HP burst
     avatarOfTimeTurns: 0, // Avatar of Time's temporary all-cooldowns-zeroed/frozen-buffs/+25%-damage duration remaining
     cooldowns: {},
+    // Enemy Ability Engine (data/enemyabilities.js): the player's active
+    // statuses (Bleed, Venom, Constrict, Pinned, ...) inflicted by enemy
+    // Active abilities, keyed by status/custom-debuff id — see
+    // applyPlayerStatus/tickPlayerStatuses.
+    playerStatuses: {},
+    naturesPersistenceUsed: false, // gates Nature's Persistence's (Regalia) first-crowd-control-free per fight
+    unbreakableUsed: false, // gates Unbreakable's (Legendary) first-Defense-reduction-ignored per fight
+    mercyOfTheVeilUsed: false, // gates Mercy of the Veil's (Regalia of the Final Veil 4pc) below-40%-HP cleanse-all
+    orderedMindDefStacks: 0, // Ordered Mind's (Regalia) +2 Defense per resisted/ignored status, capped at 12
+    calmWatersDefBonus: 0, // Calm Waters' (Regalia) +4 Defense per Cleansing Current proc, capped at 12
+    calmWatersMagicBonus: 0, // Calm Waters' +4 Magic per Cleansing Current proc, capped at 12
+    calmWatersTurns: 0, // Calm Waters' 2-round window remaining
   };
   wireActiveEnemyProxy(state.combat);
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
@@ -3081,7 +3573,7 @@ function playerAttack(state) {
   // Accuracy vs Agility: does this attack even connect? A miss here
   // doesn't consume Feint's nextAttackBonus (it's preserved for the next
   // real attempt) or any of the on-hit-only effects below.
-  if (!attackConnects(state.accuracy, creature.agi)) {
+  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
     out.push(`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`);
   } else {
     let dmg = rollPlayerDamage(state, creature, activeElement);
@@ -3371,7 +3863,7 @@ function useDecoy(state) {
   // Accuracy vs Agility gates the player's own strike while the creature is
   // distracted — it still wastes its attack on the decoy either way (that
   // part isn't about whether YOUR hit landed).
-  if (!attackConnects(state.accuracy, creature.agi)) {
+  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
     out.push(`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`);
   } else {
     let dmg = applyOpeningReach(state, rollPlayerDamage(state, creature));
@@ -3439,7 +3931,7 @@ function useAmbush(state) {
 
   // Even an ambush can go wide — Accuracy vs Agility still decides it,
   // just with no counter either way since the creature never saw it coming.
-  if (!attackConnects(state.accuracy, creature.agi)) {
+  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
     out.push(`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`);
   } else {
     let dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
@@ -3528,7 +4020,7 @@ function useDisarm(state) {
   if (disarmMemory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
   // The disarm itself always lands (it's a grapple/tactic, not a strike) —
   // only the follow-up hit is gated on Accuracy vs Agility.
-  if (!attackConnects(state.accuracy, creature.agi)) {
+  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
     out.push(`The follow-up strike doesn't land, but the disarm holds.`);
   } else {
     let dmg = applyOpeningReach(state, Math.round(rollPlayerDamage(state, creature) * 0.7));
@@ -3709,7 +4201,7 @@ function useElementAbility(state, elementKey) {
   // self-buff with no target, so it's exempt — everything else (including
   // its on-hit side effects: Ignite's burn, Corrode's defense penalty,
   // the Force stun, Windcut's evasion window) only happens if this hits.
-  const spellHits = elementKey === "earth" || attackConnects(state.accuracy, creature.agi);
+  const spellHits = elementKey === "earth" || attackConnects(effectivePlayerAccuracy(state), creature.agi);
   switch (elementKey) {
     case "fire": {
       if (!spellHits) { out.push(`${ELEMENTS.fire.name}'s lance goes wide, the flame guttering out short of ${withThe(creature.name, false)}.`); break; }
