@@ -56,6 +56,10 @@ const STATUS_EFFECTS = {
   blight_seed: { name: "Blight Seed", debuff: {}, stackable: true, maxStacks: 5, turns: 99, escalatesAt: 5, escalatesTo: "blight" },
   soulbound: { name: "Soulbound", debuff: {}, stackable: false, turns: 3 },
   fear: { name: "Feared", debuff: { atkPct: -0.15, acc: -10 }, stackable: false, turns: 2 },
+  // Codex gives Stagger's Defense penalty as -20% — approximated as a
+  // flat -8, since effectivePlayerDef only ever reads a flat "def" delta
+  // (see playerStatusStatTotal), not a percentage one.
+  stagger: { name: "Stagger", debuff: { def: -8, spd: -15 }, stackable: false, turns: 2 },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -540,6 +544,61 @@ const ENEMY_ABILITIES = {
   // Drops the "+10% per defeated creature" scaling clause — no
   // death-counter tracking (matches Echoes of Death's own gap above).
   death_chorus: { name: "Death Chorus", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true, inflict: { status: "fear", chance: 1 } },
+
+  // ---- Homunculus family (Constructs) ----
+  artificial_construct: { name: "Artificial Construct", type: "passive", trigger: "elementalResist", immuneTo: ["bleed", "fear", "venom"] },
+  arcane_jab: { name: "Arcane Jab", type: "active", cooldown: 3, dmgMult: 1.4 },
+  reinforced_frame: { name: "Reinforced Frame", type: "passive", trigger: "flatDamageReduction", pct: 0.15 },
+  shield_bash: { name: "Shield Bash", type: "active", cooldown: 4, dmgMult: 1.4, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
+  // "Lowest-health allied Construct" and the damage-redirect clause are
+  // both dropped — packAuraBuff buffs every alive packmate rather than
+  // computing the single lowest-health one, and there's no redirect-
+  // incoming-damage-to-another-packmate hook at all.
+  guard_protocol: { name: "Guard Protocol", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 10, turns: 3 } },
+  runic_core: { name: "Runic Core", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atkPct: 0.15, acc: 10 }, oncePerCombat: true },
+  overclock: { name: "Overclock", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { spd: 20, atkPct: 0.2, turns: 2 } },
+  arcane_strike: { name: "Arcane Strike", type: "active", cooldown: 4, dmgMult: 1.8 },
+  // Not yet wired — matches Royal Pheromones/Ossified Commander's own
+  // leaderAura trigger above, also declared but never dispatched.
+  guardian_directive: { name: "Guardian Directive", type: "passive", trigger: "leaderAura", buff: { def: 5, acc: 5 } },
+  rune_pulse: { name: "Rune Pulse", type: "active", cooldown: 5, dmgMult: 1.5, aoe: true, inflict: { status: "stagger", chance: 1 } },
+  // Approximates "a barrier equal to 25% max Health for 3 turns" as an
+  // equivalent instant self-heal — no temporary-damage-absorption shield
+  // mechanic exists for enemies (only healSelfPct's flat heal, just
+  // introduced above for Flesh Reconstruction).
+  arcane_barrier: { name: "Arcane Barrier", type: "active", cooldown: 6, dmgMult: 0, healSelfPct: 0.25 },
+  perfect_construction: { name: "Perfect Construction", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atk: 10, def: 10 }, oncePerCombat: true },
+  cataclysm_beam: { name: "Cataclysm Beam", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true, bonusVsStatus: { status: "stagger", mult: 1.25 } },
+
+  // ---- Thueln-Maur (Constructs) ----
+  // Stone Fist/Branch Slam/Crystal Lance/Mana Pulse/Cataclysmic Slam/
+  // Elemental Convergence/Guardian's Judgment have no Appendix A entry
+  // anywhere in the codex, only bare name references in their creature's
+  // own Active Abilities row — authored here matching each tier's own
+  // power level, same "fill the gap" approach used for Charge/Smash/
+  // King's Maul/Rallying Roar in the Wild Mammals batch.
+  earthen_form: { name: "Earthen Form", type: "passive", trigger: "flatDamageReduction", pct: 0.1 },
+  stone_fist: { name: "Stone Fist", type: "active", cooldown: 3, dmgMult: 1.4 },
+  living_timber: { name: "Living Timber", type: "passive", trigger: "regenPerTurn", pct: 0.03 },
+  branch_slam: { name: "Branch Slam", type: "active", cooldown: 4, dmgMult: 1.5, inflict: { custom: { spd: -10, turns: 2 }, chance: 1 } },
+  // Not yet wired — no hook floors a specific stat against reduction
+  // below its own base value for an enemy (Bedrock does this for the
+  // player's Defense only).
+  living_fortress: { name: "Living Fortress", type: "passive", trigger: "defenseFloorAtBase" },
+  // Not yet wired — a per-ROUND (not per-fight) first-hit reduction has
+  // no matching trigger; firstAttack above only ever fires once per fight.
+  arcane_reflection: { name: "Arcane Reflection", type: "passive", trigger: "firstMagicalHitPerRoundReduction", pct: 0.5, reflectPctOfPrevented: 0.25 },
+  crystal_lance: { name: "Crystal Lance", type: "active", cooldown: 4, dmgMult: 1.8 },
+  mana_pulse: { name: "Mana Pulse", type: "active", cooldown: 5, dmgMult: 1.6, aoe: true },
+  // Perfect Harmony ("gain the benefits of Earth, Nature, and Crystal
+  // Cores simultaneously") isn't its own separate ability — Elder
+  // Thueln-Maur's passives list below just includes Earthen Form and
+  // Living Timber (the two of those three cores that are actually wired
+  // mechanics) directly, rather than re-declaring their effects under a
+  // new name.
+  cataclysmic_slam: { name: "Cataclysmic Slam", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true },
+  elemental_convergence: { name: "Elemental Convergence", type: "active", cooldown: 5, dmgMult: 1.9, inflict: { status: "burning", chance: 1 } },
+  guardians_judgment: { name: "Guardian's Judgment", type: "active", cooldown: 6, dmgMult: 2.4 },
 };
 
 function getEnemyAbility(id) {
