@@ -77,6 +77,17 @@ class GameState {
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
     this.fallenAllies = []; // { defId, name, level, diedDay } — bodies sent to the Sanctuary, awaiting revival (see parser.js)
     this.divineFavor = 0; // standing with the Pantheon's god of Death and Renewal — one of three revival paths
+    // The Grand Ovum (engine/arena.js) — Ovum Reputation ("Fame") is a
+    // hidden 0-100 tracker, entirely separate from the nation `reputation`
+    // above; only ever shown to the player through the rank it crosses
+    // into, never as a raw number.
+    this.arena = {
+      participant: false, // gated by talking to the Game Master at Zuevaron's Grand Ovum
+      reputation: 0,
+      rank: "copper",
+      streak: 0, // consecutive wins — resets to 0 on any loss
+      championDefeated: false,
+    };
   }
 
   // Adds a new party member from ALLY_DEFS, at the player's current level,
@@ -119,6 +130,7 @@ class GameState {
     this.soulLedgerDefBonus = 0;
     this.archiveEternalSeen = [];
     this.archiveEternalKnowledgeBonus = 0;
+    this.arena = { participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false };
     this.stealthMod = bg.stealthMod || 0;
     this.gold = bg.gold;
     this.inventory = [...bg.inventory];
@@ -297,6 +309,7 @@ class GameState {
       party: this.party,
       fallenAllies: this.fallenAllies,
       divineFavor: this.divineFavor,
+      arena: this.arena,
     };
   }
 
@@ -307,6 +320,11 @@ class GameState {
     // as just having slept, rather than retroactively penalizing whatever
     // day count they'd already reached.
     if (data.lastSleptDay == null) s.lastSleptDay = s.day;
+    // Saves from before the Grand Ovum existed have no `arena` at all —
+    // the constructor's own default already covers that (Object.assign
+    // above never touched it). A save mid-arena-development missing just
+    // one newer sub-field still gets that field's default filled in.
+    s.arena = Object.assign({ participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false }, data.arena || {});
     // Normalizes away anything that can't be a valid current sublocation:
     // saves from before this existed (undefined), a city that's never had
     // sublocations, or a stale id left over from a since-changed city.

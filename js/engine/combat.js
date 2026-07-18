@@ -2230,6 +2230,13 @@ function beginTurn(state) {
 function checkDeathPrevention(state) {
   if (state.health > 0) return null;
   const combat = state.combat;
+  // The Grand Ovum (engine/arena.js): a non-lethal arena bout was never
+  // going to kill anyone regardless — checked first, ahead of every real
+  // cheat-death effect below, so a friendly match doesn't spend one of
+  // those precious per-fight charges surviving something that was never
+  // actually lethal.
+  const arenaResult = maybeArenaNonLethalLoss(state);
+  if (arenaResult) return arenaResult;
   let msg = null;
   if (hasSetTier(state, "Elder Bark", 6) && !combat.elderBarkSaveUsed) {
     combat.elderBarkSaveUsed = true;
@@ -3676,6 +3683,11 @@ function resolveKill(state, creature) {
   state.combat.enemies[diedIndex].alive = false;
   const survivorIndex = state.combat.enemies.findIndex((e) => e.alive);
   if (survivorIndex === -1) {
+    // The Grand Ovum (engine/arena.js): read while state.combat still
+    // exists, same reasoning as Blessing of Valor/Keeper of History above
+    // — a won arena match's reputation/streak/prize payout on top of the
+    // ordinary gold/XP/loot this kill already produced.
+    if (state.combat.isArenaFight) out.push(...concludeArenaFightWon(state));
     state.combat = null;
     // The fight is genuinely over (last enemy down) — charge its time
     // cost once here, not per-kill within a pack.

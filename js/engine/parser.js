@@ -64,6 +64,7 @@ const VERB_SYNONYMS = {
   shop: ["shop", "store", "market"],
   buy: ["buy", "purchase"],
   sell: ["sell"],
+  arena: ["arena", "ovum"],
 };
 
 // Single-letter shorthand ("i", "l", "x") only counts as a command when it's
@@ -166,7 +167,15 @@ async function handleInput(rawInput, state) {
     case "explore":
       return cmdExplore(state);
     case "fight":
+      // "fight" with no argument means nothing outside combat (the
+      // repeat-last-attack verb only applies mid-fight, handled above);
+      // "fight duel"/"fight team"/etc. is always an arena request, so it's
+      // routed there regardless of location — cmdArena's own messaging
+      // covers "not signed on" and "wrong location" cases.
+      if (arg) return cmdArena(arg, state);
       return ["There's nothing here to fight. Try 'explore' if you're looking for trouble."];
+    case "arena":
+      return cmdArena(arg, state);
     case "flee":
       return ["There's nothing to flee from right now."];
     case "quests":
@@ -933,6 +942,8 @@ function maybeTalkToKessa(arg, state) {
 function cmdTalk(arg, state) {
   const kessaLines = maybeTalkToKessa(arg, state);
   if (kessaLines) return [...kessaLines, ...advanceTime(state, 5, "talk")];
+  const gameMasterLines = maybeTalkToGameMaster(arg, state);
+  if (gameMasterLines) return [...gameMasterLines, ...advanceTime(state, 5, "talk")];
   const loc = state.currentLocation();
   const lang = NATION_LANGUAGE[loc.nation] || "vauret";
   const name = generateNameForNation(loc.nation);
@@ -1475,6 +1486,10 @@ function cmdHelp() {
     "If an ally falls: send <name> home (to the Sanctuary) or leave <name>.",
     "Sanctuary: sanctuary (check on the fallen), pray (raise divine favor),",
     "rite (a one-time, costly path to revival), revive <name>.",
+    "Grand Ovum (Zuevaron): talk to the Game Master there to sign on, then",
+    "'fight duel' to step into the ring. Wins raise your standing and move",
+    "you up through the ranks (Copper through Champion); arena bouts are",
+    "non-lethal — a loss just ends the match, never the game.",
     "You can also just type what you want to do in plain English — the",
     "world will do its best to make sense of it.",
   ];
