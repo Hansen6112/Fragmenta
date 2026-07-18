@@ -114,6 +114,31 @@ const ENEMY_ABILITIES = {
   bone_storm: { name: "Bone Storm", type: "active", cooldown: 6, dmgMult: 1.7, aoe: true, bonusVsStatus: { status: "pinned", mult: 1.0 }, inflict: { custom: { acc: -10, turns: 2, onlyIfStatus: "pinned" }, chance: 1 } },
   grave_formation: { name: "Grave Formation", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 15, acc: 15, turns: 3 } },
 
+  // The Master Enemy Codex references these four by name in a creature's
+  // Active Abilities list but never gives them their own Appendix A entry
+  // anywhere in the document — authored here to match the surrounding
+  // magnitude conventions for their tier (Razorback/Uncommon, Lion/Epic,
+  // Ancient Sabertooth/Unique, Gorilla/Rare), the same "fill the gap,
+  // match the established pattern" approach used for the one other
+  // placeholder this session hit (a canonical temple name).
+  howl: { name: "Howl", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { atkPct: 0.08, acc: 8, turns: 3 } },
+  brush_stalk: { name: "Brush Stalk", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 2 } },
+  rallying_howl: { name: "Rallying Howl", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { atkPct: 0.1, acc: 10, turns: 3 } },
+  // Coordinated Strike's "marks one target; allied Lupines prioritize it"
+  // and Call the Hunt's "summons additional Lupines" both need mechanics
+  // this pass doesn't build (cross-creature target-forcing; mid-fight
+  // summoning, same scope limit as Burrow Call) — registered so the name
+  // resolves and nothing crashes, but they deal no damage and do nothing
+  // else yet. Same honest "not yet wired" precedent as the rest of this
+  // file's documented gaps.
+  coordinated_strike: { name: "Coordinated Strike", type: "active", cooldown: 4, dmgMult: 0 },
+  call_the_hunt: { name: "Call the Hunt", type: "active", cooldown: 8, dmgMult: 0 },
+  kings_howl: { name: "King's Howl", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { atkPct: 0.15, acc: 15, turns: 4 } },
+  charge: { name: "Charge", type: "active", cooldown: 3, dmgMult: 1.5 },
+  smash: { name: "Smash", type: "active", cooldown: 4, dmgMult: 1.6 },
+  kings_maul: { name: "King's Maul", type: "active", cooldown: 5, dmgMult: 2.3 },
+  rallying_roar: { name: "Rallying Roar", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { atkPct: 0.1, acc: 10, turns: 3 } },
+
   // ================= PASSIVE ABILITIES =================
   // trigger vocabulary: "healthBelowPct" (one-shot per combat once HP first
   // drops under threshold), "everyPctHealthLostStacking" (repeatable, each

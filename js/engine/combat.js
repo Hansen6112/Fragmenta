@@ -1616,7 +1616,33 @@ function resolveEnemyActiveAbility(state, creature) {
     selfDebuff: ability.selfDebuff,
     selfBuff: ability.selfBuff,
     healOnHitPct: ability.healOnHitPct,
+    packAuraBuff: ability.packAuraBuff,
   };
+}
+
+// Buffs every OTHER alive packmate sharing this creature's own `group`
+// (Rallying Roar, Grave Formation, ...) — the same temporary, reversible
+// shape as applyEnemySelfModifier, just fanned out across the roster
+// instead of just the caster. Packmates with no shared `group` (a solitary
+// creature, or one with no group tag at all) simply have no one to buff.
+function applyPackAuraBuff(combat, creature, spec) {
+  if (!creature.group) return;
+  const turns = spec.turns || 1;
+  for (const other of combat.enemies) {
+    if (!other.alive || other.creatureObj === creature || other.creatureObj.group !== creature.group) continue;
+    for (const [key, amount] of Object.entries(spec)) {
+      if (key === "turns" || typeof amount !== "number") continue;
+      // A "...Pct" key (Rallying Roar's atkPct) buffs a fraction of the
+      // recipient's OWN current value — resolved to a flat delta here, at
+      // application time, so the reversal in tickEnemyPassives can just
+      // subtract the exact same number back off, same as every other
+      // selfBuffs entry.
+      const stat = key.endsWith("Pct") ? key.slice(0, -3) : key;
+      const delta = key.endsWith("Pct") ? Math.round((other.creatureObj[stat] || 0) * amount) : amount;
+      other.creatureObj[stat] = (other.creatureObj[stat] || 0) + delta;
+      other.selfBuffs.push({ stat, amount: delta, turnsLeft: turns });
+    }
+  }
 }
 
 // An enemy attacking an ally instead of the player — its own smaller,
@@ -2381,6 +2407,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
       const heal = Math.round(edmg * abilityCtx.healOnHitPct);
       if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
     }
+    if (abilityCtx.packAuraBuff) applyPackAuraBuff(combat, creature, abilityCtx.packAuraBuff);
   }
   if (edmg > 0) lines.push(...checkMercyOfTheVeil(state));
   if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
