@@ -7069,6 +7069,7 @@ const LOCATIONS = {
       { to: "khaerun", days: 12, mode: "road", desc: "canyon terrain, pack animals only" },
       { to: "zyphera", days: 8, mode: "road" },
       { to: "eternatum_shore", days: 2, mode: "road" },
+      { to: "thalvora", days: 10, mode: "road" },
     ],
     sublocations: {
       tavern: {
@@ -7137,20 +7138,25 @@ const LOCATIONS = {
     description: "A cold frontier town past Nocturne, the last waypoint before the continent's northern edge stops being mapped in any useful detail.",
     connections: [{ to: "nocturne", days: 3, mode: "road" }, { to: "thalvora", days: 2, mode: "road" }],
   },
-  // The ninth of Sahrimor's Nine Cities (the sahrimor blurb's "nine
-  // cities" already accounted for eight before this one) — a plateau
-  // settlement past even Iskarr, cold and thin-aired, mapped here mainly
-  // because it isn't anywhere else. See engine/parser.js's
-  // checkHadrianAmbush for what actually happens on a first arrival.
+  // The ninth of Sahrimor's Nine Cities — canonically established (the
+  // Master Reference's "Nine Cities at a Glance": "Thalvora — Orange.
+  // Northern plateau. Jewelry and exotic animals. Fiercely loyal"), just
+  // never previously built out in world.js alongside its eight
+  // satellite siblings. The Orange Merchant Lord's satellite: the most
+  // politically stable of the eight, aligned with Sahurim by genuine
+  // preference rather than dependency, running the jewelry trade and the
+  // exotic-animal/horse-herd trade side by side. See
+  // engine/parser.js's checkHadrianAmbush for what happens on a first
+  // arrival.
   thalvora: {
     name: "Thalvora",
     nation: "sahrimor",
     terrain: "mountain",
     isCity: true,
-    danger: 4,
-    services: ["rest"],
-    description: "A thin-aired plateau settlement past even Iskarr, its stone the color of old rust in every light. Fewer caravans reach this far north than bother turning back.",
-    connections: [{ to: "iskarr", days: 2, mode: "road" }],
+    danger: 2,
+    services: ["rest", "shop"],
+    description: "A prosperous plateau city, its markets stacked with cut gems and its paddocks loud with horses and animals traded nowhere else in Sahrimor. The most stable of the Merchant King's eight satellites — the Orange Lord wants their plateau kept exactly as it is, not the crown.",
+    connections: [{ to: "iskarr", days: 2, mode: "road" }, { to: "sahurim", days: 10, mode: "road" }],
   },
   khaerun: {
     name: "Khaerun",

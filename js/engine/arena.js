@@ -486,7 +486,7 @@ function checkHadrianAmbush(state, locId) {
     state.party.some((p) => p.defId === "hadrian") || state.flags.hadrianDeadInAmbush || state.flags.hadrianThalvoraDeclined;
   if (thalvoraAlreadyResolved) return null;
   const lines = [
-    `Steel rings out before you're even through the gate. A knot of five fighters has someone backed against a cistern wall — a big man with a two-handed maul, bleeding from more than one place, still on his feet.`,
+    `Thalvora is quiet in the way a well-run city usually is — right up until the horse paddocks outside the wall erupt into shouting. Five fighters have someone backed against the fence rail — a big man with a two-handed maul, bleeding from more than one place, still on his feet.`,
     `One of the five is Akharu, chitin catching the light between the others' blades. This wasn't a fair fight before you arrived, and it's yours now too.`,
   ];
   lines.push(...startCombat(state, "akharu"));
