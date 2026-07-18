@@ -179,25 +179,52 @@ function startArenaFight(state, fightType) {
   return lines;
 }
 
-// The Champion bout — offered only once Crimson is reached (or on a
-// rematch, once already defeated once — see cmdArena's gate). Still
-// non-lethal like every arena fight except Death Match: beating him earns
-// his respect and his recruitment, not his life.
-function startChampionFight(state) {
-  const champion = Object.assign({}, ARENA_CHAMPION, {
-    native: "Ovum-trained",
-    friendly: false,
+// The Champion's own combat stat block — a flat, hand-tuned boss
+// encounter (not routed through buildFightCreature/computeCreatureStats,
+// same as any other dynamic creature) rather than his post-recruitment
+// ally stat block (data/hadrian.js's HADRIAN.startingStats, which is
+// calibrated for the ally growth FORMULA, not a standalone fight). His
+// name is withheld here — "The Champion" — since the source record's
+// recruitment chain has him reveal it only after being defeated.
+// Recruitment Level per the source record: begins at 10, or Player
+// Level+2 once the player is already past 10 — the exact scale-up curve
+// past that baseline (8% per level here) isn't specified, so this is
+// this implementation's own reasonable choice, not a source number.
+function buildHadrianDuelCreature(state) {
+  const level = state.level > 10 ? state.level + 2 : 10;
+  const mult = 1 + Math.max(0, level - 10) * 0.08;
+  return {
+    id: "hadrian",
+    name: "The Champion",
+    native: "Sanguivorum",
+    level,
+    hp: Math.round(70 * mult),
+    atk: Math.round(16 * mult),
+    def: Math.round(13 * mult),
+    spd: Math.round(9 * mult),
+    acc: Math.round(13 * mult),
+    agi: Math.round(9 * mult),
     dangerClass: "world_boss",
     spawnRarity: "unique",
-  });
-  const lines = startCombat(state, champion);
+    description: "Undefeated in eleven years of bouts, and it shows in how little he wastes — no wasted motion, no wasted breath.",
+    combatNotes: "Eleven years undefeated, and it shows in how little he wastes.",
+    friendly: false,
+  };
+}
+
+// The Champion bout — offered only once Crimson is reached (see
+// cmdArena's gate). Still non-lethal like every arena fight except Death
+// Match: beating him earns his respect and an offer to join you, not his
+// life.
+function startHadrianDuel(state) {
+  const lines = startCombat(state, buildHadrianDuelCreature(state));
   state.combat.isArenaFight = true;
   state.combat.arenaFightType = "champion";
   state.combat.arenaLethal = false;
   state.combat.arenaOpponentTierIndex = ARENA_RANKS[ARENA_RANKS.length - 1].tierIndex;
   state.combat.arenaUneven = false;
   return [
-    `The gate the Game Master normally reserves for beast fights opens instead on a man in scarred leather, already loosening his shoulders. Corvath Ilesse doesn't posture — he just waits for you to be ready.`,
+    `The gate the Game Master normally reserves for beast fights opens instead on a man in scarred leather, already loosening his shoulders. The Champion doesn't posture — he just waits for you to be ready.`,
     ...lines,
   ];
 }
@@ -234,20 +261,21 @@ function concludeArenaFightWon(state) {
   state.arena.reputation = Math.min(100, state.arena.reputation + gain);
 
   if (fightType === "champion") {
-    const firstDefeat = !state.arena.championDefeated;
     state.arena.championDefeated = true;
     state.arena.rank = "champion";
     const purse = arenaGoldPurse(state, fightType);
     state.gold += purse;
-    lines.push(`Corvath offers you a hand up rather than pretending the bout wasn't close. "Eleven years," he says, "and I mean that as a compliment, not a complaint."`);
-    lines.push(`The Game Master doesn't bother hiding her smile. "Champion rank. About time someone actually earned it." She presses ${purse} gold into your hand — "not from the house purse. From mine."`);
+    lines.push(`The Game Master doesn't bother hiding her smile. "Champion rank. About time someone actually earned it." She presses ${purse} gold into your hand.`);
     lines.push(...maybeArenaLootDrop(state, fightType));
-    if (firstDefeat) {
-      const recruited = state.recruitAlly("the_champion");
-      if (recruited) {
-        lines.push(`"I've spent eleven years fighting for this ring," Corvath says. "I wouldn't mind seeing what's past it, for once. If you'll have me."`);
-        lines.push(`${recruited.name} joins your party. Set a stance with 'stance corvath aggressive|defensive|support', and gear him up with 'give <item> to corvath'.`);
-      }
+    // Recruitment offer — only once, and only if this hasn't already been
+    // resolved (accepted, declined here, or resolved via the Thalvora
+    // alt-path in Sahrimor). engine/parser.js's cmdRecruit/'decline'
+    // handling resolves state.flags.hadrianOfferPending afterward.
+    if (!hadrianFullyResolved(state) && !state.flags.hadrianOfferPending) {
+      state.flags.hadrianOfferPending = true;
+      lines.push(`The Champion lowers his weapon, breathing hard but steady. "Hadrian," he says. "Hadrian Voric. It felt wrong, letting you beat a man with no name."`);
+      lines.push(HADRIAN.recruitment.offer);
+      lines.push(`Say 'recruit hadrian' to accept, or 'decline hadrian' to part ways.`);
     }
     return lines;
   }
@@ -293,7 +321,7 @@ function maybeArenaRankUp(state) {
     lines.push(`Word travels fast in the Ovum — you've been moved up to ${next.name} rank.`);
   } else if (next && next.id === "champion" && current.id === "crimson" && state.arena.reputation >= current.repThreshold && !state.arena.championHintGiven) {
     state.arena.championHintGiven = true;
-    lines.push(`The Game Master watches you a moment longer than usual. You've earned a shot at the Champion — talk to her about it.`);
+    lines.push(HADRIAN.recruitment.summons);
   }
   return lines;
 }
@@ -315,8 +343,15 @@ function maybeArenaNonLethalLoss(state) {
     state.arena.tournamentTotal = 0;
     state.arena.tournamentPurseAccrued = 0;
   }
+  const wasChampion = combat.arenaFightType === "champion";
   const { healed } = applyHeal(state, state.maxHealth);
   state.combat = null;
+  // The Champion speaks for himself on a loss (Section 6's "Failure /
+  // Postponement" line) rather than the Game Master's usual generic one
+  // — the challenge stays permanently available either way.
+  if (wasChampion) {
+    return `${HADRIAN.recruitment.loss} You're carried out and patched up${healed > 0 ? ` (fully healed)` : ""} — no rank lost, but the streak's broken.`;
+  }
   const tournamentNote = wasTournament ? " The tournament ends here — whatever you'd already banked stays banked." : "";
   return `The Game Master calls it before it goes any further. You're carried out, patched up, and back on your feet${healed > 0 ? ` (fully healed)` : ""} — no rank lost, but the streak's broken.${tournamentNote} "Everyone loses one eventually," she says. "Come back when you're ready."`;
 }
@@ -327,10 +362,11 @@ function cmdArena(arg, state) {
   if (!state.arena.participant) {
     return ["You're not signed on as a Grand Ovum participant. Find the Game Master there and say the word."];
   }
+  const championResolved = hadrianFullyResolved(state);
   if (!a) {
     const rankInfo = arenaRankInfo(state);
     const streakLine = state.arena.streak > 0 ? ` Riding a ${state.arena.streak}-win streak.` : "";
-    const championLine = rankInfo.id === "crimson" || state.arena.championDefeated ? ` 'fight champion' is on the table.` : "";
+    const championLine = !championResolved && (rankInfo.id === "crimson" || state.arena.championDefeated) ? ` 'fight champion' is on the table.` : "";
     return [
       `Ovum rank: ${rankInfo.name}.${streakLine}${championLine}`,
       `Fight types available: 'fight duel', 'fight team', 'fight beast', 'fight deathmatch', 'fight tournament'.`,
@@ -344,9 +380,11 @@ function cmdArena(arg, state) {
     return ["You need to be in the Grand Ovum itself to answer a bout."];
   }
   if (a === "champion") {
+    if (championResolved) return [`There's no Champion left to answer that summons — that chapter's closed.`];
+    if (state.flags.hadrianOfferPending) return [`He's waiting on your answer before anything else. 'recruit hadrian', or 'decline hadrian'.`];
     const rankInfo = arenaRankInfo(state);
     if (rankInfo.id !== "crimson" && !state.arena.championDefeated) return [GAME_MASTER.championLocked];
-    return startChampionFight(state);
+    return startHadrianDuel(state);
   }
   if (a === "tournament" || a === "tournaments") {
     state.arena.tournamentRound = 1;
@@ -372,12 +410,126 @@ function maybeTalkToGameMaster(arg, state) {
     state.arena.participant = true;
     lines.push(GAME_MASTER.greetingFirstTime);
     lines.push(`You're signed on. Say 'fight duel' whenever you want to step into the ring.`);
-  } else if (state.arena.championDefeated) {
-    lines.push(GAME_MASTER.championAlreadyBeaten);
+  } else if (state.flags.hadrianOfferPending) {
+    lines.push(`"Well?" the Game Master says, arms crossed. "He's waiting on you, not me. 'recruit hadrian' or 'decline hadrian.'"`);
+  } else if (state.party.some((p) => p.defId === "hadrian")) {
+    lines.push(GAME_MASTER.championRecruited);
+  } else if (state.flags.hadrianDeclinedPermanently) {
+    lines.push(GAME_MASTER.championGone);
   } else if (arenaRankInfo(state).id === "crimson") {
     lines.push(GAME_MASTER.championUnlocked);
   } else {
     lines.push(GAME_MASTER.greetingReturning);
   }
   return lines;
+}
+
+// Whether Hadrian's story is fully closed off, one way or another —
+// recruited (through either path), or permanently lost (declined at the
+// Grand Ovum, declined a second time at Thalvora, or killed there by a
+// flee). Also true while either offer is still awaiting an answer, since
+// he can't simultaneously be standing in the Grand Ovum ring.
+function hadrianFullyResolved(state) {
+  return (
+    state.party.some((p) => p.defId === "hadrian") ||
+    !!state.flags.hadrianDeclinedPermanently ||
+    !!state.flags.hadrianDeadInAmbush ||
+    !!state.flags.hadrianThalvoraDeclined ||
+    !!state.flags.hadrianThalvoraOfferPending
+  );
+}
+
+// engine/parser.js's cmdRecruit calls this first — resolves whichever of
+// the two recruitment offers (Grand Ovum duel or Thalvora ambush) is
+// currently pending, or returns null (falls through to cmdRecruit's own
+// generic refusal) if neither is.
+function acceptHadrianOffer(state) {
+  if (state.flags.hadrianOfferPending) {
+    state.flags.hadrianOfferPending = false;
+  } else if (state.flags.hadrianThalvoraOfferPending) {
+    state.flags.hadrianThalvoraOfferPending = false;
+  } else {
+    return null;
+  }
+  const recruited = state.recruitAlly("hadrian");
+  if (!recruited) return [`Something's already claimed that spot in your party.`];
+  return [HADRIAN.recruitment.accept, `${recruited.name} joins your party. Set a stance with 'stance hadrian aggressive|defensive|support'.`];
+}
+
+// engine/parser.js's 'leave'/'decline' case calls this first — same
+// pending-offer resolution as acceptHadrianOffer, but the permanent-miss
+// branch: declining at the Grand Ovum still leaves the Thalvora path
+// open (his own decline line sends him toward Sahrimor); declining a
+// second time at Thalvora is final.
+function declineHadrianOffer(state) {
+  if (state.flags.hadrianOfferPending) {
+    state.flags.hadrianOfferPending = false;
+    state.flags.hadrianDeclinedPermanently = true;
+    return [HADRIAN.recruitment.decline];
+  }
+  if (state.flags.hadrianThalvoraOfferPending) {
+    state.flags.hadrianThalvoraOfferPending = false;
+    state.flags.hadrianThalvoraDeclined = true;
+    return [HADRIAN.recruitment.thalvoraDecline];
+  }
+  return null;
+}
+
+// Alternate recruitment path (Section 6): reaching Thalvora (Sahrimor,
+// data/world.js) for the first time, before Hadrian's story is otherwise
+// resolved, triggers a guaranteed ambush — five enemies, one an Akharu,
+// already fighting him when the player arrives. Called from
+// engine/parser.js's executeTravel right after a first arrival there.
+function checkHadrianAmbush(state, locId) {
+  if (locId !== "thalvora" || state.visited.has("thalvora")) return null;
+  const thalvoraAlreadyResolved =
+    state.party.some((p) => p.defId === "hadrian") || state.flags.hadrianDeadInAmbush || state.flags.hadrianThalvoraDeclined;
+  if (thalvoraAlreadyResolved) return null;
+  const lines = [
+    `Steel rings out before you're even through the gate. A knot of five fighters has someone backed against a cistern wall — a big man with a two-handed maul, bleeding from more than one place, still on his feet.`,
+    `One of the five is Akharu, chitin catching the light between the others' blades. This wasn't a fair fight before you arrived, and it's yours now too.`,
+  ];
+  lines.push(...startCombat(state, "akharu"));
+  const squadTitles = ["Sahrimor Blade-for-Hire", "Sahrimor Blade-for-Hire", "Sahrimor Blade-for-Hire", "Sahrimor Enforcer"];
+  for (const title of squadTitles) {
+    const extra = {
+      id: "thalvora_ambusher_" + Math.random().toString(36).slice(2, 9),
+      name: `${title} ${generateNameForNation("sahrimor")}`,
+      native: "Sahrimor",
+      level: Math.max(1, state.level + 2),
+      hp: Math.round(14 + state.level * 2.5),
+      atk: Math.round(6 + state.level * 1.1),
+      def: Math.round(4 + state.level * 0.6),
+      spd: Math.round(5 + state.level * 0.2),
+      acc: Math.round(6 + state.level * 0.2),
+      agi: Math.round(5 + state.level * 0.2),
+      dangerClass: "elite",
+      spawnRarity: "rare",
+      description: "One of five who cornered a lone fighter and liked their odds.",
+      combatNotes: "",
+      friendly: false,
+    };
+    state.combat.enemies.push(buildSummonedEnemyRecord(extra.id, extra, "thalvora_ambush", true));
+  }
+  state.combat.isHadrianAmbush = true;
+  return lines;
+}
+
+// combat.js's resolveKill calls this (mirroring concludeArenaFightWon)
+// when the last of the five ambushers falls.
+function concludeHadrianAmbush(state) {
+  state.flags.hadrianThalvoraOfferPending = true;
+  return [
+    `The last of them falls. Silence, then the scrape of a maul being planted point-down in the dirt to lean on.`,
+    HADRIAN.recruitment.thalvoraOffer,
+    `Say 'recruit hadrian' to accept, or 'decline hadrian' to part ways for good.`,
+  ];
+}
+
+// combat.js's attemptFlee calls this if the player breaks off from a
+// still-active Hadrian ambush — per Section 6's failure condition, he's
+// marked dead and permanently removed from the recruitable pool.
+function markHadrianLostInAmbush(state) {
+  state.flags.hadrianDeadInAmbush = true;
+  return [`By the time you're clear of it, so is he. Whatever chance he had to make it out of Thalvora, it wasn't in the direction you ran.`];
 }

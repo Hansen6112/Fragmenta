@@ -1835,6 +1835,22 @@ const ITEM_DEFS = {
   // rare the same way any tier-4 drop already is (Unique-only, low
   // dropChance) rather than needing its own bespoke rarity mechanic.
   "a shard of returning breath": { slot: "ritual", tier: 4, bonuses: {}, revives: true, source: "monster" },
+
+  // ---- Companion gear: Hadrian Voric (data/hadrian.js) ----
+  // Bound to Hadrian specifically — equipped directly into his
+  // ally.equipment at recruitment rather than dropped or bought.
+  // source: "companion" matches none of COMBAT_LOOT_POOL/
+  // REGIONAL_LOOT_POOL/ARENA_LOOT_POOL/ARENA_CHAMPION_LOOT_POOL's own
+  // source filters, so this gear can never enter a loot pool by accident.
+  // Named passives (Crushing Impact/Stalwart/Brace/Armor Crack/
+  // Surefooted/Executioner) are flavor labels — see data/hadrian.js's
+  // header comment on why they aren't wired to new mechanics yet.
+  "Bloodbound Champion's Maul": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, source: "companion" },
+  "Bloodbound Champion Helm": { slot: "helmet", tier: 3, bonuses: { def: 3 }, source: "companion" },
+  "Bloodbound Champion Cuirass": { slot: "chest", tier: 3, bonuses: { def: 3 }, source: "companion" },
+  "Bloodbound Champion Gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3 }, source: "companion" },
+  "Bloodbound Champion Boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "companion" },
+  "Crimson Champion's Sash": { slot: "cloak", tier: 3, bonuses: { atk: 2, knowledge: 1 }, source: "companion" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

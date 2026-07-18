@@ -27,6 +27,7 @@ const VERB_SYNONYMS = {
   explore: ["explore", "search", "scout"],
   flee: ["flee", "run", "escape", "retreat"],
   leave: ["leave", "ignore", "pass"],
+  decline: ["decline", "refuse"],
   help: ["help", "commands"],
   save: ["save"],
   quests: ["quest", "quests", "journal"],
@@ -223,9 +224,16 @@ async function handleInput(rawInput, state) {
     case "send":
       return cmdSendAllyHome(arg, state);
     case "leave": {
+      const hadrianDecline = declineHadrianOffer(state);
+      if (hadrianDecline) return hadrianDecline;
       const fallen = findDeadAllyPendingChoice(state, arg);
       if (fallen) return cmdLeaveAllyBody(fallen, state);
       return await generateOpenResponse(input, state);
+    }
+    case "decline": {
+      const hadrianDecline = declineHadrianOffer(state);
+      if (hadrianDecline) return hadrianDecline;
+      return ["Decline what, exactly?"];
     }
     case "feint":
     case "decoy":
@@ -356,6 +364,30 @@ function executeTravel(state, path, totalDays) {
   const destId = path[path.length - 1];
   const dest = LOCATIONS[destId];
   lines.push(`You set out for ${dest.name} — roughly ${totalDays} day${totalDays === 1 ? "" : "s"} of travel.`);
+
+  // Hadrian's alternate recruitment path (engine/arena.js's
+  // checkHadrianAmbush): a genuinely "guaranteed ambush encounter" on
+  // first reaching Thalvora, per the source record — so it preempts the
+  // ordinary per-leg random-encounter roll below entirely, rather than
+  // competing with it for the same arrival. Mirrors checkHadrianAmbush's
+  // own gate exactly (not hadrianFullyResolved, which also counts an
+  // Ovum decline — that decline explicitly sends him toward Sahrimor, so
+  // it must NOT block this path).
+  const thalvoraAmbushGuaranteed =
+    destId === "thalvora" &&
+    !state.visited.has("thalvora") &&
+    !state.party.some((p) => p.defId === "hadrian") &&
+    !state.flags.hadrianDeadInAmbush &&
+    !state.flags.hadrianThalvoraDeclined;
+  if (thalvoraAmbushGuaranteed) {
+    lines.push(...advanceTime(state, totalDays * 1440, "travel"));
+    state.location = destId;
+    state.subLocation = null;
+    lines.push(`You arrive at ${dest.name}.`);
+    lines.push(...checkHadrianAmbush(state, destId));
+    state.visit(destId);
+    return lines;
+  }
 
   // roll encounters per leg
   for (let i = 1; i < path.length; i++) {
@@ -648,7 +680,9 @@ function cmdStance(arg, state) {
 // Each has their own threshold to earn (reputation, a quest, an item —
 // see maybeTalkToKessa below for the first one), discovered by playing,
 // not by typing this command.
-function cmdRecruit() {
+function cmdRecruit(arg, state) {
+  const hadrianLines = acceptHadrianOffer(state);
+  if (hadrianLines) return hadrianLines;
   return ["You can't just decide to recruit someone. Word gets around about people worth traveling with — you'll have to find them, and give them a reason to trust you."];
 }
 

@@ -7135,7 +7135,22 @@ const LOCATIONS = {
     danger: 3,
     services: ["rest"],
     description: "A cold frontier town past Nocturne, the last waypoint before the continent's northern edge stops being mapped in any useful detail.",
-    connections: [{ to: "nocturne", days: 3, mode: "road" }],
+    connections: [{ to: "nocturne", days: 3, mode: "road" }, { to: "thalvora", days: 2, mode: "road" }],
+  },
+  // The ninth of Sahrimor's Nine Cities (the sahrimor blurb's "nine
+  // cities" already accounted for eight before this one) — a plateau
+  // settlement past even Iskarr, cold and thin-aired, mapped here mainly
+  // because it isn't anywhere else. See engine/parser.js's
+  // checkHadrianAmbush for what actually happens on a first arrival.
+  thalvora: {
+    name: "Thalvora",
+    nation: "sahrimor",
+    terrain: "mountain",
+    isCity: true,
+    danger: 4,
+    services: ["rest"],
+    description: "A thin-aired plateau settlement past even Iskarr, its stone the color of old rust in every light. Fewer caravans reach this far north than bother turning back.",
+    connections: [{ to: "iskarr", days: 2, mode: "road" }],
   },
   khaerun: {
     name: "Khaerun",

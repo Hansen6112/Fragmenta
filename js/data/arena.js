@@ -62,7 +62,11 @@ const GAME_MASTER = {
   greetingReturning: `The Game Master gives you the barest nod — she's already sizing up your next opponent. "Back again. Good. Say the word whenever you're ready."`,
   championLocked: `"You want the Champion? Earn Crimson first. He doesn't step into the ring for anyone still climbing."`,
   championUnlocked: `"Crimson, eh." For the first time, something like real interest crosses the Game Master's face. "Then you're ready for him. Whether he's ready for you is his problem, not mine. Say 'fight champion' if your nerve's still where it was a minute ago."`,
-  championAlreadyBeaten: `"Still want a rematch with him?" the Game Master asks, half a smile. "He's yours to ask, not mine to arrange. He's not going anywhere."`,
+  // Shown after the Champion's fate is resolved one way or the other
+  // (recruited, or declined) — engine/arena.js's maybeTalkToGameMaster
+  // picks between the two based on whether he's actually in the party.
+  championRecruited: `"Took him off my hands, did you," the Game Master says, almost approving. "Good. He was getting soft, winning the same fight over and over."`,
+  championGone: `"He's long gone from the Ovum," she says, not quite hiding what that costs the gate receipts. "You made your choice. So did he."`,
 };
 
 // The Champion — the top of the Ovum's ranks, and (per engine/allies.js's

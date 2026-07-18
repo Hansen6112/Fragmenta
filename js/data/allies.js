@@ -33,23 +33,35 @@ const ALLY_DEFS = {
     speedMod: 1,
     growth: { atk: 0.7, def: 0.4, health: 2.2, accuracy: 0.3, agility: 0.25, speed: 0.2 },
   },
-  // Corvath Ilesse, the Grand Ovum's Champion (data/arena.js's
-  // ARENA_CHAMPION, engine/arena.js's startChampionFight/
-  // concludeArenaFightWon) — recruited by beating him, not by talking or
-  // reputation. These numbers are deliberately kept identical to
-  // ARENA_CHAMPION.allyStats there; duplicated rather than referenced
-  // since data/allies.js loads before data/arena.js (see index.html).
-  the_champion: {
-    name: "Corvath Ilesse",
-    tagline: "the Grand Ovum's Champion, eleven years undefeated",
-    description:
-      "Eleven years in the Ovum and not one loss on record — not because he's never been hurt, but because he's never once let hurt decide anything for him.",
-    atkMod: 4,
-    defMod: 2,
-    healthMod: 8,
-    accuracyMod: 3,
-    agilityMod: 2,
-    speedMod: 2,
-    growth: { atk: 0.9, def: 0.5, health: 2.6, accuracy: 0.35, agility: 0.3, speed: 0.25 },
+  // Hadrian Voric, the Grand Ovum's Champion (data/hadrian.js,
+  // engine/arena.js's startHadrianDuel/concludeArenaFightWon) —
+  // recruited by beating him, not by talking or reputation. Mods are
+  // derived from HADRIAN.startingStats (data/hadrian.js loads before
+  // this file — see index.html): target stat minus engine/state.js's
+  // BASE_* constant, same relationship recomputeAllyStats itself uses.
+  // The BASE_* numbers are duplicated here (5/2/20/3/3/5/5/5) rather
+  // than referencing engine/state.js's real constants, since data files
+  // load before engine files (index.html) and those constants don't
+  // exist yet at this point in load order.
+  hadrian: {
+    name: HADRIAN.name,
+    tagline: HADRIAN.tagline,
+    description: HADRIAN.description,
+    atkMod: HADRIAN.startingStats.atk - 5,
+    defMod: HADRIAN.startingStats.def - 2,
+    healthMod: HADRIAN.startingStats.health - 20,
+    accuracyMod: HADRIAN.startingStats.accuracy - 5,
+    agilityMod: HADRIAN.startingStats.agility - 5,
+    speedMod: HADRIAN.startingStats.speed - 5,
+    magicMod: HADRIAN.startingStats.magic - 3,
+    knowledgeMod: HADRIAN.startingStats.knowledge - 3,
+    growth: HADRIAN.growth,
+    // Arrives already wearing his own gear (Section 7.6) rather than
+    // needing the player to 'give' it to him — see recruitAlly.
+    startingEquipment: HADRIAN.startingEquipment,
+    // Companion Ability Engine (engine/companion.js) reads this to run
+    // his real kit instead of the generic 3-stance ally action — Kessa
+    // has no abilityKit, so she's entirely unaffected by any of this.
+    abilityKit: { actives: HADRIAN.actives, passives: HADRIAN.passives, vulnerability: HADRIAN.vulnerability },
   },
 };

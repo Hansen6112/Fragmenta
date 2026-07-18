@@ -109,6 +109,13 @@ class GameState {
       equipment: emptyEquipment(),
       alive: true,
     };
+    // Some allies (Hadrian — data/hadrian.js) arrive already wearing
+    // their own signature gear rather than starting empty-handed like
+    // Kessa; recomputeAllyStats below picks its stat bonuses up normally
+    // through the usual equipmentBonus() path.
+    if (ALLY_DEFS[defId].startingEquipment) {
+      Object.assign(ally.equipment, ALLY_DEFS[defId].startingEquipment);
+    }
     recomputeAllyStats(ally, this.level);
     ally.health = ally.maxHealth;
     this.party.push(ally);
@@ -398,6 +405,13 @@ function recomputeAllyStats(ally, level) {
   ally.accuracy = BASE_ACCURACY + (def.accuracyMod || 0) + Math.round((g.accuracy || 0) * n) + equipmentBonus(ally, "accuracy");
   ally.agility = BASE_AGILITY + (def.agilityMod || 0) + Math.round((g.agility || 0) * n) + equipmentBonus(ally, "agility");
   ally.speed = BASE_SPEED + (def.speedMod || 0) + Math.round((g.speed || 0) * n) + equipmentBonus(ally, "speed");
+  // Magic/Knowledge: unused by Kessa (no def.magicMod/knowledgeMod, so
+  // both stay at BASE_* for her, same no-op as before this existed) but
+  // needed for Hadrian's stat sheet (data/hadrian.js) — nothing in
+  // combat reads an ally's Magic/Knowledge today, so these are inert
+  // numbers for now, kept accurate for anything that reads them later.
+  ally.magic = BASE_MAGIC + (def.magicMod || 0) + Math.round((g.magic || 0) * n) + equipmentBonus(ally, "magic");
+  ally.knowledge = BASE_KNOWLEDGE + (def.knowledgeMod || 0) + Math.round((g.knowledge || 0) * n) + equipmentBonus(ally, "knowledge");
   if (ally.health == null) {
     ally.health = ally.maxHealth;
   } else {

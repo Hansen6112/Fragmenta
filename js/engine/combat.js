@@ -137,12 +137,17 @@ function effectiveEnemyAtk(state, creature) {
 // miss purely by stacking one stat. Both the player's own attacks
 // (state.accuracy vs creature.agi) and enemy retaliation (creature.acc vs
 // state.agility) go through this, in that same attacker/defender shape.
-function hitChance(attackerAccuracy, defenderAgility) {
-  return Math.max(0.10, Math.min(0.90, 0.5 + ((attackerAccuracy || 0) - (defenderAgility || 0)) * 0.03));
+// extraChance: a direct hit-chance-percentage bonus/penalty (0.02 = +2
+// percentage points), layered on top of the Accuracy/Agility formula
+// rather than converted into "equivalent Accuracy points" — used by
+// Veteran of a Hundred Battles (engine/companion.js), whose "+2%
+// Accuracy" reads as a hit-chance bonus, not a stat increase.
+function hitChance(attackerAccuracy, defenderAgility, extraChance) {
+  return Math.max(0.10, Math.min(0.90, 0.5 + ((attackerAccuracy || 0) - (defenderAgility || 0)) * 0.03 + (extraChance || 0)));
 }
 
-function attackConnects(attackerAccuracy, defenderAgility) {
-  return Math.random() < hitChance(attackerAccuracy, defenderAgility);
+function attackConnects(attackerAccuracy, defenderAgility, extraChance) {
+  return Math.random() < hitChance(attackerAccuracy, defenderAgility, extraChance);
 }
 
 // Earth's Stoneskin adds a temporary universal defense bonus; Evasive
@@ -1592,6 +1597,11 @@ function aliveAllies(state) {
 // evenly across however many are currently alive.
 const ENEMY_TARGETS_ALLY_SHARE = 0.4;
 function pickEnemyAttackTarget(state) {
+  // Companion Ability Engine (engine/companion.js): a taunt in effect
+  // (Shielding Presence/Champion's Challenge/Last Bastion) overrides the
+  // random split below entirely, for as long as it's active.
+  const forcedAlly = getForcedAllyTarget(state);
+  if (forcedAlly) return { kind: "ally", ally: forcedAlly };
   const allies = aliveAllies(state);
   if (!allies.length) return { kind: "player" };
   const roll = Math.random();
@@ -1809,9 +1819,16 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
     return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
   }
   const rawAtk = effectiveEnemyAtk(state, creature);
-  const dmg = abilityCtx
-    ? Math.max(0, Math.round(rawAtk * abilityCtx.dmgMult) - Math.round((ally.def || 0) * 0.5))
-    : Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round((ally.def || 0) * 0.5));
+  // bonusDefAmount: Champion's Challenge's temporary +Def (engine/companion.js) — 0 for any ally without one.
+  const effectiveDef = (ally.def || 0) + (ally.bonusDefAmount || 0);
+  let dmg = abilityCtx
+    ? Math.max(0, Math.round(rawAtk * abilityCtx.dmgMult) - Math.round(effectiveDef * 0.5))
+    : Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round(effectiveDef * 0.5));
+  // Companion Ability Engine (engine/companion.js): taunt/Unbroken Will
+  // damage reduction and Champion's Resolve's non-fatal floor for a kit-
+  // bearing ally — a no-op for any ally without one (Kessa).
+  const mitigation = applyCompanionDamageTaken(ally, dmg);
+  dmg = mitigation.dmg;
   // The Grand Ovum (engine/arena.js): a non-lethal bout protects allies
   // exactly like it protects the player — nobody actually dies in a match
   // that was never billed as one, so their Health simply can't drop to 0
@@ -1819,7 +1836,10 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
   ally.health = Math.max(arenaFloor, ally.health - dmg);
   const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
-  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`];
+  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...mitigation.lines];
+  // Last Bastion's automatic retaliation (engine/companion.js) — a no-op
+  // for any ally without one.
+  lines.push(...maybeCompanionRetaliate(state, ally, creature));
   if (ally.health <= 0) {
     lines.push(...killAlly(state, ally));
     // Enemy Ability Engine: Predator's Momentum-style "after defeating an
@@ -1873,7 +1893,14 @@ function resolveAllyActions(state) {
   const lines = [];
   for (const ally of aliveAllies(state)) {
     if (!state.combat || !aliveEnemies(state).length) break;
-    if (ally.stance === "defensive") lines.push(...allyDefensiveAction(state, ally));
+    // Companion Ability Engine (engine/companion.js): an ally whose
+    // ALLY_DEFS entry carries an abilityKit (Hadrian) runs its own real
+    // kit instead of the generic 3-stance dispatch below — everyone else
+    // (Kessa) is entirely unaffected.
+    const def = ALLY_DEFS[ally.defId];
+    if (def && def.abilityKit) {
+      lines.push(...resolveCompanionAction(state, ally));
+    } else if (ally.stance === "defensive") lines.push(...allyDefensiveAction(state, ally));
     else if (ally.stance === "support") lines.push(...allySupportAction(state, ally));
     else lines.push(...allyAggressiveAction(state, ally));
   }
@@ -2225,7 +2252,10 @@ function beginTurn(state) {
   // the fight before the player's own action gets to run, and every call
   // site already checks `if (!state.combat) return ...` right after
   // beginTurn returns.
-  if (state.combat) lines.push(...resolveAllyActions(state));
+  if (state.combat) {
+    tickCompanionCombatTimers(state);
+    lines.push(...resolveAllyActions(state));
+  }
   return lines;
 }
 
@@ -3080,6 +3110,10 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     calmWatersTurns: 0, // Calm Waters' 2-round window remaining
   };
   wireActiveEnemyProxy(state.combat);
+  // Companion Ability Engine (engine/companion.js): fresh cooldowns/taunt
+  // state/once-per-combat flags for any kit-bearing ally, same "doesn't
+  // carry over between fights" contract the enemy side already has.
+  resetCompanionCombatState(state);
   const lines = [`${articled(creature.name)} blocks your path.`, creature.description];
   // A pack/squad roster: name every packmate up front so the player knows
   // what they're up against before the first "target" command.
@@ -3698,6 +3732,10 @@ function resolveKill(state, creature) {
     // combat object, so that replacement survives.
     const combatBeforeConclusion = state.combat;
     if (state.combat.isArenaFight) out.push(...concludeArenaFightWon(state));
+    // Thalvora ambush (engine/arena.js, Hadrian's alternate recruitment
+    // path) — the same "last enemy of five falls" moment as any other
+    // fight, just with its own recruitment-offer follow-up.
+    if (state.combat.isHadrianAmbush) out.push(...concludeHadrianAmbush(state));
     if (state.combat === combatBeforeConclusion) state.combat = null;
     // The fight is genuinely over (last enemy down) — charge its time
     // cost once here, not per-kill within a pack.
@@ -3866,8 +3904,12 @@ function attemptFlee(state) {
   const dangerPenalty = (dangerClassMultiplier(creature.dangerClass) - 1) * 0.1;
   const chance = Math.max(0.05, Math.min(0.9, 0.6 - levelGap * 0.03 - dangerPenalty + (state.stealthMod || 0)));
   if (Math.random() < chance) {
+    // Thalvora ambush (engine/arena.js): fleeing this specific fight
+    // costs Hadrian his life, permanently, per Section 6's failure
+    // condition — checked and reported BEFORE state.combat is nulled.
+    const ambushLoss = state.combat.isHadrianAmbush ? markHadrianLostInAmbush(state) : [];
     state.combat = null;
-    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...applyRegrowth(state), ...advanceTime(state, randInt(10, 30), "combat")];
+    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...ambushLoss, ...applyRegrowth(state), ...advanceTime(state, randInt(10, 30), "combat")];
   }
 
   const out = beginTurn(state);
