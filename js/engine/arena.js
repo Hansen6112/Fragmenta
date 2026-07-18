@@ -18,7 +18,19 @@
 // fights"), and whether the fight was materially uneven (outnumbered,
 // or a lone high-tier beast) — all four are the exact multipliers the
 // user described, each additive-on-top rather than replacing the base.
-const ARENA_FIGHT_TYPE_WEIGHT = { duel: 1.0, team: 1.3, beast: 1.5, deathmatch: 1.8 };
+const ARENA_FIGHT_TYPE_WEIGHT = { duel: 1.0, team: 1.3, beast: 1.5, deathmatch: 1.8, tournament: 1.5 };
+
+// Accepts a few spellings ("death match", "death-match") for the same
+// fight type — cmdArena below normalizes the raw arg's spaces/hyphens
+// away before looking it up here. Tournament isn't listed yet — it needs
+// its own multi-round/no-heal-between-rounds handling (Arena Phase 3),
+// and startArenaFight below doesn't know how to run one on its own.
+const ARENA_FIGHT_TYPE_ALIASES = {
+  duel: "duel", duels: "duel",
+  team: "team", teamfight: "team", teams: "team",
+  beast: "beast", beastfight: "beast",
+  deathmatch: "deathmatch", deathmatches: "deathmatch",
+};
 function arenaReputationGain(state, fightType, opponentTierIndex, uneven) {
   const rankInfo = arenaRankInfo(state);
   const base = 3;
@@ -85,16 +97,73 @@ function generateGladiator(state, rankId) {
   };
 }
 
-// Starts a Duel (Phase 1's only fight type) — a single generated
-// gladiator at the player's current rank/streak-scaled difficulty.
-function startArenaDuel(state) {
-  const gladiator = generateGladiator(state, state.arena.rank);
-  const lines = startCombat(state, gladiator);
+// How many gladiators a Team/Death Match squad fields, by rank tierIndex
+// (0-7) — a Copper squad is a pair, Champion-tier fields four.
+const TEAM_SQUAD_SIZE_BY_TIER = [2, 2, 3, 3, 3, 4, 4, 4];
+
+// Which BESTIARY Danger Classes are fair game for a Beast fight at a
+// given rank tierIndex — "high level beast" scales the pool up with rank
+// rather than pulling any wild creature regardless of how tame it is.
+const BEAST_DANGER_BY_TIER = [
+  ["normal"], ["normal", "elite"], ["elite"], ["elite", "boss"],
+  ["boss"], ["boss", "world_boss"], ["world_boss"], ["world_boss"],
+];
+
+// Picks a real BESTIARY creature (faction "wild" only — an actual beast,
+// not undead or a construct) for a Beast fight, scaled to a level a
+// couple points past the player's own — "high level beast" is meant to
+// read as genuinely dangerous, not a fair fight.
+function pickArenaBeast(state) {
+  const rankInfo = arenaRankInfo(state);
+  const allowedDanger = BEAST_DANGER_BY_TIER[rankInfo.tierIndex] || ["normal"];
+  const pool = Object.keys(BESTIARY).filter((id) => {
+    const c = BESTIARY[id];
+    return c.faction === "wild" && !c.special && allowedDanger.includes(c.dangerClass);
+  });
+  if (!pool.length) return null;
+  const id = pool[Math.floor(Math.random() * pool.length)];
+  const level = Math.max(1, state.level + 3);
+  return { id, creature: buildFightCreature(BESTIARY[id], level, BESTIARY[id].dangerClass) };
+}
+
+// Starts any of the four fight types this phase supports. Tournament
+// rounds (Phase 3) call this directly per round rather than duplicating
+// its setup.
+function startArenaFight(state, fightType) {
+  const rankInfo = arenaRankInfo(state);
+  let lines;
+  let opponentTierIndex = rankInfo.tierIndex;
+  let uneven = false;
+  if (fightType === "beast") {
+    const beast = pickArenaBeast(state);
+    if (!beast) return [`The Game Master shrugs. "Nothing worth billing as a beast fight right now. Try something else."`];
+    const announce = BEAST_FIGHT_ANNOUNCE[Math.floor(Math.random() * BEAST_FIGHT_ANNOUNCE.length)];
+    lines = [announce, ...startCombat(state, beast.id, beast.creature.level)];
+    // A lone opponent that's disproportionately strong for its billing —
+    // always "harder" and "uneven" by design, not by headcount.
+    opponentTierIndex = rankInfo.tierIndex + 1;
+    uneven = true;
+  } else {
+    const gladiator = generateGladiator(state, rankInfo.id);
+    lines = startCombat(state, gladiator);
+    if (fightType === "team" || fightType === "deathmatch") {
+      const squadSize = TEAM_SQUAD_SIZE_BY_TIER[rankInfo.tierIndex] || 2;
+      for (let i = 1; i < squadSize; i++) {
+        const extra = generateGladiator(state, rankInfo.id);
+        state.combat.enemies.push(buildSummonedEnemyRecord(extra.id, extra, "arena_squad", true));
+      }
+      const partySize = 1 + aliveAllies(state).length;
+      uneven = squadSize > partySize;
+      lines.push(`${squadSize} fighters enter together — this is a squad bout, not a duel.`);
+    }
+  }
   state.combat.isArenaFight = true;
-  state.combat.arenaFightType = "duel";
-  state.combat.arenaLethal = false;
-  state.combat.arenaOpponentTierIndex = ARENA_RANKS.find((r) => r.id === state.arena.rank).tierIndex;
-  state.combat.arenaUneven = false;
+  state.combat.arenaFightType = fightType;
+  // Death Match is the one arena fight type that's genuinely lethal — see
+  // maybeArenaNonLethalLoss below, which only intercepts the other three.
+  state.combat.arenaLethal = fightType === "deathmatch";
+  state.combat.arenaOpponentTierIndex = opponentTierIndex;
+  state.combat.arenaUneven = uneven;
   return lines;
 }
 
@@ -149,7 +218,7 @@ function maybeArenaNonLethalLoss(state) {
 
 function cmdArena(arg, state) {
   if (state.combat) return ["You're a little busy for that right now."];
-  const a = (arg || "").trim().toLowerCase();
+  const a = (arg || "").trim().toLowerCase().replace(/[\s-]+/g, "");
   if (!state.arena.participant) {
     return ["You're not signed on as a Grand Ovum participant. Find the Game Master there and say the word."];
   }
@@ -158,16 +227,15 @@ function cmdArena(arg, state) {
     const streakLine = state.arena.streak > 0 ? ` Riding a ${state.arena.streak}-win streak.` : "";
     return [
       `Ovum rank: ${rankInfo.name}.${streakLine}`,
-      `Fight types available: 'fight duel'.`,
+      `Fight types available: 'fight duel', 'fight team', 'fight beast', 'fight deathmatch'.`,
     ];
   }
-  if (a === "duel") {
-    if (state.location !== "zuevaron" || state.subLocation !== "grandOvum") {
-      return ["You need to be in the Grand Ovum itself to answer a bout."];
-    }
-    return startArenaDuel(state);
+  const fightType = ARENA_FIGHT_TYPE_ALIASES[a];
+  if (!fightType) return [`No fight type called "${a}". Try 'fight duel', 'fight team', 'fight beast', or 'fight deathmatch'.`];
+  if (state.location !== "zuevaron" || state.subLocation !== "grandOvum") {
+    return ["You need to be in the Grand Ovum itself to answer a bout."];
   }
-  return [`No fight type called "${a}". Try 'fight duel'.`];
+  return startArenaFight(state, fightType);
 }
 
 // engine/parser.js's cmdTalk gate, following maybeTalkToKessa's exact

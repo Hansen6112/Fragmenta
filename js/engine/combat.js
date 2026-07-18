@@ -1690,11 +1690,11 @@ function resolveEnemyActiveAbility(state, creature) {
 // pays out its own XP/gold/loot on death. `sourceKey` (the summoning
 // ability's own id) is what resolveEnemySummon below counts against a
 // spec's maxActive cap.
-function buildSummonedEnemyRecord(id, creature, sourceKey) {
+function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature) {
   return {
     creatureId: id,
     creatureObj: creature,
-    dynamicCreature: false,
+    dynamicCreature: !!dynamicCreature, // true for a fully dynamic creature (engine/arena.js's gladiators) rather than a real BESTIARY id — see applyArchiveEternal, which skips species-tracking for those exactly like generateEnemyMage's own encounters already do
     name: creature.name,
     hp: creature.hp,
     maxHp: creature.hp,
@@ -1812,7 +1812,12 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   const dmg = abilityCtx
     ? Math.max(0, Math.round(rawAtk * abilityCtx.dmgMult) - Math.round((ally.def || 0) * 0.5))
     : Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round((ally.def || 0) * 0.5));
-  ally.health = Math.max(0, ally.health - dmg);
+  // The Grand Ovum (engine/arena.js): a non-lethal bout protects allies
+  // exactly like it protects the player — nobody actually dies in a match
+  // that was never billed as one, so their Health simply can't drop to 0
+  // here, same floor-at-1 as the player's own non-lethal-loss save.
+  const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
+  ally.health = Math.max(arenaFloor, ally.health - dmg);
   const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
   const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`];
   if (ally.health <= 0) {
