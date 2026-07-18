@@ -243,6 +243,39 @@ const ENEMY_ABILITIES = {
   burrow_ambush: { name: "Burrow Ambush", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.2 },
   elder_carapace: { name: "Elder Carapace", type: "passive", trigger: "flatDamageReduction", pct: 0.2 },
   crushing_pincers: { name: "Crushing Pincers", type: "active", cooldown: 5, dmgMult: 1.9, bonusVsStatus: { status: "venom", mult: 1.25 } },
+
+  // ---- Draven-Drak / Skrel-Drak (Magical Creatures A) ----
+  // Draconic Presence is the one genuinely new mechanic this family needs
+  // (a start-of-combat debuff on the player rather than a reaction to
+  // something the player did) — wired directly in startCombat, since none
+  // of the existing per-turn passive hooks fire before round 1.
+  draconic_presence: { name: "Draconic Presence", type: "passive", trigger: "combatStartDebuff", debuff: { acc: -5, spd: -5 }, turns: 3 },
+  dominance: { name: "Dominance", type: "passive", trigger: "everyPctHealthLostStacking", pct: 0.2, selfBuff: { atk: 3, acc: 2 } },
+  // Not yet wired — reacts to Dominance itself gaining a stack, which has
+  // no dispatch hook of its own (matches Crushing Jaws/Titanic Momentum
+  // above).
+  ancient_instinct: { name: "Ancient Instinct", type: "passive", trigger: "onAllyPassiveStack", watchFor: "dominance", cleanseOne: true, cooldownReduction: 1 },
+  // Shield-on-trigger and cleanse-all are dropped (no engine hook, like
+  // Shed Skin's own cleanseSelf above) — the Initiative burst is the part
+  // that maps onto an existing trigger shape.
+  ancient_majesty: { name: "Ancient Majesty", type: "passive", trigger: "healthBelowPct", threshold: 0.25, selfBuff: { spd: 10, turns: 2 }, oncePerCombat: true },
+  claw_rend: { name: "Claw Rend", type: "active", cooldown: 2, dmgMult: 1.6, inflict: { status: "bleed", chance: 1 } },
+  tail_sweep: { name: "Tail Sweep", type: "active", cooldown: 3, dmgMult: 1.4, aoe: true, inflict: { custom: { spd: -5, turns: 1 }, chance: 1 } },
+  // "Applies the dragon's elemental effect" branches five ways in the
+  // codex (Red/White/Green/Black/Blue) — Burn is used as the single
+  // representative element, same simplification as Inherited Breath below.
+  breath_weapon: { name: "Breath Weapon", type: "active", cooldown: 5, dmgMult: 2.1, inflict: { status: "burning", chance: 1 } },
+  catastrophic_breath: { name: "Catastrophic Breath", type: "active", cooldown: 6, dmgMult: 2.6, aoe: true, inflict: { status: "burning", chance: 1 } },
+  // Not yet wired — needs per-ability damage-history tracking the engine
+  // doesn't keep (matches Ancient Instinct above).
+  draconic_insight: { name: "Draconic Insight", type: "passive", trigger: "adaptToRepeatedAbility", reductionPct: 0.2 },
+  ancient_draconic_insight: { name: "Ancient Draconic Insight", type: "passive", trigger: "adaptToRepeatedAbility", reductionPct: 0.2, selfBuff: { atk: 3, def: 3 }, maxStacks: 5 },
+  territorial_apex: { name: "Territorial Apex", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atk: 10, acc: 10 }, oncePerCombat: true },
+  // Not yet wired — triggers off the player being inflicted with an
+  // elemental status, which has no dispatch hook here.
+  sovereign_territory: { name: "Sovereign Territory", type: "passive", trigger: "onPlayerElementalStatusInflicted", healPctMaxHp: 0.03 },
+  inherited_breath: { name: "Inherited Breath", type: "active", cooldown: 4, dmgMult: 1.8, inflict: { status: "burning", chance: 1 } },
+  dragons_challenge: { name: "Dragon's Challenge", type: "active", cooldown: 6, dmgMult: 2.4, bonusVsStatus: { status: "burning", mult: 1.5 } },
 };
 
 function getEnemyAbility(id) {

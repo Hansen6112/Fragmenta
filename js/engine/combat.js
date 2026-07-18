@@ -2899,6 +2899,18 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     const others = enemies.slice(1).map((e) => e.creatureObj.name);
     lines.push(`It isn't alone — ${others.join(", ")} ${others.length === 1 ? "stands" : "stand"} with it.`);
   }
+  // Enemy Ability Engine: Draconic Presence-style passives debuff the
+  // player the instant combat starts, rather than reacting to a turn that
+  // hasn't happened yet — so this runs once here instead of through the
+  // normal per-turn passive dispatch.
+  for (const e of enemies) {
+    for (const pid of e.creatureObj.passives || []) {
+      const p = getEnemyAbility(pid);
+      if (p && p.trigger === "combatStartDebuff" && p.debuff) {
+        lines.push(...applyPlayerStatus(state, pid, { debuff: p.debuff, turns: p.turns || 2 }, e.creatureObj.name));
+      }
+    }
+  }
   // "combat.started" listeners handle every combat-start reaction that
   // doesn't itself produce a printed line (Endless Bloom's regen setup,
   // Forest Guardian/Swift Passage's charge transfers) — see below.
