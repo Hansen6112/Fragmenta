@@ -35,6 +35,7 @@ const STATUS_EFFECTS = {
   constrict: { name: "Constricted", debuff: { agi: -5 }, stackable: true, maxStacks: 4, turns: 99, escalatesAt: 4, escalatesTo: "restrained" },
   restrained: { name: "Restrained", debuff: { agi: -20 }, stackable: false, turns: 2 },
   pinned: { name: "Pinned", debuff: { spd: -20, agi: -15, acc: -10 }, stackable: false, turns: 2 },
+  buried: { name: "Buried", debuff: { acc: -20 }, stackable: false, turns: 1 },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -207,6 +208,41 @@ const ENEMY_ABILITIES = {
   reassemble: { name: "Reassemble", type: "passive", trigger: "reformOnDeath", pctMaxHp: 0.2, exceptDamageType: "blunt", oncePerCombat: true },
   runic_bones: { name: "Runic Bones", type: "passive", trigger: "defensePenetration", pct: 0.2, defenseReductionImmune: true },
   ossified_commander: { name: "Ossified Commander", type: "passive", trigger: "leaderAura", buff: { acc: 10, spd: 10 } },
+
+  // ---- Akharu / Dhulorvae (Wild Invertebrates) ----
+  // Desert Predator's codex wording ("if the Akharu acts before its
+  // target") is a per-round initiative check the engine has no hook for;
+  // approximated as a first-active-use bonus like Ambush/Patient Hunter.
+  desert_predator: { name: "Desert Predator", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.1 },
+  venomous_sting: { name: "Venomous Sting", type: "active", cooldown: 3, dmgMult: 1.5, inflict: { status: "venom", chance: 1 } },
+  // Dhulorvae's own Venomous Sting is a separate, slightly weaker Appendix
+  // A entry (145% vs Akharu's 150%) that "applies the regional venom
+  // associated with the biome" — same Venom status mechanically either way.
+  venomous_sting_dhulorvae: { name: "Venomous Sting", type: "active", cooldown: 3, dmgMult: 1.45, inflict: { status: "venom", chance: 1 } },
+  pincer_slam: { name: "Pincer Slam", type: "active", cooldown: 3, dmgMult: 1.4 },
+  hardened_exoskeleton: { name: "Hardened Exoskeleton", type: "passive", trigger: "flatDamageReduction", pct: 0.2 },
+  pincer_crush: { name: "Pincer Crush", type: "active", cooldown: 4, dmgMult: 1.75, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
+  pincer_crush_dhulorvae: { name: "Pincer Crush", type: "active", cooldown: 4, dmgMult: 1.7, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
+  // Sand Burrow's full text (delayed +15 Acc/+20 Init next turn, then the
+  // FOLLOWING attack at +30%) is simplified to an immediate self-buff plus
+  // Buried on the target — the multi-turn delayed-attack-bonus clause has
+  // no engine hook and is dropped rather than half-implemented.
+  sand_burrow: { name: "Sand Burrow", type: "active", cooldown: 5, dmgMult: 0, inflict: { status: "buried", chance: 1 }, selfBuff: { acc: 15, spd: 20, turns: 1 } },
+  // Not yet wired to a resolver (matches Crushing Jaws/Butcher's Instinct
+  // above) — Titanic Momentum's "Buried OR Venom" condition also can't be
+  // expressed by the single-status bonusVsStatus shape even once one is.
+  titanic_momentum: { name: "Titanic Momentum", type: "passive", trigger: "bonusVsStatus", status: "venom", mult: 1.15 },
+  impaling_strike: { name: "Impaling Strike", type: "active", cooldown: 5, dmgMult: 2.2, bonusVsStatus: { status: "buried", mult: 1.25 } },
+  royal_instinct: { name: "Royal Instinct", type: "passive", trigger: "everyPctHealthLostStacking", pct: 0.25, selfBuff: { atk: 5, def: 5 } },
+  cataclysmic_sting: { name: "Cataclysmic Sting", type: "active", cooldown: 6, dmgMult: 2.6, inflict: { status: "venom", chance: 1 } },
+  // Burrow Ambush is Appendix-A-defined as a Passive (first-attack bonus)
+  // even though Greater/Elder Dhulorvae's summary table lists it under
+  // Active Abilities — same categorization slip as Elder Serpent's
+  // Constrict in Wild Reptiles; the real spec wins, so it's wired here as
+  // a passive on those two creatures rather than an active.
+  burrow_ambush: { name: "Burrow Ambush", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.2 },
+  elder_carapace: { name: "Elder Carapace", type: "passive", trigger: "flatDamageReduction", pct: 0.2 },
+  crushing_pincers: { name: "Crushing Pincers", type: "active", cooldown: 5, dmgMult: 1.9, bonusVsStatus: { status: "venom", mult: 1.25 } },
 };
 
 function getEnemyAbility(id) {
