@@ -400,10 +400,14 @@ function cmdArena(arg, state) {
 
 // engine/parser.js's cmdTalk gate, following maybeTalkToKessa's exact
 // shape: returns null (falls through to the generic talk handler) unless
-// the player is actually at the Grand Ovum addressing her by name/title.
+// the player is actually at the Grand Ovum. Unlike Kessa (one NPC among
+// many at a shared tavern), the Game Master is the only person worth
+// talking to here, so a bare "talk" with no name resolves to her too —
+// otherwise a first-time visitor has no way to discover the sign-on
+// phrase short of guessing her title verbatim.
 function maybeTalkToGameMaster(arg, state) {
   const a = (arg || "").toLowerCase();
-  if (!a.includes("game master") && !a.includes("gamemaster") && !a.includes("master")) return null;
+  if (a && !a.includes("game master") && !a.includes("gamemaster") && !a.includes("master")) return null;
   if (state.location !== "zuevaron" || state.subLocation !== "grandOvum") return null;
   const lines = [];
   if (!state.arena.participant) {

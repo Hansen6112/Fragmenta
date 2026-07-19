@@ -549,6 +549,10 @@ const LOCATIONS = {
         district: "Imperial Landmarks",
         description:
           "The greatest arena in Fragmenta. Champions, beasts, tournaments, and imperial spectacles are held within its colossal walls.",
+        // Overrides the bare landmark type's ["look", "examine"] — this is
+        // the one landmark you actually do business in (talk to the Game
+        // Master to sign on, then fight), unlike its sightseeing neighbors.
+        commands: ["look", "examine", "talk", "fight"],
       },
       kabalBridge: {
         name: "The Kabal Bridge",
