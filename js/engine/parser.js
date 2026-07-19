@@ -950,9 +950,16 @@ function cmdExamine(arg, state) {
   if (!arg || arg === "here" || arg === "location" || arg === "area" || (placeName && placeName.includes(arg))) {
     return [place ? place.description : state.currentLocation().description];
   }
+  const loc = state.currentLocation();
+  if (loc.sublocations) {
+    const subId = findSublocationByName(loc, arg);
+    if (subId && subId !== state.subLocation) {
+      return [`You'd have to go there yourself to get a good look. Try 'enter ${loc.sublocations[subId].name}'.`];
+    }
+  }
   const invItem = state.inventory.find((i) => i.toLowerCase().includes(arg));
   if (invItem) return [`Just ${invItem}. Nothing more to it, for now.`];
-  const nation = getNation(state.currentLocation().nation);
+  const nation = getNation(loc.nation);
   if (nation.name.toLowerCase().includes(arg)) return [nation.blurb];
   return generateOpenResponse("examine " + arg, state);
 }
