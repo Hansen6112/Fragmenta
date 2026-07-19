@@ -942,17 +942,18 @@ function cmdRevive(arg, state) {
 }
 
 function cmdExamine(arg, state) {
-  if (!arg || arg === "self" || arg === "me") {
+  if (arg === "self" || arg === "me") {
     return [`You are ${state.playerName}, day ${state.day} of a journey you didn't fully choose. Health ${state.health}/${state.maxHealth}, ${state.gold} gold.`];
   }
-  const loc = state.currentLocation();
-  if (arg.includes(loc.name.toLowerCase()) || arg === "here" || arg === "location" || arg === "area") {
-    return [loc.description];
+  const place = state.currentPlace();
+  const placeName = ((place && place.name) || "").toLowerCase();
+  if (!arg || arg === "here" || arg === "location" || arg === "area" || (placeName && placeName.includes(arg))) {
+    return [place ? place.description : state.currentLocation().description];
   }
   const invItem = state.inventory.find((i) => i.toLowerCase().includes(arg));
   if (invItem) return [`Just ${invItem}. Nothing more to it, for now.`];
-  const nation = getNation(loc.nation);
-  if (arg.includes(nation.name.toLowerCase())) return [nation.blurb];
+  const nation = getNation(state.currentLocation().nation);
+  if (nation.name.toLowerCase().includes(arg)) return [nation.blurb];
   return generateOpenResponse("examine " + arg, state);
 }
 
