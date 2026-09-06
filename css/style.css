@@ -244,6 +244,44 @@ body {
   color: var(--danger);
 }
 
+.combat-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+}
+
+.combat-menu[hidden] {
+  display: none;
+}
+
+.combat-menu-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+}
+
+.combat-menu-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.combat-menu-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.combat-menu-btn.flee {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 #input-form {
   display: flex;
   align-items: center;

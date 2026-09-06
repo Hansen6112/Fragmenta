@@ -2904,6 +2904,79 @@ function useTarget(state, arg) {
   return [`You turn your attention to ${withThe(match.e.creatureObj.name, false)}.`];
 }
 
+// Structured {label, command} pairs for the combat menu (main.js renders
+// one button per entry) — command is the exact same string handleInput()
+// already accepts from typed input, so no parser/combat/state changes are
+// needed here at all. Mirrors tacticsLine()'s own availability logic
+// exactly, just returned as data instead of joined into a hint string.
+function buildCombatMenu(state) {
+  if (!state.combat) return [];
+
+  const creature = getCombatCreature(state);
+  const options = [];
+
+  // Friendly (non-hostile) encounters get their own two-option menu —
+  // same branch handleInput() already special-cases.
+  if (creature.friendly) {
+    options.push({ label: "Talk", command: "talk" });
+    options.push({ label: "Leave", command: "leave" });
+    return options;
+  }
+
+  options.push({ label: "Fight", command: "fight" });
+
+  // Tactics / element abilities — identical source list and identical
+  // availability check as availableActionNames()/tacticAvailable(). The
+  // typed verb for a mage ability is the ability's own NAME (handleInput
+  // resolves it through ELEMENT_VERB_TO_KEY), not the element key itself.
+  if (state.flags.isMage) {
+    [state.primaryElement, state.secondaryElement]
+      .filter(Boolean)
+      .filter((el) => elementAbilityAvailable(state, el))
+      .forEach((el) => {
+        const ability = ELEMENT_ABILITIES[el];
+        options.push({ label: ability.name, command: ability.name.toLowerCase() });
+      });
+  } else {
+    unlockedTactics(state)
+      .filter((id) => tacticAvailable(state, id))
+      .forEach((id) => {
+        options.push({ label: TACTICS[id].name, command: id });
+      });
+  }
+
+  // Target switching — only offered when there's actually a choice.
+  // useTarget() matches by name substring, not position, so the command
+  // has to carry the enemy's actual name.
+  if (aliveEnemies(state).length > 1) {
+    aliveEnemies(state).forEach((e) => {
+      options.push({
+        label: `Target: ${e.creatureObj.name} (${e.hp}/${e.maxHp} HP)`,
+        command: `target ${e.creatureObj.name}`,
+      });
+    });
+  }
+
+  // Item use — one button per distinct usable consumable, since bare
+  // "use" with no argument just answers "Use what?" (useItem's own first
+  // check) rather than doing anything on its own.
+  const usableCounts = new Map();
+  for (const item of state.inventory) {
+    const def = getItemDef(item);
+    if (def && def.slot === "consumable") usableCounts.set(item, (usableCounts.get(item) || 0) + 1);
+  }
+  for (const [item, count] of usableCounts) {
+    options.push({
+      label: count > 1 ? `Use: ${item} (x${count})` : `Use: ${item}`,
+      command: `use ${item}`,
+    });
+  }
+
+  options.push({ label: "Flee", command: "flee" });
+
+  return options;
+}
+
 // creatureIdOrObject is either a BESTIARY key (string) or a dynamically
 // generated combat target like an enemy mage (a full object, with its own
 // .id) — see data/enemymages.js generateEnemyMage. `preRolledLevel` is

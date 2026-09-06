@@ -6,6 +6,7 @@ const logEl = document.getElementById("log");
 const invPanel = document.getElementById("inventory-panel");
 const equipPanel = document.getElementById("equipment-panel");
 const partyPanel = document.getElementById("party-panel");
+const combatMenuEl = document.getElementById("combat-menu");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
 const input = document.getElementById("input");
@@ -182,6 +183,29 @@ function renderActiveTab() {
   if (activeTab === "party") renderParty();
 }
 
+// Menu-driven combat (see engine/combat.js's buildCombatMenu): while
+// state.combat is active, the typed input is replaced entirely by one
+// button per available action — clicking a button runs the exact same
+// command string typed input would have accepted. Nothing about
+// handleInput/combat.js changes; this only changes how the choice reaches
+// it. Re-run after every command (see runCommand's finally block) so the
+// button set always reflects the fight's current state.
+function renderCombatMenu() {
+  const inCombat = bootStage === "playing" && !!(state && state.combat);
+  combatMenuEl.hidden = !inCombat;
+  form.hidden = inCombat;
+  combatMenuEl.innerHTML = "";
+  if (!inCombat) return;
+  buildCombatMenu(state).forEach((opt) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn" + (opt.command === "flee" ? " flee" : "");
+    btn.textContent = opt.label;
+    btn.addEventListener("click", () => runCommand(opt.command, opt.label));
+    combatMenuEl.appendChild(btn);
+  });
+}
+
 function switchTab(tab) {
   activeTab = tab;
   tabButtons.forEach((btn) => {
@@ -313,20 +337,20 @@ async function handleBootInput(raw) {
 
 let gameOver = false;
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+// Shared by both the typed-input form and every combat menu button —
+// `echoText` lets a button echo its human label ("Fight") while sending
+// combat.js's actual command string ("fight") to handleInput underneath.
+async function runCommand(commandText, echoText) {
   if (gameOver) return;
-  const text = input.value;
-  if (!text.trim()) return;
-  printEcho(text);
+  printEcho(echoText != null ? echoText : commandText);
   input.value = "";
   input.disabled = true;
 
   try {
     if (bootStage !== "playing") {
-      await handleBootInput(text);
+      await handleBootInput(commandText);
     } else {
-      const lines = await handleInput(text, state);
+      const lines = await handleInput(commandText, state);
       printLines(lines);
       if (state.health <= 0) {
         print("");
@@ -337,9 +361,18 @@ form.addEventListener("submit", async (e) => {
     }
   } finally {
     renderActiveTab();
-    input.disabled = gameOver;
-    if (!gameOver) input.focus();
+    renderCombatMenu();
+    const inCombat = bootStage === "playing" && !!(state && state.combat);
+    input.disabled = gameOver || inCombat;
+    if (!gameOver && !inCombat) input.focus();
   }
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = input.value;
+  if (!text.trim()) return;
+  await runCommand(text);
 });
 
 boot();
