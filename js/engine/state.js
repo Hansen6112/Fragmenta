@@ -68,6 +68,12 @@ class GameState {
     this.subLocation = null; // key into the current city's `sublocations` (see world.js), null = the city's main square/gate
     this.flags = {};
     this.visited = new Set();
+    // Bestiary ids the player has actually fought — powers the Lore tab's
+    // Enemies category (engine/parser.js's buildLoreMenu), which only
+    // lists a creature once you've encountered it. Populated in
+    // combat.js's startCombat, one entry per distinct creature type
+    // faced (a pack fight can add several at once).
+    this.encounteredCreatures = new Set();
     this.combat = null; // { creatureId, hp, name } when engaged
     this.knownFragments = 0;
     this.reputation = initialReputation(); // factionId -> -100..100, all 0 until a background is applied
@@ -321,6 +327,7 @@ class GameState {
       subLocation: this.subLocation,
       flags: this.flags,
       visited: Array.from(this.visited),
+      encounteredCreatures: Array.from(this.encounteredCreatures),
       knownFragments: this.knownFragments,
       reputation: this.reputation,
       activeJobs: this.activeJobs,
@@ -356,6 +363,10 @@ class GameState {
       s.subLocation = null;
     }
     s.visited = new Set(data.visited || []);
+    // Saves from before the Lore tab's Enemies category existed have no
+    // encounteredCreatures at all — defaults to empty, same as a fresh
+    // game (they just won't see past fights retroactively added).
+    s.encounteredCreatures = new Set(data.encounteredCreatures || []);
     if (Array.isArray(data.equipment)) {
       // Pre-slot save format: return those items to inventory rather than
       // losing them, and start with fresh (empty) slots.

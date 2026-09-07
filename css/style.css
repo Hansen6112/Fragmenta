@@ -122,7 +122,8 @@ body {
 
 #inventory-panel,
 #equipment-panel,
-#party-panel {
+#party-panel,
+#lore-panel {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
@@ -131,7 +132,8 @@ body {
 
 #inventory-panel[hidden],
 #equipment-panel[hidden],
-#party-panel[hidden] {
+#party-panel[hidden],
+#lore-panel[hidden] {
   display: none;
 }
 

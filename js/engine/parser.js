@@ -428,9 +428,12 @@ function buildLocationMenu(state) {
   options.push({ label: "Reputation", command: "reputation" });
   options.push({ label: "Skills", command: "skills" });
   options.push({ label: "Map", command: "map" });
-  options.push({ label: "Lore", command: "lore" });
   options.push({ label: "Save", command: "save" });
   options.push({ label: "Help", command: "help" });
+  // Lore/Codex moved to its own top-level tab (main.js's renderLore) —
+  // browsing by category (Locations/Factions/World & History/Enemies)
+  // reads better as a tab than as a location-menu button, same as
+  // Inventory/Equipment/Party get no Reference-section button either.
 
   return options;
 }
@@ -1511,6 +1514,48 @@ function cmdLore(arg, state) {
   if (!key) return [`Nothing in the codex about "${arg}" yet. Topics: ${topics.join(", ")}`];
   const entry = CODEX[key];
   return [`== ${entry.title} ==`, entry.text];
+}
+
+// Which CODEX keys belong in the Lore tab's "Factions" category (nations,
+// the Kabal, and the two guilds — every political/institutional entity
+// with its own writeup) versus "World & History" (everything more
+// abstract: cosmology, magic itself, languages, rumor). Both categories'
+// entries are always available (none currently carry a `requires` beyond
+// inner_kabal's own isMage gate) — unlike Locations/Enemies below, this
+// is worldbuilding a player can reasonably already know rather than
+// something tied to having been somewhere or fought something.
+const LORE_FACTION_TOPIC_KEYS = ["kabal", "sanguivorum", "vaeloris", "sahrimor", "thraekor", "norrvael", "mugamiir_safor", "magma_hearth"];
+const LORE_WORLD_TOPIC_KEYS = ["cosmology", "magic", "languages", "inner_kabal"];
+
+function codexTopicsFor(keys, state) {
+  return keys
+    .filter((key) => CODEX[key] && codexUnlocked(CODEX[key], state))
+    .map((key) => ({ key, title: CODEX[key].title, text: CODEX[key].text }));
+}
+
+// The Lore tab's four categories (main.js's renderLore) — Locations and
+// Enemies are built fresh from state each time rather than living in
+// CODEX at all, since "which ones" is exactly state.visited/
+// encounteredCreatures, not a fixed list with its own requires gate.
+function loreCategories(state) {
+  const locationTopics = Array.from(state.visited)
+    .map((id) => ({ id, loc: LOCATIONS[id] }))
+    .filter(({ loc }) => loc)
+    .sort((a, b) => a.loc.name.localeCompare(b.loc.name))
+    .map(({ id, loc }) => ({ key: id, title: loc.name, text: loc.description }));
+
+  const enemyTopics = Array.from(state.encounteredCreatures)
+    .map((id) => ({ id, creature: BESTIARY[id] }))
+    .filter(({ creature }) => creature)
+    .sort((a, b) => a.creature.name.localeCompare(b.creature.name))
+    .map(({ id, creature }) => ({ key: id, title: creature.name, text: creature.description }));
+
+  return [
+    { id: "locations", label: "Locations", topics: locationTopics },
+    { id: "factions", label: "Factions", topics: codexTopicsFor(LORE_FACTION_TOPIC_KEYS, state) },
+    { id: "world", label: "World & History", topics: codexTopicsFor(LORE_WORLD_TOPIC_KEYS, state) },
+    { id: "enemies", label: "Enemies", topics: enemyTopics },
+  ];
 }
 
 function describeJobObjective(job) {

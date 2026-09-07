@@ -6,6 +6,7 @@ const logEl = document.getElementById("log");
 const invPanel = document.getElementById("inventory-panel");
 const equipPanel = document.getElementById("equipment-panel");
 const partyPanel = document.getElementById("party-panel");
+const lorePanel = document.getElementById("lore-panel");
 const combatMenuEl = document.getElementById("combat-menu");
 const shopMenuEl = document.getElementById("shop-menu");
 const jobMenuEl = document.getElementById("job-menu");
@@ -49,6 +50,12 @@ let inventoryPanelState = new Map();
 // renderAllyEquipmentList lists whatever's currently in the shared
 // inventory that fits that slot when it is.
 let allyEquipPickerOpen = new Set();
+// Lore tab drill-down (main.js's renderLore): null/null shows the four
+// category buttons; a category id with no topic shows that category's
+// topic list; both set shows one topic's full text. Persists across tab
+// switches, same as inventoryPanelState/allyEquipPickerOpen above.
+let loreCategory = null;
+let loreTopic = null;
 
 function print(text, cls) {
   const p = document.createElement("p");
@@ -670,10 +677,124 @@ function renderSanctuarySection() {
   }
 }
 
+// The Lore tab (see engine/parser.js's loreCategories): a three-level
+// drill-down — categories, then that category's unlocked topics, then
+// one topic's full text — mirroring combat's own stage-based menu (top/
+// target/attack/item) rather than an expand-in-place accordion, since
+// only one topic is ever being read at a time. loreCategory/loreTopic
+// (main.js top-level state) track where the player currently is.
+function renderLore() {
+  lorePanel.innerHTML = "";
+  if (!state) {
+    const empty = document.createElement("p");
+    empty.className = "inv-empty";
+    empty.textContent = "Your journey hasn't begun yet.";
+    lorePanel.appendChild(empty);
+    return;
+  }
+
+  const categories = loreCategories(state);
+
+  const backBtn = (onClick) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn";
+    btn.textContent = "Back";
+    btn.addEventListener("click", onClick);
+    return btn;
+  };
+
+  if (loreCategory) {
+    const cat = categories.find((c) => c.id === loreCategory);
+    if (!cat) {
+      // Stale category id (shouldn't happen — the four are fixed) —
+      // fall back to the top level rather than rendering nothing.
+      loreCategory = null;
+      loreTopic = null;
+      renderLore();
+      return;
+    }
+
+    if (loreTopic) {
+      const topic = cat.topics.find((t) => t.key === loreTopic);
+      if (!topic) {
+        loreTopic = null;
+        renderLore();
+        return;
+      }
+      lorePanel.appendChild(backBtn(() => {
+        loreTopic = null;
+        renderLore();
+      }));
+      const title = document.createElement("p");
+      title.className = "inv-gold";
+      title.textContent = topic.title;
+      lorePanel.appendChild(title);
+      const text = document.createElement("p");
+      text.textContent = topic.text;
+      lorePanel.appendChild(text);
+      return;
+    }
+
+    lorePanel.appendChild(backBtn(() => {
+      loreCategory = null;
+      renderLore();
+    }));
+    const heading = document.createElement("p");
+    heading.className = "inv-gold";
+    heading.textContent = cat.label;
+    lorePanel.appendChild(heading);
+    if (!cat.topics.length) {
+      const empty = document.createElement("p");
+      empty.className = "inv-empty";
+      empty.textContent = "Nothing here yet.";
+      lorePanel.appendChild(empty);
+      return;
+    }
+    const list = document.createElement("div");
+    list.className = "inv-actions";
+    cat.topics.forEach((t) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "combat-menu-btn";
+      btn.textContent = t.title;
+      btn.addEventListener("click", () => {
+        loreTopic = t.key;
+        renderLore();
+      });
+      list.appendChild(btn);
+    });
+    lorePanel.appendChild(list);
+    return;
+  }
+
+  // Top level: one button per category, count included so it's obvious
+  // at a glance whether there's anything new to read.
+  const heading = document.createElement("p");
+  heading.className = "inv-gold";
+  heading.textContent = "Lore & Codex";
+  lorePanel.appendChild(heading);
+  const list = document.createElement("div");
+  list.className = "inv-actions";
+  categories.forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn";
+    btn.textContent = `${cat.label} (${cat.topics.length})`;
+    btn.addEventListener("click", () => {
+      loreCategory = cat.id;
+      renderLore();
+    });
+    list.appendChild(btn);
+  });
+  lorePanel.appendChild(list);
+}
+
 function renderActiveTab() {
   if (activeTab === "inventory") renderInventory();
   if (activeTab === "equipment") renderEquipment();
   if (activeTab === "party") renderParty();
+  if (activeTab === "lore") renderLore();
 }
 
 // Menu-driven combat (see engine/combat.js's buildCombatMenu): while
@@ -1145,6 +1266,7 @@ function switchTab(tab) {
   invPanel.hidden = tab !== "inventory";
   equipPanel.hidden = tab !== "equipment";
   partyPanel.hidden = tab !== "party";
+  lorePanel.hidden = tab !== "lore";
   renderActiveTab();
   // combat/shop/job/choice/location are only ever meant to be shown
   // alongside the Story log — without this, they'd stay visible (renderModals

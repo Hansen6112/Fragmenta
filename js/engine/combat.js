@@ -3271,6 +3271,14 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     calmWatersTurns: 0, // Calm Waters' 2-round window remaining
   };
   wireActiveEnemyProxy(state.combat);
+  // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
+  // creature once actually fought — dynamic creatures (enemy mages) have
+  // no fixed BESTIARY id/species to log, so they're excluded; every real
+  // roster member (including a pack's) counts the moment the fight
+  // starts, win, lose, or flee.
+  enemies.forEach((e) => {
+    if (!e.dynamicCreature) state.encounteredCreatures.add(e.creatureId);
+  });
   // Companion Ability Engine (engine/companion.js): fresh cooldowns/taunt
   // state/once-per-combat flags for any kit-bearing ally, same "doesn't
   // carry over between fights" contract the enemy side already has.
