@@ -367,6 +367,15 @@ body {
   gap: 0.5rem;
 }
 
+/* Unlike the .combat-menu divs (which already have this pairing), #input-form
+   is styled by ID, so the browser's default [hidden]{display:none} loses to
+   the ID selector's own display:flex above without this override — the form
+   was staying visually present (just non-interactive via input.disabled)
+   every time JS set form.hidden during a modal takeover. */
+#input-form[hidden] {
+  display: none;
+}
+
 .prompt {
   color: var(--accent);
   font-weight: bold;
