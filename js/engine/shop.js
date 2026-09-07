@@ -147,13 +147,22 @@ function buyShopItem(state, locId, index, qty) {
 
 // Only ever searches state.inventory, not equipped gear or an ally's own
 // equipment — sell what's actually in the shared pack; unequip/reclaim
-// first if it's worn.
+// first if it's worn. Gated by the current shop's category exactly like
+// buying already is (eligibleShopItems) — a weapons shop won't buy a
+// potion off you any more than it would sell you one. No category (the
+// plain city-level shop, or a "market" sublocation) means no gating,
+// same as it's always meant a generic mixed stock on the buy side.
 function sellInventoryItem(state, needle) {
   const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(needle));
   if (idx < 0) return { ok: false, message: `You aren't carrying "${needle}".` };
   const item = state.inventory[idx];
+  const def = getItemDef(item);
   const price = shopSellPrice(item, state);
   if (price == null) return { ok: false, message: `No shop will buy ${item}.` };
+  const { category } = shopKeyAndCategory(state, state.location);
+  if (category && !SHOP_CATEGORY_SLOTS[category].includes(def.slot)) {
+    return { ok: false, message: `${formatItemLine(item)} isn't something this shop deals in.` };
+  }
   state.inventory.splice(idx, 1);
   state.gold += price;
   return { ok: true, item, price };
@@ -217,13 +226,19 @@ function buildShopMenu(state) {
 
   // One row per distinct item the player's carrying, same aggregation
   // renderItemList (main.js) already uses for the Inventory tab — a
-  // ritual item (shopSellPrice returns null) just doesn't get a Sell row.
+  // ritual item (shopSellPrice returns null) just doesn't get a Sell row,
+  // and neither does anything outside the current shop's category (a
+  // weapons shop's Sell list has no business offering to buy your
+  // potions), matching sellInventoryItem's own gate.
+  const { category: sellCategory } = shopKeyAndCategory(state, state.location);
   const counts = new Map();
   for (const item of state.inventory) counts.set(item, (counts.get(item) || 0) + 1);
   const sellOptions = [];
   for (const [item, count] of counts) {
     const price = shopSellPrice(item, state);
     if (price == null) continue;
+    const def = getItemDef(item);
+    if (sellCategory && !SHOP_CATEGORY_SLOTS[sellCategory].includes(def.slot)) continue;
     sellOptions.push({
       item,
       price,
