@@ -379,7 +379,11 @@ function renderActiveTab() {
 // button set always reflects the fight's current state.
 function renderCombatMenu() {
   const inCombat = bootStage === "playing" && !!(state && state.combat);
-  combatMenuEl.hidden = !inCombat;
+  // These takeover/additive menus are DOM siblings of the tab panels, not
+  // children of the Story log itself — so without the activeTab check they
+  // stay visible (and, for combat/shop/job, fully clickable) underneath
+  // Inventory/Equipment/Party too, floating below whatever that tab shows.
+  combatMenuEl.hidden = !inCombat || activeTab !== "story";
   combatMenuEl.innerHTML = "";
   if (!inCombat) return;
   buildCombatMenu(state).forEach((opt) => {
@@ -421,7 +425,7 @@ function renderShopMenu() {
   }
 
   const inShop = bootStage === "playing" && shopMode;
-  shopMenuEl.hidden = !inShop;
+  shopMenuEl.hidden = !inShop || activeTab !== "story";
   shopMenuEl.innerHTML = "";
   if (!inShop) {
     return;
@@ -535,7 +539,7 @@ function renderJobMenu() {
   }
 
   const inJobs = bootStage === "playing" && jobMode;
-  jobMenuEl.hidden = !inJobs;
+  jobMenuEl.hidden = !inJobs || activeTab !== "story";
   jobMenuEl.innerHTML = "";
   if (!inJobs) {
     return;
@@ -615,7 +619,7 @@ function renderJobMenu() {
 function renderChoiceMenu() {
   const inCombat = bootStage === "playing" && !!(state && state.combat);
   const options = bootStage === "playing" && state && !inCombat ? buildChoiceMenu(state) : null;
-  choiceMenuEl.hidden = !options;
+  choiceMenuEl.hidden = !options || activeTab !== "story";
   choiceMenuEl.innerHTML = "";
   if (!options) {
     return;
@@ -683,7 +687,7 @@ function appendCollapsibleSection(container, id, headingText, items, buildBtn, d
 
 function renderLocationMenu() {
   const show = bootStage === "playing" && !!state && !state.combat && !shopMode && !jobMode && !buildChoiceMenu(state);
-  locationMenuEl.hidden = !show;
+  locationMenuEl.hidden = !show || activeTab !== "story";
   locationMenuEl.innerHTML = "";
   if (!show) return;
   let hiddenSectionId = null;
@@ -800,6 +804,11 @@ function switchTab(tab) {
   equipPanel.hidden = tab !== "equipment";
   partyPanel.hidden = tab !== "party";
   renderActiveTab();
+  // combat/shop/job/choice/location are only ever meant to be shown
+  // alongside the Story log — without this, they'd stay visible (renderModals
+  // is only ever triggered by game actions, not tab clicks) floating below
+  // whichever panel just got switched to.
+  renderModals();
 }
 
 tabButtons.forEach((btn) => {
