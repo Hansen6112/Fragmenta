@@ -413,6 +413,18 @@ function buildLocationMenu(state) {
   const arenaOptions = buildArenaMenu(state);
   if (arenaOptions) options.push(...arenaOptions);
 
+  // Pure reference commands — none location-gated, none needing a
+  // follow-up choice, so a plain button that just runs them is enough;
+  // no dedicated modal like combat/shop/jobs needed for any of these.
+  options.push({ heading: "Reference" });
+  options.push({ label: "Status", command: "status" });
+  options.push({ label: "Quests", command: "quests" });
+  options.push({ label: "Reputation", command: "reputation" });
+  options.push({ label: "Skills", command: "skills" });
+  options.push({ label: "Map", command: "map" });
+  options.push({ label: "Lore", command: "lore" });
+  options.push({ label: "Save", command: "save" });
+
   return options;
 }
 
