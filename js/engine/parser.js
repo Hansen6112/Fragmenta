@@ -408,6 +408,11 @@ function buildLocationMenu(state) {
   const guildHere = GUILD_HQ[state.location] && hasService(state, "guild");
   if (loc.isCity || guildHere) options.push({ label: "Jobs", command: "board" });
 
+  // The Grand Ovum's own fight-type picker (arena.js's buildArenaMenu) —
+  // only ever non-null standing there as a signed-on participant.
+  const arenaOptions = buildArenaMenu(state);
+  if (arenaOptions) options.push(...arenaOptions);
+
   return options;
 }
 

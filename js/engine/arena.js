@@ -398,6 +398,39 @@ function cmdArena(arg, state) {
   return startArenaFight(state, ARENA_FIGHT_TYPE_ALIASES[a]);
 }
 
+// Structured {label, command} pairs for the Grand Ovum's fight-type
+// picker — same shape as every other buildXMenu, and same reasoning:
+// command is the exact "fight <type>"/"fight champion" string cmdArena
+// already accepts, so nothing about startArenaFight/startHadrianDuel
+// changes. Only ever returns non-null standing in the Grand Ovum itself
+// as a signed-on participant — everywhere else there's nothing to show,
+// matching cmdArena's own two gates. The Champion summons itself isn't
+// listed here at all: once it's actually answerable, buildChoiceMenu
+// already covers the recruit/decline decision that follows winning it,
+// and the summons message itself (maybeArenaRankUp) tells the player
+// to say the word — this is just the ordinary fight-type menu.
+function buildArenaMenu(state) {
+  if (state.location !== "zuevaron" || state.subLocation !== "grandOvum") return null;
+  if (!state.arena.participant) return null;
+
+  const rankInfo = arenaRankInfo(state);
+  const options = [
+    { heading: `Ovum rank: ${rankInfo.name}${state.arena.streak > 0 ? ` — ${state.arena.streak}-win streak` : ""}` },
+    { label: "Fight: Duel", command: "fight duel" },
+    { label: "Fight: Team", command: "fight team" },
+    { label: "Fight: Beast", command: "fight beast" },
+    { label: "Fight: Death Match", command: "fight deathmatch" },
+    { label: "Fight: Tournament", command: "fight tournament" },
+  ];
+
+  const championResolved = hadrianFullyResolved(state);
+  if (!championResolved && !state.flags.hadrianOfferPending && (rankInfo.id === "crimson" || state.arena.championDefeated)) {
+    options.push({ label: "Fight: The Champion", command: "fight champion" });
+  }
+
+  return options;
+}
+
 // engine/parser.js's cmdTalk gate, following maybeTalkToKessa's exact
 // shape: returns null (falls through to the generic talk handler) unless
 // the player is actually at the Grand Ovum. Unlike Kessa (one NPC among
