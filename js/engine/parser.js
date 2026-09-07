@@ -15,7 +15,6 @@ const VERB_SYNONYMS = {
   equip: ["equip", "wear", "wield"],
   unequip: ["unequip", "unwear", "unwield", "remove"],
   equipment: ["equipment", "gear", "worn"],
-  examine: ["examine", "x", "inspect", "study"],
   talk: ["talk", "speak", "ask", "greet"],
   rest: ["rest"],
   sleep: ["sleep", "camp"],
@@ -149,8 +148,6 @@ async function handleInput(rawInput, state) {
       return cmdUnequip(arg, state);
     case "equipment":
       return cmdEquipment(state);
-    case "examine":
-      return cmdExamine(arg, state);
     case "talk":
       return cmdTalk(arg, state);
     case "rest":
@@ -228,7 +225,7 @@ async function handleInput(rawInput, state) {
       if (hadrianDecline) return hadrianDecline;
       const fallen = findDeadAllyPendingChoice(state, arg);
       if (fallen) return cmdLeaveAllyBody(fallen, state);
-      return await generateOpenResponse(input, state);
+      return ["There's nothing here to leave."];
     }
     case "decline": {
       const hadrianDecline = declineHadrianOffer(state);
@@ -254,7 +251,7 @@ async function handleInput(rawInput, state) {
       state.save();
       return ["Game saved."];
     default:
-      return await generateOpenResponse(input, state);
+      return ["That's not a command this world responds to. Everything here is menu- or button-driven — check what's available to you."];
   }
 }
 
@@ -1074,29 +1071,6 @@ function buildSanctuaryInfo(state) {
   };
 }
 
-function cmdExamine(arg, state) {
-  if (arg === "self" || arg === "me") {
-    return [`You are ${state.playerName}, day ${state.day} of a journey you didn't fully choose. Health ${state.health}/${state.maxHealth}, ${state.gold} gold.`];
-  }
-  const place = state.currentPlace();
-  const placeName = ((place && place.name) || "").toLowerCase();
-  if (!arg || arg === "here" || arg === "location" || arg === "area" || (placeName && placeName.includes(arg))) {
-    return [place ? place.description : state.currentLocation().description];
-  }
-  const loc = state.currentLocation();
-  if (loc.sublocations) {
-    const subId = findSublocationByName(loc, arg);
-    if (subId && subId !== state.subLocation) {
-      return [`You'd have to go there yourself to get a good look. Try 'enter ${loc.sublocations[subId].name}'.`];
-    }
-  }
-  const invItem = state.inventory.find((i) => i.toLowerCase().includes(arg));
-  if (invItem) return [`Just ${invItem}. Nothing more to it, for now.`];
-  const nation = getNation(loc.nation);
-  if (nation.name.toLowerCase().includes(arg)) return [nation.blurb];
-  return generateOpenResponse("examine " + arg, state);
-}
-
 // Kessa's recruitment gate: a quest, not a stat check — found at a
 // specific location (Arethon, a hub city on the war front, fitting for a
 // mercenary passing through), talked to by name, and earned by proving
@@ -1761,7 +1735,7 @@ function exploreOutcome(state) {
 function cmdHelp() {
   return [
     "Commands: look, go <place>, map, inventory, drop <item>,",
-    "equip <item>, unequip <item>, equipment, examine <thing>, talk [to whom],",
+    "equip <item>, unequip <item>, equipment, talk [to whom],",
     "rest, sleep, status (or level), explore,",
     "lore [topic], quests, reputation, fight, flee, save, help.",
     "Time passes as you act (talking, exploring, buying, fighting, ...) —",
@@ -1799,7 +1773,8 @@ function cmdHelp() {
     "through Crimson); every type but Death Match is non-lethal — a loss",
     "just ends the match, never the game. Reach Crimson and 'fight champion'",
     "unlocks a shot at the Ovum's Champion; beat him and he'll join you.",
-    "You can also just type what you want to do in plain English — the",
-    "world will do its best to make sense of it.",
+    "Almost everything above also has its own button in the interface —",
+    "typing it out by hand is never required except for naming things",
+    "and answering the shop's 'how many?' prompt.",
   ];
 }
