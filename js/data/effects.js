@@ -310,10 +310,6 @@ const EFFECT_DEFS = {
   avatar_of_time: { name: "Avatar of Time", category: "set", description: "Regalia of the Eternal Hour (6pc). Once per combat, the first time you drop below 25% Health: all cooldowns are zeroed immediately, and for 3 rounds (the only 'Avatar of X' whose own source text specifies a duration other than 4), every attack deals +25% damage, buff durations don't decay, and new Ability/Tactic cooldowns cost 0. Its 'debuff durations decrease twice as fast' clause is inert (no debuffs exist on the player side) and 'cannot be Stunned' is trivially already true (no player-stun mechanic exists at all). Its 'cooldowns resume from whatever they'd have naturally reached' clause is simplified to 'cooldowns simply remain at 0' — reconstructing a parallel shadow-cooldown ledger for this one edge case would be a bespoke tracking system disproportionate to the payoff, a documented simplification that slightly favors the player." },
 };
 
-function getEffectDef(effectId) {
-  return EFFECT_DEFS[effectId] || null;
-}
-
 // Whether any currently-equipped item carries the given effect id. Boolean
 // presence only — see file header on why this never "stacks" by count.
 function hasEffect(state, effectId) {
