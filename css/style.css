@@ -199,6 +199,25 @@ body {
   border-bottom: none;
 }
 
+/* Rows carrying their own action buttons (Inventory/Equipment tabs)
+   stack the name/value line above the buttons instead of the plain
+   flex-row every other list item uses. */
+.inv-list li.inv-row {
+  display: block;
+}
+
+.inv-row-main {
+  display: flex;
+  justify-content: space-between;
+}
+
+.inv-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
 .inv-count {
   color: var(--text-dim);
 }

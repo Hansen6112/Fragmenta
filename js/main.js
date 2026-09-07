@@ -45,8 +45,12 @@ function printEcho(text) {
 
 // Item names are stored as plain repeated strings (see cmdTake/cmdEquip);
 // every item panel aggregates matching names into a count instead of
-// listing duplicates as separate rows.
-function renderItemList(panel, items, emptyText) {
+// listing duplicates as separate rows. `actionsForItem`, when given,
+// appends one button per {label, command} it returns for that item —
+// clicking one runs the exact command string equip/unequip/drop/give/use
+// already accept from typed input (same command-string reuse as combat's
+// buildCombatMenu), so no parser changes were needed for this phase.
+function renderItemList(panel, items, emptyText, actionsForItem) {
   panel.innerHTML = "";
   if (!items || items.length === 0) {
     const empty = document.createElement("p");
@@ -63,25 +67,68 @@ function renderItemList(panel, items, emptyText) {
   list.className = "inv-list";
   for (const [item, count] of counts) {
     const li = document.createElement("li");
+    li.className = "inv-row";
+    const row = document.createElement("div");
+    row.className = "inv-row-main";
     const name = document.createElement("span");
     name.textContent = formatItemLine(item);
-    li.appendChild(name);
+    row.appendChild(name);
     if (count > 1) {
       const badge = document.createElement("span");
       badge.className = "inv-count";
       badge.textContent = `x${count}`;
-      li.appendChild(badge);
+      row.appendChild(badge);
+    }
+    li.appendChild(row);
+    const actions = actionsForItem ? actionsForItem(item) : [];
+    if (actions.length) {
+      const actionRow = document.createElement("div");
+      actionRow.className = "inv-actions";
+      actions.forEach((a) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "combat-menu-btn";
+        btn.textContent = a.label;
+        btn.addEventListener("click", () => runCommand(a.command, a.label));
+        actionRow.appendChild(btn);
+      });
+      li.appendChild(actionRow);
     }
     list.appendChild(li);
   }
   panel.appendChild(list);
 }
 
+// Equip is only offered for real gear (cmdEquip rejects consumable/
+// ritual slots the same way); Give mirrors cmdGive's own "consumables
+// stay in the shared pack" rule, so it only appears alongside Equip too.
+// Drop always applies.
+function actionsForInventoryItem(item) {
+  const actions = [];
+  const def = getItemDef(item);
+  const slot = def ? def.slot : inferEquipSlot(item);
+  if (slot === "consumable") {
+    actions.push({ label: "Use", command: `use ${item}` });
+  } else if (slot && EQUIP_SLOTS.includes(slot)) {
+    actions.push({ label: "Equip", command: `equip ${item}` });
+    state.party.filter((a) => a.alive).forEach((a) => {
+      actions.push({ label: `Give: ${a.name}`, command: `give ${item} to ${a.name}` });
+    });
+  }
+  actions.push({ label: "Drop", command: `drop ${item}` });
+  return actions;
+}
+
 function renderInventory() {
   const gold = document.createElement("p");
   gold.className = "inv-gold";
   gold.textContent = `Gold: ${state ? state.gold : 0}`;
-  renderItemList(invPanel, state ? state.inventory : [], state ? "You're carrying nothing." : "Your journey hasn't begun yet.");
+  renderItemList(
+    invPanel,
+    state ? state.inventory : [],
+    state ? "You're carrying nothing." : "Your journey hasn't begun yet.",
+    state ? actionsForInventoryItem : null
+  );
   invPanel.insertBefore(gold, invPanel.firstChild);
 }
 
@@ -101,16 +148,35 @@ function renderEquipment() {
   list.className = "inv-list";
   for (const slot of EQUIP_SLOTS) {
     const li = document.createElement("li");
+    li.className = "inv-row";
+    const row = document.createElement("div");
+    row.className = "inv-row-main";
     const label = document.createElement("span");
     label.className = "equip-slot-label";
     label.textContent = EQUIP_SLOT_LABELS[slot];
-    li.appendChild(label);
+    row.appendChild(label);
 
     const value = document.createElement("span");
     const filled = slot === "trinkets" ? state.equipment.trinkets : (state.equipment[slot] ? [state.equipment[slot]] : []);
     value.textContent = filled.length ? filled.map(formatItemLine).join("; ") : "(empty)";
     value.className = filled.length ? "equip-slot-value" : "equip-slot-value inv-empty";
-    li.appendChild(value);
+    row.appendChild(value);
+    li.appendChild(row);
+
+    if (filled.length) {
+      const actionRow = document.createElement("div");
+      actionRow.className = "inv-actions";
+      filled.forEach((item) => {
+        const label = filled.length > 1 ? `Unequip: ${item}` : "Unequip";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "combat-menu-btn";
+        btn.textContent = label;
+        btn.addEventListener("click", () => runCommand(`unequip ${item}`, label));
+        actionRow.appendChild(btn);
+      });
+      li.appendChild(actionRow);
+    }
 
     list.appendChild(li);
   }
