@@ -9,6 +9,7 @@ const partyPanel = document.getElementById("party-panel");
 const combatMenuEl = document.getElementById("combat-menu");
 const shopMenuEl = document.getElementById("shop-menu");
 const jobMenuEl = document.getElementById("job-menu");
+const choiceMenuEl = document.getElementById("choice-menu");
 const locationMenuEl = document.getElementById("location-menu");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
@@ -383,6 +384,16 @@ function renderCombatMenu() {
   combatMenuEl.innerHTML = "";
   if (!inCombat) return;
   buildCombatMenu(state).forEach((opt) => {
+    // A pending choice (buildChoiceMenu) can be prepended here with its
+    // own {heading} divider — same handling as the shop/job/location
+    // menus already give one.
+    if (opt.heading) {
+      const h = document.createElement("p");
+      h.className = "shop-heading";
+      h.textContent = opt.heading;
+      combatMenuEl.appendChild(h);
+      return;
+    }
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "combat-menu-btn" + (opt.command === "flee" ? " flee" : "");
@@ -558,15 +569,52 @@ function renderJobMenu() {
   jobMenuEl.appendChild(leave);
 }
 
+// Menu-driven one-time choices (see engine/parser.js's buildChoiceMenu)
+// — Soul Ledger/Conduit Ascendant/Level 15's stat-or-element pick, and
+// Hadrian's recruit/decline offer. Unlike shopMode/jobMode there's no
+// button that "enters" this — it's auto-detected from state.flags every
+// render, the same way combat itself is, since these arise as a side
+// effect of leveling or winning a fight rather than a deliberate typed
+// command. The in-combat version of this same data is prepended into
+// buildCombatMenu instead (combat.js) rather than shown here, so this
+// only ever appears outside a fight.
+function renderChoiceMenu() {
+  const inCombat = bootStage === "playing" && !!(state && state.combat);
+  const options = bootStage === "playing" && state && !inCombat ? buildChoiceMenu(state) : null;
+  choiceMenuEl.hidden = !options;
+  choiceMenuEl.innerHTML = "";
+  if (!options) {
+    form.hidden = false;
+    return;
+  }
+  form.hidden = true;
+  options.forEach((opt) => {
+    if (opt.heading) {
+      const h = document.createElement("p");
+      h.className = "shop-heading";
+      h.textContent = opt.heading;
+      choiceMenuEl.appendChild(h);
+      return;
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn";
+    btn.textContent = opt.label;
+    btn.addEventListener("click", () => runCommand(opt.command, opt.label));
+    choiceMenuEl.appendChild(btn);
+  });
+}
+
 // Menu-driven base actions (see engine/parser.js's buildLocationMenu) —
 // travel/explore/talk/rest/sleep/heal/shop-entry as buttons. Unlike
 // combat/shop, this is ADDITIVE: it never touches form.hidden or
 // input.disabled itself, since plenty of systems (equip, quests,
 // sanctuary, tactics, give/reclaim, save, ...) have no menu equivalent
 // yet and still need the typed input reachable underneath. Hidden
-// entirely whenever combat or the shop/job menu has taken the input over.
+// entirely whenever combat, the shop/job menu, or a pending choice has
+// taken the input over.
 function renderLocationMenu() {
-  const show = bootStage === "playing" && !!state && !state.combat && !shopMode && !jobMode;
+  const show = bootStage === "playing" && !!state && !state.combat && !shopMode && !jobMode && !buildChoiceMenu(state);
   locationMenuEl.hidden = !show;
   locationMenuEl.innerHTML = "";
   if (!show) return;
@@ -594,19 +642,23 @@ function renderModals() {
   renderCombatMenu();
   renderShopMenu();
   renderJobMenu();
+  renderChoiceMenu();
   renderLocationMenu();
   syncInputEnabled();
 }
 
 // Whether the input box should currently be off-limits to typing — true
-// during combat, true while the job-board menu is showing, and true
-// while shop buttons are showing (but NOT while pendingBuy's quantity
-// prompt is up, which is the one approved moment).
+// during combat, true while the job-board menu is showing, true while
+// shop buttons are showing (but NOT while pendingBuy's quantity prompt
+// is up, which is the one approved moment), and true while a stand-alone
+// pending-choice menu is up (never true for the in-combat version of
+// that same choice, which is just more combat-menu buttons).
 function inputBlocked() {
   const inCombat = bootStage === "playing" && !!(state && state.combat);
   const inShopMenu = bootStage === "playing" && shopMode && !pendingBuy;
   const inJobMenu = bootStage === "playing" && jobMode;
-  return inCombat || inShopMenu || inJobMenu;
+  const inChoiceMenu = bootStage === "playing" && !inCombat && !!(state && buildChoiceMenu(state));
+  return inCombat || inShopMenu || inJobMenu || inChoiceMenu;
 }
 
 // Every button handler that isn't routed through runCommand (combat's own

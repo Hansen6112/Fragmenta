@@ -1399,6 +1399,56 @@ function cmdChoose(arg, state) {
   return [`You've bent your will to a second discipline: ${ELEMENTS[key].name}. Your strikes will now draw from both, unpredictably.`];
 }
 
+// Structured {label, command} pairs (plus {heading} dividers) for every
+// kind of pending one-time decision the game can put in front of the
+// player — Soul Ledger/Conduit Ascendant/Level 15's own three cmdChoose
+// branches, plus Hadrian's recruit/decline offer (a different command
+// entirely, but the same "here's a decision, pick one" shape). Checked
+// in the same priority cmdChoose itself would resolve them in; null
+// means nothing's currently pending. Used both by main.js's own
+// stand-alone choice modal (outside combat) and prepended into
+// buildCombatMenu (combat.js) so a choice arising mid-fight — e.g.
+// leveling to 15 off a kill — is never stranded behind a hidden input.
+function buildChoiceMenu(state) {
+  if (state.flags.pendingSoulLedgerChoice) {
+    return [
+      { heading: "Soul Ledger — choose a permanent gift" },
+      { label: "+1 Max Health", command: "choose health" },
+      { label: "+1 Magic", command: "choose magic" },
+      { label: "+1 Defense", command: "choose defense" },
+    ];
+  }
+  if (state.flags.pendingConduitAscendantChoice) {
+    const options = [{ heading: "Conduit Ascendant — open a third discipline" }];
+    Object.keys(ELEMENTS).forEach((key) => {
+      if (key !== state.primaryElement && key !== state.secondaryElement) {
+        options.push({ label: ELEMENTS[key].name, command: `choose ${key}` });
+      }
+    });
+    return options;
+  }
+  if (state.flags.pendingLevel15Choice) {
+    const options = [
+      { heading: "A turning point — choose your path" },
+      { label: `Deepen ${ELEMENTS[state.primaryElement].name} (+6 Magic permanently)`, command: "choose boost" },
+    ];
+    Object.keys(ELEMENTS).forEach((key) => {
+      if (key !== state.primaryElement) {
+        options.push({ label: `Open ${ELEMENTS[key].name}`, command: `choose ${key}` });
+      }
+    });
+    return options;
+  }
+  if (state.flags.hadrianOfferPending || state.flags.hadrianThalvoraOfferPending) {
+    return [
+      { heading: "Hadrian offers to join you" },
+      { label: "Recruit Hadrian", command: "recruit hadrian" },
+      { label: "Decline", command: "decline hadrian" },
+    ];
+  }
+  return null;
+}
+
 function codexUnlocked(entry, state) {
   return !entry.requires || !!state.flags[entry.requires];
 }

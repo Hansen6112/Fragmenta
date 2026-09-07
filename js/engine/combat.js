@@ -2915,6 +2915,16 @@ function buildCombatMenu(state) {
   const creature = getCombatCreature(state);
   const options = [];
 
+  // A pending one-time choice (parser.js's buildChoiceMenu — e.g.
+  // leveling to 15 off the kill that started this very fight) is
+  // prepended rather than replacing the fight's own options: "choose" is
+  // explicitly allowed mid-combat (handleInput's own combat-priority
+  // whitelist), and nothing about it forces resolution before the next
+  // attack — so don't strand the player behind a hidden input with no
+  // way to answer it, but don't block Fight/Flee on it either.
+  const pendingChoice = buildChoiceMenu(state);
+  if (pendingChoice) options.push(...pendingChoice);
+
   // Friendly (non-hostile) encounters get their own two-option menu —
   // same branch handleInput() already special-cases.
   if (creature.friendly) {
