@@ -289,6 +289,20 @@ body {
   font-weight: bold;
 }
 
+.shop-heading:not(:first-child) {
+  margin-top: 0.5rem;
+}
+
+/* Additive (not a modal takeover like combat/shop) — the typed input
+   stays usable right below it, so this stays visually quieter and caps
+   its own height rather than pushing the input off-screen at a big city
+   with dozens of sublocations. */
+.location-menu {
+  max-height: 9rem;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.08);
+}
+
 #input-form {
   display: flex;
   align-items: center;

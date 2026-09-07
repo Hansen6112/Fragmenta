@@ -341,6 +341,70 @@ function cmdGo(arg, state) {
   return executeTravel(state, result.path, result.days);
 }
 
+// Structured {label, command} pairs (plus {heading} divider entries) for
+// the base location menu — same shape as combat.js's buildCombatMenu:
+// command is the exact string handleInput() already accepts, so nothing
+// about cmdGo/cmdExplore/cmdTalk changes, only how the choice reaches
+// them. Unlike combat/shop's own modal takeover, this is ADDITIVE — the
+// typed input stays available underneath, since plenty of systems
+// (equip, quests, sanctuary, tactics, give/reclaim, ...) don't have a
+// menu equivalent yet and would otherwise become unreachable.
+function buildLocationMenu(state) {
+  if (state.combat) return [];
+  const loc = state.currentLocation();
+  const place = state.currentSublocation();
+  const options = [];
+
+  options.push({ label: "Look", command: "look" });
+
+  if (place) {
+    options.push({ label: `Go: Back to ${loc.name}`, command: "go back" });
+    const others = Object.values(loc.sublocations).filter((s) => s !== place);
+    if (others.length) {
+      options.push({ heading: "Other Places" });
+      others.forEach((s) => options.push({ label: `Go: ${s.name}`, command: `go ${s.name}` }));
+    }
+  } else {
+    if (loc.connections.length) {
+      options.push({ heading: "Travel" });
+      loc.connections.forEach((c) => {
+        const dest = LOCATIONS[c.to];
+        options.push({ label: `Go: ${dest.name} (${c.days} day${c.days === 1 ? "" : "s"})`, command: `go ${dest.name}` });
+      });
+    }
+    if (loc.sublocations) {
+      // Grouped by district, same as cmdLook's own "Around the city:"
+      // breakdown — a heading divider per district rather than one flat
+      // wall of buttons (Zuevaron alone has dozens of sublocations).
+      const byDistrict = new Map();
+      for (const s of Object.values(loc.sublocations)) {
+        const key = s.district || "Around Town";
+        if (!byDistrict.has(key)) byDistrict.set(key, []);
+        byDistrict.get(key).push(s);
+      }
+      for (const [district, spots] of byDistrict) {
+        options.push({ heading: district });
+        spots.forEach((s) => options.push({ label: `Go: ${s.name}`, command: `go ${s.name}` }));
+      }
+    }
+  }
+
+  options.push({ heading: "Actions" });
+  options.push({ label: "Explore", command: "explore" });
+  options.push({ label: "Talk", command: "talk" });
+
+  const active = place || loc;
+  const services = effectiveServices(active);
+  if (services.includes("rest")) {
+    options.push({ label: "Rest", command: "rest" });
+    options.push({ label: "Sleep", command: "sleep" });
+  }
+  if (services.includes("healer")) options.push({ label: "Heal", command: "heal" });
+  if (services.includes("shop")) options.push({ label: "Shop", command: "shop" });
+
+  return options;
+}
+
 // The Bruise-hunted mechanic: the Kabal's reach is strongest at its own
 // territory, in Sanguivorum (its closest ally), and anywhere with an
 // institutional ("guild") presence. Only ever fires for state.flags.wanted.
@@ -973,9 +1037,22 @@ function cmdExamine(arg, state) {
 // gates instead, per the original design. Returns null (falls through to
 // the generic cmdTalk below) unless arg actually references her by name.
 const KESSA_LOCATION = "arethon";
+// Bare "talk" (no name given) still resolves to Kessa specifically once
+// she's the reason to be at Arethon at all — same reasoning as
+// maybeTalkToGameMaster's own bare-arg fallback (engine/arena.js): a
+// single "Talk" button has no way to type a name, so the one NPC actually
+// worth talking to here has to be reachable without one.
 function maybeTalkToKessa(arg, state) {
   const a = (arg || "").toLowerCase();
-  if (!a.includes("kessa")) return null;
+  if (!a) {
+    // Bare "talk" (a single "Talk" button has no way to type a name)
+    // only resolves to Kessa while actually at Arethon — everywhere else
+    // it should fall through to the generic handler exactly as if her
+    // name was never mentioned at all.
+    if (state.location !== KESSA_LOCATION) return null;
+  } else if (!a.includes("kessa")) {
+    return null;
+  }
   if (state.party.some((p) => p.defId === "kessa" && p.alive)) {
     return ["Kessa's already at your side. No need to introduce yourselves twice."];
   }

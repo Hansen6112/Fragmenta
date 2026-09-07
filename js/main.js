@@ -8,6 +8,7 @@ const equipPanel = document.getElementById("equipment-panel");
 const partyPanel = document.getElementById("party-panel");
 const combatMenuEl = document.getElementById("combat-menu");
 const shopMenuEl = document.getElementById("shop-menu");
+const locationMenuEl = document.getElementById("location-menu");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
 const input = document.getElementById("input");
@@ -267,8 +268,7 @@ function renderShopMenu() {
     cancel.textContent = "Cancel";
     cancel.addEventListener("click", () => {
       pendingBuy = null;
-      renderShopMenu();
-      syncInputEnabled();
+      renderModals();
     });
     shopMenuEl.appendChild(cancel);
     input.placeholder = `how many? (1-${pendingBuy.remaining})`;
@@ -291,8 +291,7 @@ function renderShopMenu() {
     btn.addEventListener("click", () => {
       if (opt.remaining > 1) {
         pendingBuy = opt;
-        renderShopMenu();
-        syncInputEnabled();
+        renderModals();
       } else {
         resolveBuy(opt.index, 1);
       }
@@ -316,10 +315,48 @@ function renderShopMenu() {
   leave.addEventListener("click", () => {
     shopMode = false;
     print("You step away from the counter.", "system");
-    renderShopMenu();
-    syncInputEnabled();
+    renderModals();
   });
   shopMenuEl.appendChild(leave);
+}
+
+// Menu-driven base actions (see engine/parser.js's buildLocationMenu) —
+// travel/explore/talk/rest/sleep/heal/shop-entry as buttons. Unlike
+// combat/shop, this is ADDITIVE: it never touches form.hidden or
+// input.disabled itself, since plenty of systems (equip, quests,
+// sanctuary, tactics, give/reclaim, save, ...) have no menu equivalent
+// yet and still need the typed input reachable underneath. Hidden
+// entirely whenever combat or the shop menu has taken the input over.
+function renderLocationMenu() {
+  const show = bootStage === "playing" && !!state && !state.combat && !shopMode;
+  locationMenuEl.hidden = !show;
+  locationMenuEl.innerHTML = "";
+  if (!show) return;
+  buildLocationMenu(state).forEach((opt) => {
+    if (opt.heading) {
+      const h = document.createElement("p");
+      h.className = "shop-heading";
+      h.textContent = opt.heading;
+      locationMenuEl.appendChild(h);
+      return;
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn";
+    btn.textContent = opt.label;
+    btn.addEventListener("click", () => runCommand(opt.command, opt.label));
+    locationMenuEl.appendChild(btn);
+  });
+}
+
+// Single call site for every modal render + input-enable sync, so no
+// caller can update one without the others (renderShopMenu leaving shop
+// mode, say, without also bringing renderLocationMenu back).
+function renderModals() {
+  renderCombatMenu();
+  renderShopMenu();
+  renderLocationMenu();
+  syncInputEnabled();
 }
 
 // Whether the input box should currently be off-limits to typing — true
@@ -352,8 +389,7 @@ function resolveBuy(index, qty) {
     print(result.message, "system");
   }
   renderActiveTab();
-  renderShopMenu();
-  syncInputEnabled();
+  renderModals();
 }
 
 function resolveSell(item) {
@@ -366,8 +402,7 @@ function resolveSell(item) {
     print(result.message, "system");
   }
   renderActiveTab();
-  renderShopMenu();
-  syncInputEnabled();
+  renderModals();
 }
 
 function switchTab(tab) {
@@ -533,9 +568,7 @@ async function runCommand(commandText, echoText) {
     }
   } finally {
     renderActiveTab();
-    renderCombatMenu();
-    renderShopMenu();
-    syncInputEnabled();
+    renderModals();
   }
 }
 
@@ -551,8 +584,7 @@ form.addEventListener("submit", async (e) => {
     pendingBuy = null;
     if (!n || n < 1) {
       print(`"${text}" isn't a valid quantity.`, "system");
-      renderShopMenu();
-      input.focus();
+      renderModals();
       return;
     }
     resolveBuy(buy.index, n);
