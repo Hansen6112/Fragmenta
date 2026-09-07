@@ -73,7 +73,7 @@ function printEcho(text) {
   print(text, "echo");
 }
 
-// Item names are stored as plain repeated strings (see cmdTake/cmdEquip);
+// Item names are stored as plain repeated strings (see cmdEquip);
 // every item panel aggregates matching names into a count instead of
 // listing duplicates as separate rows. `actionsForItem`, when given,
 // appends one button per {label, command} it returns for that item —

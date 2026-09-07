@@ -11,7 +11,6 @@ const VERB_SYNONYMS = {
   map: ["map", "atlas", "locations"],
   places: ["places", "nearby"],
   inventory: ["inventory", "i", "inv", "items"],
-  take: ["take", "get", "grab", "pickup", "pick"],
   drop: ["drop", "discard"],
   equip: ["equip", "wear", "wield"],
   unequip: ["unequip", "unwear", "unwield", "remove"],
@@ -142,8 +141,6 @@ async function handleInput(rawInput, state) {
       return cmdPlaces(state);
     case "inventory":
       return cmdInventory(state);
-    case "take":
-      return cmdTake(arg, state);
     case "drop":
       return cmdDrop(arg, state);
     case "equip":
@@ -617,29 +614,16 @@ function cmdInventory(state) {
   return ["You are carrying:", ...state.inventory.map((i) => `  - ${i}`), `Gold: ${state.gold}`];
 }
 
-function cmdTake(arg, state) {
-  if (!arg) return ["Take what?"];
-  const loc = state.currentLocation();
-  if (loc.items && loc.items.length) {
-    const idx = loc.items.findIndex((i) => i.toLowerCase().includes(arg));
-    if (idx >= 0) {
-      const item = loc.items.splice(idx, 1)[0];
-      state.inventory.push(item);
-      return [`You take ${item}.`];
-    }
-  }
-  return [`There's no "${arg}" here to take.`];
-}
-
+// Final — nothing puts a dropped item anywhere it could ever be picked
+// back up (there's no "take" any more; see below for why). Matches the
+// Inventory tab's own Drop confirmation, which already warns exactly
+// that.
 function cmdDrop(arg, state) {
   if (!arg) return ["Drop what?"];
   const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(arg));
   if (idx < 0) return [`You aren't carrying "${arg}".`];
   const item = state.inventory.splice(idx, 1)[0];
-  const loc = state.currentLocation();
-  loc.items = loc.items || [];
-  loc.items.push(item);
-  return [`You leave ${item} behind.`];
+  return [`You drop ${item}. It's gone for good.`];
 }
 
 function cmdEquipment(state) {
@@ -1776,7 +1760,7 @@ function exploreOutcome(state) {
 
 function cmdHelp() {
   return [
-    "Commands: look, go <place>, map, inventory, take <item>, drop <item>,",
+    "Commands: look, go <place>, map, inventory, drop <item>,",
     "equip <item>, unequip <item>, equipment, examine <thing>, talk [to whom],",
     "rest, sleep, status (or level), explore,",
     "lore [topic], quests, reputation, fight, flee, save, help.",
