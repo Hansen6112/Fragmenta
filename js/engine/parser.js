@@ -1011,6 +1011,36 @@ function cmdRevive(arg, state) {
   return ally ? lines : [`Something went wrong bringing ${fallen.name} back.`];
 }
 
+// Structured data for the Party tab's Sanctuary section (main.js) —
+// mirrors cmdSanctuary/cmdAttemptRite/cmdRevive's own availability
+// checks exactly, so a disabled button here means the underlying
+// command would have refused too, never a UI-only guess.
+function buildSanctuaryInfo(state) {
+  const canAttemptRite =
+    !state.flags.riteOfSecondBreathComplete &&
+    state.level >= RITE_OF_SECOND_BREATH_LEVEL_REQ &&
+    state.inventory.some((i) => {
+      const def = getItemDef(i);
+      return def && def.tier >= 3;
+    });
+  const hasRevivalMethod =
+    state.flags.riteOfSecondBreathComplete ||
+    state.inventory.some((i) => {
+      const def = getItemDef(i);
+      return def && def.revives;
+    }) ||
+    state.divineFavor >= DIVINE_FAVOR_REVIVAL_THRESHOLD;
+  return {
+    divineFavor: state.divineFavor,
+    favorThreshold: DIVINE_FAVOR_REVIVAL_THRESHOLD,
+    riteComplete: state.flags.riteOfSecondBreathComplete,
+    riteLevelReq: RITE_OF_SECOND_BREATH_LEVEL_REQ,
+    canAttemptRite,
+    hasRevivalMethod,
+    fallenAllies: state.fallenAllies.map((f) => ({ name: f.name, diedDay: f.diedDay })),
+  };
+}
+
 function cmdExamine(arg, state) {
   if (arg === "self" || arg === "me") {
     return [`You are ${state.playerName}, day ${state.day} of a journey you didn't fully choose. Health ${state.health}/${state.maxHealth}, ${state.gold} gold.`];

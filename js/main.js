@@ -211,12 +211,18 @@ function renderEquipment() {
 // combat via typed command still shows up here immediately.
 function renderParty() {
   partyPanel.innerHTML = "";
-  if (!state || !state.party.length) {
+  if (!state) {
     const empty = document.createElement("p");
     empty.className = "inv-empty";
-    empty.textContent = state ? "You travel alone for now." : "Your journey hasn't begun yet.";
+    empty.textContent = "Your journey hasn't begun yet.";
     partyPanel.appendChild(empty);
     return;
+  }
+  if (!state.party.length) {
+    const empty = document.createElement("p");
+    empty.className = "inv-empty";
+    empty.textContent = "You travel alone for now.";
+    partyPanel.appendChild(empty);
   }
   for (const ally of state.party) {
     const card = document.createElement("div");
@@ -230,6 +236,35 @@ function renderParty() {
     const statLine = document.createElement("p");
     statLine.textContent = `${ally.alive ? `${ally.health}/${ally.maxHealth} HP` : "Down"}   Atk ${ally.atk}   Def ${ally.def}   Acc ${ally.accuracy}   Agi ${ally.agility}   Spd ${ally.speed}`;
     card.appendChild(statLine);
+
+    // A fallen ally still sits in state.party (see killAlly) until this
+    // choice is made — send-home/leave takes over from the stance row,
+    // which means nothing for someone no longer standing.
+    if (!ally.alive && ally.pendingBodyChoice) {
+      const notice = document.createElement("p");
+      notice.className = "equip-slot-value inv-empty";
+      notice.textContent = "Awaiting your decision — send them to the Sanctuary, or leave them where they fell.";
+      card.appendChild(notice);
+
+      const choiceRow = document.createElement("div");
+      choiceRow.className = "party-stance-row";
+      const sendBtn = document.createElement("button");
+      sendBtn.type = "button";
+      sendBtn.className = "combat-menu-btn";
+      sendBtn.textContent = "Send Home";
+      sendBtn.addEventListener("click", () => runCommand(`send ${ally.name} home`, `Send Home: ${ally.name}`));
+      choiceRow.appendChild(sendBtn);
+      const leaveBtn = document.createElement("button");
+      leaveBtn.type = "button";
+      leaveBtn.className = "combat-menu-btn flee";
+      leaveBtn.textContent = "Leave";
+      leaveBtn.addEventListener("click", () => runCommand(`leave ${ally.name}`, `Leave: ${ally.name}`));
+      choiceRow.appendChild(leaveBtn);
+      card.appendChild(choiceRow);
+
+      partyPanel.appendChild(card);
+      continue;
+    }
 
     const stanceRow = document.createElement("div");
     stanceRow.className = "party-stance-row";
@@ -255,6 +290,76 @@ function renderParty() {
     card.appendChild(gear);
 
     partyPanel.appendChild(card);
+  }
+
+  renderSanctuarySection();
+}
+
+// The Sanctuary is location-agnostic (cmdSanctuary's own "not a place on
+// any map"), so — unlike Rest/Shop/Jobs on the location menu — this isn't
+// gated by where the player is standing; it lives permanently at the
+// bottom of the Party tab instead, alongside the fallen allies it exists
+// for. Uses buildSanctuaryInfo (parser.js) for the same disabled-when-
+// unavailable treatment as shop's sold-out items and the job board's
+// already-taken postings.
+function renderSanctuarySection() {
+  const info = buildSanctuaryInfo(state);
+
+  const heading = document.createElement("p");
+  heading.className = "inv-gold";
+  heading.textContent = "The Sanctuary";
+  partyPanel.appendChild(heading);
+
+  const favorLine = document.createElement("p");
+  favorLine.textContent = `Favor of the god of Death and Renewal: ${info.divineFavor}/${info.favorThreshold}`;
+  partyPanel.appendChild(favorLine);
+
+  const riteLine = document.createElement("p");
+  riteLine.className = "equip-slot-value inv-empty";
+  riteLine.textContent = info.riteComplete
+    ? "The Rite of Second Breath: sworn. Always available."
+    : `The Rite of Second Breath: not yet sworn (level ${info.riteLevelReq}+, and a tier 3+ item to surrender).`;
+  partyPanel.appendChild(riteLine);
+
+  const actionRow = document.createElement("div");
+  actionRow.className = "inv-actions";
+  const prayBtn = document.createElement("button");
+  prayBtn.type = "button";
+  prayBtn.className = "combat-menu-btn";
+  prayBtn.textContent = "Pray";
+  prayBtn.addEventListener("click", () => runCommand("pray", "Pray"));
+  actionRow.appendChild(prayBtn);
+  if (!info.riteComplete) {
+    const riteBtn = document.createElement("button");
+    riteBtn.type = "button";
+    riteBtn.className = "combat-menu-btn";
+    riteBtn.textContent = "Attempt the Rite";
+    riteBtn.disabled = !info.canAttemptRite;
+    riteBtn.addEventListener("click", () => runCommand("rite", "Attempt the Rite"));
+    actionRow.appendChild(riteBtn);
+  }
+  partyPanel.appendChild(actionRow);
+
+  if (info.fallenAllies.length) {
+    const fallenHeading = document.createElement("p");
+    fallenHeading.className = "inv-gold";
+    fallenHeading.textContent = "Waiting for a second chance";
+    partyPanel.appendChild(fallenHeading);
+    info.fallenAllies.forEach((f) => {
+      const card = document.createElement("div");
+      card.className = "party-card";
+      const line = document.createElement("p");
+      line.textContent = `${f.name} — fell on day ${f.diedDay}`;
+      card.appendChild(line);
+      const reviveBtn = document.createElement("button");
+      reviveBtn.type = "button";
+      reviveBtn.className = "combat-menu-btn";
+      reviveBtn.textContent = "Revive";
+      reviveBtn.disabled = !info.hasRevivalMethod;
+      reviveBtn.addEventListener("click", () => runCommand(`revive ${f.name}`, `Revive: ${f.name}`));
+      card.appendChild(reviveBtn);
+      partyPanel.appendChild(card);
+    });
   }
 }
 
