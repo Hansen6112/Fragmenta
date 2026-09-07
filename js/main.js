@@ -467,12 +467,23 @@ function renderShopMenu() {
 
   form.hidden = true;
   input.placeholder = DEFAULT_INPUT_PLACEHOLDER;
+  shopMenuEl.classList.add("shop-modal");
+
+  // A big stock plus a long-owned inventory can easily outgrow the
+  // screen (a full gear+potion shop against 25+ distinct owned items
+  // runs past 1500px tall with nowhere capped) — everything scrollable
+  // lives in its own capped box, with Leave Shop rendered OUTSIDE it so
+  // it's never buried regardless of how long Buy/Sell get.
+  const scrollBox = document.createElement("div");
+  scrollBox.className = "shop-scroll-box";
+  shopMenuEl.appendChild(scrollBox);
+
   const heading = document.createElement("p");
   heading.className = "shop-heading";
   heading.textContent = `${menu.locName} — Gold: ${menu.gold}`;
-  shopMenuEl.appendChild(heading);
+  scrollBox.appendChild(heading);
 
-  menu.buyOptions.forEach((opt) => {
+  appendCollapsibleSection(scrollBox, "shop:buy", `Buy (${menu.buyOptions.length})`, menu.buyOptions, (opt) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "combat-menu-btn";
@@ -486,21 +497,21 @@ function renderShopMenu() {
         resolveBuy(opt.index, 1);
       }
     });
-    shopMenuEl.appendChild(btn);
+    return btn;
   });
 
-  menu.sellOptions.forEach((opt) => {
+  appendCollapsibleSection(scrollBox, "shop:sell", `Sell (${menu.sellOptions.length})`, menu.sellOptions, (opt) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "combat-menu-btn";
     btn.textContent = opt.label;
     btn.addEventListener("click", () => resolveSell(opt.item));
-    shopMenuEl.appendChild(btn);
+    return btn;
   });
 
   const leave = document.createElement("button");
   leave.type = "button";
-  leave.className = "combat-menu-btn flee";
+  leave.className = "combat-menu-btn flee shop-leave-btn";
   leave.textContent = "Leave Shop";
   leave.addEventListener("click", () => {
     shopMode = false;
@@ -628,6 +639,28 @@ const collapsedOverrides = new Set();
 function isSectionCollapsed(opt) {
   const isDefaultCollapsed = !!opt.defaultCollapsed;
   return collapsedOverrides.has(opt.id) ? !isDefaultCollapsed : isDefaultCollapsed;
+}
+
+// A self-contained collapsible section for menus with a small, fixed set
+// of named groups (shop's Buy/Sell) rather than buildLocationMenu's own
+// flat, dynamically-grouped array — same collapsedOverrides Set and
+// heading style, just appended directly under `container` instead of
+// woven into a bigger forEach. `buildBtn(item)` returns one button
+// element per item; re-renders everything via renderModals() on toggle
+// since a click here could be coming from any one of several menus.
+function appendCollapsibleSection(container, id, headingText, items, buildBtn, defaultCollapsed) {
+  const collapsed = isSectionCollapsed({ id, defaultCollapsed });
+  const h = document.createElement("p");
+  h.className = "shop-heading location-heading";
+  h.textContent = `${collapsed ? "▸" : "▾"} ${headingText}`;
+  h.addEventListener("click", () => {
+    if (collapsedOverrides.has(id)) collapsedOverrides.delete(id);
+    else collapsedOverrides.add(id);
+    renderModals();
+  });
+  container.appendChild(h);
+  if (collapsed) return;
+  items.forEach((item) => container.appendChild(buildBtn(item)));
 }
 
 function renderLocationMenu() {

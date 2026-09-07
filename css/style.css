@@ -334,6 +334,28 @@ body {
   color: var(--text);
 }
 
+/* Shop mode (a modal takeover, unlike the location menu) stacks its own
+   scrollable item list above a Leave Shop button that's always visible —
+   a big stock plus a long-owned inventory can otherwise run well past
+   the screen with no way back to typed input at all. */
+.shop-modal {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.shop-scroll-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.shop-leave-btn {
+  align-self: flex-start;
+  margin-top: 0.75rem;
+}
+
 #input-form {
   display: flex;
   align-items: center;
