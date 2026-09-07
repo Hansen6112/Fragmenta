@@ -380,7 +380,6 @@ function renderActiveTab() {
 function renderCombatMenu() {
   const inCombat = bootStage === "playing" && !!(state && state.combat);
   combatMenuEl.hidden = !inCombat;
-  form.hidden = inCombat;
   combatMenuEl.innerHTML = "";
   if (!inCombat) return;
   buildCombatMenu(state).forEach((opt) => {
@@ -425,8 +424,6 @@ function renderShopMenu() {
   shopMenuEl.hidden = !inShop;
   shopMenuEl.innerHTML = "";
   if (!inShop) {
-    form.hidden = false;
-    input.placeholder = DEFAULT_INPUT_PLACEHOLDER;
     return;
   }
 
@@ -437,14 +434,11 @@ function renderShopMenu() {
     shopMode = false;
     pendingBuy = null;
     shopMenuEl.hidden = true;
-    form.hidden = false;
-    input.placeholder = DEFAULT_INPUT_PLACEHOLDER;
     print("The shop's closed up for now.", "system");
     return;
   }
 
   if (pendingBuy) {
-    form.hidden = false;
     const prompt = document.createElement("p");
     prompt.className = "shop-heading";
     // Item names are stored with their own leading article ("a traveler's
@@ -461,13 +455,10 @@ function renderShopMenu() {
       renderModals();
     });
     shopMenuEl.appendChild(cancel);
-    input.placeholder = `how many? (1-${pendingBuy.remaining})`;
     return;
   }
 
-  form.hidden = true;
-  input.placeholder = DEFAULT_INPUT_PLACEHOLDER;
-  shopMenuEl.classList.add("shop-modal");
+  shopMenuEl.classList.add("menu-modal");
 
   // A big stock plus a long-owned inventory can easily outgrow the
   // screen (a full gear+potion shop against 25+ distinct owned items
@@ -475,7 +466,7 @@ function renderShopMenu() {
   // lives in its own capped box, with Leave Shop rendered OUTSIDE it so
   // it's never buried regardless of how long Buy/Sell get.
   const scrollBox = document.createElement("div");
-  scrollBox.className = "shop-scroll-box";
+  scrollBox.className = "menu-scroll-box";
   shopMenuEl.appendChild(scrollBox);
 
   const heading = document.createElement("p");
@@ -521,7 +512,7 @@ function renderShopMenu() {
 
   const leave = document.createElement("button");
   leave.type = "button";
-  leave.className = "combat-menu-btn flee shop-leave-btn";
+  leave.className = "combat-menu-btn flee menu-pinned-btn";
   leave.textContent = "Leave Shop";
   leave.addEventListener("click", () => {
     shopMode = false;
@@ -547,7 +538,6 @@ function renderJobMenu() {
   jobMenuEl.hidden = !inJobs;
   jobMenuEl.innerHTML = "";
   if (!inJobs) {
-    form.hidden = false;
     return;
   }
 
@@ -555,20 +545,40 @@ function renderJobMenu() {
   if (!options) {
     jobMode = false;
     jobMenuEl.hidden = true;
-    form.hidden = false;
     print("There's nothing to post or sign here anymore.", "system");
     return;
   }
 
-  form.hidden = true;
+  jobMenuEl.classList.add("menu-modal");
+
+  // Small and fixed today (a city's board is always 3 jobs, a guild's
+  // contract list a handful more), but the same overflow the shop hit —
+  // an ever-growing sell list with no scroll cap at all, burying Leave
+  // ~1000px down — has nothing to do with today's content size and
+  // everything to do with this shape never getting revisited once new
+  // job types or a second board eventually get added. Same fix applied
+  // pre-emptively rather than waiting to rediscover it.
+  const scrollBox = document.createElement("div");
+  scrollBox.className = "menu-scroll-box";
+  jobMenuEl.appendChild(scrollBox);
+
+  let hiddenSectionId = null;
   options.forEach((opt) => {
     if (opt.heading) {
+      const collapsed = isSectionCollapsed(opt);
+      hiddenSectionId = collapsed ? opt.id : null;
       const h = document.createElement("p");
-      h.className = "shop-heading";
-      h.textContent = opt.heading;
-      jobMenuEl.appendChild(h);
+      h.className = "shop-heading location-heading";
+      h.textContent = `${collapsed ? "▸" : "▾"} ${opt.heading}`;
+      h.addEventListener("click", () => {
+        if (collapsedOverrides.has(opt.id)) collapsedOverrides.delete(opt.id);
+        else collapsedOverrides.add(opt.id);
+        renderModals();
+      });
+      scrollBox.appendChild(h);
       return;
     }
+    if (hiddenSectionId) return;
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "combat-menu-btn";
@@ -578,12 +588,12 @@ function renderJobMenu() {
     } else {
       btn.addEventListener("click", () => runCommand(opt.command, opt.label));
     }
-    jobMenuEl.appendChild(btn);
+    scrollBox.appendChild(btn);
   });
 
   const leave = document.createElement("button");
   leave.type = "button";
-  leave.className = "combat-menu-btn flee";
+  leave.className = "combat-menu-btn flee menu-pinned-btn";
   leave.textContent = "Leave";
   leave.addEventListener("click", () => {
     jobMode = false;
@@ -608,10 +618,8 @@ function renderChoiceMenu() {
   choiceMenuEl.hidden = !options;
   choiceMenuEl.innerHTML = "";
   if (!options) {
-    form.hidden = false;
     return;
   }
-  form.hidden = true;
   options.forEach((opt) => {
     if (opt.heading) {
       const h = document.createElement("p");
@@ -736,8 +744,19 @@ function inputBlocked() {
 // buttons are — shop's aren't, per renderShopMenu's header comment) still
 // has to leave the input box in the right enabled/focused state
 // afterward, exactly like runCommand's own finally block does.
+// The single source of truth for form.hidden/input.disabled/
+// input.placeholder — every render*Menu function used to set form.hidden
+// independently in its own "not applicable" branch, which meant whichever
+// of shop/job/choice was evaluated LAST in renderModals always won,
+// silently re-showing the form out from under an EARLIER modal that had
+// correctly hidden it (shop's own main view, in particular, since job and
+// choice both run after it and reset form.hidden=false whenever THEY
+// don't apply — true whenever you're just browsing the shop). Computed
+// once here instead, from the same state inputBlocked() already reads.
 function syncInputEnabled() {
   const blocked = inputBlocked();
+  form.hidden = blocked;
+  input.placeholder = shopMode && pendingBuy ? `how many? (1-${pendingBuy.remaining})` : DEFAULT_INPUT_PLACEHOLDER;
   input.disabled = gameOver || blocked;
   if (!gameOver && !blocked) input.focus();
 }

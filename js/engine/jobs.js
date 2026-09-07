@@ -69,7 +69,7 @@ function buildJobsMenu(state) {
 
   if (loc.isCity) {
     const board = getOrRefreshBoard(state, state.location);
-    options.push({ heading: "Job Board" });
+    options.push({ heading: "Job Board", id: "job-board" });
     if (!board.jobs.length) {
       options.push({ label: "Nothing posted right now.", disabled: true });
     } else {
@@ -88,7 +88,7 @@ function buildJobsMenu(state) {
 
   if (hasGuildHere) {
     const list = GUILD_CONTRACTS[guildId] || [];
-    options.push({ heading: `${FACTIONS[guildId].name} — Contracts` });
+    options.push({ heading: `${FACTIONS[guildId].name} — Contracts`, id: "guild-contracts" });
     list.forEach((c, i) => {
       const done = state.flags["completed_" + c.id];
       const active = state.activeJobs.some((j) => j.id === c.id);
