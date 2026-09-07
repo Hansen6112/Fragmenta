@@ -1958,11 +1958,20 @@ function formatItemLine(item) {
 // registry entry (equippable only via inferEquipSlot's guesswork).
 function itemDescription(item) {
   const def = getItemDef(item);
-  if (!def) return "A piece of gear of uncertain make.";
+  if (!def) return "An item of uncertain make.";
+  if (def.slot === "consumable") return `${itemRarityName(def.tier)} consumable — ${describeUseEffect(def.useEffect)}`;
   const slotLabel = def.slot === "trinkets" ? EQUIP_SLOT_LABELS.trinkets : (EQUIP_SLOT_LABELS[def.slot] || def.slot);
   const bonusParts = Object.entries(def.bonuses || {}).map(([k, v]) => `+${v} ${STAT_LABELS[k] || k}`);
   const bonusText = bonusParts.length ? bonusParts.join(", ") : "no stat bonus";
   return `${itemRarityName(def.tier)} ${slotLabel} — ${bonusText}.`;
+}
+
+// Mirrors applyConsumableEffect's own branches (combat.js) — kept in sync
+// with whatever useEffect.type that function actually knows how to apply.
+function describeUseEffect(effect) {
+  if (!effect) return "does nothing when used.";
+  if (effect.type === "heal") return `restores ${Math.round(effect.pct * 100)}% of max health when used.`;
+  return "does something when used.";
 }
 
 // Placeholder salvage yield for a generic item with no authored dismantle

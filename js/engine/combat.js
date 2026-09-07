@@ -590,6 +590,14 @@ function applyHeal(state, amount) {
 // arg is matched the same partial/case-insensitive way as cmdEquip/cmdDrop.
 function useItem(state, arg) {
   if (!arg) return ["Use what?"];
+  // "use <item> on <ally>" — same "on"-split shape as cmdGive's own
+  // " to <ally>" parsing. Kept out of combat entirely (see
+  // useItemOnAlly) rather than threading ally-targeting through the
+  // turn/retaliation pipeline below, which is built around the player
+  // being the one healed.
+  const onSplit = arg.split(/\s+on\s+/);
+  if (onSplit.length > 1) return useItemOnAlly(state, onSplit[0].trim(), onSplit.slice(1).join(" on ").trim());
+
   const needle = arg.toLowerCase();
   const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(needle));
   if (idx < 0) return [`You aren't carrying "${arg}".`];
@@ -643,6 +651,40 @@ function applyConsumableEffect(state, item, effect) {
     return [`You drink ${item}, mending ${healed} health.`, ...lines];
   }
   return [`You use ${item}, but nothing happens.`];
+}
+
+// Out-of-combat only (mid-fight healing is still self-only via useItem's
+// own turn/retaliation pipeline above — this doesn't thread an ally
+// target through that, just the calmer non-combat path). findAlly is
+// parser.js's, same fuzzy match cmdGive/cmdReclaim already use.
+function useItemOnAlly(state, itemNeedle, allyNeedle) {
+  if (state.combat) return ["You can only tend to allies outside of combat."];
+  if (!state.party.length) return ["You have no allies to use anything on."];
+  const ally = findAlly(state, allyNeedle);
+  if (!ally) return [`No one in your party matches "${allyNeedle}".`];
+  if (!ally.alive) return [`${ally.name} is down — try the Sanctuary instead.`];
+  const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(itemNeedle.toLowerCase()));
+  if (idx < 0) return [`You aren't carrying "${itemNeedle}".`];
+  const item = state.inventory[idx];
+  const def = getItemDef(item);
+  if (!def || def.slot !== "consumable") return [`${item} isn't something you can use like that.`];
+  state.inventory.splice(idx, 1);
+  return applyConsumableEffectToAlly(item, ally, def.useEffect);
+}
+
+// Ally counterpart to applyConsumableEffect — deliberately simpler, with
+// none of applyHeal's player-gear buff stacking (Flourishing Soul etc. are
+// checked against the PLAYER's own effects/sets, not an ally's), matching
+// how allies already heal themselves in companion.js.
+function applyConsumableEffectToAlly(item, ally, effect) {
+  if (!effect) return [`You use ${item} on ${ally.name}, but nothing happens.`];
+  if (effect.type === "heal") {
+    const amount = Math.ceil(ally.maxHealth * effect.pct);
+    const healed = Math.min(amount, ally.maxHealth - ally.health);
+    ally.health = Math.min(ally.maxHealth, ally.health + amount);
+    return [`You give ${item} to ${ally.name}, mending ${healed} health.`];
+  }
+  return [`You use ${item} on ${ally.name}, but nothing happens.`];
 }
 
 // Whether the player is carrying at least one usable consumable — gates
