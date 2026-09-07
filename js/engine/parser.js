@@ -424,6 +424,7 @@ function buildLocationMenu(state) {
   options.push({ label: "Map", command: "map" });
   options.push({ label: "Lore", command: "lore" });
   options.push({ label: "Save", command: "save" });
+  options.push({ label: "Help", command: "help" });
 
   return options;
 }
