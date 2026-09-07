@@ -361,12 +361,12 @@ function buildLocationMenu(state) {
     options.push({ label: `Go: Back to ${loc.name}`, command: "go back" });
     const others = Object.values(loc.sublocations).filter((s) => s !== place);
     if (others.length) {
-      options.push({ heading: "Other Places" });
+      options.push({ heading: "Other Places", id: "other-places" });
       others.forEach((s) => options.push({ label: `Go: ${s.name}`, command: `go ${s.name}` }));
     }
   } else {
     if (loc.connections.length) {
-      options.push({ heading: "Travel" });
+      options.push({ heading: "Travel", id: "travel" });
       loc.connections.forEach((c) => {
         const dest = LOCATIONS[c.to];
         options.push({ label: `Go: ${dest.name} (${c.days} day${c.days === 1 ? "" : "s"})`, command: `go ${dest.name}` });
@@ -376,6 +376,9 @@ function buildLocationMenu(state) {
       // Grouped by district, same as cmdLook's own "Around the city:"
       // breakdown — a heading divider per district rather than one flat
       // wall of buttons (Zuevaron alone has dozens of sublocations).
+      // Each district defaults collapsed (main.js's renderLocationMenu) —
+      // unlike Travel/Actions/Reference, there can be a dozen of these
+      // at once, each with 5-9 buttons of its own.
       const byDistrict = new Map();
       for (const s of Object.values(loc.sublocations)) {
         const key = s.district || "Around Town";
@@ -383,13 +386,13 @@ function buildLocationMenu(state) {
         byDistrict.get(key).push(s);
       }
       for (const [district, spots] of byDistrict) {
-        options.push({ heading: district });
+        options.push({ heading: district, id: `district:${district}`, defaultCollapsed: true });
         spots.forEach((s) => options.push({ label: `Go: ${s.name}`, command: `go ${s.name}` }));
       }
     }
   }
 
-  options.push({ heading: "Actions" });
+  options.push({ heading: "Actions", id: "actions" });
   options.push({ label: "Explore", command: "explore" });
   options.push({ label: "Talk", command: "talk" });
 
@@ -416,7 +419,7 @@ function buildLocationMenu(state) {
   // Pure reference commands — none location-gated, none needing a
   // follow-up choice, so a plain button that just runs them is enough;
   // no dedicated modal like combat/shop/jobs needed for any of these.
-  options.push({ heading: "Reference" });
+  options.push({ heading: "Reference", id: "reference" });
   options.push({ label: "Status", command: "status" });
   options.push({ label: "Quests", command: "quests" });
   options.push({ label: "Reputation", command: "reputation" });

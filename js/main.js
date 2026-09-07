@@ -616,19 +616,44 @@ function renderChoiceMenu() {
 // yet and still need the typed input reachable underneath. Hidden
 // entirely whenever combat, the shop/job menu, or a pending choice has
 // taken the input over.
+// Collapse state for the location menu's own headings (district, Travel,
+// Actions, Reference, ...), keyed by each heading's stable `id` — a
+// district name repeats verbatim every time this same city is visited,
+// so a player's fold/unfold choice sticks across renders and return
+// visits rather than resetting every command. Stores only the ids whose
+// collapsed state has been TOGGLED away from that heading's own
+// defaultCollapsed (parser.js's buildLocationMenu) — see
+// isSectionCollapsed below for how the two combine.
+const collapsedOverrides = new Set();
+function isSectionCollapsed(opt) {
+  const isDefaultCollapsed = !!opt.defaultCollapsed;
+  return collapsedOverrides.has(opt.id) ? !isDefaultCollapsed : isDefaultCollapsed;
+}
+
 function renderLocationMenu() {
   const show = bootStage === "playing" && !!state && !state.combat && !shopMode && !jobMode && !buildChoiceMenu(state);
   locationMenuEl.hidden = !show;
   locationMenuEl.innerHTML = "";
   if (!show) return;
+  let hiddenSectionId = null;
   buildLocationMenu(state).forEach((opt) => {
     if (opt.heading) {
+      const collapsed = isSectionCollapsed(opt);
+      hiddenSectionId = collapsed ? opt.id : null;
       const h = document.createElement("p");
-      h.className = "shop-heading";
-      h.textContent = opt.heading;
+      h.className = "shop-heading location-heading";
+      h.textContent = `${collapsed ? "▸" : "▾"} ${opt.heading}`;
+      h.addEventListener("click", () => {
+        if (collapsedOverrides.has(opt.id)) collapsedOverrides.delete(opt.id);
+        else collapsedOverrides.add(opt.id);
+        renderLocationMenu();
+      });
       locationMenuEl.appendChild(h);
       return;
     }
+    // Every button belongs to whichever heading most recently rendered —
+    // skip it entirely while that heading's section is collapsed.
+    if (hiddenSectionId) return;
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "combat-menu-btn";

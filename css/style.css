@@ -322,6 +322,18 @@ body {
   background: rgba(0, 0, 0, 0.08);
 }
 
+/* Each heading toggles its own section (main.js's renderLocationMenu) —
+   districts default collapsed, so this is the primary way a big city's
+   sublocation list actually gets navigated. */
+.location-heading {
+  cursor: pointer;
+  user-select: none;
+}
+
+.location-heading:hover {
+  color: var(--text);
+}
+
 #input-form {
   display: flex;
   align-items: center;

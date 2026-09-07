@@ -415,7 +415,7 @@ function buildArenaMenu(state) {
 
   const rankInfo = arenaRankInfo(state);
   const options = [
-    { heading: `Ovum rank: ${rankInfo.name}${state.arena.streak > 0 ? ` — ${state.arena.streak}-win streak` : ""}` },
+    { heading: `Ovum rank: ${rankInfo.name}${state.arena.streak > 0 ? ` — ${state.arena.streak}-win streak` : ""}`, id: "arena" },
     { label: "Fight: Duel", command: "fight duel" },
     { label: "Fight: Team", command: "fight team" },
     { label: "Fight: Beast", command: "fight beast" },
