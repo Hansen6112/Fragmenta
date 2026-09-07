@@ -447,7 +447,10 @@ function renderShopMenu() {
     form.hidden = false;
     const prompt = document.createElement("p");
     prompt.className = "shop-heading";
-    prompt.textContent = `How many ${pendingBuy.item}? (up to ${pendingBuy.remaining}, ${pendingBuy.price} gold each)`;
+    // Item names are stored with their own leading article ("a traveler's
+    // healing draught"), so "How many <item>?" reads wrong — put the item
+    // first as its own (capitalized) clause instead.
+    prompt.textContent = `${capitalize(pendingBuy.item)} — how many? (up to ${pendingBuy.remaining}, ${pendingBuy.price} gold each)`;
     shopMenuEl.appendChild(prompt);
     const cancel = document.createElement("button");
     cancel.type = "button";
