@@ -81,6 +81,19 @@ function sampleItems(pool, n) {
   return copy.slice(0, n);
 }
 
+// How many units of a stock item are actually available to buy — not
+// given anywhere in the original design (buying never used to deplete
+// stock at all), so this is this implementation's own reasonable call:
+// gear is scarce (a shop only ever has a couple of any one weapon/armor
+// piece), potions are plentiful (restocked constantly, not hand-crafted).
+// Only meaningful now that menu-driven buying asks "how many?" — the
+// typed 'buy <number>' path (cmdBuy) is capped by this exact same number.
+function rollStockQty(itemName) {
+  const def = getItemDef(itemName);
+  if (def && def.slot === "consumable") return 5 + Math.floor(Math.random() * 6); // 5-10
+  return 1 + Math.floor(Math.random() * 3); // 1-3
+}
+
 // Potions are always in stock (subject to the same region/guild gating
 // as everything else) rather than part of the random gear roll — a shop
 // running out of basic healing draughts on an unlucky refresh would be a
@@ -97,23 +110,39 @@ function getOrRefreshShop(state, locId) {
     const consumables = category && category !== "potions" ? [] : pool.filter((name) => ITEM_DEFS[name].slot === "consumable");
     const gear = pool.filter((name) => ITEM_DEFS[name].slot !== "consumable");
     const gearStock = sampleItems(gear, Math.min(SHOP_STOCK_SIZE, gear.length));
-    shop = { stock: [...consumables, ...gearStock], lastRefresh: state.day };
+    const stock = [...consumables, ...gearStock];
+    const qty = {};
+    for (const name of stock) qty[name] = rollStockQty(name);
+    shop = { stock, qty, lastRefresh: state.day };
     state.shops[key] = shop;
+  } else if (!shop.qty) {
+    // Backward compatibility: a save from before per-item quantity
+    // existed has stock/lastRefresh but no qty map yet — backfill it
+    // without discarding or force-refreshing the stock it already has.
+    shop.qty = {};
+    for (const name of shop.stock) shop.qty[name] = rollStockQty(name);
   }
   return shop;
 }
 
-function buyShopItem(state, locId, index) {
+function buyShopItem(state, locId, index, qty) {
   const shop = getOrRefreshShop(state, locId);
   const item = shop.stock[index];
   if (!item) return { ok: false, message: "Nothing at that number." };
-  const price = shopBuyPrice(item, state);
+  const wanted = Math.max(1, Math.floor(qty) || 1);
+  const available = shop.qty[item] || 0;
+  if (available <= 0) return { ok: false, message: `${formatItemLine(item)} is sold out. Check back after the next restock.` };
+  if (wanted > available) {
+    return { ok: false, message: `The shop only has ${available} of ${formatItemLine(item)} left.` };
+  }
+  const price = shopBuyPrice(item, state) * wanted;
   if (state.gold < price) {
-    return { ok: false, message: `You can't afford ${formatItemLine(item)} (${price} gold; you have ${state.gold}).` };
+    return { ok: false, message: `You can't afford ${wanted > 1 ? `${wanted}x ` : ""}${formatItemLine(item)} (${price} gold; you have ${state.gold}).` };
   }
   state.gold -= price;
-  state.inventory.push(item);
-  return { ok: true, item, price };
+  for (let i = 0; i < wanted; i++) state.inventory.push(item);
+  shop.qty[item] = available - wanted;
+  return { ok: true, item, price, qty: wanted, remaining: shop.qty[item] };
 }
 
 // Only ever searches state.inventory, not equipped gear or an ally's own
@@ -128,4 +157,49 @@ function sellInventoryItem(state, needle) {
   state.inventory.splice(idx, 1);
   state.gold += price;
   return { ok: true, item, price };
+}
+
+// Structured data for the shop menu (main.js renders one button per buy/
+// sell option) — richer than combat's flat {label, command} pairs since
+// a buy button needs its own index/remaining-quantity for the "how many?"
+// follow-up prompt, and main.js calls buyShopItem/sellInventoryItem
+// directly rather than round-tripping through a typed command string (the
+// same direct-call pattern renderParty()'s stance buttons already use).
+// Returns null wherever cmdShop itself would refuse (no shop, or closed).
+function buildShopMenu(state) {
+  const loc = state.currentPlace();
+  if (!loc || !effectiveServices(loc).includes("shop")) return null;
+  if (!isShopOpen(state)) return null;
+  const shop = getOrRefreshShop(state, state.location);
+
+  const buyOptions = shop.stock.map((item, index) => {
+    const remaining = shop.qty[item] || 0;
+    const price = shopBuyPrice(item, state);
+    return {
+      index,
+      item,
+      price,
+      remaining,
+      label: remaining > 0 ? `Buy: ${formatItemLine(item)} — ${price} gold (${remaining} left)` : `Buy: ${formatItemLine(item)} — sold out`,
+    };
+  });
+
+  // One row per distinct item the player's carrying, same aggregation
+  // renderItemList (main.js) already uses for the Inventory tab — a
+  // ritual item (shopSellPrice returns null) just doesn't get a Sell row.
+  const counts = new Map();
+  for (const item of state.inventory) counts.set(item, (counts.get(item) || 0) + 1);
+  const sellOptions = [];
+  for (const [item, count] of counts) {
+    const price = shopSellPrice(item, state);
+    if (price == null) continue;
+    sellOptions.push({
+      item,
+      price,
+      owned: count,
+      label: `Sell: ${formatItemLine(item)} — ${price} gold${count > 1 ? ` (own ${count})` : ""}`,
+    });
+  }
+
+  return { locName: loc.name, gold: state.gold, buyOptions, sellOptions };
 }

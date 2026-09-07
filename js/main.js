@@ -7,15 +7,24 @@ const invPanel = document.getElementById("inventory-panel");
 const equipPanel = document.getElementById("equipment-panel");
 const partyPanel = document.getElementById("party-panel");
 const combatMenuEl = document.getElementById("combat-menu");
+const shopMenuEl = document.getElementById("shop-menu");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
 const input = document.getElementById("input");
+const DEFAULT_INPUT_PLACEHOLDER = input.placeholder;
 
 let state = null;
 let activeTab = "story";
 let bootStage = "ask_load"; // ask_load -> ask_name -> ask_background -> [ask_element] -> playing
 let pendingName = "";
 let pendingBgKey = "";
+// Menu-driven shop (see engine/shop.js's buildShopMenu). shopMode turns on
+// the moment a typed/resolved "shop" command finds an open shop, and stays
+// on until Leave Shop is clicked or combat interrupts it. pendingBuy holds
+// the one buy option awaiting the "how many?" free-text answer — the only
+// approved free-text moment besides naming something.
+let shopMode = false;
+let pendingBuy = null;
 
 function print(text, cls) {
   const p = document.createElement("p");
@@ -206,6 +215,161 @@ function renderCombatMenu() {
   });
 }
 
+// Menu-driven shop (see engine/shop.js's buildShopMenu). Buy/Sell buttons
+// call buyShopItem/sellInventoryItem directly rather than round-tripping
+// through a typed command string — the same direct-state-mutation pattern
+// renderParty()'s own stance buttons already use above. Combat always
+// takes priority for the input surface: if a fight starts while shopping
+// (shouldn't normally happen, but nothing currently prevents it), shop
+// mode just silently drops rather than fighting renderCombatMenu for the
+// same form.hidden toggle.
+function renderShopMenu() {
+  const inCombat = bootStage === "playing" && !!(state && state.combat);
+  if (inCombat) {
+    shopMode = false;
+    pendingBuy = null;
+    shopMenuEl.hidden = true;
+    shopMenuEl.innerHTML = "";
+    return;
+  }
+
+  const inShop = bootStage === "playing" && shopMode;
+  shopMenuEl.hidden = !inShop;
+  shopMenuEl.innerHTML = "";
+  if (!inShop) {
+    form.hidden = false;
+    input.placeholder = DEFAULT_INPUT_PLACEHOLDER;
+    return;
+  }
+
+  const menu = buildShopMenu(state);
+  if (!menu) {
+    // The shop closed or became unavailable mid-session (e.g. the clock
+    // ticked past closing time) — drop out of shop mode entirely.
+    shopMode = false;
+    pendingBuy = null;
+    shopMenuEl.hidden = true;
+    form.hidden = false;
+    input.placeholder = DEFAULT_INPUT_PLACEHOLDER;
+    print("The shop's closed up for now.", "system");
+    return;
+  }
+
+  if (pendingBuy) {
+    form.hidden = false;
+    const prompt = document.createElement("p");
+    prompt.className = "shop-heading";
+    prompt.textContent = `How many ${pendingBuy.item}? (up to ${pendingBuy.remaining}, ${pendingBuy.price} gold each)`;
+    shopMenuEl.appendChild(prompt);
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "combat-menu-btn";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => {
+      pendingBuy = null;
+      renderShopMenu();
+      syncInputEnabled();
+    });
+    shopMenuEl.appendChild(cancel);
+    input.placeholder = `how many? (1-${pendingBuy.remaining})`;
+    return;
+  }
+
+  form.hidden = true;
+  input.placeholder = DEFAULT_INPUT_PLACEHOLDER;
+  const heading = document.createElement("p");
+  heading.className = "shop-heading";
+  heading.textContent = `${menu.locName} — Gold: ${menu.gold}`;
+  shopMenuEl.appendChild(heading);
+
+  menu.buyOptions.forEach((opt) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn";
+    btn.textContent = opt.label;
+    btn.disabled = opt.remaining <= 0;
+    btn.addEventListener("click", () => {
+      if (opt.remaining > 1) {
+        pendingBuy = opt;
+        renderShopMenu();
+        syncInputEnabled();
+      } else {
+        resolveBuy(opt.index, 1);
+      }
+    });
+    shopMenuEl.appendChild(btn);
+  });
+
+  menu.sellOptions.forEach((opt) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn";
+    btn.textContent = opt.label;
+    btn.addEventListener("click", () => resolveSell(opt.item));
+    shopMenuEl.appendChild(btn);
+  });
+
+  const leave = document.createElement("button");
+  leave.type = "button";
+  leave.className = "combat-menu-btn flee";
+  leave.textContent = "Leave Shop";
+  leave.addEventListener("click", () => {
+    shopMode = false;
+    print("You step away from the counter.", "system");
+    renderShopMenu();
+    syncInputEnabled();
+  });
+  shopMenuEl.appendChild(leave);
+}
+
+// Whether the input box should currently be off-limits to typing — true
+// during combat, and true while shop buttons are showing (but NOT while
+// pendingBuy's quantity prompt is up, which is the one approved moment).
+function inputBlocked() {
+  const inCombat = bootStage === "playing" && !!(state && state.combat);
+  const inShopMenu = bootStage === "playing" && shopMode && !pendingBuy;
+  return inCombat || inShopMenu;
+}
+
+// Every button handler that isn't routed through runCommand (combat's own
+// buttons are — shop's aren't, per renderShopMenu's header comment) still
+// has to leave the input box in the right enabled/focused state
+// afterward, exactly like runCommand's own finally block does.
+function syncInputEnabled() {
+  const blocked = inputBlocked();
+  input.disabled = gameOver || blocked;
+  if (!gameOver && !blocked) input.focus();
+}
+
+function resolveBuy(index, qty) {
+  if (gameOver) return;
+  const result = buyShopItem(state, state.location, index, qty);
+  if (result.ok) {
+    const label = result.qty > 1 ? `${result.qty}x ${formatItemLine(result.item)}` : formatItemLine(result.item);
+    print(`You buy ${label} for ${result.price} gold. (${state.gold} gold left)`);
+    printLines(advanceTime(state, 10, "shop"));
+  } else {
+    print(result.message, "system");
+  }
+  renderActiveTab();
+  renderShopMenu();
+  syncInputEnabled();
+}
+
+function resolveSell(item) {
+  if (gameOver) return;
+  const result = sellInventoryItem(state, item.toLowerCase());
+  if (result.ok) {
+    print(`You sell ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold total)`);
+    printLines(advanceTime(state, 10, "shop"));
+  } else {
+    print(result.message, "system");
+  }
+  renderActiveTab();
+  renderShopMenu();
+  syncInputEnabled();
+}
+
 function switchTab(tab) {
   activeTab = tab;
   tabButtons.forEach((btn) => {
@@ -350,8 +514,16 @@ async function runCommand(commandText, echoText) {
     if (bootStage !== "playing") {
       await handleBootInput(commandText);
     } else {
+      // Detect "shop" (or a synonym — "store"/"market") the same way
+      // handleInput itself resolves the verb, so entering shop mode
+      // matches exactly whatever cmdShop was actually about to do.
+      const words = commandText.trim().toLowerCase().split(/\s+/);
+      const verb = resolveVerb(words[0], words.length === 1);
       const lines = await handleInput(commandText, state);
       printLines(lines);
+      if (verb === "shop" && !state.combat && buildShopMenu(state)) {
+        shopMode = true;
+      }
       if (state.health <= 0) {
         print("");
         print("Your journey ends here. Refresh the page to begin again.", "danger");
@@ -362,9 +534,8 @@ async function runCommand(commandText, echoText) {
   } finally {
     renderActiveTab();
     renderCombatMenu();
-    const inCombat = bootStage === "playing" && !!(state && state.combat);
-    input.disabled = gameOver || inCombat;
-    if (!gameOver && !inCombat) input.focus();
+    renderShopMenu();
+    syncInputEnabled();
   }
 }
 
@@ -372,6 +543,21 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = input.value;
   if (!text.trim()) return;
+  if (pendingBuy) {
+    const buy = pendingBuy;
+    const n = parseInt(text.trim(), 10);
+    printEcho(text);
+    input.value = "";
+    pendingBuy = null;
+    if (!n || n < 1) {
+      print(`"${text}" isn't a valid quantity.`, "system");
+      renderShopMenu();
+      input.focus();
+      return;
+    }
+    resolveBuy(buy.index, n);
+    return;
+  }
   await runCommand(text);
 });
 

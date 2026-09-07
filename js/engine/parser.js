@@ -1406,9 +1406,10 @@ function cmdShop(state) {
     lines.push("Nothing worth selling here right now. Check back in a few days.");
   } else {
     shop.stock.forEach((item, i) => {
-      lines.push(`${i + 1}. ${formatItemLine(item)} — ${shopBuyPrice(item, state)} gold`);
+      const remaining = shop.qty[item] || 0;
+      lines.push(`${i + 1}. ${formatItemLine(item)} — ${shopBuyPrice(item, state)} gold (${remaining > 0 ? `${remaining} left` : "sold out"})`);
     });
-    lines.push("(buy <number> to purchase, sell <item> to sell something from your pack)");
+    lines.push("(buy <number> [quantity] to purchase, sell <item> to sell something from your pack)");
   }
   lines.push(`Gold: ${state.gold}`);
   return lines;
@@ -1418,11 +1419,14 @@ function cmdBuy(arg, state) {
   const loc = state.currentPlace();
   if (!effectiveServices(loc).includes("shop")) return ["There's no shop here."];
   if (!isShopOpen(state)) return [`The shop's shuttered for the ${getDaypart(state.hour)}. Try again in the morning.`];
-  const num = parseInt((arg.match(/\d+/) || [])[0], 10);
-  if (!num) return ["Buy which one? (buy <number> — see 'shop' for the list)"];
-  const result = buyShopItem(state, state.location, num - 1);
+  const nums = arg.match(/\d+/g) || [];
+  const num = parseInt(nums[0], 10);
+  if (!num) return ["Buy which one? (buy <number> [quantity] — see 'shop' for the list)"];
+  const qty = nums[1] ? parseInt(nums[1], 10) : 1;
+  const result = buyShopItem(state, state.location, num - 1, qty);
   if (!result.ok) return [result.message];
-  return [`You buy ${formatItemLine(result.item)} for ${result.price} gold. (${state.gold} gold left)`, ...advanceTime(state, 10, "shop")];
+  const label = result.qty > 1 ? `${result.qty}x ${formatItemLine(result.item)}` : formatItemLine(result.item);
+  return [`You buy ${label} for ${result.price} gold. (${state.gold} gold left)`, ...advanceTime(state, 10, "shop")];
 }
 
 function cmdSell(arg, state) {
