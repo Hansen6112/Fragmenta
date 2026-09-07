@@ -32,6 +32,12 @@ let pendingBuy = null;
 // buildJobsMenu) — same on/off shape as shopMode, entered by a typed/
 // resolved "board" or "contracts" command finding either available.
 let jobMode = false;
+// Which combat sub-menu is currently showing (see engine/combat.js's
+// buildCombatMenu): null is the top-level Fight/Use Item/Flee choice;
+// "target"/"attack"/"item" are the drill-downs Fight and Use Item open
+// into. Reset to null (renderCombatMenu) the moment combat ends, so the
+// next fight always starts back at the top.
+let combatStage = null;
 
 function print(text, cls) {
   const p = document.createElement("p");
@@ -385,8 +391,14 @@ function renderCombatMenu() {
   // Inventory/Equipment/Party too, floating below whatever that tab shows.
   combatMenuEl.hidden = !inCombat || activeTab !== "story";
   combatMenuEl.innerHTML = "";
-  if (!inCombat) return;
-  buildCombatMenu(state).forEach((opt) => {
+  if (!inCombat) {
+    combatStage = null;
+    return;
+  }
+
+  const creature = getCombatCreature(state);
+  const stage = creature.friendly ? "top" : combatStage || "top";
+  buildCombatMenu(state, stage).forEach((opt) => {
     // A pending choice (buildChoiceMenu) can be prepended here with its
     // own {heading} divider — same handling as the shop/job/location
     // menus already give one.
@@ -401,9 +413,39 @@ function renderCombatMenu() {
     btn.type = "button";
     btn.className = "combat-menu-btn" + (opt.command === "flee" ? " flee" : "");
     btn.textContent = opt.label;
-    btn.addEventListener("click", () => runCommand(opt.command, opt.label));
+    if (opt.disabled) {
+      btn.disabled = true;
+    } else {
+      btn.addEventListener("click", async () => {
+        // opt.command (a real command string) is optional here — Fight and
+        // Use Item at the top level are pure navigation into a sub-menu,
+        // nothing for handleInput to run yet. Anything with a command runs
+        // it exactly as typed input would, same as every other menu in the
+        // game; opt.nextStage then says where the menu lands afterward
+        // (explicit for target-picking, which advances to "attack" instead
+        // of resolving a round — everything else defaults back to "top").
+        if (opt.command) await runCommand(opt.command, opt.label);
+        combatStage = opt.nextStage !== undefined ? opt.nextStage : null;
+        renderModals();
+      });
+    }
     combatMenuEl.appendChild(btn);
   });
+
+  // Sub-stages get a Back button — pure UI navigation, not a real command,
+  // so (like the shop's pendingBuy Cancel button) it's added here rather
+  // than returned from buildCombatMenu itself.
+  if (stage !== "top") {
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "combat-menu-btn";
+    back.textContent = "Back";
+    back.addEventListener("click", () => {
+      combatStage = stage === "attack" && aliveEnemies(state).length > 1 ? "target" : null;
+      renderModals();
+    });
+    combatMenuEl.appendChild(back);
+  }
 }
 
 // Menu-driven shop (see engine/shop.js's buildShopMenu). Buy/Sell buttons

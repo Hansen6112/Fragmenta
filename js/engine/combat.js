@@ -2909,7 +2909,17 @@ function useTarget(state, arg) {
 // already accepts from typed input, so no parser/combat/state changes are
 // needed here at all. Mirrors tacticsLine()'s own availability logic
 // exactly, just returned as data instead of joined into a hint string.
-function buildCombatMenu(state) {
+//
+// Drilled down across stages rather than one flat list — main.js tracks
+// which stage the player is currently browsing (combatStage) and passes it
+// in; combat.js only ever needs to know WHAT belongs in each stage, not how
+// the player got there or navigates back (main.js's own "Back" button is
+// pure UI, not a real command, so it's added there instead of here — same
+// split shop.js/main.js already use for the buy-quantity Cancel button).
+// A returned option with no `command` (only `nextStage`) is a pure UI
+// transition; one with a `command` and no explicit `nextStage` resolves a
+// real round and returns to "top" for the next one (main.js's default).
+function buildCombatMenu(state, stage) {
   if (!state.combat) return [];
 
   const creature = getCombatCreature(state);
@@ -2921,67 +2931,83 @@ function buildCombatMenu(state) {
   // explicitly allowed mid-combat (handleInput's own combat-priority
   // whitelist), and nothing about it forces resolution before the next
   // attack — so don't strand the player behind a hidden input with no
-  // way to answer it, but don't block Fight/Flee on it either.
+  // way to answer it, but don't block Fight/Flee on it either. Prepended
+  // regardless of stage, for the same reason.
   const pendingChoice = buildChoiceMenu(state);
   if (pendingChoice) options.push(...pendingChoice);
 
   // Friendly (non-hostile) encounters get their own two-option menu —
-  // same branch handleInput() already special-cases.
+  // same branch handleInput() already special-cases. No staging here;
+  // there's nothing to drill into.
   if (creature.friendly) {
     options.push({ label: "Talk", command: "talk" });
     options.push({ label: "Leave", command: "leave" });
     return options;
   }
 
-  options.push({ label: "Fight", command: "fight" });
+  // "target <name>" only actually offers a choice with more than one
+  // enemy still up — with just one, Fight skips straight to picking an
+  // attack instead of making the player confirm a target of one.
+  const hasChoiceOfTarget = aliveEnemies(state).length > 1;
 
-  // Tactics / element abilities — identical source list and identical
-  // availability check as availableActionNames()/tacticAvailable(). The
-  // typed verb for a mage ability is the ability's own NAME (handleInput
-  // resolves it through ELEMENT_VERB_TO_KEY), not the element key itself.
-  if (state.flags.isMage) {
-    [state.primaryElement, state.secondaryElement]
-      .filter(Boolean)
-      .filter((el) => elementAbilityAvailable(state, el))
-      .forEach((el) => {
-        const ability = ELEMENT_ABILITIES[el];
-        options.push({ label: ability.name, command: ability.name.toLowerCase() });
-      });
-  } else {
-    unlockedTactics(state)
-      .filter((id) => tacticAvailable(state, id))
-      .forEach((id) => {
-        options.push({ label: TACTICS[id].name, command: id });
-      });
-  }
-
-  // Target switching — only offered when there's actually a choice.
-  // useTarget() matches by name substring, not position, so the command
-  // has to carry the enemy's actual name.
-  if (aliveEnemies(state).length > 1) {
+  if (stage === "target") {
     aliveEnemies(state).forEach((e) => {
       options.push({
-        label: `Target: ${e.creatureObj.name} (${e.hp}/${e.maxHp} HP)`,
+        label: `${e.creatureObj.name} (${e.hp}/${e.maxHp} HP)`,
         command: `target ${e.creatureObj.name}`,
+        nextStage: "attack",
       });
     });
+    return options;
   }
 
-  // Item use — one button per distinct usable consumable, since bare
-  // "use" with no argument just answers "Use what?" (useItem's own first
-  // check) rather than doing anything on its own.
-  const usableCounts = new Map();
-  for (const item of state.inventory) {
-    const def = getItemDef(item);
-    if (def && def.slot === "consumable") usableCounts.set(item, (usableCounts.get(item) || 0) + 1);
-  }
-  for (const [item, count] of usableCounts) {
-    options.push({
-      label: count > 1 ? `Use: ${item} (x${count})` : `Use: ${item}`,
-      command: `use ${item}`,
-    });
+  if (stage === "attack") {
+    options.push({ label: "Attack", command: "fight" });
+    // Tactics / element abilities — identical source list and identical
+    // availability check as availableActionNames()/tacticAvailable(). The
+    // typed verb for a mage ability is the ability's own NAME (handleInput
+    // resolves it through ELEMENT_VERB_TO_KEY), not the element key itself.
+    if (state.flags.isMage) {
+      [state.primaryElement, state.secondaryElement]
+        .filter(Boolean)
+        .filter((el) => elementAbilityAvailable(state, el))
+        .forEach((el) => {
+          const ability = ELEMENT_ABILITIES[el];
+          options.push({ label: ability.name, command: ability.name.toLowerCase() });
+        });
+    } else {
+      unlockedTactics(state)
+        .filter((id) => tacticAvailable(state, id))
+        .forEach((id) => {
+          options.push({ label: TACTICS[id].name, command: id });
+        });
+    }
+    return options;
   }
 
+  if (stage === "item") {
+    // One button per distinct usable consumable, since bare "use" with no
+    // argument just answers "Use what?" (useItem's own first check)
+    // rather than doing anything on its own.
+    const usableCounts = new Map();
+    for (const item of state.inventory) {
+      const def = getItemDef(item);
+      if (def && def.slot === "consumable") usableCounts.set(item, (usableCounts.get(item) || 0) + 1);
+    }
+    for (const [item, count] of usableCounts) {
+      options.push({
+        label: count > 1 ? `${item} (x${count})` : item,
+        command: `use ${item}`,
+      });
+    }
+    return options;
+  }
+
+  // Top level: just the three-way decision the player actually has to
+  // make each round. Fight/Use Item are pure navigation (no command —
+  // main.js just switches stage); Flee resolves immediately, same as ever.
+  options.push({ label: "Fight", nextStage: hasChoiceOfTarget ? "target" : "attack" });
+  options.push({ label: "Use Item", nextStage: "item", disabled: !hasUsableConsumable(state) });
   options.push({ label: "Flee", command: "flee" });
 
   return options;
