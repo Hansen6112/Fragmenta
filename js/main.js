@@ -44,6 +44,11 @@ let combatStage = null;
 // confirm steps). Absent = collapsed. Consumable/ritual items don't use
 // this at all — they keep their plain inline Use/Drop buttons.
 let inventoryPanelState = new Map();
+// Which ally equip-slot pickers are currently open on the Party tab —
+// keyed by "<ally name>::<slot>". Presence in the set means open;
+// renderAllyEquipmentList lists whatever's currently in the shared
+// inventory that fits that slot when it is.
+let allyEquipPickerOpen = new Set();
 
 function print(text, cls) {
   const p = document.createElement("p");
@@ -330,6 +335,121 @@ function renderInventory() {
   invPanel.insertBefore(gold, invPanel.firstChild);
 }
 
+// Distinct (deduped) carried items that fit a given equip slot — what an
+// ally's "Equip" picker for that slot has to offer. Same slot resolution
+// (registry first, inferEquipSlot fallback) actionsForInventoryItem etc.
+// already use.
+function eligibleInventoryItemsForSlot(slot) {
+  const seen = new Set();
+  const out = [];
+  for (const item of state.inventory) {
+    if (seen.has(item)) continue;
+    const def = getItemDef(item);
+    const itemSlot = def ? def.slot : inferEquipSlot(item);
+    if (itemSlot !== slot) continue;
+    seen.add(item);
+    out.push(item);
+  }
+  return out;
+}
+
+// Per-ally equipment breakdown for the Party tab — same fixed-slot-row
+// shape as the player's own renderEquipment, but each row also gets an
+// Equip button that opens a picker of eligible items straight from the
+// shared inventory (clicking one runs the same `give <item> to <ally>`
+// cmdGive already accepts), alongside Unequip (`reclaim <item> from
+// <ally>`, cmdReclaim's existing command). This is the only place gear
+// ever moves onto/off of an ally now — items don't have a separate
+// per-ally stash of their own, just what's equipped vs. what's still in
+// the shared pool.
+function renderAllyEquipmentList(container, ally) {
+  const list = document.createElement("ul");
+  list.className = "inv-list";
+  for (const slot of EQUIP_SLOTS) {
+    const li = document.createElement("li");
+    li.className = "inv-row";
+    const row = document.createElement("div");
+    row.className = "inv-row-main";
+    const label = document.createElement("span");
+    label.className = "equip-slot-label";
+    label.textContent = EQUIP_SLOT_LABELS[slot];
+    row.appendChild(label);
+
+    const value = document.createElement("span");
+    const filled = slot === "trinkets" ? ally.equipment.trinkets : (ally.equipment[slot] ? [ally.equipment[slot]] : []);
+    value.textContent = filled.length ? filled.map(formatItemLine).join("; ") : "(empty)";
+    value.className = filled.length ? "equip-slot-value" : "equip-slot-value inv-empty";
+    row.appendChild(value);
+    li.appendChild(row);
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "inv-actions";
+    filled.forEach((item) => {
+      const unequipLabel = filled.length > 1 ? `Unequip: ${item}` : "Unequip";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "combat-menu-btn";
+      btn.textContent = unequipLabel;
+      btn.addEventListener("click", () => runCommand(`reclaim ${item} from ${ally.name}`, `${unequipLabel} (${ally.name})`));
+      actionRow.appendChild(btn);
+    });
+
+    const atCapacity = slot === "trinkets" && ally.equipment.trinkets.length >= EQUIP_SLOT_CAPACITY.trinkets;
+    const pickerKey = `${ally.name}::${slot}`;
+    if (!atCapacity) {
+      const equipBtn = document.createElement("button");
+      equipBtn.type = "button";
+      equipBtn.className = "combat-menu-btn";
+      equipBtn.textContent = "Equip";
+      equipBtn.addEventListener("click", () => {
+        if (allyEquipPickerOpen.has(pickerKey)) allyEquipPickerOpen.delete(pickerKey);
+        else allyEquipPickerOpen.add(pickerKey);
+        renderParty();
+      });
+      actionRow.appendChild(equipBtn);
+    }
+    if (actionRow.children.length) li.appendChild(actionRow);
+
+    if (allyEquipPickerOpen.has(pickerKey)) {
+      const picker = document.createElement("div");
+      picker.className = "inv-item-panel";
+      const options = eligibleInventoryItemsForSlot(slot);
+      if (!options.length) {
+        const none = document.createElement("p");
+        none.className = "inv-empty";
+        none.textContent = `You aren't carrying anything for ${EQUIP_SLOT_LABELS[slot]}.`;
+        picker.appendChild(none);
+      } else {
+        options.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "combat-menu-btn";
+          btn.textContent = formatItemLine(item);
+          btn.addEventListener("click", async () => {
+            await runCommand(`give ${item} to ${ally.name}`, `Equip ${item} to ${ally.name}`);
+            allyEquipPickerOpen.delete(pickerKey);
+            renderParty();
+          });
+          picker.appendChild(btn);
+        });
+      }
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.className = "combat-menu-btn";
+      cancel.textContent = "Cancel";
+      cancel.addEventListener("click", () => {
+        allyEquipPickerOpen.delete(pickerKey);
+        renderParty();
+      });
+      picker.appendChild(cancel);
+      li.appendChild(picker);
+    }
+
+    list.appendChild(li);
+  }
+  container.appendChild(list);
+}
+
 // Fixed slot rows (Main Hand, Off Hand, ... Trinkets), unlike the flat
 // aggregated inventory list — every slot always shows, empty or not, so
 // it reads like a paper doll rather than a bag.
@@ -474,13 +594,7 @@ function renderParty() {
     });
     card.appendChild(stanceRow);
 
-    const gear = document.createElement("p");
-    const gearBits = EQUIP_SLOTS.filter((s) => (s === "trinkets" ? ally.equipment.trinkets.length : ally.equipment[s])).map((s) =>
-      s === "trinkets" ? ally.equipment.trinkets.map(formatItemLine).join(", ") : formatItemLine(ally.equipment[s])
-    );
-    gear.className = gearBits.length ? "equip-slot-value" : "equip-slot-value inv-empty";
-    gear.textContent = `Gear: ${gearBits.length ? gearBits.join("; ") : `(none — try 'give <item> to ${ally.name}')`}`;
-    card.appendChild(gear);
+    renderAllyEquipmentList(card, ally);
 
     partyPanel.appendChild(card);
   }
