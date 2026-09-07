@@ -7,6 +7,7 @@ const invPanel = document.getElementById("inventory-panel");
 const equipPanel = document.getElementById("equipment-panel");
 const partyPanel = document.getElementById("party-panel");
 const lorePanel = document.getElementById("lore-panel");
+const bootMenuEl = document.getElementById("boot-menu");
 const combatMenuEl = document.getElementById("combat-menu");
 const shopMenuEl = document.getElementById("shop-menu");
 const jobMenuEl = document.getElementById("job-menu");
@@ -797,6 +798,63 @@ function renderActiveTab() {
   if (activeTab === "lore") renderLore();
 }
 
+// Menu-driven character creation — the one part of the game that never
+// got converted when everything else did, since it all happens before
+// bootStage reaches "playing" (every other render* function here no-ops
+// during boot). "Continue previous journey?", background, and element
+// are all a fixed choice from a fixed list, so each gets one button per
+// option, same command-string-reuse pattern as everywhere else: a click
+// just runs the exact text handleBootInput already parses (a plain
+// "yes"/"no", or the background/element's own key, which its fuzzy
+// match already accepts verbatim). Naming stays typed — there's no
+// fixed list of names to offer buttons for.
+function renderBootMenu() {
+  const show = bootStage === "ask_load" || bootStage === "ask_background" || bootStage === "ask_element";
+  bootMenuEl.hidden = !show || activeTab !== "story";
+  bootMenuEl.innerHTML = "";
+  if (!show) return;
+
+  if (bootStage === "ask_load") {
+    const yes = document.createElement("button");
+    yes.type = "button";
+    yes.className = "combat-menu-btn";
+    yes.textContent = "Continue Journey";
+    yes.addEventListener("click", () => runCommand("yes", "Continue Journey"));
+    bootMenuEl.appendChild(yes);
+    const no = document.createElement("button");
+    no.type = "button";
+    no.className = "combat-menu-btn flee";
+    no.textContent = "Start Fresh";
+    no.addEventListener("click", () => runCommand("no", "Start Fresh"));
+    bootMenuEl.appendChild(no);
+    return;
+  }
+
+  if (bootStage === "ask_background") {
+    Object.entries(BACKGROUNDS).forEach(([key, bg]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "combat-menu-btn";
+      btn.textContent = `${bg.name} — ${bg.tagline}`;
+      btn.addEventListener("click", () => runCommand(key, bg.name));
+      bootMenuEl.appendChild(btn);
+    });
+    return;
+  }
+
+  if (bootStage === "ask_element") {
+    Object.entries(ELEMENTS).forEach(([key, el]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "combat-menu-btn";
+      btn.textContent = `${el.name} — ${el.description}`;
+      btn.addEventListener("click", () => runCommand(key, el.name));
+      bootMenuEl.appendChild(btn);
+    });
+    return;
+  }
+}
+
 // Menu-driven combat (see engine/combat.js's buildCombatMenu): while
 // state.combat is active, the typed input is replaced entirely by one
 // button per available action — clicking a button runs the exact same
@@ -1185,6 +1243,7 @@ function renderLocationMenu() {
 // caller can update one without the others (renderShopMenu leaving shop
 // mode, say, without also bringing renderLocationMenu back).
 function renderModals() {
+  renderBootMenu();
   renderCombatMenu();
   renderShopMenu();
   renderJobMenu();
@@ -1196,15 +1255,19 @@ function renderModals() {
 // Whether the input box should currently be off-limits to typing — true
 // during combat, true while the job-board menu is showing, true while
 // shop buttons are showing (but NOT while pendingBuy's quantity prompt
-// is up, which is the one approved moment), and true while a stand-alone
+// is up, which is the one approved moment), true while a stand-alone
 // pending-choice menu is up (never true for the in-combat version of
-// that same choice, which is just more combat-menu buttons).
+// that same choice, which is just more combat-menu buttons), and true
+// for the three boot stages with a fixed-list button menu (load-prompt,
+// background, element) — but never for ask_name, the other approved
+// free-text moment alongside the shop's quantity prompt.
 function inputBlocked() {
   const inCombat = bootStage === "playing" && !!(state && state.combat);
   const inShopMenu = bootStage === "playing" && shopMode && !pendingBuy;
   const inJobMenu = bootStage === "playing" && jobMode;
   const inChoiceMenu = bootStage === "playing" && !inCombat && !!(state && buildChoiceMenu(state));
-  return inCombat || inShopMenu || inJobMenu || inChoiceMenu;
+  const inBootMenu = bootStage === "ask_load" || bootStage === "ask_background" || bootStage === "ask_element";
+  return inCombat || inShopMenu || inJobMenu || inChoiceMenu || inBootMenu;
 }
 
 // Every button handler that isn't routed through runCommand (combat's own
@@ -1285,10 +1348,16 @@ function boot() {
   print("");
   if (GameState.hasSave()) {
     bootStage = "ask_load";
-    print("A previous journey was found. Continue it? (yes/no)", "system");
+    print("A previous journey was found. Continue it?", "system");
   } else {
     startNewGame();
   }
+  // Every other stage transition happens inside handleBootInput, which
+  // runs from runCommand's own finally block (renderActiveTab/
+  // renderModals) — but boot() itself runs once, before the player has
+  // typed anything at all, so the very first screen needs its own call
+  // to actually show the ask_load buttons (or nothing yet, for ask_name).
+  renderModals();
 }
 
 function startNewGame() {
@@ -1342,7 +1411,7 @@ async function handleBootInput(raw) {
     Object.entries(BACKGROUNDS).forEach(([key, bg], i) => {
       print(`  ${i + 1}. ${bg.name} — ${bg.tagline}`, "system");
     });
-    print("(type a number, or a name)", "system");
+    print("(pick one below)", "system");
     return;
   }
   if (bootStage === "ask_background") {
@@ -1366,7 +1435,7 @@ async function handleBootInput(raw) {
       Object.values(ELEMENTS).forEach((el, i) => {
         print(`  ${i + 1}. ${el.name} — ${el.description}`, "system");
       });
-      print("(type a number, or a name — you can open a second element later, at level 15)", "system");
+      print("(pick one below — you can open a second element later, at level 15)", "system");
       return;
     }
     beginCharacter(key, pendingName);
