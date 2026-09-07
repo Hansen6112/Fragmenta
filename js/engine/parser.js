@@ -56,6 +56,7 @@ const VERB_SYNONYMS = {
   stance: ["stance"],
   recruit: ["recruit"],
   give: ["give", "hand"],
+  dismantle: ["dismantle", "salvage", "scrap"],
   reclaim: ["reclaim", "retrieve"],
   sanctuary: ["sanctuary", "shrine"],
   pray: ["pray", "offer"],
@@ -211,6 +212,8 @@ async function handleInput(rawInput, state) {
       return cmdRecruit(arg, state);
     case "give":
       return cmdGive(arg, state);
+    case "dismantle":
+      return cmdDismantle(arg, state);
     case "reclaim":
       return cmdReclaim(arg, state);
     case "sanctuary":
@@ -838,6 +841,28 @@ function cmdGive(arg, state) {
   }
   recomputeAllyStats(ally, ally.level);
   return lines;
+}
+
+// Breaks one unit of a piece of gear down into its components (data/
+// items.js's dismantleComponents — a per-item list the item registry will
+// eventually carry, falling back to a generic placeholder for anything
+// that doesn't have one yet). Irreversible, same as Drop, and restricted
+// to the same equipable-gear slots Equip/Give already require.
+function cmdDismantle(arg, state) {
+  if (!arg) return ["Dismantle what?"];
+  const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(arg));
+  if (idx < 0) return [`You aren't carrying "${arg}".`];
+  const item = state.inventory[idx];
+  const itemDef = getItemDef(item);
+  const slot = itemDef ? itemDef.slot : inferEquipSlot(item);
+  if (!slot) return [`${item} isn't something you can dismantle.`];
+  if (slot === "consumable") return [`${item} isn't gear — there's nothing to salvage from it.`];
+  if (!EQUIP_SLOTS.includes(slot)) return [`${item} isn't gear — it's not something you can take apart.`];
+
+  const components = dismantleComponents(item);
+  state.inventory.splice(idx, 1);
+  components.forEach((c) => state.inventory.push(c));
+  return [`You dismantle ${formatItemLine(item)}, salvaging: ${components.join(", ")}.`];
 }
 
 function cmdReclaim(arg, state) {

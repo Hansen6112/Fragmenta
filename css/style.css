@@ -222,6 +222,31 @@ body {
   color: var(--text-dim);
 }
 
+/* The click-to-expand Equip/Drop/Dismantle panel under an equipable
+   inventory row (main.js's buildInventoryItemPanel) — its own indented,
+   bordered box so it reads as "belonging to" the row above it rather
+   than blending into the next item down. */
+.inv-item-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0 1rem;
+  padding: 0.6rem;
+  border-left: 2px solid var(--border);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.inv-item-panel button {
+  align-self: stretch;
+}
+
+.inv-warning {
+  color: var(--danger);
+  font-style: italic;
+  margin: 0;
+}
+
 .equip-slot-label {
   color: var(--text-dim);
   flex-shrink: 0;

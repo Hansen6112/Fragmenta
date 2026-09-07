@@ -61,8 +61,12 @@ const STAT_LABELS = { atk: "Attack", def: "Defense", health: "Health", magic: "M
 
 const ITEM_DEFS = {
   // ---- starting kits (data/backgrounds.js) ----
-  "a short sword": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "starter" },
-  "a legion-issue shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "starter" },
+  // `dismantle` is the per-item components schema future items will be
+  // authored against — these two are just worked examples; everything
+  // else still falls back to genericDismantleFallback until it gets its
+  // own list.
+  "a short sword": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "starter", dismantle: ["a leather grip", "a rough iron blade"] },
+  "a legion-issue shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "starter", dismantle: ["a wooden shield board", "a bent bronze rim"] },
   "a curved desert blade": { slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "starter" },
   "a contract chit from the Mugamiir Safor": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, source: "starter" },
   "a novitiate's plain robe": { slot: "chest", tier: 1, bonuses: { magic: 1 }, source: "starter" },
@@ -1945,6 +1949,40 @@ function formatItemBonuses(item) {
 function formatItemLine(item) {
   const bonusText = formatItemBonuses(item);
   return bonusText ? `${item} (${bonusText})` : item;
+}
+
+// Short "what it is, what it does" line for the inventory panel's
+// expanded item view — composed entirely from fields the registry
+// already carries (slot, tier, bonuses), since no item has hand-authored
+// flavor text yet. Falls back to a generic line for anything without a
+// registry entry (equippable only via inferEquipSlot's guesswork).
+function itemDescription(item) {
+  const def = getItemDef(item);
+  if (!def) return "A piece of gear of uncertain make.";
+  const slotLabel = def.slot === "trinkets" ? EQUIP_SLOT_LABELS.trinkets : (EQUIP_SLOT_LABELS[def.slot] || def.slot);
+  const bonusParts = Object.entries(def.bonuses || {}).map(([k, v]) => `+${v} ${STAT_LABELS[k] || k}`);
+  const bonusText = bonusParts.length ? bonusParts.join(", ") : "no stat bonus";
+  return `${itemRarityName(def.tier)} ${slotLabel} — ${bonusText}.`;
+}
+
+// Placeholder salvage yield for a generic item with no authored dismantle
+// list yet — loosely scaled by tier so higher-tier gear at least LOOKS
+// more valuable to break down, pending real per-item components.
+function genericDismantleFallback(tier) {
+  const t = tier || 1;
+  if (t >= 4) return ["a fragment of refined ore", "a handful of scrap components", "a strip of salvaged binding"];
+  if (t >= 2) return ["a fragment of refined ore", "a handful of scrap components"];
+  return ["a handful of scrap components"];
+}
+
+// What dismantling one unit of this item yields — data/items.js's own
+// registry entry's `dismantle` field when the item has one (the schema
+// each item will eventually get authored per-item components in), else
+// the generic tier-scaled placeholder above.
+function dismantleComponents(item) {
+  const def = getItemDef(item);
+  if (def && def.dismantle) return def.dismantle;
+  return genericDismantleFallback(def ? def.tier : 1);
 }
 
 // Shop pricing (engine/shop.js). Buy price scales quadratically with

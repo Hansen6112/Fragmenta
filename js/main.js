@@ -38,6 +38,12 @@ let jobMode = false;
 // into. Reset to null (renderCombatMenu) the moment combat ends, so the
 // next fight always starts back at the top.
 let combatStage = null;
+// Which panel (if any) each equipable inventory item currently has open —
+// keyed by item name, value one of "open" (description + Equip/Drop/
+// Dismantle), "equip" (who to equip to), "drop"/"dismantle" (their
+// confirm steps). Absent = collapsed. Consumable/ritual items don't use
+// this at all — they keep their plain inline Use/Drop buttons.
+let inventoryPanelState = new Map();
 
 function print(text, cls) {
   const p = document.createElement("p");
@@ -62,6 +68,8 @@ function printEcho(text) {
 // clicking one runs the exact command string equip/unequip/drop/give/use
 // already accept from typed input (same command-string reuse as combat's
 // buildCombatMenu), so no parser changes were needed for this phase.
+// Equipable items instead get the click-to-expand Equip/Drop/Dismantle
+// accordion built by buildInventoryItemPanel — see isEquipableItem below.
 function renderItemList(panel, items, emptyText, actionsForItem) {
   panel.innerHTML = "";
   if (!items || items.length === 0) {
@@ -80,10 +88,11 @@ function renderItemList(panel, items, emptyText, actionsForItem) {
   for (const [item, count] of counts) {
     const li = document.createElement("li");
     li.className = "inv-row";
+    const equipable = isEquipableItem(item);
     const row = document.createElement("div");
     row.className = "inv-row-main";
     const name = document.createElement("span");
-    name.textContent = formatItemLine(item);
+    name.textContent = (equipable ? (inventoryPanelState.has(item) ? "▾ " : "▸ ") : "") + formatItemLine(item);
     row.appendChild(name);
     if (count > 1) {
       const badge = document.createElement("span");
@@ -92,43 +101,175 @@ function renderItemList(panel, items, emptyText, actionsForItem) {
       row.appendChild(badge);
     }
     li.appendChild(row);
-    const actions = actionsForItem ? actionsForItem(item) : [];
-    if (actions.length) {
-      const actionRow = document.createElement("div");
-      actionRow.className = "inv-actions";
-      actions.forEach((a) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "combat-menu-btn";
-        btn.textContent = a.label;
-        btn.addEventListener("click", () => runCommand(a.command, a.label));
-        actionRow.appendChild(btn);
+
+    if (equipable) {
+      row.classList.add("location-heading");
+      row.addEventListener("click", () => {
+        if (inventoryPanelState.has(item)) inventoryPanelState.delete(item);
+        else inventoryPanelState.set(item, "open");
+        renderActiveTab();
       });
-      li.appendChild(actionRow);
+      const panelState = inventoryPanelState.get(item);
+      if (panelState) li.appendChild(buildInventoryItemPanel(item, panelState));
+    } else {
+      const actions = actionsForItem ? actionsForItem(item) : [];
+      if (actions.length) {
+        const actionRow = document.createElement("div");
+        actionRow.className = "inv-actions";
+        actions.forEach((a) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "combat-menu-btn";
+          btn.textContent = a.label;
+          btn.addEventListener("click", () => runCommand(a.command, a.label));
+          actionRow.appendChild(btn);
+        });
+        li.appendChild(actionRow);
+      }
     }
     list.appendChild(li);
   }
   panel.appendChild(list);
 }
 
-// Equip is only offered for real gear (cmdEquip rejects consumable/
-// ritual slots the same way); Give mirrors cmdGive's own "consumables
-// stay in the shared pack" rule, so it only appears alongside Equip too.
-// Drop always applies.
-function actionsForInventoryItem(item) {
-  const actions = [];
+// Real gear only (cmdEquip/cmdGive/cmdDismantle all reject consumable/
+// ritual slots the same way) — everything else (consumables, ritual
+// items, unrecognized loot) keeps the plain inline action row instead.
+function isEquipableItem(item) {
   const def = getItemDef(item);
   const slot = def ? def.slot : inferEquipSlot(item);
-  if (slot === "consumable") {
-    actions.push({ label: "Use", command: `use ${item}` });
-  } else if (slot && EQUIP_SLOTS.includes(slot)) {
-    actions.push({ label: "Equip", command: `equip ${item}` });
-    state.party.filter((a) => a.alive).forEach((a) => {
-      actions.push({ label: `Give: ${a.name}`, command: `give ${item} to ${a.name}` });
-    });
-  }
+  return !!slot && slot !== "consumable" && EQUIP_SLOTS.includes(slot);
+}
+
+// Use is the only action a consumable gets; anything else recognized
+// (ritual items, unrecognized loot with no slot at all) just gets Drop.
+// Equipable items never reach this — they're handled by the accordion in
+// renderItemList/buildInventoryItemPanel instead.
+function actionsForInventoryItem(item) {
+  const def = getItemDef(item);
+  const slot = def ? def.slot : inferEquipSlot(item);
+  const actions = [];
+  if (slot === "consumable") actions.push({ label: "Use", command: `use ${item}` });
   actions.push({ label: "Drop", command: `drop ${item}` });
   return actions;
+}
+
+// Runs a real command (same string typed input would accept) from inside
+// the expanded item panel, then collapses it back to closed — the item's
+// stack count (or existence) just changed, so there's nothing sensible
+// left to keep the panel open on.
+async function resolveInventoryAction(command, echoText, item) {
+  await runCommand(command, echoText);
+  inventoryPanelState.delete(item);
+  renderActiveTab();
+}
+
+// The click-to-expand panel under an equipable inventory row — one of
+// four views keyed by inventoryPanelState's value for this item:
+// "open" (description + the three top-level choices), "equip" (who to
+// equip to), "drop"/"dismantle" (their irreversible-action confirmations).
+function buildInventoryItemPanel(item, panelState) {
+  const box = document.createElement("div");
+  box.className = "inv-item-panel";
+
+  const backTo = (next) => {
+    inventoryPanelState.set(item, next);
+    renderActiveTab();
+  };
+
+  if (panelState === "equip") {
+    const heading = document.createElement("p");
+    heading.textContent = "Equip to whom?";
+    box.appendChild(heading);
+    const you = document.createElement("button");
+    you.type = "button";
+    you.className = "combat-menu-btn";
+    you.textContent = "You";
+    you.addEventListener("click", () => resolveInventoryAction(`equip ${item}`, `Equip ${item} to yourself`, item));
+    box.appendChild(you);
+    state.party.filter((a) => a.alive).forEach((a) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "combat-menu-btn";
+      btn.textContent = a.name;
+      btn.addEventListener("click", () => resolveInventoryAction(`give ${item} to ${a.name}`, `Equip ${item} to ${a.name}`, item));
+      box.appendChild(btn);
+    });
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "combat-menu-btn";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => backTo("open"));
+    box.appendChild(cancel);
+    return box;
+  }
+
+  if (panelState === "drop") {
+    const warning = document.createElement("p");
+    warning.className = "inv-warning";
+    warning.textContent = "If dropped, this item cannot be recovered.";
+    box.appendChild(warning);
+    const confirm = document.createElement("button");
+    confirm.type = "button";
+    confirm.className = "combat-menu-btn flee";
+    confirm.textContent = "Confirm Drop";
+    confirm.addEventListener("click", () => resolveInventoryAction(`drop ${item}`, `Drop ${item}`, item));
+    box.appendChild(confirm);
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "combat-menu-btn";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => backTo("open"));
+    box.appendChild(cancel);
+    return box;
+  }
+
+  if (panelState === "dismantle") {
+    const warning = document.createElement("p");
+    warning.className = "inv-warning";
+    warning.textContent = "This cannot be reversed.";
+    box.appendChild(warning);
+    const yield_ = document.createElement("p");
+    yield_.textContent = `You'll salvage: ${dismantleComponents(item).join(", ")}.`;
+    box.appendChild(yield_);
+    const confirm = document.createElement("button");
+    confirm.type = "button";
+    confirm.className = "combat-menu-btn flee";
+    confirm.textContent = "Confirm Dismantle";
+    confirm.addEventListener("click", () => resolveInventoryAction(`dismantle ${item}`, `Dismantle ${item}`, item));
+    box.appendChild(confirm);
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "combat-menu-btn";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => backTo("open"));
+    box.appendChild(cancel);
+    return box;
+  }
+
+  // "open" — description plus the three top-level choices.
+  const desc = document.createElement("p");
+  desc.textContent = itemDescription(item);
+  box.appendChild(desc);
+  const equipBtn = document.createElement("button");
+  equipBtn.type = "button";
+  equipBtn.className = "combat-menu-btn";
+  equipBtn.textContent = "Equip";
+  equipBtn.addEventListener("click", () => backTo("equip"));
+  box.appendChild(equipBtn);
+  const dropBtn = document.createElement("button");
+  dropBtn.type = "button";
+  dropBtn.className = "combat-menu-btn";
+  dropBtn.textContent = "Drop";
+  dropBtn.addEventListener("click", () => backTo("drop"));
+  box.appendChild(dropBtn);
+  const dismantleBtn = document.createElement("button");
+  dismantleBtn.type = "button";
+  dismantleBtn.className = "combat-menu-btn";
+  dismantleBtn.textContent = "Dismantle";
+  dismantleBtn.addEventListener("click", () => backTo("dismantle"));
+  box.appendChild(dismantleBtn);
+  return box;
 }
 
 function renderInventory() {
