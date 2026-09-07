@@ -483,7 +483,14 @@ function renderShopMenu() {
   heading.textContent = `${menu.locName} — Gold: ${menu.gold}`;
   scrollBox.appendChild(heading);
 
-  appendCollapsibleSection(scrollBox, "shop:buy", `Buy (${menu.buyOptions.length})`, menu.buyOptions, (opt) => {
+  // One collapsible section per category (Weapons/Armor/Potions/Jewelry
+  // — shop.js's buildShopMenu groups these) rather than one flat "Buy"
+  // list: browsing means picking a type first, then seeing just that
+  // type's items, instead of scanning every item the shop has at once.
+  // Defaults collapsed, unlike Sell below — there's no single "the buy
+  // list" a player would want open by default the way there is for
+  // "what can I sell right now."
+  const buildBuyBtn = (opt) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "combat-menu-btn";
@@ -498,6 +505,9 @@ function renderShopMenu() {
       }
     });
     return btn;
+  };
+  menu.buyCategories.forEach((cat) => {
+    appendCollapsibleSection(scrollBox, `shop:buy:${cat.id}`, `${cat.label} (${cat.options.length})`, cat.options, buildBuyBtn, true);
   });
 
   appendCollapsibleSection(scrollBox, "shop:sell", `Sell (${menu.sellOptions.length})`, menu.sellOptions, (opt) => {

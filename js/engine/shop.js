@@ -166,6 +166,22 @@ function sellInventoryItem(state, needle) {
 // directly rather than round-tripping through a typed command string (the
 // same direct-call pattern renderParty()'s stance buttons already use).
 // Returns null wherever cmdShop itself would refuse (no shop, or closed).
+// Which of SHOP_CATEGORY_SLOTS' four buckets a given item's slot falls
+// into — the same taxonomy a shopCategory-narrowed sublocation already
+// uses to filter its stock in the first place, reused here to group an
+// unfiltered stock's own buy list by type. "other" is a defensive
+// fallback only — every real EQUIP_SLOTS entry plus "consumable" is
+// already covered by the four named buckets.
+const SHOP_CATEGORY_LABELS = { weapons: "Weapons", armor: "Armor", potions: "Potions", jewelry: "Jewelry", other: "Other" };
+function shopCategoryForItem(itemName) {
+  const def = getItemDef(itemName);
+  const slot = def && def.slot;
+  for (const [category, slots] of Object.entries(SHOP_CATEGORY_SLOTS)) {
+    if (slots.includes(slot)) return category;
+  }
+  return "other";
+}
+
 function buildShopMenu(state) {
   const loc = state.currentPlace();
   if (!loc || !effectiveServices(loc).includes("shop")) return null;
@@ -184,6 +200,21 @@ function buildShopMenu(state) {
     };
   });
 
+  // Grouped by type (Weapons/Armor/Potions/Jewelry) so browsing means
+  // picking a category first rather than scanning every item the shop
+  // has at once — main.js renders one collapsible section per category,
+  // reusing these exact option objects (same .index) so a click still
+  // resolves through buyShopItem exactly as the flat list did.
+  const byCategory = new Map();
+  buyOptions.forEach((opt) => {
+    const category = shopCategoryForItem(opt.item);
+    if (!byCategory.has(category)) byCategory.set(category, []);
+    byCategory.get(category).push(opt);
+  });
+  const buyCategories = ["weapons", "armor", "potions", "jewelry", "other"]
+    .filter((category) => byCategory.has(category))
+    .map((category) => ({ id: category, label: SHOP_CATEGORY_LABELS[category], options: byCategory.get(category) }));
+
   // One row per distinct item the player's carrying, same aggregation
   // renderItemList (main.js) already uses for the Inventory tab — a
   // ritual item (shopSellPrice returns null) just doesn't get a Sell row.
@@ -201,5 +232,5 @@ function buildShopMenu(state) {
     });
   }
 
-  return { locName: loc.name, gold: state.gold, buyOptions, sellOptions };
+  return { locName: loc.name, gold: state.gold, buyOptions, buyCategories, sellOptions };
 }
