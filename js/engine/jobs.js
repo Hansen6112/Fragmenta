@@ -49,6 +49,63 @@ function signGuildContract(state, guildId, index) {
   return { ok: true, job: accepted };
 }
 
+// Structured {label, command} pairs (plus {heading} dividers) for the
+// job-board menu — same shape as combat/location's own menus, and same
+// reasoning: command is the exact "accept <n>"/"sign <n>" string
+// cmdAccept/cmdSign already accept, so nothing about acceptBoardJob/
+// signGuildContract changes. Combines the city job board (every city)
+// and this city's guild contracts (only a guild HQ) into one menu, same
+// as cmdBoard's own "This city is also home to a guild — try 'contracts'"
+// pointer, just as one screen instead of two commands. Returns null
+// wherever neither is available at all (mirrors buildShopMenu's own
+// null-when-unavailable contract).
+function buildJobsMenu(state) {
+  const loc = state.currentLocation();
+  const guildId = GUILD_HQ[state.location];
+  const hasGuildHere = guildId && hasService(state, "guild");
+  if (!loc.isCity && !hasGuildHere) return null;
+
+  const options = [];
+
+  if (loc.isCity) {
+    const board = getOrRefreshBoard(state, state.location);
+    options.push({ heading: "Job Board" });
+    if (!board.jobs.length) {
+      options.push({ label: "Nothing posted right now.", disabled: true });
+    } else {
+      board.jobs.forEach((j, i) => {
+        if (j.taken) {
+          options.push({ label: `${skullString(j.difficulty)} ${j.title} — taken`, disabled: true });
+        } else {
+          options.push({
+            label: `${skullString(j.difficulty)} ${j.title} — ${j.rewardGold} gold${formatRepReward(j.rewardRep)}${j.loot ? " + possible loot" : ""}`,
+            command: `accept ${i + 1}`,
+          });
+        }
+      });
+    }
+  }
+
+  if (hasGuildHere) {
+    const list = GUILD_CONTRACTS[guildId] || [];
+    options.push({ heading: `${FACTIONS[guildId].name} — Contracts` });
+    list.forEach((c, i) => {
+      const done = state.flags["completed_" + c.id];
+      const active = state.activeJobs.some((j) => j.id === c.id);
+      if (done || active) {
+        options.push({ label: `${skullString(c.difficulty)} ${c.title} — ${done ? "completed" : "signed"}`, disabled: true });
+      } else {
+        options.push({
+          label: `${skullString(c.difficulty)} ${c.title} — ${c.rewardGold} gold${formatRepReward(c.rewardRep)} + ${c.loot}`,
+          command: `sign ${i + 1}`,
+        });
+      }
+    });
+  }
+
+  return options;
+}
+
 // Grants reward, removes the job, and — for the rare fragment-bearing
 // guild contracts — has a chance to hand over an actual Fragmenta Motus
 // shard instead of mundane loot, tying job-board work back to the

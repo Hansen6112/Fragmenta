@@ -401,6 +401,12 @@ function buildLocationMenu(state) {
   }
   if (services.includes("healer")) options.push({ label: "Heal", command: "heal" });
   if (services.includes("shop")) options.push({ label: "Shop", command: "shop" });
+  // Job board/guild contracts are a whole-city thing (cmdBoard checks
+  // loc.isCity directly, not the current sublocation), so this doesn't
+  // gate on `active`/`services` like Rest/Heal/Shop just above — only on
+  // whether the city itself has a board and/or a guild here at all.
+  const guildHere = GUILD_HQ[state.location] && hasService(state, "guild");
+  if (loc.isCity || guildHere) options.push({ label: "Jobs", command: "board" });
 
   return options;
 }
@@ -1382,7 +1388,11 @@ function cmdLore(arg, state) {
 }
 
 function describeJobObjective(job) {
-  if (job.type === "bounty") return `defeat a sufficiently dangerous creature (tier ${job.tierThreshold}+) anywhere — resolves automatically`;
+  // Bounty completion (jobs.js's checkJobProgressOnKill) actually reads
+  // job.difficulty via meetsBountyRequirement — this display text
+  // referenced a tierThreshold field that no bounty job (board-generated
+  // or guild contract) has ever set, printing "tier undefined" here.
+  if (job.type === "bounty") return `defeat a sufficiently dangerous creature (tier ${job.difficulty}+) anywhere — resolves automatically`;
   if (job.type === "courier") return `reach ${LOCATIONS[job.targetLocation].name} — resolves automatically on arrival`;
   return "";
 }

@@ -8,6 +8,7 @@ const equipPanel = document.getElementById("equipment-panel");
 const partyPanel = document.getElementById("party-panel");
 const combatMenuEl = document.getElementById("combat-menu");
 const shopMenuEl = document.getElementById("shop-menu");
+const jobMenuEl = document.getElementById("job-menu");
 const locationMenuEl = document.getElementById("location-menu");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const form = document.getElementById("input-form");
@@ -26,6 +27,10 @@ let pendingBgKey = "";
 // approved free-text moment besides naming something.
 let shopMode = false;
 let pendingBuy = null;
+// Menu-driven job board/guild contracts (see engine/jobs.js's
+// buildJobsMenu) — same on/off shape as shopMode, entered by a typed/
+// resolved "board" or "contracts" command finding either available.
+let jobMode = false;
 
 function print(text, cls) {
   const p = document.createElement("p");
@@ -386,15 +391,77 @@ function renderShopMenu() {
   shopMenuEl.appendChild(leave);
 }
 
+// Menu-driven job board/guild contracts (see engine/jobs.js's
+// buildJobsMenu) — same modal-takeover shape as renderShopMenu, just
+// without a quantity-prompt step: Accept/Sign always take exactly one.
+function renderJobMenu() {
+  const inCombat = bootStage === "playing" && !!(state && state.combat);
+  if (inCombat) {
+    jobMode = false;
+    jobMenuEl.hidden = true;
+    jobMenuEl.innerHTML = "";
+    return;
+  }
+
+  const inJobs = bootStage === "playing" && jobMode;
+  jobMenuEl.hidden = !inJobs;
+  jobMenuEl.innerHTML = "";
+  if (!inJobs) {
+    form.hidden = false;
+    return;
+  }
+
+  const options = buildJobsMenu(state);
+  if (!options) {
+    jobMode = false;
+    jobMenuEl.hidden = true;
+    form.hidden = false;
+    print("There's nothing to post or sign here anymore.", "system");
+    return;
+  }
+
+  form.hidden = true;
+  options.forEach((opt) => {
+    if (opt.heading) {
+      const h = document.createElement("p");
+      h.className = "shop-heading";
+      h.textContent = opt.heading;
+      jobMenuEl.appendChild(h);
+      return;
+    }
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "combat-menu-btn";
+    btn.textContent = opt.label;
+    if (opt.disabled) {
+      btn.disabled = true;
+    } else {
+      btn.addEventListener("click", () => runCommand(opt.command, opt.label));
+    }
+    jobMenuEl.appendChild(btn);
+  });
+
+  const leave = document.createElement("button");
+  leave.type = "button";
+  leave.className = "combat-menu-btn flee";
+  leave.textContent = "Leave";
+  leave.addEventListener("click", () => {
+    jobMode = false;
+    print("You step away from the board.", "system");
+    renderModals();
+  });
+  jobMenuEl.appendChild(leave);
+}
+
 // Menu-driven base actions (see engine/parser.js's buildLocationMenu) —
 // travel/explore/talk/rest/sleep/heal/shop-entry as buttons. Unlike
 // combat/shop, this is ADDITIVE: it never touches form.hidden or
 // input.disabled itself, since plenty of systems (equip, quests,
 // sanctuary, tactics, give/reclaim, save, ...) have no menu equivalent
 // yet and still need the typed input reachable underneath. Hidden
-// entirely whenever combat or the shop menu has taken the input over.
+// entirely whenever combat or the shop/job menu has taken the input over.
 function renderLocationMenu() {
-  const show = bootStage === "playing" && !!state && !state.combat && !shopMode;
+  const show = bootStage === "playing" && !!state && !state.combat && !shopMode && !jobMode;
   locationMenuEl.hidden = !show;
   locationMenuEl.innerHTML = "";
   if (!show) return;
@@ -421,17 +488,20 @@ function renderLocationMenu() {
 function renderModals() {
   renderCombatMenu();
   renderShopMenu();
+  renderJobMenu();
   renderLocationMenu();
   syncInputEnabled();
 }
 
 // Whether the input box should currently be off-limits to typing — true
-// during combat, and true while shop buttons are showing (but NOT while
-// pendingBuy's quantity prompt is up, which is the one approved moment).
+// during combat, true while the job-board menu is showing, and true
+// while shop buttons are showing (but NOT while pendingBuy's quantity
+// prompt is up, which is the one approved moment).
 function inputBlocked() {
   const inCombat = bootStage === "playing" && !!(state && state.combat);
   const inShopMenu = bootStage === "playing" && shopMode && !pendingBuy;
-  return inCombat || inShopMenu;
+  const inJobMenu = bootStage === "playing" && jobMode;
+  return inCombat || inShopMenu || inJobMenu;
 }
 
 // Every button handler that isn't routed through runCommand (combat's own
@@ -615,15 +685,19 @@ async function runCommand(commandText, echoText) {
     if (bootStage !== "playing") {
       await handleBootInput(commandText);
     } else {
-      // Detect "shop" (or a synonym — "store"/"market") the same way
-      // handleInput itself resolves the verb, so entering shop mode
-      // matches exactly whatever cmdShop was actually about to do.
+      // Detect "shop"/"board"/"contracts" (or a synonym — "store"/
+      // "market"/"jobs"/...) the same way handleInput itself resolves
+      // the verb, so entering shop/job mode matches exactly whatever
+      // cmdShop/cmdBoard/cmdContracts was actually about to do.
       const words = commandText.trim().toLowerCase().split(/\s+/);
       const verb = resolveVerb(words[0], words.length === 1);
       const lines = await handleInput(commandText, state);
       printLines(lines);
       if (verb === "shop" && !state.combat && buildShopMenu(state)) {
         shopMode = true;
+      }
+      if ((verb === "board" || verb === "contracts") && !state.combat && buildJobsMenu(state)) {
+        jobMode = true;
       }
       if (state.health <= 0) {
         print("");
