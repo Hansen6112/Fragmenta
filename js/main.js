@@ -7,6 +7,7 @@ const invPanel = document.getElementById("inventory-panel");
 const equipPanel = document.getElementById("equipment-panel");
 const partyPanel = document.getElementById("party-panel");
 const lorePanel = document.getElementById("lore-panel");
+const journalPanel = document.getElementById("journal-panel");
 const bootMenuEl = document.getElementById("boot-menu");
 const combatMenuEl = document.getElementById("combat-menu");
 const shopMenuEl = document.getElementById("shop-menu");
@@ -791,11 +792,62 @@ function renderLore() {
   lorePanel.appendChild(list);
 }
 
+// Journal tab: a flat list of open quest threads and their next step —
+// see engine/parser.js's journalEntries for what's included and why
+// (job-board contracts plus the two companion quest arcs; blocking
+// choice-menu prompts and ambient QUEST_HOOKS flavor are deliberately
+// left out).
+function renderJournal() {
+  journalPanel.innerHTML = "";
+  if (!state) {
+    const empty = document.createElement("p");
+    empty.className = "inv-empty";
+    empty.textContent = "Your journey hasn't begun yet.";
+    journalPanel.appendChild(empty);
+    return;
+  }
+
+  const heading = document.createElement("p");
+  heading.className = "inv-gold";
+  heading.textContent = "Journal";
+  journalPanel.appendChild(heading);
+
+  const entries = journalEntries(state);
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.className = "inv-empty";
+    empty.textContent = "No active quests. Take on some work or keep traveling with your party — something will turn up.";
+    journalPanel.appendChild(empty);
+    return;
+  }
+
+  let lastHeading = null;
+  entries.forEach((e) => {
+    if (e.heading !== lastHeading) {
+      lastHeading = e.heading;
+      const sub = document.createElement("p");
+      sub.className = "inv-gold";
+      sub.textContent = e.heading;
+      journalPanel.appendChild(sub);
+    }
+    const card = document.createElement("div");
+    card.className = "inv-item-panel";
+    const title = document.createElement("strong");
+    title.textContent = e.title;
+    card.appendChild(title);
+    const detail = document.createElement("span");
+    detail.textContent = e.detail;
+    card.appendChild(detail);
+    journalPanel.appendChild(card);
+  });
+}
+
 function renderActiveTab() {
   if (activeTab === "inventory") renderInventory();
   if (activeTab === "equipment") renderEquipment();
   if (activeTab === "party") renderParty();
   if (activeTab === "lore") renderLore();
+  if (activeTab === "journal") renderJournal();
 }
 
 // Menu-driven character creation — the one part of the game that never
@@ -1330,6 +1382,7 @@ function switchTab(tab) {
   equipPanel.hidden = tab !== "equipment";
   partyPanel.hidden = tab !== "party";
   lorePanel.hidden = tab !== "lore";
+  journalPanel.hidden = tab !== "journal";
   renderActiveTab();
   // combat/shop/job/choice/location are only ever meant to be shown
   // alongside the Story log — without this, they'd stay visible (renderModals

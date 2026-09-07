@@ -1536,6 +1536,57 @@ function formatRepReward(repMap) {
   return parts.length ? ` — ${parts.join(", ")}` : "";
 }
 
+// Journal tab data: every quest thread that's currently open and needs
+// a next step from the player, grouped by heading. Deliberately excludes
+// anything already surfaced as its own blocking choice-menu prompt
+// (Soul Ledger/Level 15/Hadrian's recruit-or-decline offers — see
+// buildChoiceMenu) since those interrupt play immediately and don't
+// need a second listing here, and excludes QUEST_HOOKS (cmdQuests'
+// "word on the road") since those are ambient flavor with no
+// completion state, not trackable quests.
+function journalEntries(state) {
+  const entries = [];
+
+  state.activeJobs.forEach((j) => {
+    entries.push({ heading: "Active Contracts", title: `${skullString(j.difficulty)} ${j.title}`, detail: describeJobObjective(j) });
+  });
+
+  if (!state.flags.kessaRecruited) {
+    if (state.flags.kessaQuestReady) {
+      entries.push({
+        heading: "Companions",
+        title: "Kessa",
+        detail: `She's ready to sign on — talk to her again at ${LOCATIONS[KESSA_LOCATION].name}.`,
+      });
+    } else if (state.flags.kessaQuestOffered) {
+      entries.push({
+        heading: "Companions",
+        title: "Kessa",
+        detail: `Prove yourself first — win a real fight, then return to ${LOCATIONS[KESSA_LOCATION].name} and talk to her again.`,
+      });
+    }
+  }
+
+  const hadrian = state.party.find((p) => p.defId === "hadrian" && p.alive);
+  if (hadrian) {
+    if (state.flags.hadrianQuestUnlocked && !state.flags.hadrianQuestCompleted) {
+      entries.push({
+        heading: "Companions",
+        title: "Hadrian — History's Sting",
+        detail: "Travel to the Black Sands to confront whatever's hunting his old command.",
+      });
+    } else if (state.flags.hadrianLetter25Shown && !state.flags.hadrianQuestUnlocked) {
+      entries.push({
+        heading: "Companions",
+        title: "Hadrian",
+        detail: "Keep him in your party and grow closer to him — whatever he's not telling you isn't finished with him yet.",
+      });
+    }
+  }
+
+  return entries;
+}
+
 function cmdQuests(state) {
   const lines = [];
   if (state.activeJobs.length) {
