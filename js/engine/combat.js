@@ -1889,7 +1889,7 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName) {
     const id = spec.creatureId || spec.pool[Math.floor(Math.random() * spec.pool.length)];
     const template = BESTIARY[id];
     if (!template) continue;
-    const creature = buildFightCreature(template, level, template.dangerClass);
+    const creature = buildFightCreature(template, level, template.dangerClass, id);
     combat.enemies.push(buildSummonedEnemyRecord(id, creature, key));
     summoned.push(creature.name);
   }
@@ -3190,10 +3190,16 @@ function buildCombatMenu(state, stage) {
 // dangerClassOverride is set for packmates/underlings whose effective
 // Danger Class was capped by rollEncounterGroup rather than their own
 // natural one (never a higher tier than the encounter's anchor).
-function buildFightCreature(template, level, dangerClassOverride) {
+// bestiaryId (optional) stamps the resulting creature with its own real
+// BESTIARY key as `bestiaryKey` — the template/computeCreatureStats
+// spread below carries no species identity of its own (BESTIARY entries
+// have no `id` field; that's purely the object key), so this is the one
+// place a kill-resolution check (engine/jobs.js's checkJobProgressOnKill,
+// for Hunt/Track bounties) can reliably learn "which species was this."
+function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
   const clampedLevel = clampLevelToRarityBand(level, template.spawnRarity);
   const effectiveTemplate = dangerClassOverride ? Object.assign({}, template, { dangerClass: dangerClassOverride }) : template;
-  return Object.assign({}, effectiveTemplate, computeCreatureStats(effectiveTemplate, clampedLevel), { level: clampedLevel });
+  return Object.assign({}, effectiveTemplate, computeCreatureStats(effectiveTemplate, clampedLevel), { level: clampedLevel, bestiaryKey: bestiaryId });
 }
 
 function startCombat(state, creatureIdOrObject, preRolledLevel) {
@@ -3217,7 +3223,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     const rolled = preRolledLevel != null ? preRolledLevel : rollEncounterLevel(state.level);
     roster = rollEncounterGroup(creatureIdOrObject).map((member) => ({
       id: member.id,
-      creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass),
+      creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass, member.id),
       dynamicCreature: false,
     }));
   }
@@ -3962,6 +3968,11 @@ function resolveKill(state, creature) {
   // activeIndex at it first. Captured now, before anything below could
   // move it.
   const diedIndex = state.combat.activeIndex;
+  // Hunt/Track bounties (engine/jobs.js's checkJobProgressOnKill): which
+  // job (if any) this combat instance is the tracked encounter for —
+  // captured now, before the end-of-fight cleanup further down can null
+  // state.combat out from under it.
+  const huntJobId = state.combat && state.combat.huntJobId;
   const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
   // isMercenary retired — no Origin under the Race/Class/Origin system
   // maps to the old Mercenary background's bounty bonus. Revisit if a
@@ -4059,7 +4070,7 @@ function resolveKill(state, creature) {
   out.push(...applyPassingWhisper(state));
   out.push(...applySoulLedger(state, creature));
   out.push(...state.gainXp(xpFromKill(state, creature)));
-  out.push(...checkJobProgressOnKill(state, creature));
+  out.push(...checkJobProgressOnKill(state, creature, huntJobId));
   return out;
 }
 

@@ -173,12 +173,68 @@ Events.on("job.completed", ({ state }) => {
   }
 });
 
-// Called from combat.js the moment a creature falls.
-function checkJobProgressOnKill(state, creature) {
-  const candidates = state.activeJobs.filter((j) => j.type === "bounty" && meetsBountyRequirement(creature, j.difficulty));
+// Called from combat.js the moment a creature falls. huntJobId is
+// captured by resolveKill from state.combat.huntJobId BEFORE that same
+// function's own end-of-fight cleanup can null state.combat — set once,
+// in parser.js's cmdChoose, the instant a hunt's tracked encounter
+// actually starts (never on a coincidental wild encounter).
+function checkJobProgressOnKill(state, creature, huntJobId) {
+  // Hunt-tracked bounties (targetCreature set — every board-generated
+  // bounty now) ONLY complete via their own tracked encounter, and only
+  // when the creature that fell IS the tracked species (creature.
+  // bestiaryKey, stamped in combat.js's buildFightCreature) — a
+  // differently-named pack-mate dying first, or the same species
+  // encountered any other way, never completes it. Deliberate design
+  // (confirmed): the only approved completion path is hunting down the
+  // designated target at the designated place.
+  if (huntJobId) {
+    const job = state.activeJobs.find((j) => j.id === huntJobId);
+    if (job && job.targetCreature === creature.bestiaryKey) {
+      return resolveJob(state, job);
+    }
+  }
+  // Legacy path — any bounty authored WITHOUT a targetCreature (today,
+  // every hand-authored GUILD_CONTRACTS bounty; board bounties always
+  // have one now) still resolves the old way, by Danger Class/Spawn
+  // Rarity rank alone, anywhere — keeps existing guild-contract content
+  // working until its own Hunt/Track fields get authored.
+  const candidates = state.activeJobs.filter((j) => j.type === "bounty" && !j.targetCreature && meetsBountyRequirement(creature, j.difficulty));
   if (!candidates.length) return [];
   candidates.sort((a, b) => b.difficulty - a.difficulty);
   return resolveJob(state, candidates[0]);
+}
+
+// A hunt whose leads have run out (job.attemptsUsed reaches
+// job.maxAttempts after a failed track roll — see parser.js's cmdChoose).
+// Small, flat reputation penalty (mirrors resolveJob's own inline
+// reputation-mutation exactly — there's no separate adjustReputation
+// function to call) and the job is pulled from state.activeJobs, same as
+// a completed one, just with no reward and no job.completed event (no
+// relationship bump, no "completed_" contract flag — this isn't a
+// completion).
+function failJob(state, job) {
+  job.status = "failed";
+  const penaltyFraction = 0.25;
+  const repParts = [];
+  for (const [fid, amt] of Object.entries(job.rewardRep || {})) {
+    const penalty = -Math.max(1, Math.round(amt * penaltyFraction));
+    state.reputation[fid] = clamp((state.reputation[fid] || 0) + penalty, -100, 100);
+    repParts.push(`${FACTIONS[fid] ? FACTIONS[fid].name : fid} ${penalty}`);
+  }
+  const idx = state.activeJobs.findIndex((j) => j.id === job.id);
+  if (idx >= 0) state.activeJobs.splice(idx, 1);
+  return [`Quest failed: ${job.title}.${repParts.length ? ` Reputation: ${repParts.join(", ")}.` : ""}`];
+}
+
+// Hunt/Track roll (parser.js's cmdChoose "trackN" branch) — Knowledge
+// nudges the odds a little either way around the option's own base
+// chance (a Knowledge-6 character sees no adjustment at all, matching
+// the same Knowledge-6 baseline recomputeStats' own growth curves use
+// elsewhere), clamped to a floor/ceiling so no option is ever a sure
+// thing or a lost cause regardless of stats.
+function trackSuccessChance(option, state) {
+  const knowledgeBonus = (state.knowledge - 6) * 0.015;
+  return Math.max(0.15, Math.min(0.9, option.baseChance + knowledgeBonus));
 }
 
 // Called from parser.js the moment travel ends at a new location.

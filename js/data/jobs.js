@@ -8,13 +8,21 @@
  *  - Guild contracts: hand-authored, only at a guild's home city, bigger
  *    stakes, tied to that guild's actual lore. Available via `contracts`.
  *
- * Both job types resolve through mechanics that already exist rather than
- * inventing new ones:
- *  - "bounty" completes the instant you win a fight against a creature
- *    that meets the job's Danger Class/Spawn Rarity requirement for its
- *    difficulty (meetsBountyRequirement, below; checked in engine/jobs.js
- *    checkJobProgressOnKill) — anywhere, not location-locked, so the open
- *    world stays open.
+ * Two job types:
+ *  - "bounty" — board-generated ones are Hunt/Track bounties now: a
+ *    specific creature at a specific location (targetLocation/
+ *    targetSubLocation/targetCreature), tracked down via 'hunt'/'track'
+ *    (engine/parser.js's cmdHunt, trackSequence below) rather than won by
+ *    just fighting anything sufficiently dangerous anywhere. Completion
+ *    only fires for the exact tracked encounter (engine/jobs.js's
+ *    checkJobProgressOnKill, tagged via combat.js's state.combat.huntJobId)
+ *    — killing the same species some other way, even by coincidence,
+ *    never completes it; that's deliberate, not a gap. Hand-authored
+ *    GUILD_CONTRACTS bounties have no targetCreature yet (a separate,
+ *    future authoring pass) and still resolve the old way — any active
+ *    creature kill meeting the job's Danger Class/Spawn Rarity threshold
+ *    (meetsBountyRequirement, below) — so existing contract content keeps
+ *    working unchanged.
  *  - "courier" completes the instant you arrive at the target location
  *    (see checkJobProgressOnArrive).
  * Completion is immediate and automatic — no return trip to "turn in."
@@ -95,6 +103,73 @@ const BOUNTY_FLAVOR = {
     "This posting has been up for weeks. No one local will touch it. That should tell you something.",
   ],
 };
+
+// Generic Hunt/Track prompts (see makeBountyJob's pickTrackSequence) —
+// {creature}/{location} substituted with the actual rolled target/site
+// name. Real, situation-specific track sequences are a later content
+// pass; these two prove the plumbing end to end.
+const GENERIC_TRACK_TEMPLATES = [
+  {
+    prompt: "You start from where {creature} was last reported near {location}, looking for anything that doesn't belong.",
+    options: [
+      { label: "Follow the most obvious trail", baseChance: 0.55 },
+      { label: "Search more carefully, taking your time", baseChance: 0.7 },
+    ],
+  },
+  {
+    prompt: "The trail splits. Neither direction looks more promising than the other.",
+    options: [
+      { label: "Trust your gut", baseChance: 0.5 },
+      { label: "Look for a second sign before committing", baseChance: 0.65 },
+    ],
+  },
+];
+
+// Random 1-2 of the (currently 2) generic templates, in random order,
+// with {creature}/{location} filled in.
+function pickTrackSequence(creatureName, siteName) {
+  const shuffled = [...GENERIC_TRACK_TEMPLATES].sort(() => Math.random() - 0.5);
+  const count = Math.random() < 0.5 ? 1 : 2;
+  return shuffled.slice(0, count).map((t) => ({
+    prompt: t.prompt.replace("{creature}", creatureName).replace("{location}", siteName),
+    options: t.options,
+  }));
+}
+
+// Picks where within boardLocationId a hunt actually takes place —
+// sublocations are nested per-city (LOCATIONS[locId].sublocations[key]),
+// not a global key space, so both a location AND sub-location key are
+// needed, not one field. Prefers a danger-flagged sub-location (the same
+// data exploreOutcome already reads for its urban-danger pool — either
+// the documented `danger: true` shorthand, or the `dangerTags` array
+// every currently-authored dangerous sub-location actually uses); falls
+// back to the city's own main square (subKey: null) with no danger
+// sub-location — most cities don't have one authored yet, and that's
+// expected for this framework-proving pass, not a bug to work around.
+function pickHuntSite(loc) {
+  const subEntries = Object.entries(loc.sublocations || {}).filter(([, s]) => s.danger || (s.dangerTags && s.dangerTags.length));
+  if (!subEntries.length) {
+    return { subKey: null, tags: TERRAIN_TAGS[loc.terrain] || ["continental"], siteName: loc.name };
+  }
+  const [subKey, sub] = subEntries[Math.floor(Math.random() * subEntries.length)];
+  return { subKey, tags: sub.dangerTags || ["urban"], siteName: sub.name };
+}
+
+// Which creature a hunt targets — same tag/nation pool exploreOutcome
+// draws its encounters from (creaturesForTags, data/bestiary.js),
+// narrowed to whatever actually meets this bounty's own difficulty
+// (meetsBountyRequirement) so a 1-skull posting doesn't send someone
+// after something a 5-skull hunt should. Three fallback layers (in case
+// nothing at this site/nation/difficulty combination qualifies) so a
+// bounty can never end up with no target at all.
+function pickHuntTarget(tags, nation, difficulty) {
+  const base = creaturesForTags(tags, nation);
+  const byDifficulty = base.filter((id) => meetsBountyRequirement(BESTIARY[id], difficulty));
+  let pool = byDifficulty.length ? byDifficulty : base;
+  if (!pool.length) pool = creaturesForTags(["continental"], nation);
+  if (!pool.length) pool = Object.keys(BESTIARY).filter((id) => !BESTIARY[id].special);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 const COURIER_FLAVOR = {
   1: [
@@ -198,14 +273,23 @@ function makeBountyJob(boardLocationId, difficulty) {
   const loc = LOCATIONS[boardLocationId];
   const flavor = BOUNTY_FLAVOR[difficulty][Math.floor(Math.random() * BOUNTY_FLAVOR[difficulty].length)];
   const reward = rewardForDifficulty(difficulty, loc.nation);
+  const site = pickHuntSite(loc);
+  const targetCreature = pickHuntTarget(site.tags, loc.nation, difficulty);
+  const creatureName = BESTIARY[targetCreature].name;
   return {
     id: `job_${_jobIdCounter++}`,
     kind: "board",
     type: "bounty",
     difficulty,
-    title: `Bounty: trouble near ${loc.name}`,
+    title: `Bounty: a ${creatureName} near ${loc.name}`,
     description: flavor,
     boardLocation: boardLocationId,
+    targetLocation: boardLocationId,
+    targetSubLocation: site.subKey,
+    targetCreature,
+    trackSequence: pickTrackSequence(creatureName, site.siteName),
+    maxAttempts: 6 - difficulty,
+    attemptsUsed: 0,
     rewardGold: reward.gold,
     rewardRep: reward.rep,
     loot: reward.loot,

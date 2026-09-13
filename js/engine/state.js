@@ -88,6 +88,12 @@ class GameState {
     this.knownFragments = 0;
     this.reputation = initialReputation(); // factionId -> -100..100, all 0 until an Origin is applied
     this.activeJobs = [];
+    // Hunt/Track (engine/parser.js's cmdHunt/cmdChoose, data/jobs.js's
+    // trackSequence): { jobId, stepIndex } while mid-sequence, else null.
+    // Not under `flags` (unlike the boolean pendingXChoice convention)
+    // since it carries structured data — same reasoning as arena/party
+    // below being their own top-level fields.
+    this.activeTrack = null;
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
     this.shops = {}; // locationId -> { stock: [...itemNames], lastRefresh: day } — see engine/shop.js
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
@@ -399,6 +405,7 @@ class GameState {
       knownFragments: this.knownFragments,
       reputation: this.reputation,
       activeJobs: this.activeJobs,
+      activeTrack: this.activeTrack,
       boards: this.boards,
       shops: this.shops,
       party: this.party,

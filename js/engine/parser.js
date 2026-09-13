@@ -59,6 +59,7 @@ const VERB_SYNONYMS = {
   craft: ["craft", "brew", "concoct"],
   learn: ["learn", "study"],
   gather: ["gather", "forage"],
+  hunt: ["hunt", "track"],
   reclaim: ["reclaim", "retrieve"],
   sanctuary: ["sanctuary", "shrine"],
   pray: ["pray", "offer"],
@@ -219,6 +220,8 @@ async function handleInput(rawInput, state) {
       return cmdLearn(arg, state);
     case "gather":
       return cmdGather(state);
+    case "hunt":
+      return cmdHunt(arg, state);
     case "reclaim":
       return cmdReclaim(arg, state);
     case "sanctuary":
@@ -924,6 +927,37 @@ function cmdGather(state) {
   return [`You search the ${loc.terrain} nearby and come back with ${material}.`, ...advanceTime(state, 30, "gather")];
 }
 
+// Fuzzy-matches a Hunt/Track-eligible active bounty (targetCreature set —
+// board-generated ones; hand-authored guild-contract bounties have none
+// yet and aren't huntable) against its own title, same substring-match
+// convention as findRecipe/findSchematic. Bounty titles now name the
+// actual target ("Bounty: a Plainswolf near Zuevaron"), so this is
+// unambiguous in practice even with more than one active bounty from the
+// same board.
+function findActiveHuntableBounty(state, needle) {
+  const n = needle.toLowerCase();
+  return state.activeJobs.find((j) => j.type === "bounty" && j.targetCreature && j.title.toLowerCase().includes(n)) || null;
+}
+
+// Starts (or resumes) a Hunt/Track sequence — the only way a Hunt/Track
+// bounty can complete (see engine/jobs.js's checkJobProgressOnKill).
+// Requires being at the exact spot the job rolled (targetLocation, and
+// targetSubLocation if the city had a danger-flagged sub-location to
+// pick — see data/jobs.js's pickHuntSite); state.subLocation is null at
+// a city's own main square, matching a null targetSubLocation exactly.
+function cmdHunt(arg, state) {
+  if (!arg) return ["Hunt what? (try: hunt <bounty name>)"];
+  const job = findActiveHuntableBounty(state, arg);
+  if (!job) return ["You don't have an active bounty matching that."];
+  if (job.attemptsUsed >= job.maxAttempts) return ["You've exhausted your leads on this one."];
+  if (state.location !== job.targetLocation || state.subLocation !== job.targetSubLocation) {
+    const place = job.targetSubLocation ? LOCATIONS[job.targetLocation].sublocations[job.targetSubLocation] : null;
+    return [`You need to be at ${place ? place.name : LOCATIONS[job.targetLocation].name} to pick up this trail.`];
+  }
+  state.activeTrack = { jobId: job.id, stepIndex: 0 };
+  return [job.trackSequence[0].prompt];
+}
+
 function cmdReclaim(arg, state) {
   if (!arg) return ["Reclaim what, and from whom? (try: reclaim <item> from <ally name>)"];
   if (!state.party.length) return ["You have no allies to reclaim gear from."];
@@ -1435,6 +1469,39 @@ function cmdSkills(state) {
 }
 
 function cmdChoose(arg, state) {
+  const trackArg = (arg || "").toLowerCase().trim();
+  if (trackArg.startsWith("track")) {
+    if (!state.activeTrack) return ["There's nothing to choose right now."];
+    const job = state.activeJobs.find((j) => j.id === state.activeTrack.jobId);
+    if (!job) {
+      state.activeTrack = null;
+      return ["That trail's gone cold — the job it led to isn't active anymore."];
+    }
+    const step = job.trackSequence[state.activeTrack.stepIndex];
+    const optionIndex = parseInt(trackArg.replace("track", ""), 10);
+    const option = step.options[optionIndex];
+    if (!option) return ["Choose one of the listed options."];
+    const chance = trackSuccessChance(option, state);
+    const success = Math.random() < chance;
+    if (success) {
+      state.activeTrack.stepIndex++;
+      if (state.activeTrack.stepIndex >= job.trackSequence.length) {
+        const lines = startCombat(state, job.targetCreature, null);
+        // Tags this specific fight as the tracked encounter — combat.js's
+        // resolveKill/checkJobProgressOnKill only complete the bounty for
+        // a kill inside a combat carrying this exact tag.
+        if (state.combat) state.combat.huntJobId = job.id;
+        state.activeTrack = null;
+        return lines;
+      }
+      const nextStep = job.trackSequence[state.activeTrack.stepIndex];
+      return [nextStep.prompt];
+    }
+    job.attemptsUsed++;
+    state.activeTrack = null;
+    if (job.attemptsUsed >= job.maxAttempts) return failJob(state, job);
+    return ["The trail goes cold — you'll need to pick it up again another time."];
+  }
   if (state.flags.pendingSoulLedgerChoice) {
     const a = (arg || "").toLowerCase().trim();
     if (a === "health" || a === "hp") {
@@ -1519,6 +1586,24 @@ function cmdChoose(arg, state) {
 // buildCombatMenu (combat.js) so a choice arising mid-fight — e.g.
 // leveling to 15 off a kill — is never stranded behind a hidden input.
 function buildChoiceMenu(state) {
+  // Hunt/Track (state.activeTrack, not under state.flags since it carries
+  // structured data — same reasoning as state.arena/state.party — set by
+  // cmdHunt, resolved by cmdChoose's "trackN" branch below).
+  if (state.activeTrack) {
+    const job = state.activeJobs.find((j) => j.id === state.activeTrack.jobId);
+    if (!job) {
+      // Defensive: the job vanished out from under an active track
+      // somehow (shouldn't happen — nothing else can touch activeJobs
+      // while inputBlocked() is holding free typed input for this).
+      state.activeTrack = null;
+      return null;
+    }
+    const step = job.trackSequence[state.activeTrack.stepIndex];
+    return [
+      { heading: step.prompt },
+      ...step.options.map((opt, i) => ({ label: opt.label, command: `choose track${i}` })),
+    ];
+  }
   if (state.flags.pendingSoulLedgerChoice) {
     return [
       { heading: "Soul Ledger — choose a permanent gift" },
@@ -1626,10 +1711,19 @@ function loreCategories(state) {
 }
 
 function describeJobObjective(job) {
-  // Bounty completion (jobs.js's checkJobProgressOnKill) actually reads
-  // job.difficulty via meetsBountyRequirement — this display text
-  // referenced a tierThreshold field that no bounty job (board-generated
-  // or guild contract) has ever set, printing "tier undefined" here.
+  // Hunt/Track bounty (targetCreature set — every board-generated bounty
+  // now): no longer "anywhere" or automatic — requires 'hunt <name>' at
+  // the specific spot the job rolled.
+  if (job.type === "bounty" && job.targetCreature) {
+    const place = job.targetSubLocation ? LOCATIONS[job.targetLocation].sublocations[job.targetSubLocation].name : LOCATIONS[job.targetLocation].name;
+    return `hunt down ${BESTIARY[job.targetCreature].name} near ${place} — 'hunt <name>' once you're there (${job.maxAttempts - job.attemptsUsed}/${job.maxAttempts} attempts left)`;
+  }
+  // Legacy bounty (no targetCreature — today, only hand-authored guild
+  // contracts) — Bounty completion (jobs.js's checkJobProgressOnKill)
+  // actually reads job.difficulty via meetsBountyRequirement — this
+  // display text referenced a tierThreshold field that no bounty job
+  // (board-generated or guild contract) has ever set, printing "tier
+  // undefined" here.
   if (job.type === "bounty") return `defeat a sufficiently dangerous creature (tier ${job.difficulty}+) anywhere — resolves automatically`;
   if (job.type === "courier") return `reach ${LOCATIONS[job.targetLocation].name} — resolves automatically on arrival`;
   return "";
@@ -1907,8 +2001,11 @@ function cmdHelp() {
     "(1-25) — each Class grows differently: a Warrior's levels favor",
     "attack/defense/health, a Mage's favor magic and knowledge.",
     "Work: board (city job board), accept <number>, contracts (guild-only,",
-    "at Nocthera/Vorreth), sign <number>. Bounty jobs resolve the moment",
-    "you win a big enough fight; courier jobs resolve the moment you arrive.",
+    "at Nocthera/Vorreth), sign <number>. A board bounty names a specific",
+    "creature and place — 'hunt <name>' (or 'track') once you're there to",
+    "start following the trail; a wrong guess costs you a lead, and too",
+    "many wrong guesses loses the job. Courier jobs resolve the moment",
+    "you arrive.",
     "Shop: shop (view a location's stock, wherever 'services' lists shop),",
     "buy <number>, sell <item>. Stock varies by nation and rotates every",
     "few days, so it's worth checking back. Shops keep morning/afternoon",
