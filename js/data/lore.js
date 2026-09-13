@@ -151,7 +151,7 @@ to ask twice.`,
 };
 
 // World-reactivity flavor: how a place responds to your reputation there,
-// keyed by BACKGROUNDS[].reputation values. Picked at random in cmdLook /
+// keyed by ORIGINS[].reputation values (data/origins.js). Picked at random in cmdLook /
 // cmdTalk when reputation !== "neutral" for the current nation.
 const REPUTATION_FLAVOR = {
   friendly: [

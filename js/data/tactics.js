@@ -1,11 +1,11 @@
 /*
  * FRAGMENTA — Tactical Skills
  * Knowledge-gated combat actions, unlocked automatically as Knowledge
- * grows (see engine/leveling.js background growth profiles — no manual
- * allocation). Thresholds are calibrated against the real level-25
- * Knowledge ranges: Scout ~21, Novitiate ~20, Mercenary ~17, Legionary
- * ~14, Clan Warrior ~12, Bruise ~13 — so the top tier (Disarm) is a
- * genuine stretch only a couple of builds ever reach.
+ * grows (see data/classes.js's PLAYER_GROWTH_BASE/CLASSES growth
+ * multipliers — no manual allocation). Warrior and Scout are the only
+ * Classes with usesTactics: true (engine/combat.js's classHasTactics) —
+ * Mage/Bruise use Elemental abilities instead, and Apothecary uses its
+ * own separate ability below (APOTHECARY_ABILITY), never these four.
  *
  * Each tactic's limiter is enforced in engine/combat.js:
  *  - feint:  2-turn cooldown after use
@@ -48,3 +48,18 @@ const TACTICS = {
 function unlockedTactics(state) {
   return Object.keys(TACTICS).filter((id) => state.knowledge >= TACTICS[id].knowledgeReq);
 }
+
+// Apothecary's own Knowledge-gated ability — a stub (see data/origins.js's
+// header on the deferred crafting subsystem): one buff, not a growing
+// list like Tactics/Elemental abilities get. Separate from TACTICS since
+// unlockedTactics()/the tactics status display assume every entry there
+// belongs to a Warrior/Scout-style build; kept here rather than a new file
+// since it's a single entry with the exact same shape.
+const APOTHECARY_ABILITY = {
+  fortify: {
+    name: "Fortify",
+    knowledgeReq: 8,
+    cooldown: 3,
+    description: "Brace yourself with a surge of applied know-how — +3 Defense for 3 turns. The enemy still gets its counter this turn.",
+  },
+};

@@ -2448,6 +2448,20 @@ function applyUnbrokenLine(state, dmg) {
 // roll any `inflict`/apply any `selfBuff`/`selfDebuff`/`healOnHitPct` it
 // specifies. Elemental creatures (enemy mages) never carry `actives`, so
 // abilityCtx only ever reaches the physical branch below.
+// Scout level-15 "Branch" choice (engine/parser.js's cmdChoose sets
+// state.flags.scoutStealthBranchUnlocked) — same "first enemy attack this
+// fight only" shape as Guardian Spirit/Guided Footsteps just below, but a
+// stat bonus rather than a miss override: the enemy's accuracy roll against
+// the player is computed as if the player's Agility were temporarily +8,
+// for that one roll only. Mutates combat.scoutStealthUsed as a side effect
+// (mirrors combat.guardianSpiritUsed's check-and-consume pattern) so this
+// is safe to call unconditionally at every resolveEnemyRetaliation call.
+function scoutStealthOpeningBonus(state, combat) {
+  if (!state.flags.scoutStealthBranchUnlocked || combat.scoutStealthUsed) return 0;
+  combat.scoutStealthUsed = true;
+  return 8;
+}
+
 function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCtx) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
@@ -2473,8 +2487,14 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // special miss/evasion effect below, so none of those (Timeless Guard's
   // once-per-3-rounds negation, Guardian Spirit/Guided Footsteps' first-
   // attack charge, evasion charges, ...) ever get consumed on an attack
-  // that was going to miss on its own merits anyway.
-  if (!attackConnects(creature.acc, effectivePlayerAgility(state))) {
+  // that was going to miss on its own merits anyway. Scout's level-15
+  // "Branch" choice (a real combat effect for the old stealthMod flavor
+  // stat) folds a temporary +8 Agility into this one roll, only for the
+  // very first enemy attack against the player each fight — see
+  // scoutStealthOpeningBonus below. Deliberately additive to the existing
+  // Agility-vs-Accuracy formula rather than a hard override, so it stacks
+  // normally with gear/effects that also touch Agility.
+  if (!attackConnects(creature.acc, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
     return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
   }
   // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
@@ -2832,6 +2852,7 @@ function applyDodgeBlockNegateBonuses(state) {
 function cooldownDisplayName(key) {
   if (TACTICS[key]) return TACTICS[key].name;
   if (ELEMENT_ABILITIES[key]) return ELEMENT_ABILITIES[key].name;
+  if (APOTHECARY_ABILITY[key]) return APOTHECARY_ABILITY[key].name;
   return key;
 }
 
@@ -2887,6 +2908,9 @@ function availableActionNames(state) {
       .filter((el) => elementAbilityAvailable(state, el))
       .map((el) => ELEMENT_ABILITIES[el].name.toLowerCase());
   }
+  if (classHasApothecary(state)) {
+    return fortifyAvailable(state) ? [APOTHECARY_ABILITY.fortify.name.toLowerCase()] : [];
+  }
   return unlockedTactics(state)
     .filter((id) => tacticAvailable(state, id))
     .map((id) => TACTICS[id].name.toLowerCase());
@@ -2903,6 +2927,14 @@ function tacticAvailable(state, tacticId) {
   if (tacticId === "ambush") return bypass || !state.combat.turnTaken;
   if (tacticId === "disarm" && state.combat.disarmed && !bypass) return false;
   return (state.combat.cooldowns[tacticId] || 0) <= 0;
+}
+
+function fortifyAvailable(state) {
+  if (!state.combat) return false;
+  const t = APOTHECARY_ABILITY.fortify;
+  const bypass = activationRestrictionsBypassed(state);
+  if (state.knowledge < t.knowledgeReq && !bypass) return false;
+  return (state.combat.cooldowns.fortify || 0) <= 0;
 }
 
 function elementAbilityAvailable(state, elementKey) {
@@ -3017,6 +3049,10 @@ function buildCombatMenu(state, stage) {
           const ability = ELEMENT_ABILITIES[el];
           options.push({ label: ability.name, command: ability.name.toLowerCase() });
         });
+    } else if (classHasApothecary(state)) {
+      if (fortifyAvailable(state)) {
+        options.push({ label: APOTHECARY_ABILITY.fortify.name, command: "fortify" });
+      }
     } else {
       unlockedTactics(state)
         .filter((id) => tacticAvailable(state, id))
@@ -4181,9 +4217,24 @@ function applyFirstKingdomCooldown(cooldown) {
   return Math.max(1, cooldown - 1);
 }
 
+// Whether the player's Class grants Tactics (Feint/Decoy/Ambush/Disarm) —
+// true only for Warrior/Scout. Widened from the old `state.flags.isMage`
+// check (which only ever ruled OUT Mage/Bruise) since Apothecary is a
+// third non-Tactics Class: its own ability lives entirely separate from
+// this, gated by classHasApothecary below instead.
+function classHasTactics(state) {
+  const cls = CLASSES[state.class];
+  return !!cls && !!cls.usesTactics;
+}
+
+function classHasApothecary(state) {
+  const cls = CLASSES[state.class];
+  return !!cls && !!cls.usesApothecary;
+}
+
 function useFeint(state) {
   if (!state.combat) return ["There's nothing here to feint at."];
-  if (state.flags.isMage) return ["Feinting isn't how your magic works. Try your element's ability instead."];
+  if (!classHasTactics(state)) return ["Feinting isn't how your training works. Try your class's own ability instead."];
   let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. A feint would be wasted.`];
   if (state.combat.nextAttackBonus) return [`You're already coiled for a strike — feint again once you've used it.`];
@@ -4262,7 +4313,7 @@ function useFeint(state) {
 
 function useDecoy(state) {
   if (!state.combat) return ["There's nothing here to use that on."];
-  if (state.flags.isMage) return ["Decoys aren't how your magic works. Try your element's ability instead."];
+  if (!classHasTactics(state)) return ["Decoys aren't how your training works. Try your class's own ability instead."];
   let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
   const t = TACTICS.decoy;
@@ -4353,7 +4404,7 @@ function useDecoy(state) {
 
 function useAmbush(state) {
   if (!state.combat) return ["There's nothing here to ambush."];
-  if (state.flags.isMage) return ["Ambush isn't how your magic works. Try your element's ability instead."];
+  if (!classHasTactics(state)) return ["Ambush isn't how your training works. Try your class's own ability instead."];
   let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} hasn't given you a reason to ambush it.`];
   const t = TACTICS.ambush;
@@ -4420,7 +4471,7 @@ function useAmbush(state) {
 
 function useDisarm(state) {
   if (!state.combat) return ["There's nothing here to disarm."];
-  if (state.flags.isMage) return ["Disarm isn't how your magic works. Try your element's ability instead."];
+  if (!classHasTactics(state)) return ["Disarm isn't how your training works. Try your class's own ability instead."];
   let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't armed against you. Nothing to disarm.`];
   const t = TACTICS.disarm;
@@ -4491,6 +4542,50 @@ function useDisarm(state) {
 
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
+  out.push(...retaliation.lines);
+  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+  const tl = tacticsLine(state);
+  if (tl) out.push(tl);
+  return out;
+}
+
+// Apothecary's own ability (data/tactics.js's APOTHECARY_ABILITY) — a
+// deliberately simpler cousin of Feint/Decoy/Ambush/Disarm above: same
+// Knowledge gate + cooldown + turn/retaliation shape, but self-targeted
+// only for now (a materials/crafting-driven ally-targeted version is the
+// deferred follow-up spec, see data/origins.js's header) and without the
+// Perfect Timing/Tactical Memory/Borrowed Seconds/First Kingdom cooldown-
+// reduction stack Tactics get, since none of that itemization is written
+// with a support buff in mind. Reuses combat.defBuffTurns/defBuffAmount —
+// the same Math.max-composed player Defense buff Stoneskin and several
+// Divine Regalia effects already share.
+function useFortify(state) {
+  if (!state.combat) return ["There's nothing here to fortify against."];
+  if (!classHasApothecary(state)) return ["Fortify isn't something your training covers. Try your class's own ability instead."];
+  let creature = getCombatCreature(state);
+  const t = APOTHECARY_ABILITY.fortify;
+  if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that yet. (needs Knowledge ${t.knowledgeReq}+)`];
+  if ((state.combat.cooldowns.fortify || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Fortify is still recovering — ${state.combat.cooldowns.fortify} more turn(s).`];
+
+  const out = beginTurn(state);
+  if (!state.combat) return out;
+  state.combat.turnTaken = true;
+  if (state.combat.hp <= 0) {
+    out.push(...resolveKill(state, creature));
+    if (!state.combat || state.health <= 0) return out;
+    creature = getCombatCreature(state);
+  }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (state.health <= 0) return out;
+  consumeTrailblazer(state);
+  state.combat.cooldowns.fortify = t.cooldown;
+  state.combat.defBuffTurns = Math.max(state.combat.defBuffTurns, 3);
+  state.combat.defBuffAmount = Math.max(state.combat.defBuffAmount, 3);
+  out.push(`You brace yourself, applied know-how turned into hard defense — +3 Defense for 3 turns.`);
+
+  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));

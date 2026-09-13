@@ -31,7 +31,11 @@ function fatigueTier(state) {
 class GameState {
   constructor() {
     this.playerName = "Wanderer";
-    this.background = null;
+    this.race = null;
+    this.origin = null;
+    this.class = null;
+    this.pointBuy = {}; // stat -> extra points allocated at creation, see applyCreation
+    this.scoutDeepenBonus = 0; // Scout-only level-15 "Deepen" choice: permanent secondary-growth multiplier bump
     this.nation = "sanguivorum";
     this.location = "zuevaron";
     this.level = 1;
@@ -134,14 +138,23 @@ class GameState {
     return ally;
   }
 
-  // Applies a chosen background's stats, kit, location, and flags. Called
-  // once at character creation (see main.js beginCharacter).
-  applyBackground(bgKey) {
-    const bg = BACKGROUNDS[bgKey];
-    this.background = bgKey;
+  // Applies a chosen Race + Origin + Class's stats, kit, location, and
+  // flags. Called once at character creation (see main.js beginCharacter).
+  // pointBuy is a plain {stat: extraPoints} map from the boot-time
+  // allocation step (main.js's ask_pointbuy stage / parser.js's 'add'/
+  // 'sub' commands) — additive only, on top of Race's own values.
+  applyCreation(raceKey, originKey, classKey, pointBuy) {
+    const race = RACES[raceKey];
+    const origin = ORIGINS[originKey];
+    const cls = CLASSES[classKey];
+    this.race = raceKey;
+    this.origin = originKey;
+    this.class = classKey;
+    this.pointBuy = pointBuy || {};
     this.level = 1;
     this.xp = 0;
     this.magicBoost = 0;
+    this.scoutDeepenBonus = 0;
     this.primaryElement = null;
     this.secondaryElement = null;
     this.tertiaryElement = null;
@@ -157,43 +170,67 @@ class GameState {
       participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false,
       championHintGiven: false, tournamentRound: 0, tournamentTotal: 0, tournamentPurseAccrued: 0,
     };
-    this.stealthMod = bg.stealthMod || 0;
-    this.gold = bg.gold;
-    this.inventory = [...bg.inventory];
+    this.stealthMod = cls.stealthMod || 0;
+    this.gold = origin.gold;
+    this.inventory = [...origin.inventory];
     this.equipment = emptyEquipment();
-    this.flags = { ...bg.flags };
-    this.nation = bg.nation || this.deriveNationFromLocation(bg.startLocation);
-    this.location = bg.startLocation;
-    this.reputation = initialReputation(bg.reputation);
+    this.flags = { ...(origin.flags || {}) };
+    // isMage is kept as a derived flag (not a free-standing choice) so the
+    // many existing call sites that already gate on state.flags.isMage
+    // (crit flavor, elemental attack resolution, cmdSkills/cmdStatus,
+    // the mage level-15 choice) keep working unchanged — only Class
+    // decides it now, via Mage/Bruise's forced-Class special Origins.
+    this.flags.isMage = !!cls.isMage;
+    this.nation = origin.nation || this.deriveNationFromLocation(origin.startLocation);
+    this.location = origin.startLocation;
+    this.reputation = initialReputation(origin.reputation);
     this.recomputeStats(false); // false = full heal to new max, not a level-up top-up
   }
 
-  // Recalculates atk/def/maxHealth/magic/knowledge from scratch (base +
-  // background mod + Math.round(growth * (level-1)) + equipped gear's
+  // Recalculates atk/def/maxHealth/magic/knowledge/speed/accuracy/agility
+  // from scratch (base + Race mod + point-buy + growth + equipped gear's
   // bonuses) — always derived from current level/gear rather than
   // accumulated incrementally, so there's no rounding drift across many
   // level-ups, and equipping/unequipping is just another recompute rather
-  // than a separate code path. `healOnGain` controls what happens to
-  // current health when maxHealth changes: on level-up or a gear change,
-  // the gained amount is added to current health (you feel stronger, not
-  // proportionally weaker); at character creation, health is simply set
-  // to the new max (full heal). Either way, health is clamped to the new
-  // max afterward — unequipping a +Health item can lower the ceiling
-  // below current health.
+  // than a separate code path. Growth itself is Class-shaped (the bigger
+  // multiplier) and Origin-nudged (the smaller one) on top of a single
+  // shared PLAYER_GROWTH_BASE/PLAYER_SECONDARY_GROWTH_RATE (data/
+  // classes.js) — atk/def/health/magic/knowledge scale freely per Class,
+  // while speed/accuracy/agility deliberately share ONE flat base rate for
+  // every Class (only ever scaled by a multiplier, never a faster base),
+  // mirroring data/creaturetags.js's computeCreatureStats split for the
+  // exact same reason: those three feed threshold-y combat math (hitChance
+  // clamps, turn order) where a runaway *base* rate reproduces the
+  // unwinnable-gap bug that system already found and fixed for enemies.
+  // `healOnGain` controls what happens to current health when maxHealth
+  // changes: on level-up or a gear change, the gained amount is added to
+  // current health (you feel stronger, not proportionally weaker); at
+  // character creation, health is simply set to the new max (full heal).
+  // Either way, health is clamped to the new max afterward — unequipping a
+  // +Health item can lower the ceiling below current health.
   recomputeStats(healOnGain) {
-    const bg = BACKGROUNDS[this.background];
-    if (!bg) return;
+    const race = RACES[this.race];
+    const cls = CLASSES[this.class];
+    if (!race || !cls) return;
+    const origin = ORIGINS[this.origin] || {};
+    const originMult = origin.growthMult || {};
+    const om = (stat) => (originMult[stat] != null ? originMult[stat] : 1);
+    const pb = this.pointBuy || {};
     const n = this.level - 1;
-    const growth = bg.growth || {};
+    // Scout's level-15 "Deepen" choice (engine/parser.js's cmdChoose): a
+    // permanent multiplier on top of the class's own secondary-stat
+    // multiplier, not a separate growth rate — same "multiplier stacks,
+    // base rate never changes" rule as everything else on these 3 stats.
+    const secondaryBoost = 1 + (this.scoutDeepenBonus || 0);
     const oldMaxHealth = this.maxHealth;
-    this.atk = BASE_ATK + (bg.atkMod || 0) + Math.round((growth.atk || 0) * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0) + (this.flags.victorsMomentumStacks || 0);
-    this.def = BASE_DEF + (bg.defMod || 0) + Math.round((growth.def || 0) * n) + equipmentBonus(this, "def") + setStatBonus(this, "def") + (this.soulLedgerDefBonus || 0);
-    this.maxHealth = BASE_HEALTH + (bg.healthMod || 0) + Math.round((growth.health || 0) * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0) + (this.soulLedgerHealthBonus || 0);
-    this.magic = BASE_MAGIC + (bg.magicMod || 0) + Math.round((growth.magic || 0) * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0);
-    this.knowledge = BASE_KNOWLEDGE + (bg.knowledgeMod || 0) + Math.round((growth.knowledge || 0) * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0) + (this.archiveEternalKnowledgeBonus || 0);
-    this.speed = BASE_SPEED + (bg.speedMod || 0) + Math.round((growth.speed || 0) * n) + equipmentBonus(this, "speed") + setStatBonus(this, "speed");
-    this.accuracy = BASE_ACCURACY + (bg.accuracyMod || 0) + Math.round((growth.accuracy || 0) * n) + equipmentBonus(this, "accuracy") + setStatBonus(this, "accuracy");
-    this.agility = BASE_AGILITY + (bg.agilityMod || 0) + Math.round((growth.agility || 0) * n) + equipmentBonus(this, "agility") + setStatBonus(this, "agility");
+    this.atk = BASE_ATK + (race.atkMod || 0) + (pb.atk || 0) + Math.round(PLAYER_GROWTH_BASE.atk * cls.growthMult.atk * om("atk") * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0) + (this.flags.victorsMomentumStacks || 0);
+    this.def = BASE_DEF + (race.defMod || 0) + (pb.def || 0) + Math.round(PLAYER_GROWTH_BASE.def * cls.growthMult.def * om("def") * n) + equipmentBonus(this, "def") + setStatBonus(this, "def") + (this.soulLedgerDefBonus || 0);
+    this.maxHealth = BASE_HEALTH + (race.healthMod || 0) + (pb.health || 0) + Math.round(PLAYER_GROWTH_BASE.health * cls.growthMult.health * om("health") * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0) + (this.soulLedgerHealthBonus || 0);
+    this.magic = BASE_MAGIC + (race.magicMod || 0) + (pb.magic || 0) + Math.round(PLAYER_GROWTH_BASE.magic * cls.growthMult.magic * om("magic") * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0);
+    this.knowledge = BASE_KNOWLEDGE + (race.knowledgeMod || 0) + (pb.knowledge || 0) + Math.round(PLAYER_GROWTH_BASE.knowledge * cls.growthMult.knowledge * om("knowledge") * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0) + (this.archiveEternalKnowledgeBonus || 0);
+    this.speed = BASE_SPEED + (race.speedMod || 0) + (pb.speed || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.speed * om("speed") * secondaryBoost * n) + equipmentBonus(this, "speed") + setStatBonus(this, "speed");
+    this.accuracy = BASE_ACCURACY + (race.accuracyMod || 0) + (pb.accuracy || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.accuracy * om("accuracy") * secondaryBoost * n) + equipmentBonus(this, "accuracy") + setStatBonus(this, "accuracy");
+    this.agility = BASE_AGILITY + (race.agilityMod || 0) + (pb.agility || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.agility * om("agility") * secondaryBoost * n) + equipmentBonus(this, "agility") + setStatBonus(this, "agility");
     // The Empty Hand (Artifact): fighting with no Off-Hand equipped is a
     // flat +50%/+25% multiplier, applied last on top of every other atk/
     // def source above (growth, gear, sets).
@@ -254,6 +291,13 @@ class GameState {
             `(type 'choose boost'), or open yourself to a second element (type 'choose <element>': ${elementList().join(", ")}).`
         );
       }
+      if (this.level === 15 && this.class === "scout" && !this.flags.scoutLevel15ChoiceMade) {
+        this.flags.pendingScoutLevel15Choice = true;
+        lines.push(
+          `You've reached a threshold few scouts ever feel coming. Deepen your instincts permanently (type 'choose deepen'), ` +
+            `or learn to vanish at the first sign of a fight (type 'choose branch').`
+        );
+      }
     }
     return lines;
   }
@@ -299,7 +343,11 @@ class GameState {
   toJSON() {
     return {
       playerName: this.playerName,
-      background: this.background,
+      race: this.race,
+      origin: this.origin,
+      class: this.class,
+      pointBuy: this.pointBuy,
+      scoutDeepenBonus: this.scoutDeepenBonus,
       nation: this.nation,
       location: this.location,
       level: this.level,
@@ -316,6 +364,7 @@ class GameState {
       magicBoost: this.magicBoost,
       primaryElement: this.primaryElement,
       secondaryElement: this.secondaryElement,
+      tertiaryElement: this.tertiaryElement,
       stealthMod: this.stealthMod,
       gold: this.gold,
       inventory: this.inventory,
@@ -388,14 +437,29 @@ class GameState {
     const raw = localStorage.getItem("fragmenta_save");
     if (!raw) return null;
     try {
-      return GameState.fromJSON(JSON.parse(raw));
+      const data = JSON.parse(raw);
+      // Pre-Race/Origin/Class saves (the old single `background` field)
+      // are an intentional breaking change, not a migration target — see
+      // data/origins.js's header. Treat one as if no save exists at all
+      // rather than let fromJSON's blanket Object.assign hand back a
+      // GameState with no race/class and crash the first time
+      // recomputeStats runs.
+      if (!data.race || !data.class) return null;
+      return GameState.fromJSON(data);
     } catch (e) {
       return null;
     }
   }
 
   static hasSave() {
-    return !!localStorage.getItem("fragmenta_save");
+    const raw = localStorage.getItem("fragmenta_save");
+    if (!raw) return false;
+    try {
+      const data = JSON.parse(raw);
+      return !!(data.race && data.class);
+    } catch (e) {
+      return false;
+    }
   }
 }
 

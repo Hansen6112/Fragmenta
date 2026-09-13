@@ -38,6 +38,7 @@ const VERB_SYNONYMS = {
   decoy: ["decoy"],
   ambush: ["ambush"],
   disarm: ["disarm"],
+  fortify: ["fortify"],
   ignite: ["ignite"],
   torrent: ["torrent"],
   stoneskin: ["stoneskin"],
@@ -104,6 +105,7 @@ async function handleInput(rawInput, state) {
     if (verb === "decoy") return useDecoy(state);
     if (verb === "ambush") return useAmbush(state);
     if (verb === "disarm") return useDisarm(state);
+    if (verb === "fortify") return useFortify(state);
     if (ELEMENT_VERB_TO_KEY[verb]) return useElementAbility(state, ELEMENT_VERB_TO_KEY[verb]);
     if (verb === "target") return useTarget(state, arg);
     if (verb === "use") return useItem(state, arg);
@@ -236,6 +238,7 @@ async function handleInput(rawInput, state) {
     case "decoy":
     case "ambush":
     case "disarm":
+    case "fortify":
     case "ignite":
     case "torrent":
     case "stoneskin":
@@ -1267,7 +1270,10 @@ function cmdHeal(state) {
 
 function cmdStatus(state) {
   const loc = state.currentLocation();
-  const bg = BACKGROUNDS[state.background];
+  const race = RACES[state.race];
+  const origin = ORIGINS[state.origin];
+  const cls = CLASSES[state.class];
+  const identity = [race && race.name, origin && origin.name, cls && cls.name].filter(Boolean).join(" ");
   const xpLine =
     state.level >= LEVEL_CAP
       ? "XP: max level reached"
@@ -1278,7 +1284,7 @@ function cmdStatus(state) {
       : null;
   const fatigue = fatigueTier(state);
   return [
-    `${state.playerName} — ${bg ? bg.name : "Wanderer"} — Level ${state.level} — day ${state.day}, ${formatTime(state)} (${getDaypart(state.hour)})`,
+    `${state.playerName} — ${identity || "Wanderer"} — Level ${state.level} — day ${state.day}, ${formatTime(state)} (${getDaypart(state.hour)})`,
     ...(fatigue ? [`Fatigue: ${fatigue.label} (${Math.round((1 - fatigue.mult) * 100)}% stat penalty) — sleep it off.`] : []),
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
@@ -1345,6 +1351,13 @@ function cmdSkills(state) {
     return lines;
   }
 
+  if (classHasApothecary(state)) {
+    const t = APOTHECARY_ABILITY.fortify;
+    const unlocked = state.knowledge >= t.knowledgeReq;
+    const status = unlocked ? "unlocked" : `locked — needs Knowledge ${t.knowledgeReq}`;
+    return [`== Apothecary Ability == (Knowledge: ${state.knowledge})`, `- ${t.name} (${status}): ${t.description}`];
+  }
+
   const lines = [`== Tactics == (Knowledge: ${state.knowledge})`];
   for (const [id, t] of Object.entries(TACTICS)) {
     const unlocked = state.knowledge >= t.knowledgeReq;
@@ -1386,6 +1399,23 @@ function cmdChoose(arg, state) {
     state.tertiaryElement = key;
     state.flags.pendingConduitAscendantChoice = false;
     return [`Conduit Ascendant lets you reach further still — you've opened yourself to a third discipline: ${ELEMENTS[key].name}.`];
+  }
+  if (state.flags.pendingScoutLevel15Choice) {
+    const a = (arg || "").toLowerCase().trim();
+    if (a === "deepen" || a === "boost") {
+      state.scoutDeepenBonus = (state.scoutDeepenBonus || 0) + 0.15;
+      state.recomputeStats(true);
+      state.flags.pendingScoutLevel15Choice = false;
+      state.flags.scoutLevel15ChoiceMade = true;
+      return [`You turn years of instinct inward — your Speed, Accuracy, and Agility all grow faster from here on. (+15% secondary growth, permanently)`];
+    }
+    if (a === "branch" || a === "vanish") {
+      state.flags.scoutStealthBranchUnlocked = true;
+      state.flags.pendingScoutLevel15Choice = false;
+      state.flags.scoutLevel15ChoiceMade = true;
+      return [`You learn to vanish at the first sign of a fight — the first enemy attack against you, every fight from now on, will have a much harder time finding you.`];
+    }
+    return ["Choose 'deepen' to sharpen your own instincts permanently, or 'branch' to learn to vanish at the first sign of a fight."];
   }
   if (!state.flags.pendingLevel15Choice) {
     return ["There's nothing to choose right now."];
@@ -1450,6 +1480,13 @@ function buildChoiceMenu(state) {
       }
     });
     return options;
+  }
+  if (state.flags.pendingScoutLevel15Choice) {
+    return [
+      { heading: "A turning point — choose your path" },
+      { label: "Deepen your instincts (+15% Speed/Accuracy/Agility growth, permanently)", command: "choose deepen" },
+      { label: "Learn to vanish at the first sign of a fight", command: "choose branch" },
+    ];
   }
   if (state.flags.hadrianOfferPending || state.flags.hadrianThalvoraOfferPending) {
     return [

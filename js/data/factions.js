@@ -77,8 +77,8 @@ function findGodByName(query) {
   return gods.find((g) => normalizeGodName(g) === q) || gods.find((g) => normalizeGodName(g).includes(q)) || null;
 }
 
-// Starting qualitative labels (from BACKGROUNDS[].reputation) map to a
-// numeric seed; "neutral" / unlisted factions default to 0.
+// Starting qualitative labels (from ORIGINS[].reputation, data/origins.js)
+// map to a numeric seed; "neutral" / unlisted factions default to 0.
 const QUALITATIVE_TO_NUMERIC = {
   hostile: -55,
   cold: -20,

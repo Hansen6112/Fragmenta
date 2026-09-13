@@ -8,8 +8,10 @@
  * later additions can gate on reputation or item possession instead, per
  * the original design.
  *
- * Stats grow the same way BACKGROUNDS do (engine/state.js's
- * recomputeAllyStats): a flat mod plus Math.round(growth * (level-1)),
+ * Stats grow the same way Origins used to under the old Background system
+ * (engine/state.js's recomputeAllyStats, untouched by the Race/Origin/
+ * Class rework — see data/races.js/classes.js/origins.js): a flat mod
+ * plus Math.round(growth * (level-1)),
  * layered on the same BASE_* constants the player uses, plus whatever
  * shared-inventory gear is equipped in the ally's own equipment slots.
  * Allies don't have their own Speed-based turn slot — they act once per

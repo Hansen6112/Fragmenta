@@ -21,9 +21,21 @@ const DEFAULT_INPUT_PLACEHOLDER = input.placeholder;
 
 let state = null;
 let activeTab = "story";
-let bootStage = "ask_load"; // ask_load -> ask_name -> ask_background -> [ask_element] -> playing
+// ask_load -> ask_name -> ask_race -> ask_origin -> [ask_class] ->
+// [ask_element] -> ask_pointbuy -> playing. ask_class is skipped straight
+// to ask_element/ask_pointbuy if the chosen Origin forces a Class
+// (data/origins.js's kabal_recruit/norrvael_fled); ask_element only fires
+// if the resolved Class is a caster (CLASSES[classKey].isMage).
+let bootStage = "ask_load";
 let pendingName = "";
-let pendingBgKey = "";
+let pendingRaceKey = "";
+let pendingOriginKey = "";
+let pendingClassKey = "";
+let pendingElementKey = null;
+// stat -> allocated amount (health tracked in raw HP, everything else in
+// raw stat points) — see POINT_BUY_POOL (data/races.js) and
+// pointBuySpent/pointBuyCap below.
+let pendingPointBuy = {};
 // Menu-driven shop (see engine/shop.js's buildShopMenu). shopMode turns on
 // the moment a typed/resolved "shop" command finds an open shop, and stays
 // on until Leave Shop is clicked or combat interrupts it. pendingBuy holds
@@ -853,15 +865,34 @@ function renderActiveTab() {
 // Menu-driven character creation — the one part of the game that never
 // got converted when everything else did, since it all happens before
 // bootStage reaches "playing" (every other render* function here no-ops
-// during boot). "Continue previous journey?", background, and element
-// are all a fixed choice from a fixed list, so each gets one button per
-// option, same command-string-reuse pattern as everywhere else: a click
-// just runs the exact text handleBootInput already parses (a plain
-// "yes"/"no", or the background/element's own key, which its fuzzy
-// match already accepts verbatim). Naming stays typed — there's no
-// fixed list of names to offer buttons for.
+// during boot). Race/Origin/Class/Element are all a fixed choice from a
+// fixed list, so each gets one button per option, same command-string-
+// reuse pattern as everywhere else: a click just runs the exact text
+// handleBootInput already parses. Naming stays typed — there's no fixed
+// list of names to offer buttons for. ask_pointbuy is the one stage that
+// isn't a flat option list — see its own branch below.
+const POINT_BUY_STATS = ["atk", "def", "magic", "knowledge", "speed", "accuracy", "agility"];
+const POINT_BUY_STAT_LABELS = { atk: "Attack", def: "Defense", magic: "Magic", knowledge: "Knowledge", speed: "Speed", accuracy: "Accuracy", agility: "Agility", health: "Health" };
+
+function pointBuySpent(pb) {
+  let spent = 0;
+  for (const stat of POINT_BUY_STATS) spent += pb[stat] || 0;
+  spent += (pb.health || 0) / 2;
+  return spent;
+}
+
+function pointBuyRemaining(pb) {
+  return POINT_BUY_POOL - pointBuySpent(pb);
+}
+
 function renderBootMenu() {
-  const show = bootStage === "ask_load" || bootStage === "ask_background" || bootStage === "ask_element";
+  const show =
+    bootStage === "ask_load" ||
+    bootStage === "ask_race" ||
+    bootStage === "ask_origin" ||
+    bootStage === "ask_class" ||
+    bootStage === "ask_element" ||
+    bootStage === "ask_pointbuy";
   bootMenuEl.hidden = !show || activeTab !== "story";
   bootMenuEl.innerHTML = "";
   if (!show) return;
@@ -882,13 +913,40 @@ function renderBootMenu() {
     return;
   }
 
-  if (bootStage === "ask_background") {
-    Object.entries(BACKGROUNDS).forEach(([key, bg]) => {
+  if (bootStage === "ask_race") {
+    Object.entries(RACES).forEach(([key, race]) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "combat-menu-btn";
-      btn.textContent = `${bg.name} — ${bg.tagline}`;
-      btn.addEventListener("click", () => runCommand(key, bg.name));
+      btn.textContent = `${race.name} — ${race.tagline}`;
+      btn.addEventListener("click", () => runCommand(key, race.name));
+      bootMenuEl.appendChild(btn);
+    });
+    return;
+  }
+
+  if (bootStage === "ask_origin") {
+    Object.entries(ORIGINS)
+      .filter(([, origin]) => origin.raceKey === pendingRaceKey || origin.raceKey === null)
+      .forEach(([key, origin]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "combat-menu-btn";
+        btn.textContent = `${origin.name} — ${origin.tagline}`;
+        btn.addEventListener("click", () => runCommand(key, origin.name));
+        bootMenuEl.appendChild(btn);
+      });
+    return;
+  }
+
+  if (bootStage === "ask_class") {
+    ["warrior", "scout", "apothecary"].forEach((key) => {
+      const cls = CLASSES[key];
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "combat-menu-btn";
+      btn.textContent = `${cls.name} — ${cls.tagline}`;
+      btn.addEventListener("click", () => runCommand(key, cls.name));
       bootMenuEl.appendChild(btn);
     });
     return;
@@ -903,6 +961,57 @@ function renderBootMenu() {
       btn.addEventListener("click", () => runCommand(key, el.name));
       bootMenuEl.appendChild(btn);
     });
+    return;
+  }
+
+  if (bootStage === "ask_pointbuy") {
+    const race = RACES[pendingRaceKey];
+    const remaining = pointBuyRemaining(pendingPointBuy);
+    const summary = document.createElement("div");
+    summary.className = "pointbuy-summary";
+    summary.textContent = `Points remaining: ${remaining}`;
+    bootMenuEl.appendChild(summary);
+
+    const statKeys = [...POINT_BUY_STATS, "health"];
+    statKeys.forEach((stat) => {
+      const allocated = pendingPointBuy[stat] || 0;
+      const cap = stat === "health" ? 8 : 4;
+      const raceBase = stat === "health" ? race.healthMod || 0 : race[`${stat}Mod`] || 0;
+
+      const row = document.createElement("div");
+      row.className = "pointbuy-row";
+
+      const label = document.createElement("span");
+      label.className = "pointbuy-label";
+      const unit = stat === "health" ? " HP" : "";
+      label.textContent = `${POINT_BUY_STAT_LABELS[stat]}: ${raceBase >= 0 ? "+" : ""}${raceBase}${unit} base, +${allocated}${unit} allocated`;
+      row.appendChild(label);
+
+      const minusBtn = document.createElement("button");
+      minusBtn.type = "button";
+      minusBtn.className = "combat-menu-btn";
+      minusBtn.textContent = "-";
+      minusBtn.disabled = allocated <= 0;
+      minusBtn.addEventListener("click", () => runCommand(`sub ${stat}`, `-1 ${POINT_BUY_STAT_LABELS[stat]}`));
+      row.appendChild(minusBtn);
+
+      const plusBtn = document.createElement("button");
+      plusBtn.type = "button";
+      plusBtn.className = "combat-menu-btn";
+      plusBtn.textContent = "+";
+      plusBtn.disabled = allocated >= cap || remaining < 1;
+      plusBtn.addEventListener("click", () => runCommand(`add ${stat}`, `+1 ${POINT_BUY_STAT_LABELS[stat]}`));
+      row.appendChild(plusBtn);
+
+      bootMenuEl.appendChild(row);
+    });
+
+    const confirmBtn = document.createElement("button");
+    confirmBtn.type = "button";
+    confirmBtn.className = "combat-menu-btn";
+    confirmBtn.textContent = "Confirm Allocation";
+    confirmBtn.addEventListener("click", () => runCommand("confirm", "Confirm Allocation"));
+    bootMenuEl.appendChild(confirmBtn);
     return;
   }
 }
@@ -1310,15 +1419,21 @@ function renderModals() {
 // is up, which is the one approved moment), true while a stand-alone
 // pending-choice menu is up (never true for the in-combat version of
 // that same choice, which is just more combat-menu buttons), and true
-// for the three boot stages with a fixed-list button menu (load-prompt,
-// background, element) — but never for ask_name, the other approved
-// free-text moment alongside the shop's quantity prompt.
+// for every boot stage with a fixed-list/button-driven menu (load-prompt,
+// race, origin, class, element, point-buy) — but never for ask_name, the
+// other approved free-text moment alongside the shop's quantity prompt.
 function inputBlocked() {
   const inCombat = bootStage === "playing" && !!(state && state.combat);
   const inShopMenu = bootStage === "playing" && shopMode && !pendingBuy;
   const inJobMenu = bootStage === "playing" && jobMode;
   const inChoiceMenu = bootStage === "playing" && !inCombat && !!(state && buildChoiceMenu(state));
-  const inBootMenu = bootStage === "ask_load" || bootStage === "ask_background" || bootStage === "ask_element";
+  const inBootMenu =
+    bootStage === "ask_load" ||
+    bootStage === "ask_race" ||
+    bootStage === "ask_origin" ||
+    bootStage === "ask_class" ||
+    bootStage === "ask_element" ||
+    bootStage === "ask_pointbuy";
   return inCombat || inShopMenu || inJobMenu || inChoiceMenu || inBootMenu;
 }
 
@@ -1418,17 +1533,25 @@ function startNewGame() {
   print("Before the road, a name. What shall we call you?", "system");
 }
 
-function beginCharacter(bgKey, name, elementKey) {
+// Every regular Origin belongs to exactly one Race's list; the 2 special
+// ones (raceKey: null) are offered alongside every Race's own list — see
+// data/origins.js's header.
+function originsForRace(raceKey) {
+  return Object.entries(ORIGINS).filter(([, origin]) => origin.raceKey === raceKey || origin.raceKey === null);
+}
+
+function beginCharacter(raceKey, originKey, classKey, name, elementKey, pointBuy) {
   state = new GameState();
   state.playerName = name;
-  state.applyBackground(bgKey);
+  state.applyCreation(raceKey, originKey, classKey, pointBuy);
   if (elementKey) state.primaryElement = elementKey;
   state.visit(state.location);
   bootStage = "playing";
 
+  const origin = ORIGINS[originKey];
   printLines(INTRO_TEXT.split("\n\n"));
   print("");
-  print(BACKGROUNDS[bgKey].intro);
+  print(origin.introByRace ? origin.introByRace[raceKey] : origin.intro);
   if (elementKey) {
     print("");
     print(`Your magic has always leaned one way: ${ELEMENTS[elementKey].name}. ${ELEMENTS[elementKey].description}`);
@@ -1457,41 +1580,107 @@ async function handleBootInput(raw) {
   }
   if (bootStage === "ask_name") {
     pendingName = text || "Wanderer";
-    bootStage = "ask_background";
+    bootStage = "ask_race";
     print(`Well met, ${pendingName}.`, "system");
     print("");
-    print("Before the road, who were you? Choose where your story begins:", "system");
-    Object.entries(BACKGROUNDS).forEach(([key, bg], i) => {
-      print(`  ${i + 1}. ${bg.name} — ${bg.tagline}`, "system");
+    print("Before the road, what are you? Choose your Race:", "system");
+    Object.entries(RACES).forEach(([key, race], i) => {
+      print(`  ${i + 1}. ${race.name} — ${race.tagline}`, "system");
     });
     print("(pick one below)", "system");
     return;
   }
-  if (bootStage === "ask_background") {
-    const keys = Object.keys(BACKGROUNDS);
+  if (bootStage === "ask_race") {
+    const keys = Object.keys(RACES);
     const asNumber = parseInt(text, 10);
     let key = null;
     if (!isNaN(asNumber) && keys[asNumber - 1]) {
       key = keys[asNumber - 1];
     } else {
       const t = text.toLowerCase();
-      key = keys.find((k) => t.includes(k) || k.includes(t) || BACKGROUNDS[k].name.toLowerCase().includes(t));
+      key = keys.find((k) => t.includes(k) || k.includes(t) || RACES[k].name.toLowerCase().includes(t));
     }
     if (!key) {
-      print(`Not a background anyone's heard of. Try a number (1-${keys.length}) or a name.`, "system");
+      print(`Not a Race anyone's heard of. Try a number (1-${keys.length}) or a name.`, "system");
       return;
     }
-    if (BACKGROUNDS[key].flags && BACKGROUNDS[key].flags.isMage) {
-      pendingBgKey = key;
-      bootStage = "ask_element";
-      print(`Before anything else — what has your magic always leaned toward?`, "system");
-      Object.values(ELEMENTS).forEach((el, i) => {
-        print(`  ${i + 1}. ${el.name} — ${el.description}`, "system");
-      });
-      print("(pick one below — you can open a second element later, at level 15)", "system");
+    pendingRaceKey = key;
+    bootStage = "ask_origin";
+    print(`A ${RACES[key].name}.`, "system");
+    print("");
+    print("Where does your story begin?", "system");
+    originsForRace(key).forEach(([, origin], i) => {
+      print(`  ${i + 1}. ${origin.name} — ${origin.tagline}`, "system");
+    });
+    print("(pick one below)", "system");
+    return;
+  }
+  if (bootStage === "ask_origin") {
+    const entries = originsForRace(pendingRaceKey);
+    const keys = entries.map(([key]) => key);
+    const asNumber = parseInt(text, 10);
+    let key = null;
+    if (!isNaN(asNumber) && keys[asNumber - 1]) {
+      key = keys[asNumber - 1];
+    } else {
+      const t = text.toLowerCase();
+      const match = entries.find(([k, origin]) => t.includes(k) || k.includes(t) || origin.name.toLowerCase().includes(t));
+      key = match ? match[0] : null;
+    }
+    if (!key) {
+      print(`Not an origin on offer. Try a number (1-${keys.length}) or a name.`, "system");
       return;
     }
-    beginCharacter(key, pendingName);
+    pendingOriginKey = key;
+    const origin = ORIGINS[key];
+    if (origin.forcedClass) {
+      pendingClassKey = origin.forcedClass;
+      if (CLASSES[pendingClassKey].isMage) {
+        bootStage = "ask_element";
+        print(`Before anything else — what has your magic always leaned toward?`, "system");
+        Object.values(ELEMENTS).forEach((el, i) => {
+          print(`  ${i + 1}. ${el.name} — ${el.description}`, "system");
+        });
+        print("(pick one below — you can open a second element later, at level 15)", "system");
+      } else {
+        bootStage = "ask_pointbuy";
+        pendingPointBuy = {};
+        print(`Your path is set: ${CLASSES[pendingClassKey].name}.`, "system");
+        print("");
+        print("Now, sharpen yourself — allocate your points below, then confirm.", "system");
+      }
+      return;
+    }
+    bootStage = "ask_class";
+    print(`${origin.name}.`, "system");
+    print("");
+    print("What's your calling?", "system");
+    ["warrior", "scout", "apothecary"].forEach((key, i) => {
+      print(`  ${i + 1}. ${CLASSES[key].name} — ${CLASSES[key].tagline}`, "system");
+    });
+    print("(pick one below)", "system");
+    return;
+  }
+  if (bootStage === "ask_class") {
+    const keys = ["warrior", "scout", "apothecary"];
+    const asNumber = parseInt(text, 10);
+    let key = null;
+    if (!isNaN(asNumber) && keys[asNumber - 1]) {
+      key = keys[asNumber - 1];
+    } else {
+      const t = text.toLowerCase();
+      key = keys.find((k) => t.includes(k) || k.includes(t) || CLASSES[k].name.toLowerCase().includes(t));
+    }
+    if (!key) {
+      print(`Not a calling anyone's heard of. Try a number (1-${keys.length}) or a name.`, "system");
+      return;
+    }
+    pendingClassKey = key;
+    bootStage = "ask_pointbuy";
+    pendingPointBuy = {};
+    print(`A ${CLASSES[key].name}.`, "system");
+    print("");
+    print("Now, sharpen yourself — allocate your points below, then confirm.", "system");
     return;
   }
   if (bootStage === "ask_element") {
@@ -1507,7 +1696,38 @@ async function handleBootInput(raw) {
       print(`Not an element anyone's ever channeled. Try a number (1-${keys.length}) or a name.`, "system");
       return;
     }
-    beginCharacter(pendingBgKey, pendingName, key);
+    pendingElementKey = key;
+    bootStage = "ask_pointbuy";
+    pendingPointBuy = {};
+    print("");
+    print("Now, sharpen yourself — allocate your points below, then confirm.", "system");
+    return;
+  }
+  if (bootStage === "ask_pointbuy") {
+    const words = text.toLowerCase().split(/\s+/);
+    const verb = words[0];
+    const stat = words[1];
+    const allStats = [...POINT_BUY_STATS, "health"];
+    if (verb === "confirm") {
+      beginCharacter(pendingRaceKey, pendingOriginKey, pendingClassKey, pendingName, pendingElementKey, pendingPointBuy);
+      pendingPointBuy = {};
+      pendingElementKey = null;
+      return;
+    }
+    if ((verb === "add" || verb === "sub") && allStats.includes(stat)) {
+      const cap = stat === "health" ? 8 : 4;
+      const step = stat === "health" ? 2 : 1;
+      const current = pendingPointBuy[stat] || 0;
+      if (verb === "add") {
+        if (pointBuyRemaining(pendingPointBuy) < 1 || current + step > cap) return;
+        pendingPointBuy[stat] = current + step;
+      } else {
+        if (current - step < 0) return;
+        pendingPointBuy[stat] = current - step;
+      }
+      return;
+    }
+    print("Use the buttons below to allocate points, then Confirm Allocation.", "system");
     return;
   }
 }
