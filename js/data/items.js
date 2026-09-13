@@ -57,7 +57,13 @@
 
 const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic", 7: "Artifact", 8: "Divine Regalia" };
 const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10, 7: 12, 8: 14 };
-const STAT_LABELS = { atk: "Attack", def: "Defense", health: "Health", magic: "Magic", knowledge: "Knowledge", speed: "Speed", accuracy: "Accuracy", agility: "Agility" };
+// agi/acc/spd are aliases for agility/accuracy/speed — combat.js's player-
+// status/buff system (playerStatusStatTotal, playerBuffStatTotal) keys
+// stat-affecting effects on these abbreviated names, matching Bleed/
+// Constrict/etc.'s own `debuff` shape, so a crafted potion's useEffect.stat
+// (and any future recipe) should use them too rather than the full names
+// below meant for equipment-bonus display.
+const STAT_LABELS = { atk: "Attack", def: "Defense", health: "Health", magic: "Magic", knowledge: "Knowledge", speed: "Speed", accuracy: "Accuracy", agility: "Agility", agi: "Agility", acc: "Accuracy", spd: "Speed" };
 
 const ITEM_DEFS = {
   // ---- starting kits (data/backgrounds.js) ----
@@ -1878,6 +1884,26 @@ const ITEM_DEFS = {
   // slots for the first time, only on Personal Quest completion. ----
   "The Roll of the Ferratum": { slot: "trinkets", tier: 5, bonuses: { def: 3, knowledge: 3 }, source: "companion" },
   "Astra Sa'Lahru's Broken Crest": { slot: "trinkets", tier: 5, bonuses: { atk: 4, def: 4 }, source: "companion" },
+
+  // ---- Crafting system test samples (data/recipes.js, data/schematics.js,
+  // engine/crafting.js) — verifies the craft/learn plumbing end to end,
+  // not final content; real recipe/schematic authoring is a separate,
+  // parallel pass. `bonuses: {}` on the two potions matches every other
+  // consumable above — formatItemBonuses has no null-guard for a missing
+  // `bonuses`, so every entry needs it even when empty.
+  "a minor fortifying draught": { slot: "consumable", tier: 1, bonuses: {}, useEffect: { type: "buff", stat: "def", amount: 3, turns: 3 }, source: "crafted" },
+  "a reinforced tonic": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "buff", stat: "agi", amount: 2, turns: 3 }, source: "crafted" },
+  "a reinforced field kit": { slot: "trinkets", tier: 2, bonuses: { def: 2, atk: 1 }, source: "crafted" },
+
+  // Recipe/schematic documents — not consumable (there's nothing to "use"
+  // them for via the plain 'use' command; see the 'learn' command in
+  // parser.js), and not equippable gear either, so `slot` is deliberately
+  // neither — same idea as "a shard of returning breath"'s "ritual" slot
+  // above. `teachesRecipe`/`teachesSchematic` name the exact RECIPES/
+  // SCHEMATICS unlock key `learn` adds to state.knownRecipes/
+  // knownSchematics.
+  "a reinforced tonic recipe": { slot: "document", tier: 1, bonuses: {}, teachesRecipe: "reinforced_tonic_recipe", source: "quest" },
+  "a field kit schematic": { slot: "document", tier: 1, bonuses: {}, teachesSchematic: "field_kit_schematic", source: "quest" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
@@ -1971,6 +1997,8 @@ function itemDescription(item) {
 function describeUseEffect(effect) {
   if (!effect) return "does nothing when used.";
   if (effect.type === "heal") return `restores ${Math.round(effect.pct * 100)}% of max health when used.`;
+  if (effect.type === "buff") return `grants +${effect.amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns in combat.`;
+  if (effect.type === "cleanse") return effect.all ? "clears every active status effect." : `clears: ${(effect.statuses || []).join(", ")}.`;
   return "does something when used.";
 }
 

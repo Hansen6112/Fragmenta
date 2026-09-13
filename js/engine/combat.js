@@ -163,7 +163,7 @@ function effectivePlayerDef(state) {
   // (Regalia): a temporary Defense bonus whenever Cleansing Current clears
   // a status — see applyStatusCleanseOnHeal.
   const calmWatersDef = combat.calmWatersTurns > 0 ? combat.calmWatersDefBonus || 0 : 0;
-  const base = state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0) + (combat.orderedMindDefStacks || 0) + calmWatersDef;
+  const base = state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0) + (combat.orderedMindDefStacks || 0) + calmWatersDef + playerBuffStatTotal(state, "def");
   // Enemy Ability Engine (data/enemyabilities.js): a Defense-reducing
   // status an enemy's active ability just inflicted (Shield Crush, ...),
   // summed across whatever's currently active in combat.playerStatuses.
@@ -190,6 +190,35 @@ function effectivePlayerDef(state) {
 // duration in place, matching the codex's own repeated "does not stack;
 // reapplication refreshes the duration" wording; Bleed/Constrict stack
 // instead, up to their own cap.
+// Crafted-potion buffs (data/items.js's useEffect.type "buff", see
+// applyConsumableEffect below) — combat.playerBuffs is keyed by stat
+// (abbreviated: def/agi/acc/spd, matching playerStatusStatTotal's own
+// debuff keys below, not STAT_LABELS' full display names), one entry per
+// stat rather than playerStatuses' per-source-id keying, since only one
+// crafted buff can be active per stat at a time (drinking a second
+// refreshes it, same non-stacking convention as a repeated status). A
+// brand new system, deliberately NOT covered by Avatar of Time's
+// buff-turn freeze (combat.js's beginTurn) — that freeze is narrowly
+// scoped to the pre-existing defBuffTurns/atkBuffTurns/magicBuffTurns
+// gear-set fields, not a general "every buff" rule.
+function playerBuffStatTotal(state, statKey) {
+  const buffs = (state.combat && state.combat.playerBuffs) || {};
+  const entry = buffs[statKey];
+  return entry ? entry.amount : 0;
+}
+
+// Ticks every active crafted-potion buff down by one turn, deleting it
+// once its turns run out — mirrors tickPlayerStatuses exactly (including
+// its silent-on-expiry convention, no "wears off" line), just for a
+// positive effect instead of a negative one.
+function tickPlayerBuffs(state) {
+  const buffs = state.combat.playerBuffs;
+  for (const key of Object.keys(buffs)) {
+    buffs[key].turns -= 1;
+    if (buffs[key].turns <= 0) delete buffs[key];
+  }
+}
+
 function playerStatusStatTotal(state, statKey) {
   const statuses = (state.combat && state.combat.playerStatuses) || {};
   let total = 0;
@@ -211,15 +240,15 @@ function playerStatusStatPctTotal(state, statKey) {
 }
 function effectivePlayerAgility(state) {
   const pct = playerStatusStatPctTotal(state, "agiPct");
-  const base = state.agility + playerStatusStatTotal(state, "agi");
+  const base = state.agility + playerStatusStatTotal(state, "agi") + playerBuffStatTotal(state, "agi");
   return Math.max(0, Math.round(base * (1 + pct)));
 }
 function effectivePlayerAccuracy(state) {
-  return Math.max(0, state.accuracy + playerStatusStatTotal(state, "acc"));
+  return Math.max(0, state.accuracy + playerStatusStatTotal(state, "acc") + playerBuffStatTotal(state, "acc"));
 }
 function effectivePlayerSpeedForInitiative(state) {
   const pct = playerStatusStatPctTotal(state, "spdPct");
-  const base = state.speed + playerStatusStatTotal(state, "spd");
+  const base = state.speed + playerStatusStatTotal(state, "spd") + playerBuffStatTotal(state, "spd");
   return Math.max(0, Math.round(base * (1 + pct)));
 }
 
@@ -604,6 +633,13 @@ function useItem(state, arg) {
   const item = state.inventory[idx];
   const def = getItemDef(item);
   if (!def || def.slot !== "consumable") return [`${item} isn't something you can use like that.`];
+  // A "buff" effect is a timed COMBAT bonus (turns = combat rounds,
+  // ticked by tickPlayerBuffs) — unlike heal, it means nothing outside a
+  // fight, so it's rejected here before the item is even touched, rather
+  // than consumed for no effect.
+  if (!state.combat && def.useEffect && def.useEffect.type === "buff") {
+    return [`${item} is for the middle of a fight — save it for one.`];
+  }
 
   if (!state.combat) {
     state.inventory.splice(idx, 1);
@@ -650,6 +686,21 @@ function applyConsumableEffect(state, item, effect) {
     const { healed, lines } = applyHeal(state, amount);
     return [`You drink ${item}, mending ${healed} health.`, ...lines];
   }
+  // useItem's own guard above already rejects a "buff" effect outside
+  // combat, so state.combat is always live here.
+  if (effect.type === "buff") {
+    state.combat.playerBuffs[effect.stat] = { amount: effect.amount, turns: effect.turns };
+    return [`You drink ${item} — +${effect.amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns.`];
+  }
+  if (effect.type === "cleanse") {
+    const cleared = effect.all
+      ? Object.keys(state.combat.playerStatuses)
+      : effect.statuses.filter((s) => state.combat.playerStatuses[s]);
+    cleared.forEach((s) => delete state.combat.playerStatuses[s]);
+    return cleared.length
+      ? [`You drink ${item}, clearing: ${cleared.join(", ")}.`]
+      : [`You drink ${item}, but nothing needed clearing.`];
+  }
   return [`You use ${item}, but nothing happens.`];
 }
 
@@ -683,6 +734,26 @@ function applyConsumableEffectToAlly(item, ally, effect) {
     const healed = Math.min(amount, ally.maxHealth - ally.health);
     ally.health = Math.min(ally.maxHealth, ally.health + amount);
     return [`You give ${item} to ${ally.name}, mending ${healed} health.`];
+  }
+  // Unlike the player's combat.playerBuffs, an ally's buff lives directly
+  // on the ally object (state.js's recruitAlly), not per-fight combat
+  // state — useItemOnAlly only ever runs OUTSIDE combat (see its own
+  // guard above), so a buff applied here has to survive until the next
+  // fight actually starts ticking it down (companion.js's tickAllyBuffs,
+  // called from combat.js's beginTurn).
+  if (effect.type === "buff") {
+    // Saves from before ally.buffs existed (state.js's recruitAlly) won't
+    // have the field at all.
+    if (!ally.buffs) ally.buffs = {};
+    ally.buffs[effect.stat] = { amount: effect.amount, turns: effect.turns };
+    return [`You give ${item} to ${ally.name} — +${effect.amount} ${STAT_LABELS[effect.stat] || effect.stat} for their next ${effect.turns} rounds of combat.`];
+  }
+  // Cleanse has nothing to do for an ally today — no status effect has
+  // ever been able to land on one (see companion.js's own file-header
+  // caveat on this exact gap); declared-but-inert rather than faked,
+  // same "design honesty" convention as Hadrian's dormant kit fields.
+  if (effect.type === "cleanse") {
+    return [`You use ${item} on ${ally.name}, but there's nothing clinging to them to clear.`];
   }
   return [`You use ${item} on ${ally.name}, but nothing happens.`];
 }
@@ -2225,6 +2296,10 @@ function beginTurn(state) {
   // burn/bleed loop above), so nothing further is needed here.
   lines.push(...tickPlayerStatuses(state));
   if (state.health <= 0) return lines;
+  // Crafted-potion buffs (playerBuffs) and any ally's own (companion.js's
+  // tickAllyBuffs) age down the same way, once per round.
+  tickPlayerBuffs(state);
+  aliveAllies(state).forEach((ally) => tickAllyBuffs(ally));
   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
   // Regeneration HoT set up once at combat start (see startCombat),
   // ticked here identically in shape to burn/bleed but healing instead of
@@ -3308,6 +3383,10 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     // Active abilities, keyed by status/custom-debuff id — see
     // applyPlayerStatus/tickPlayerStatuses.
     playerStatuses: {},
+    // Crafted-potion buffs (data/recipes.js/schematics.js output items'
+    // useEffect.type "buff") — see playerBuffStatTotal/tickPlayerBuffs
+    // above. Keyed by stat, one entry per stat.
+    playerBuffs: {},
     naturesPersistenceUsed: false, // gates Nature's Persistence's (Regalia) first-crowd-control-free per fight
     unbreakableUsed: false, // gates Unbreakable's (Legendary) first-Defense-reduction-ignored per fight
     mercyOfTheVeilUsed: false, // gates Mercy of the Veil's (Regalia of the Final Veil 4pc) below-40%-HP cleanse-all
@@ -3884,7 +3963,10 @@ function resolveKill(state, creature) {
   // move it.
   const diedIndex = state.combat.activeIndex;
   const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
-  const bounty = state.flags.isMercenary ? 1.5 : 1;
+  // isMercenary retired — no Origin under the Race/Class/Origin system
+  // maps to the old Mercenary background's bounty bonus. Revisit if a
+  // future Origin should carry it forward.
+  const bounty = 1;
   // Scales off the creature's own encounter level (falling back to the
   // player's level for quest/job-tied creatures that skip the level roll
   // — see startCombat) and its Danger Class multiplier, replacing the old

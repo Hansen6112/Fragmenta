@@ -56,6 +56,8 @@ const VERB_SYNONYMS = {
   recruit: ["recruit"],
   give: ["give", "hand"],
   dismantle: ["dismantle", "salvage", "scrap"],
+  craft: ["craft", "brew", "concoct"],
+  learn: ["learn", "study"],
   reclaim: ["reclaim", "retrieve"],
   sanctuary: ["sanctuary", "shrine"],
   pray: ["pray", "offer"],
@@ -210,6 +212,10 @@ async function handleInput(rawInput, state) {
       return cmdGive(arg, state);
     case "dismantle":
       return cmdDismantle(arg, state);
+    case "craft":
+      return cmdCraft(arg, state);
+    case "learn":
+      return cmdLearn(arg, state);
     case "reclaim":
       return cmdReclaim(arg, state);
     case "sanctuary":
@@ -855,6 +861,47 @@ function cmdDismantle(arg, state) {
   state.inventory.splice(idx, 1);
   components.forEach((c) => state.inventory.push(c));
   return [`You dismantle ${formatItemLine(item)}, salvaging: ${components.join(", ")}.`];
+}
+
+// Recipes (Apothecary-only, data/recipes.js) checked first, then
+// Schematics (any Class, data/schematics.js) — findRecipe/findSchematic
+// (engine/crafting.js) only return an entry whose unlock condition is
+// already met, so a match here always means "craftable right now,"
+// modulo materials and (for recipes) Class.
+function cmdCraft(arg, state) {
+  if (!arg) return ["Craft what?"];
+
+  const recipe = findRecipe(arg, state);
+  if (recipe) {
+    if (state.class !== "apothecary") return ["Only an Apothecary knows how to brew something like this."];
+    return craftFromEntry(state, recipe, "brew");
+  }
+
+  const schematic = findSchematic(arg, state);
+  if (schematic) return craftFromEntry(state, schematic, "craft");
+
+  return [`You don't know how to craft "${arg}".`];
+}
+
+// Consumes a carried recipe/schematic document, adding the key it teaches
+// (ITEM_DEFS' teachesRecipe/teachesSchematic — see data/items.js) to
+// state.knownRecipes/knownSchematics. Anyone can learn a schematic
+// (SCHEMATICS has no Class gate); a recipe document works the same way
+// regardless of Class too — the Apothecary restriction only gates
+// actually brewing it (cmdCraft above), same asymmetry the spec draws
+// between craft's own two branches.
+function cmdLearn(arg, state) {
+  if (!arg) return ["Learn what?"];
+  const found = findLearnableDocument(arg, state.inventory);
+  if (!found) return [`You aren't carrying anything you could learn from called "${arg}".`];
+  const { index, item, def } = found;
+  state.inventory.splice(index, 1);
+  if (def.teachesRecipe) {
+    state.knownRecipes.add(def.teachesRecipe);
+    return [`You study ${item} closely. New recipe learned.`];
+  }
+  state.knownSchematics.add(def.teachesSchematic);
+  return [`You study ${item} closely. New schematic learned.`];
 }
 
 function cmdReclaim(arg, state) {
@@ -1866,6 +1913,11 @@ function cmdHelp() {
     "through Crimson); every type but Death Match is non-lethal — a loss",
     "just ends the match, never the game. Reach Crimson and 'fight champion'",
     "unlocks a shot at the Ovum's Champion; beat him and he'll join you.",
+    "Crafting: learn <item> to study a carried recipe/schematic document,",
+    "craft <name> (or brew/concoct) to make it if you're carrying the",
+    "materials. Recipes are Apothecary-only to brew (some unlock straight",
+    "from Knowledge, no document needed); schematics are open to anyone",
+    "who's learned them.",
     "Almost everything above also has its own button in the interface —",
     "typing it out by hand is never required except for naming things",
     "and answering the shop's 'how many?' prompt.",

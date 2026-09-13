@@ -244,8 +244,39 @@ function effectiveAllyDef(ally) {
     (ally.bonusDefAmount || 0) +
     (ally.reactiveDefBonus || 0) +
     (ally.ascendedSetDefBonus || 0) +
-    (ally.noNameForgottenDefBonus || 0)
+    (ally.noNameForgottenDefBonus || 0) +
+    allyBuffStatTotal(ally, "def")
   );
+}
+
+// Crafted-potion buffs given to an ally (engine/combat.js's
+// applyConsumableEffectToAlly) — ally.buffs lives on the ally itself
+// (state.js's recruitAlly), not per-fight companion state, since it's
+// applied out of combat and needs to survive until the next fight's own
+// beginTurn starts ticking it (see tickAllyBuffs below). Only `def` has
+// an effective-accessor to add this to today (effectiveAllyDef above) —
+// ally.atk/agility/accuracy/speed are all read raw at their own call
+// sites (allyAggressiveAction, resolveEnemyAttackOnAlly's hit check),
+// same "more work, not done yet" gap the player side has for atk/magic/
+// knowledge. Extend those call sites the same way if a crafted item ever
+// needs to buff an ally stat besides Defense.
+function allyBuffStatTotal(ally, statKey) {
+  const buffs = ally.buffs || {};
+  const entry = buffs[statKey];
+  return entry ? entry.amount : 0;
+}
+
+// Ages every active crafted-potion buff on one ally down by a round,
+// deleting it once its turns run out — mirrors combat.js's
+// tickPlayerBuffs, called from the same beginTurn hook for every living
+// ally each round.
+function tickAllyBuffs(ally) {
+  const buffs = ally.buffs;
+  if (!buffs) return;
+  for (const key of Object.keys(buffs)) {
+    buffs[key].turns -= 1;
+    if (buffs[key].turns <= 0) delete buffs[key];
+  }
 }
 
 // Worthy Foe (Trinket II — bonus vs Elite/Boss/World Boss) and Final

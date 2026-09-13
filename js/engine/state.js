@@ -78,6 +78,12 @@ class GameState {
     // combat.js's startCombat, one entry per distinct creature type
     // faced (a pack fight can add several at once).
     this.encounteredCreatures = new Set();
+    // Apothecary crafting (data/recipes.js/schematics.js, engine/
+    // crafting.js): document-gated unlocks a 'learn'ed item adds a key to
+    // (see parser.js's cmdLearn) — knowledgeReq-gated recipes need no
+    // entry here at all, just enough state.knowledge.
+    this.knownRecipes = new Set();
+    this.knownSchematics = new Set();
     this.combat = null; // { creatureId, hp, name } when engaged
     this.knownFragments = 0;
     this.reputation = initialReputation(); // factionId -> -100..100, all 0 until a background is applied
@@ -124,6 +130,15 @@ class GameState {
       // listener, for now); nothing currently reads it for a reveal —
       // that's future companion-quest work, not built yet.
       relationship: 0,
+      // Crafted-potion buffs used on this ally (see engine/combat.js's
+      // applyConsumableEffectToAlly and companion.js's allyBuffStatTotal/
+      // tickAllyBuffs) — keyed by stat, same { amount, turnsLeft } shape
+      // as combat.playerBuffs. Lives on the ally itself, not per-fight
+      // companion state, since 'use <item> on <ally>' only ever happens
+      // OUT of combat (see useItemOnAlly) — a buff applied before a fight
+      // needs to survive until that fight's own beginTurn starts ticking
+      // it down.
+      buffs: {},
     };
     // Some allies (Hadrian — data/hadrian.js) arrive already wearing
     // their own signature gear rather than starting empty-handed like
@@ -181,6 +196,13 @@ class GameState {
     // the mage level-15 choice) keep working unchanged — only Class
     // decides it now, via Mage/Bruise's forced-Class special Origins.
     this.flags.isMage = !!cls.isMage;
+    // Bruise/Novitiate (mage) are their own derived flags too — parser.js
+    // already reads state.flags.isBruise/isNovitiate (Kabal/Sanguivorum
+    // location flavor gating) from before the Race/Class/Origin migration,
+    // but nothing has set them since; both branches have been dead code
+    // ever since. Class alone decides them now, same as isMage above.
+    this.flags.isBruise = this.class === "bruise";
+    this.flags.isNovitiate = this.class === "mage";
     this.nation = origin.nation || this.deriveNationFromLocation(origin.startLocation);
     this.location = origin.startLocation;
     this.reputation = initialReputation(origin.reputation);
@@ -372,6 +394,8 @@ class GameState {
       flags: this.flags,
       visited: Array.from(this.visited),
       encounteredCreatures: Array.from(this.encounteredCreatures),
+      knownRecipes: Array.from(this.knownRecipes),
+      knownSchematics: Array.from(this.knownSchematics),
       knownFragments: this.knownFragments,
       reputation: this.reputation,
       activeJobs: this.activeJobs,
@@ -411,6 +435,10 @@ class GameState {
     // encounteredCreatures at all — defaults to empty, same as a fresh
     // game (they just won't see past fights retroactively added).
     s.encounteredCreatures = new Set(data.encounteredCreatures || []);
+    // Saves from before crafting existed have neither at all — same
+    // empty-default treatment as encounteredCreatures above.
+    s.knownRecipes = new Set(data.knownRecipes || []);
+    s.knownSchematics = new Set(data.knownSchematics || []);
     if (Array.isArray(data.equipment)) {
       // Pre-slot save format: return those items to inventory rather than
       // losing them, and start with fresh (empty) slots.
