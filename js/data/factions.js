@@ -30,7 +30,7 @@ const FACTIONS = {
     name: "The Magma-Hearth Guild",
     kind: "guild",
     blurb:
-      "Thraekor's mercenary institution, headquartered at Vorreth (Vorseth in some records) — formally independent of the clans, though expected to support confederation wars at a steep discount rather than for free. Smaller and younger than the Mugamiir Safor, with a geographic edge in northern and eastern markets and a reputation built on heavy infantry and siege specialists. The rivalry between the two guilds is commercial, not personal — both know exactly how good the other is at the same job.",
+      "Thraekor's mercenary institution, headquartered at Vorreth — formally independent of the clans, though expected to support confederation wars at a steep discount rather than for free. Smaller and younger than the Mugamiir Safor, with a geographic edge in northern and eastern markets and a reputation built on heavy infantry and siege specialists. The rivalry between the two guilds is commercial, not personal — both know exactly how good the other is at the same job.",
   },
   // The twelve gods of the Pantheon (see data/sets.js's Divine Regalia sets,
   // each already tied to one of these names) — reputation here is a small,

@@ -20,12 +20,10 @@
  * location — same split, now framed as Origin-driven instead of a Class
  * that happened to override Origin.
  *
- * All start locations below are verified real ids in data/world.js.
- * Norrvael-fled uses `dragenholm` (Norrvael's capital, seat of House
- * Dravenkov) rather than the old Bruise Background's `the_reednold` —
- * that older location is real (a Vaeloris swamp trading post), just the
- * wrong flavor for "fled the Kabal's reach entirely," not a nonexistent
- * place as an earlier design pass had assumed.
+ * All start locations below are verified real ids in data/world.js,
+ * cross-checked (v0.2 of the world-geography correction pass) against the
+ * project's own master city-reference list by nation. Norrvael-fled uses
+ * `drakenholm` (Norrvael's capital, seat of House Dravenkov).
  *
  * growthMult entries are optional per-stat multipliers (any of atk/def/
  * health/magic/knowledge/speed/accuracy/agility); anything not listed
@@ -65,13 +63,13 @@ const ORIGINS = {
     raceKey: "human",
     tagline: "One of the few humans the Ash Confederation let put down roots.",
     nation: "thraekor",
-    startLocation: "khar_vantr",
+    startLocation: "khar_athel",
     gold: 12,
     inventory: ["a worn traveler's pack", "a letter of introduction to the Stillwarden's court", "a firestarting kit"],
     reputation: { thraekor: "friendly" },
     growthMult: { def: 1.1 },
     intro:
-      "You came to Khar-Vantr as a trader's apprentice and never quite left. Thraekor doesn't naturalize outsiders easily, but endurance is the one virtue it actually respects, and you had enough of it to be let stay.",
+      "You came to Khar-Athel as a trader's apprentice and never quite left. Thraekor doesn't naturalize outsiders easily, but endurance is the one virtue it actually respects, and you had enough of it to be let stay.",
   },
 
   // ------------------------------------------------------------ DragonKin
@@ -93,13 +91,13 @@ const ORIGINS = {
     raceKey: "dragonkin",
     tagline: "A DragonKin who found Thraekor's ash and fire more like home than the Arbor's canopy.",
     nation: "thraekor",
-    startLocation: "khar_vantr",
+    startLocation: "khar_athel",
     gold: 12,
     inventory: ["an ash-tempered hand-axe", "a heat-cured hide vest", "a clan token"],
     reputation: { thraekor: "friendly", sanguivorum: "cold" },
     growthMult: { atk: 1.12 },
     intro:
-      "Khar-Vantr's volcano never bothered you the way it bothers most visitors — if anything, the heat felt like something you recognized. The Stillwarden's clan took that as a sign worth trusting.",
+      "Khar-Athel's volcano never bothered you the way it bothers most visitors — if anything, the heat felt like something you recognized. The Stillwarden's clan took that as a sign worth trusting.",
   },
   dragonkin_wanderer: {
     name: "Sanguivorum Wanderer",
@@ -119,15 +117,15 @@ const ORIGINS = {
   lizardfolk_hegemony: {
     name: "Swamp Hegemony Enclave",
     raceKey: "lizardfolk",
-    tagline: "Born in the Swamp Hegemony, the Lizardfolk-held reach within Vaeloris's own borders.",
+    tagline: "Born in Drath Vorrumbruk, the deep swamp heart of the Lizardfolk-held Hegemony.",
     nation: "vaeloris",
-    startLocation: "the_reednold",
+    startLocation: "drath_vorrumbruk",
     gold: 8,
     inventory: ["a reed-woven satchel", "a bone-hooked fishing spear", "a jar of preserved swamp herbs"],
     reputation: { vaeloris: "friendly" },
     growthMult: { def: 1.12 },
     intro:
-      "The Reednold is the last place upriver where a non-Lizardfolk trader can still do business without a guide — you grew up on the other side of that line, in the Swamp Hegemony proper, a Lizardfolk reach within Vaeloris that keeps its own customs.",
+      "Drath Vorrumbruk doesn't show itself to outsiders — you never needed it to. You grew up in the true swamp heart of the Hegemony, where Druith the Ancient still sleeps and the Great Lizard is said to speak in a tongue older than any nation's, guiding it the way every Lizardfolk child eventually learns to.",
   },
   lizardfolk_triarchy: {
     name: "Arbor Triarchy",
@@ -203,7 +201,7 @@ const ORIGINS = {
     raceKey: "dwarf",
     tagline: "A dwarf of the Ash Confederation, raised on the principle that endurance is the only virtue that counts.",
     nation: "thraekor",
-    startLocation: "khar_vantr",
+    startLocation: "khar_athel",
     gold: 10,
     inventory: ["a dwarven hand-axe", "ash-worn leathers", "a clan token"],
     reputation: { thraekor: "friendly" },
@@ -235,7 +233,7 @@ const ORIGINS = {
     reputation: { sahrimor: "friendly" },
     growthMult: { knowledge: 1.1 },
     intro:
-      "You learned your trade in Thraekor's forges, then sold it to whoever the Mugamiir Safor pointed you at. Sahurim's guilds pay better for good work than Khar-Vantr ever did.",
+      "You learned your trade in Thraekor's forges, then sold it to whoever the Mugamiir Safor pointed you at. Sahurim's guilds pay better for good work than Khar-Athel ever did.",
   },
 
   // ---------------------------------------------------- Special: any Race
@@ -263,7 +261,7 @@ const ORIGINS = {
     tagline: "An unregistered mage, hunted on sight, gone to ground on the Isle of Silence and Drakes — Class is set to Bruise.",
     forcedClass: "bruise",
     nation: null,
-    startLocation: "dragenholm",
+    startLocation: "drakenholm",
     gold: 5,
     inventory: ["a stolen, half-bonded conduit", "a hooded traveler's cloak", "half a loaf of stale bread"],
     reputation: { kabal: "hostile", sanguivorum: "hostile" },

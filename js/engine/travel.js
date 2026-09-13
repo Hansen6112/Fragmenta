@@ -45,7 +45,7 @@ function findPath(fromId, toId) {
 }
 
 // Strip punctuation so "rivers gate" matches "River's Gate" and
-// "khaz vetha" matches "Khaz-Vetha".
+// "khar veth" matches "Khar-Veth".
 function normalizeName(s) {
   return s
     .toLowerCase()

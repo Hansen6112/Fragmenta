@@ -1666,7 +1666,7 @@ function cmdBoard(state) {
 
 function cmdContracts(state) {
   const guildId = GUILD_HQ[state.location];
-  if (!guildId) return ["No guild keeps contracts here. Try Nocturne (Mugamiir Safor) or Vorseth (Magma-Hearth)."];
+  if (!guildId) return ["No guild keeps contracts here. Try Nocthera (Mugamiir Safor) or Vorreth (Magma-Hearth)."];
   if (!hasService(state, "guild")) return ["No guild hall here — you'll need to find the guild's actual seat in this city."];
   const list = GUILD_CONTRACTS[guildId] || [];
   const lines = [`== ${FACTIONS[guildId].name} — Contracts ==`];
@@ -1840,7 +1840,7 @@ function cmdHelp() {
     "(1-25) — each background grows differently: a fighter's levels favor",
     "attack/defense/health, a mage's favor magic and knowledge.",
     "Work: board (city job board), accept <number>, contracts (guild-only,",
-    "at Nocturne/Vorseth), sign <number>. Bounty jobs resolve the moment",
+    "at Nocthera/Vorreth), sign <number>. Bounty jobs resolve the moment",
     "you win a big enough fight; courier jobs resolve the moment you arrive.",
     "Shop: shop (view a location's stock, wherever 'services' lists shop),",
     "buy <number>, sell <item>. Stock varies by nation and rotates every",

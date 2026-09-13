@@ -21,8 +21,8 @@
  */
 
 const GUILD_HQ = {
-  nocturne: "mugamiir_safor",
-  vorseth: "magma_hearth",
+  nocthera: "mugamiir_safor",
+  vorreth: "magma_hearth",
 };
 
 // Replaces the old flat tier-number gate (BOUNTY_TIER_THRESHOLD) — each
@@ -315,7 +315,7 @@ const GUILD_CONTRACTS = {
       title: "Rivalry Work",
       description:
         "The guild wants a bid delivered directly into Mugamiir Safor territory before their rivals hear about the contract through the usual channels. Petty institutional pride, technically, but it pays like it isn't.",
-      targetLocation: "nocturne",
+      targetLocation: "nocthera",
       rewardGold: 210,
       rewardRep: { magma_hearth: 18, thraekor: 6 },
       loot: "a guild token stamped with the Magma-Hearth sigil",

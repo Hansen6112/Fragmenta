@@ -647,7 +647,6 @@ const LOCATIONS = {
       "The premier commercial port of Sanguivorum, Aphroneth is the Empire's window to the world. Merchant fleets arrive daily carrying goods, cultures, and ideas from every nation. More foreign tongues are spoken here than anywhere else in Sanguivorum, and fortunes are won with a single successful voyage. As the Empire's most cosmopolitan city, Aphroneth balances imperial order with the constant rhythm of international commerce.",
     connections: [
       { to: "zuevaron", days: 4, mode: "road", desc: "east to the capital" },
-      { to: "arnoneth", days: 3, mode: "road", desc: "up the coast" },
       { to: "tritonath", days: 4, mode: "road", desc: "north along the fjord coast" },
     ],
     // Aphroneth's real district layout, built quarter by quarter (same
@@ -4611,7 +4610,6 @@ const LOCATIONS = {
       "Where Aphroneth welcomes the world, Nepturon guards it. Every harbor, drydock, and avenue exists to support Sanguivorum's naval supremacy. Warships dominate the skyline, disciplined marines patrol the streets, and the city's heartbeat is measured by the departure and return of imperial fleets. More than a city, Nepturon is a permanent naval installation with a civilian population built around it. It is also home to the Aqualis Eruditus, the Empire's foremost academy of naval warfare and maritime magic.",
     connections: [
       { to: "silvanor", days: 3, mode: "road" },
-      { to: "arnoneth", days: 3, mode: "road" },
       { to: "tritonath", days: 2, mode: "road", desc: "along the fjord" },
     ],
     // Nepturon's real district layout, built quarter by quarter (same
@@ -5164,34 +5162,6 @@ const LOCATIONS = {
       },
     },
   },
-  arnoneth: {
-    name: "Arnoneth",
-    nation: "sanguivorum",
-    terrain: "plains",
-    isCity: true,
-    danger: 1,
-    services: ["rest"],
-    description: "A fjord-adjacent town whose harbor is entirely the Legionus Aqualis's to permit or deny.",
-    connections: [
-      { to: "nepturon", days: 3, mode: "road" },
-      { to: "decearon", days: 2, mode: "road" },
-      { to: "aphroneth", days: 3, mode: "road", desc: "down the coast" },
-    ],
-  },
-  decearon: {
-    name: "Decearon",
-    nation: "sanguivorum",
-    terrain: "plains",
-    isCity: true,
-    danger: 1,
-    services: ["rest", "shop"],
-    description: "A market town on the meadow's western edge, its granaries older than the current Senate.",
-    connections: [
-      { to: "arnoneth", days: 2, mode: "road" },
-      { to: "minervon", days: 3, mode: "road" },
-      { to: "marsatum", days: 4, mode: "road" },
-    ],
-  },
   minervon: {
     name: "Minervon",
     title: "The Crucible of Command",
@@ -5204,7 +5174,6 @@ const LOCATIONS = {
       "No city has produced more generals, strategists, or military scholars than Minervon. Here, battles are fought long before armies ever march. Every street reflects discipline and preparation, from the orderly parade grounds to the lecture halls where tomorrow's commanders study the victories and failures of centuries past. While Arethon creates soldiers, Minervon creates leaders.",
     connections: [
       { to: "apollyon", days: 3, mode: "road" },
-      { to: "decearon", days: 3, mode: "road" },
       { to: "victorath", days: 3, mode: "road" },
     ],
     // Minervon's real district layout, built quarter by quarter (same
@@ -5749,7 +5718,6 @@ const LOCATIONS = {
     description:
       "Standing where civilization gives way to the untamed borders of Vaeloris, Marsatum has endured centuries of tension without ever breaking. Unlike Arethon, whose strength lies in rapid response, Marsatum embodies steadfast defense. Massive walls, disciplined garrisons, and generations of veteran soldiers have earned the city a reputation as the Empire's immovable bulwark. Every stone reminds its people that holding the line is often the greatest victory.",
     connections: [
-      { to: "decearon", days: 4, mode: "road" },
       { to: "victorath", days: 2, mode: "road" },
     ],
     // Marsatum's real district layout, built quarter by quarter (same
@@ -6860,11 +6828,23 @@ const LOCATIONS = {
     connections: [
       { to: "victorath", days: 5, mode: "road" },
       { to: "arethon", days: 9, mode: "road" },
-      { to: "sylmae", days: 6, mode: "river", desc: "downriver, 6 days by boat, 28 by foot" },
+      { to: "sylmere", days: 6, mode: "river", desc: "downriver, 6 days by boat, 28 by foot" },
+      { to: "the_crossing", days: 2, mode: "road", desc: "the Kabal's sovereign bridge" },
     ],
   },
-  sylmae: {
-    name: "Sylmae",
+  the_crossing: {
+    name: "The Crossing",
+    nation: "vaeloris",
+    terrain: "forest",
+    isCity: true,
+    danger: 2,
+    services: ["rest", "shop"],
+    description:
+      "A border town built around the Kabal's own sovereign bridge — the only crossing into Sanguivorum that answers to neither nation. Logged crossings and actual crossings aren't always the same thing here, and everyone on both banks knows it.",
+    connections: [{ to: "the_rivers_gate", days: 2, mode: "road" }],
+  },
+  sylmere: {
+    name: "Sylmere",
     nation: "vaeloris",
     terrain: "forest",
     isCity: true,
@@ -6887,10 +6867,10 @@ const LOCATIONS = {
     description:
       "The largest tree in existence, and the seat of Sylvorn Vaelithar's rule over the triarchy of elves, lizardfolk, and dragonborn. The Witnessed watch from somewhere in its upper branches, and if you stand still long enough you start to feel watched back — not unkindly.",
     connections: [
-      { to: "sylmae", days: 4, mode: "river" },
+      { to: "sylmere", days: 4, mode: "river" },
       { to: "kabal_tower", days: 5, mode: "river" },
       { to: "the_meadows_sentinel", days: 3, mode: "forest path" },
-      { to: "orethmare", days: 4, mode: "forest path" },
+      { to: "drathmere", days: 5, mode: "river" },
       { to: "the_red_hold", days: 4, mode: "forest path", desc: "continuous dense forest, no shortcut" },
     ],
     sublocations: {
@@ -6922,23 +6902,20 @@ const LOCATIONS = {
     danger: 2,
     services: ["rest"],
     description: "A watch-town at the forest's northeastern edge, named for the standing stone said to mark where the meadows end and the elves' authority begins.",
-    connections: [
-      { to: "the_arbor", days: 3, mode: "forest path" },
-      { to: "orethmare", days: 3, mode: "forest path" },
-    ],
+    connections: [{ to: "the_arbor", days: 3, mode: "forest path" }],
   },
-  orethmare: {
-    name: "Orethmare",
+  drathmere: {
+    name: "Drathmere",
     nation: "vaeloris",
-    terrain: "swamp",
+    terrain: "forest",
     isCity: true,
     danger: 3,
     services: ["rest"],
-    description: "A wetland-edge settlement where the forest starts giving way to swamp, and wagons stop being useful.",
+    description:
+      "A river town further south along the Sylvara than Sylmere, where the current starts to slow and the forest starts thinking about becoming swamp.",
     connections: [
-      { to: "the_arbor", days: 4, mode: "forest path" },
-      { to: "the_confluence", days: 3, mode: "river" },
-      { to: "the_swamps_near", days: 2, mode: "swamp" },
+      { to: "the_arbor", days: 5, mode: "river" },
+      { to: "the_confluence", days: 4, mode: "river" },
     ],
   },
   the_confluence: {
@@ -6951,19 +6928,21 @@ const LOCATIONS = {
     description:
       "A floating lizardfolk city where the Sylvara's manageable stretch ends and the deep wetland begins. Below here, the terrain stops caring what you brought a map for.",
     connections: [
-      { to: "orethmare", days: 3, mode: "river" },
-      { to: "drath_vorrumborrar", days: 5, mode: "swamp", desc: "guide required beyond this point" },
-      { to: "dunmar", days: 4, mode: "road" },
+      { to: "drathmere", days: 4, mode: "river" },
+      { to: "drath_vorrumbruk", days: 5, mode: "swamp", desc: "guide required beyond this point" },
     ],
   },
-  drath_vorrumborrar: {
-    name: "Drath Vorrumborrar",
+  drath_vorrumbruk: {
+    name: "Drath Vorrumbruk",
     nation: "vaeloris",
     terrain: "swamp",
     isCity: false,
     type: "wilderness",
     danger: 5,
-    services: [],
+    // "rest" only — a real Lizardfolk home, not a formal settlement, so no
+    // shop/healer/guild (see origins.js's lizardfolk_hegemony Origin, the
+    // one place this doubles as a starting location).
+    services: ["rest"],
     description:
       "The deep swamp. Lizardfolk call it home and guide it; no one else finds their way through without one. Somewhere in its heart lives Druith — the Ancient — a crocodile that declined to stop growing and has thus far declined to die. The Great Lizard is said to speak here in a language older than the nations.",
     connections: [
@@ -6980,8 +6959,7 @@ const LOCATIONS = {
     services: ["rest"],
     description: "A hidden lizardfolk settlement built around what the outside world isn't told is a hatchery. Outsiders who find it are usually meant to.",
     connections: [
-      { to: "orethmare", days: 2, mode: "swamp" },
-      { to: "drath_vorrumborrar", days: 2, mode: "swamp" },
+      { to: "drath_vorrumbruk", days: 2, mode: "swamp" },
       { to: "the_repose", days: 3, mode: "forest path" },
     ],
   },
@@ -6993,24 +6971,7 @@ const LOCATIONS = {
     danger: 2,
     services: ["rest"],
     description: "A quiet clearing town, popular with elven pilgrims for reasons no one explains to outsiders and outsiders have learned not to ask about twice.",
-    connections: [
-      { to: "the_swamps_near", days: 3, mode: "forest path" },
-      { to: "the_reednold", days: 2, mode: "forest path" },
-      { to: "dunmar", days: 3, mode: "road" },
-    ],
-  },
-  the_reednold: {
-    name: "The Reednold",
-    nation: "vaeloris",
-    terrain: "swamp",
-    isCity: true,
-    danger: 3,
-    services: ["rest", "shop"],
-    description: "A reed-thatched trading post on the swamp's dry edge, the last place upriver where a non-lizardfolk trader can still do business without a guide.",
-    connections: [
-      { to: "the_repose", days: 2, mode: "forest path" },
-      { to: "dunmar", days: 2, mode: "road" },
-    ],
+    connections: [{ to: "the_swamps_near", days: 3, mode: "forest path" }],
   },
   the_red_hold: {
     name: "The Red Hold",
@@ -7022,36 +6983,7 @@ const LOCATIONS = {
     description: "An undefeated fortress deep in Vaeloris forest, garrisoned by the Rooted Legion. No army has ever taken it and, by the look of the walls, none ever will.",
     connections: [
       { to: "the_arbor", days: 4, mode: "forest path" },
-      { to: "dunmar", days: 6, mode: "forest path", desc: "continuous forest, no terrain relief" },
-      { to: "kaelthir_reach", days: 3, mode: "forest path", desc: "the canopy thickens the whole way" },
-    ],
-  },
-  kaelthir_reach: {
-    name: "Kaelthir Reach",
-    nation: "vaeloris",
-    terrain: "jungle",
-    isCity: true,
-    danger: 3,
-    services: ["rest", "shop"],
-    description:
-      "Where the ancient forest thickens into true jungle and the canopy triples in height — dragonborn territory, the triarchy's least-visited third. The elves administer the treaties and the lizardfolk keep the swamp's secrets; here, the dragonborn keep their own council and rarely explain it to anyone who isn't one.",
-    connections: [{ to: "the_red_hold", days: 3, mode: "forest path" }],
-  },
-  dunmar: {
-    name: "Dunmar",
-    nation: "vaeloris",
-    terrain: "forest",
-    isCity: true,
-    danger: 3,
-    services: ["rest", "shop", "guild"],
-    description:
-      "The official border crossing into Thraekor, controlled by the Keth-Orn clan on the dwarven side. Terms of passage have changed three times in the last decade — check before you commit to a route.",
-    connections: [
-      { to: "the_red_hold", days: 6, mode: "forest path" },
-      { to: "the_confluence", days: 4, mode: "road" },
-      { to: "the_repose", days: 3, mode: "road" },
-      { to: "the_reednold", days: 2, mode: "road" },
-      { to: "khaz_vetha", days: 3, mode: "road", desc: "terrain opens toward the volcanic transition" },
+      { to: "dunnrak", days: 6, mode: "forest path", desc: "continuous forest, no terrain relief, into Thraekor" },
     ],
   },
 
@@ -7068,11 +7000,10 @@ const LOCATIONS = {
       "A major desert hub built on caravan roads and the certainty that water is worth more than gold. The bridge road to Arethon runs straight through the Desert War's stalemated front.",
     connections: [
       { to: "kabal_tower", days: 6, mode: "road" },
-      { to: "myssara", days: 17, mode: "road", desc: "guide and water essential" },
-      { to: "nocturne", days: 15, mode: "road", desc: "elevation gain in the final stretch" },
-      { to: "khaerun", days: 12, mode: "road", desc: "canyon terrain, pack animals only" },
-      { to: "zyphera", days: 8, mode: "road" },
-      { to: "eternatum_shore", days: 2, mode: "road" },
+      { to: "nyssara", days: 17, mode: "road", desc: "guide and water essential" },
+      { to: "nocthera", days: 15, mode: "road", desc: "elevation gain in the final stretch" },
+      { to: "kharzun", days: 12, mode: "road", desc: "canyon terrain, pack animals only" },
+      { to: "zypherra", days: 8, mode: "road" },
       { to: "thalvora", days: 10, mode: "road" },
     ],
     sublocations: {
@@ -7096,19 +7027,8 @@ const LOCATIONS = {
       },
     },
   },
-  eternatum_shore: {
-    name: "Eternatum's Shore",
-    nation: "sahrimor",
-    terrain: "lake",
-    isCity: true,
-    danger: 2,
-    services: ["rest", "shop"],
-    description:
-      "The lake that should not exist here, ringed by a settlement that has never had to worry about water the way the rest of Sahrimor does. No one has ever found where it's fed from, and the Merchant King's surveyors have stopped trying.",
-    connections: [{ to: "sahurim", days: 2, mode: "road" }],
-  },
-  myssara: {
-    name: "Myssara",
+  nyssara: {
+    name: "Nyssara",
     nation: "sahrimor",
     terrain: "desert",
     isCity: true,
@@ -7137,10 +7057,10 @@ const LOCATIONS = {
     services: [],
     description:
       "The sand underfoot is the color of char, and the cold has no business existing this deep in a desert. Whatever swallowed the expeditions that came looking for what's buried here didn't need to chase them — most of them walked in on their own.",
-    connections: [{ to: "myssara", days: 4, mode: "road" }],
+    connections: [{ to: "nyssara", days: 4, mode: "road" }],
   },
-  nocturne: {
-    name: "Nocturne",
+  nocthera: {
+    name: "Nocthera",
     nation: "sahrimor",
     terrain: "mountain",
     isCity: true,
@@ -7148,17 +7068,17 @@ const LOCATIONS = {
     services: ["rest", "guild"],
     description:
       "An isolated mountain-mass city at Sahrimor's far northern reach, cold in a way the rest of the nation refuses to believe. It's also headquarters to the Mugamiir Safor — the largest adventuring guild on the continent, founded a hundred thirty years ago by the survivors of the first serious Black Sands expedition. They predate Sahrimor as a formal nation, and act like it.",
-    connections: [{ to: "sahurim", days: 15, mode: "road" }, { to: "iskarr", days: 3, mode: "road" }],
+    connections: [{ to: "sahurim", days: 15, mode: "road" }, { to: "iskara", days: 3, mode: "road" }],
   },
-  iskarr: {
-    name: "Iskarr",
+  iskara: {
+    name: "Iskara",
     nation: "sahrimor",
     terrain: "mountain",
     isCity: true,
     danger: 3,
     services: ["rest"],
-    description: "A cold frontier town past Nocturne, the last waypoint before the continent's northern edge stops being mapped in any useful detail.",
-    connections: [{ to: "nocturne", days: 3, mode: "road" }, { to: "thalvora", days: 2, mode: "road" }],
+    description: "A cold frontier town past Nocthera, the last waypoint before the continent's northern edge stops being mapped in any useful detail.",
+    connections: [{ to: "nocthera", days: 3, mode: "road" }, { to: "thalvora", days: 2, mode: "road" }],
   },
   // The ninth of Sahrimor's Nine Cities — canonically established (the
   // Master Reference's "Nine Cities at a Glance": "Thalvora — Orange.
@@ -7178,10 +7098,10 @@ const LOCATIONS = {
     danger: 2,
     services: ["rest", "shop"],
     description: "A prosperous plateau city, its markets stacked with cut gems and its paddocks loud with horses and animals traded nowhere else in Sahrimor. The most stable of the Merchant King's eight satellites — the Orange Lord wants their plateau kept exactly as it is, not the crown.",
-    connections: [{ to: "iskarr", days: 2, mode: "road" }, { to: "sahurim", days: 10, mode: "road" }],
+    connections: [{ to: "iskara", days: 2, mode: "road" }, { to: "sahurim", days: 10, mode: "road" }],
   },
-  khaerun: {
-    name: "Khaerun",
+  kharzun: {
+    name: "Kharzun",
     nation: "sahrimor",
     terrain: "canyon",
     isCity: true,
@@ -7189,42 +7109,42 @@ const LOCATIONS = {
     services: ["rest", "shop"],
     description:
       "A canyon city built vertically into the rock, its switchback approach impassable to anything with wheels. Camels only, and a head for heights.",
-    connections: [{ to: "sahurim", days: 12, mode: "road" }, { to: "escyndor", days: 4, mode: "road" }],
+    connections: [{ to: "sahurim", days: 12, mode: "road" }, { to: "eryndor", days: 4, mode: "road" }],
   },
-  escyndor: {
-    name: "Escyndor",
+  eryndor: {
+    name: "Eryndor",
     nation: "sahrimor",
     terrain: "desert",
     isCity: true,
     danger: 2,
     services: ["rest", "shop"],
-    description: "A desert waypoint east of Khaerun, quiet except when the caravan season peaks.",
-    connections: [{ to: "khaerun", days: 4, mode: "road" }, { to: "netivon", days: 3, mode: "road" }],
+    description: "A desert waypoint east of Kharzun, quiet except when the caravan season peaks.",
+    connections: [{ to: "kharzun", days: 4, mode: "road" }, { to: "nerivon", days: 3, mode: "road" }],
   },
-  netivon: {
-    name: "Netivon",
+  nerivon: {
+    name: "Nerivon",
     nation: "sahrimor",
     terrain: "desert",
     isCity: true,
     danger: 2,
     services: ["rest"],
     description: "A small trade town near Sahrimor's eastern edge.",
-    connections: [{ to: "escyndor", days: 3, mode: "road" }],
+    connections: [{ to: "eryndor", days: 3, mode: "road" }],
   },
-  zyphera: {
-    name: "Zyphera",
+  zypherra: {
+    name: "Zypherra",
     nation: "sahrimor",
     terrain: "desert",
     isCity: true,
     danger: 2,
     services: ["rest", "shop"],
-    description: "A desert market town near the southern trade roads, close enough to Myssara that the two cities' gossip arrives a day apart.",
-    connections: [{ to: "sahurim", days: 8, mode: "road" }, { to: "myssara", days: 6, mode: "road" }],
+    description: "A desert market town near the southern trade roads, close enough to Nyssara that the two cities' gossip arrives a day apart.",
+    connections: [{ to: "sahurim", days: 8, mode: "road" }, { to: "nyssara", days: 6, mode: "road" }],
   },
 
   // --------------------------------------------------------------- THRAEKOR
-  khaz_vetha: {
-    name: "Khaz-Vetha",
+  khar_veth: {
+    name: "Khar-Veth",
     nation: "thraekor",
     terrain: "mountain",
     isCity: true,
@@ -7232,20 +7152,34 @@ const LOCATIONS = {
     services: ["rest", "shop"],
     description: "A clan territory at the transitional edge where Vaeloris forest gives way to Thraekor stone. Pace improves noticeably heading south from here.",
     connections: [
-      { to: "dunmar", days: 3, mode: "road" },
-      { to: "trutek", days: 4, mode: "road" },
+      { to: "dunnrak", days: 3, mode: "road", desc: "the official crossing back into Vaeloris" },
+      { to: "thurak", days: 4, mode: "road" },
       { to: "velm", days: 5, mode: "road" },
     ],
   },
-  trutek: {
-    name: "Trutek",
+  dunnrak: {
+    name: "Dunnrak",
+    nation: "thraekor",
+    terrain: "mountain",
+    isCity: true,
+    danger: 3,
+    services: ["rest", "shop", "guild"],
+    description:
+      "Thraekor's official overland border crossing, controlled by the Keth-Orn clan. Terms of passage have changed three times in the last decade — check before you commit to a route.",
+    connections: [
+      { to: "the_red_hold", days: 6, mode: "forest path", desc: "into Vaeloris" },
+      { to: "khar_veth", days: 3, mode: "road" },
+    ],
+  },
+  thurak: {
+    name: "Thurak",
     nation: "thraekor",
     terrain: "volcanic",
     isCity: true,
     danger: 3,
     services: ["rest", "shop"],
     description: "A transitional waypoint city, still solid ground, the volcanic interior's danger a rumor here rather than a daily fact.",
-    connections: [{ to: "khaz_vetha", days: 4, mode: "road" }, { to: "vorseth", days: 5, mode: "road" }],
+    connections: [{ to: "khar_veth", days: 4, mode: "road" }, { to: "vorreth", days: 5, mode: "road" }],
   },
   velm: {
     name: "Velm",
@@ -7255,11 +7189,10 @@ const LOCATIONS = {
     danger: 4,
     services: ["rest"],
     description: "A dwarven town on the edge of the true volcanic interior, where every local knows exactly which ground is safe and shares that knowledge with almost no one.",
-    connections: [{ to: "khaz_vetha", days: 5, mode: "road" }, { to: "khar_adrel", days: 6, mode: "volcanic", desc: "guide required" }],
+    connections: [{ to: "khar_veth", days: 5, mode: "road" }, { to: "khar_dunn", days: 6, mode: "volcanic", desc: "guide required" }],
   },
-  vorseth: {
-    name: "Vorseth",
-    altName: "Vorreth",
+  vorreth: {
+    name: "Vorreth",
     nation: "thraekor",
     terrain: "volcanic",
     isCity: true,
@@ -7268,7 +7201,7 @@ const LOCATIONS = {
     services: ["rest", "shop", "guild"],
     description:
       "A hold town deep enough in the ash fields that visitors are quietly counted on the way in and on the way out. Also home to the Magma-Hearth Guild — Thraekor's mercenary institution, formally independent of the clans, expected to support confederation wars at discount rather than for free. Its heavy infantry and siege specialists are the guild's calling card, and its long-running rivalry with Sahrimor's Mugamiir Safor is commercial, not personal — though both sides watch the other closely.",
-    connections: [{ to: "trutek", days: 5, mode: "road" }, { to: "khar_vantr", days: 5, mode: "volcanic", desc: "guide required" }],
+    connections: [{ to: "thurak", days: 5, mode: "road" }, { to: "khar_athel", days: 5, mode: "volcanic", desc: "guide required" }],
     sublocations: {
       tavern: {
         name: "The Ash-Counted Hearth",
@@ -7290,22 +7223,22 @@ const LOCATIONS = {
       },
     },
   },
-  khar_adrel: {
-    name: "Khar-Adrel",
+  khar_dunn: {
+    name: "Khar-Dunn",
     nation: "thraekor",
     terrain: "volcanic",
     isCity: true,
     danger: 5,
     services: ["rest", "guild"],
-    description: "A stronghold clanhold near the volcano's shoulder, close enough to the lava fields that ashfall is just weather here.",
+    description: "A contested bridge stronghold near the volcano's shoulder, close enough to the lava fields that ashfall is just weather here.",
     connections: [
       { to: "velm", days: 6, mode: "volcanic" },
-      { to: "khar_vantr", days: 3, mode: "volcanic" },
-      { to: "keth_our", days: 4, mode: "road", desc: "sea exit often faster than continuing overland" },
+      { to: "khar_athel", days: 3, mode: "volcanic" },
+      { to: "keth_dur", days: 4, mode: "road", desc: "sea exit often faster than continuing overland" },
     ],
   },
-  khar_vantr: {
-    name: "Khar-Vantr",
+  khar_athel: {
+    name: "Khar-Athel",
     nation: "thraekor",
     terrain: "volcanic",
     isCity: true,
@@ -7314,8 +7247,8 @@ const LOCATIONS = {
     description:
       "The Stillwarden's seat, built against the shoulder of the active volcano the whole Confederation is named for its ashes. The Ash Principle is carved somewhere in every wall here — what remains after everything burns.",
     connections: [
-      { to: "vorseth", days: 5, mode: "volcanic" },
-      { to: "khar_adrel", days: 3, mode: "volcanic" },
+      { to: "vorreth", days: 5, mode: "volcanic" },
+      { to: "khar_dunn", days: 3, mode: "volcanic" },
       { to: "ashvel", days: 6, mode: "road" },
     ],
   },
@@ -7326,25 +7259,45 @@ const LOCATIONS = {
     isCity: true,
     danger: 2,
     services: ["rest", "shop", "guild"],
-    description: "A Low Hold coastal city, one of only two points where Thraekor trades by sea. A two-day coastal hop reaches Keth-Our.",
+    description: "A Low Hold coastal city, one of only two points where Thraekor trades by sea. A two-day coastal hop reaches Keth-Dur.",
     connections: [
-      { to: "khar_vantr", days: 6, mode: "road" },
-      { to: "keth_our", days: 2, mode: "sea" },
+      { to: "khar_athel", days: 6, mode: "road" },
+      { to: "keth_dur", days: 2, mode: "sea" },
     ],
   },
-  keth_our: {
-    name: "Keth-Our",
+  keth_dur: {
+    name: "Keth-Dur",
     nation: "thraekor",
     terrain: "coast",
     isCity: true,
     danger: 2,
     services: ["rest", "shop"],
-    description: "Thraekor's other primary sea-trade point, and the most-used dwarf-to-island crossing on the continent — a short strait run to the Skulvest bridge on Norrvael.",
+    description: "Thraekor's other primary sea-trade point, and the most-used dwarf-to-island crossing on the continent — a short strait run to the Skarveld bridge on Norrvael.",
     connections: [
       { to: "ashvel", days: 2, mode: "sea" },
-      { to: "khar_adrel", days: 4, mode: "road" },
-      { to: "skulvest", days: 3, mode: "sea", desc: "strait crossing to Norrvael" },
+      { to: "khar_dunn", days: 4, mode: "road" },
+      { to: "skarveld", days: 3, mode: "sea", desc: "strait crossing to Norrvael" },
     ],
+  },
+  drak_torr: {
+    name: "Drak-Torr",
+    nation: "thraekor",
+    terrain: "volcanic",
+    isCity: true,
+    danger: 4,
+    services: ["rest", "guild"],
+    description: "A city-state hold cut into the lava-field foothills, its garrison older than the current Ritual Vote cycle and loyal mostly to itself.",
+    connections: [{ to: "thurak", days: 4, mode: "road" }, { to: "skorrvel", days: 3, mode: "road" }],
+  },
+  skorrvel: {
+    name: "Skorrvel",
+    nation: "thraekor",
+    terrain: "volcanic",
+    isCity: true,
+    danger: 4,
+    services: ["rest", "shop"],
+    description: "A smaller city-state hold on the ash-field fringe, its clan's independence more a matter of nobody bothering to contest it than any real strength.",
+    connections: [{ to: "drak_torr", days: 3, mode: "road" }, { to: "velm", days: 4, mode: "road" }],
   },
 
   // --------------------------------------------------------------- NORRVAEL
@@ -7356,14 +7309,14 @@ const LOCATIONS = {
     danger: 2,
     services: ["rest", "shop"],
     description:
-      "Norrvael's northern bridgehead, terminus of the short crossing from Myssara. Everything that passes here is logged; the garrison commander's word on what's permitted is final and not up for debate.",
+      "Norrvael's northern bridgehead, terminus of the short crossing from Nyssara. Everything that passes here is logged; the garrison commander's word on what's permitted is final and not up for debate.",
     connections: [
-      { to: "myssara", days: 1, mode: "bridge" },
-      { to: "dragenholm", days: 9, mode: "road", desc: "the island's commercial spine" },
+      { to: "nyssara", days: 1, mode: "bridge" },
+      { to: "drakenholm", days: 9, mode: "road", desc: "the island's commercial spine" },
     ],
   },
-  dragenholm: {
-    name: "Dragenholm",
+  drakenholm: {
+    name: "Drakenholm",
     nation: "norrvael",
     terrain: "mountain",
     isCity: true,
@@ -7375,8 +7328,9 @@ const LOCATIONS = {
     connections: [
       { to: "kolven", days: 9, mode: "road" },
       { to: "runholm", days: 7, mode: "road" },
-      { to: "askvele", days: 4, mode: "forest path" },
+      { to: "askveld", days: 4, mode: "forest path" },
       { to: "isthvar", days: 6, mode: "mountain", desc: "deliberately hard to reach" },
+      { to: "stormven", days: 5, mode: "road" },
     ],
     sublocations: {
       tavern: {
@@ -7407,17 +7361,17 @@ const LOCATIONS = {
     danger: 2,
     services: ["rest", "shop"],
     description: "A well-maintained canyon-road town, comfortably the easiest place on the island to just be a traveler for a while.",
-    connections: [{ to: "dragenholm", days: 7, mode: "road" }, { to: "vorrikee", days: 5, mode: "mountain" }],
+    connections: [{ to: "drakenholm", days: 7, mode: "road" }, { to: "vorrkar", days: 5, mode: "mountain" }],
   },
-  askvele: {
-    name: "Askvele",
+  askveld: {
+    name: "Askveld",
     nation: "norrvael",
     terrain: "forest",
     isCity: true,
     danger: 2,
     services: ["rest"],
     description: "A managed-forest region on Norrvael's canyon-road network, its timber carefully rationed by House Dravenkov decree.",
-    connections: [{ to: "dragenholm", days: 4, mode: "forest path" }, { to: "vorrikee", days: 4, mode: "forest path" }],
+    connections: [{ to: "drakenholm", days: 4, mode: "forest path" }, { to: "vorrkar", days: 4, mode: "forest path" }],
   },
   isthvar: {
     name: "Isthvar",
@@ -7427,24 +7381,10 @@ const LOCATIONS = {
     danger: 4,
     services: ["rest"],
     description: "A high plateau built to be difficult to reach, and successful at it. Whatever's up here chose the isolation on purpose.",
-    connections: [
-      { to: "dragenholm", days: 6, mode: "mountain" },
-      { to: "vintherim", days: 4, mode: "tundra", desc: "the plateau's frozen approach" },
-    ],
+    connections: [{ to: "drakenholm", days: 6, mode: "mountain" }],
   },
-  vintherim: {
-    name: "Vintherim",
-    nation: "norrvael",
-    terrain: "tundra",
-    isCity: true,
-    danger: 3,
-    services: ["rest"],
-    description:
-      "Where Norrvael's mountains give up and the permafrost takes over — the island's coldest inhabited edge, held by a clan that answers to House Dravenkov in name more than in practice.",
-    connections: [{ to: "isthvar", days: 4, mode: "tundra" }],
-  },
-  vorrikee: {
-    name: "Vorrikee",
+  vorrkar: {
+    name: "Vorrkar",
     nation: "norrvael",
     terrain: "mountain",
     isCity: true,
@@ -7453,33 +7393,33 @@ const LOCATIONS = {
     description: "A southwestern settlement, deliberately hard to reach, same as Isthvar — Norrvael seems to prefer it that way.",
     connections: [
       { to: "runholm", days: 5, mode: "mountain" },
-      { to: "askvele", days: 4, mode: "forest path" },
-      { to: "fielvern", days: 2, mode: "mountain" },
-      { to: "skulvest", days: 3, mode: "mountain" },
+      { to: "askveld", days: 4, mode: "forest path" },
+      { to: "skarveld", days: 3, mode: "mountain" },
     ],
   },
-  fielvern: {
-    name: "Fielvern",
-    nation: "norrvael",
-    terrain: "mountain",
-    isCity: true,
-    danger: 3,
-    services: ["rest"],
-    description: "A small hold near the island's southeastern coast, quiet and rarely visited by anyone not already Norrvael-born.",
-    connections: [{ to: "vorrikee", days: 2, mode: "mountain" }],
-  },
-  skulvest: {
-    name: "Skulvest",
+  skarveld: {
+    name: "Skarveld",
     nation: "norrvael",
     terrain: "coast",
     isCity: true,
     danger: 2,
     services: ["rest", "shop"],
-    description: "The western bridge terminus, facing the strait crossing back to Keth-Our on the Thraekor coast.",
+    description: "The western bridge terminus, facing the strait crossing back to Keth-Dur on the Thraekor coast.",
     connections: [
-      { to: "keth_our", days: 3, mode: "sea" },
-      { to: "vorrikee", days: 3, mode: "mountain" },
+      { to: "keth_dur", days: 3, mode: "sea" },
+      { to: "vorrkar", days: 3, mode: "mountain" },
     ],
+  },
+  stormven: {
+    name: "Stormven",
+    nation: "norrvael",
+    terrain: "mountain",
+    isCity: true,
+    danger: 3,
+    services: ["rest", "shop"],
+    description:
+      "A branch settlement off the Kolven-Drakenholm canyon spine, its harbor watching an open stretch of ocean that no local captain will name a destination for.",
+    connections: [{ to: "drakenholm", days: 5, mode: "road" }],
   },
 };
 
