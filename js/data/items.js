@@ -1,7 +1,7 @@
 /*
  * FRAGMENTA — Item Definitions
  * Items stay plain description strings everywhere (inventory, equipment,
- * background kits, job loot) — this is a lookup table layered on top,
+ * Origin starting kits, job loot) — this is a lookup table layered on top,
  * keyed by that same string, giving a subset of them a slot + stat
  * bonuses. Anything not listed here (rations, a waterskin, a field
  * journal, a raw ingot...) simply isn't gear: cmdEquip falls back to
@@ -17,10 +17,10 @@
  * granting Knowledge (a signet) is deliberate, not a bug.
  *
  * `source` says where an item can be acquired, and gates which pool(s) it
- * shows up in — it's what keeps "a short sword" (a background's starting
+ * shows up in — it's what keeps "a short sword" (an Origin's starting
  * kit) from raining out of a dead Stoneback Beetle, and keeps a guild's
  * capstone reward from also turning up as random loot:
- *   - "starter"  — background starting kits only, never dropped
+ *   - "starter"  — Origin starting kits only, never dropped
  *   - "job"      — data/jobs.js LOOT_BY_TIER only, never dropped by combat
  *   - "contract" — a specific hand-authored guild contract, one-off
  *   - "monster"  — the general random combat-kill loot table (see
@@ -66,7 +66,7 @@ const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10, 7: 12, 8: 14 };
 const STAT_LABELS = { atk: "Attack", def: "Defense", health: "Health", magic: "Magic", knowledge: "Knowledge", speed: "Speed", accuracy: "Accuracy", agility: "Agility", agi: "Agility", acc: "Accuracy", spd: "Speed" };
 
 const ITEM_DEFS = {
-  // ---- starting kits (data/backgrounds.js) ----
+  // ---- starting kits (data/origins.js) ----
   // `dismantle` is the per-item components schema future items will be
   // authored against — these two are just worked examples; everything
   // else still falls back to genericDismantleFallback until it gets its

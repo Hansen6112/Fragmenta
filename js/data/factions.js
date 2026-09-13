@@ -6,8 +6,8 @@
  * two continental mercenary guilds.
  *
  * Reputation is a -100..100 meter per faction, stored on state.reputation.
- * Starting values come from the chosen background's qualitative map
- * (backgrounds.js `reputation: { factionId: "friendly"|"cold"|"hostile" }`)
+ * Starting values come from the chosen Origin's qualitative map
+ * (data/origins.js `reputation: { factionId: "friendly"|"cold"|"hostile" }`)
  * converted through QUALITATIVE_TO_NUMERIC. Nothing currently adjusts it
  * during play beyond character creation — see engine/reputation.js for the
  * (for-now-unused) adjustment hook this is deliberately structured around.

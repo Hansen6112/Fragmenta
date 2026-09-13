@@ -1554,7 +1554,7 @@ function applyHeartwoodVitality(state) {
   return [`Heartwood Vitality mends you for ${healed} health.`, ...lines];
 }
 
-// Speed (state.speed, data/backgrounds.js/bestiary.js/enemymages.js
+// Speed (state.speed, data/races.js/classes.js/bestiary.js/enemymages.js
 // `spd`): how quickly an entity acts in combat. Turn order within a round
 // is simply whoever has the higher Speed — deterministic, not a dice
 // roll. Zero surprise for the common case: any creature at or below the

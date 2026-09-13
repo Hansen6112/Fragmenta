@@ -269,7 +269,7 @@ async function handleInput(rawInput, state) {
 
 // Picks a random reputation-flavor line for the current location's nation,
 // or null if reputation there is neutral (the common case — most
-// backgrounds only have opinions about a couple of nations).
+// Origins only have opinions about a couple of nations).
 function reputationFlavorLine(state, nationId) {
   const rep = reputationFor(state, nationId);
   if (rep === "neutral" || !REPUTATION_FLAVOR[rep]) return null;
@@ -1904,8 +1904,8 @@ function cmdHelp() {
     "Go too long without sleeping and fatigue sets in — a stat penalty",
     "that grows daily until you sleep it off. Status shows your fatigue.",
     "You gain XP from kills, jobs, and contracts, and level up automatically",
-    "(1-25) — each background grows differently: a fighter's levels favor",
-    "attack/defense/health, a mage's favor magic and knowledge.",
+    "(1-25) — each Class grows differently: a Warrior's levels favor",
+    "attack/defense/health, a Mage's favor magic and knowledge.",
     "Work: board (city job board), accept <number>, contracts (guild-only,",
     "at Nocthera/Vorreth), sign <number>. Bounty jobs resolve the moment",
     "you win a big enough fight; courier jobs resolve the moment you arrive.",
@@ -1913,7 +1913,7 @@ function cmdHelp() {
     "buy <number>, sell <item>. Stock varies by nation and rotates every",
     "few days, so it's worth checking back. Shops keep morning/afternoon",
     "hours — closed by evening.",
-    "Tactics: skills (list what Knowledge has unlocked). Fighters/scouts use",
+    "Tactics: skills (list what Knowledge has unlocked). Warriors/Scouts use",
     "feint/decoy/ambush/disarm alongside fight/flee once unlocked. Mages",
     "fight through their chosen element instead, and get their own signature",
     "ability in place of those tactics (ignite/torrent/stoneskin/flurry/",

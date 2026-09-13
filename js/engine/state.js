@@ -86,7 +86,7 @@ class GameState {
     this.knownSchematics = new Set();
     this.combat = null; // { creatureId, hp, name } when engaged
     this.knownFragments = 0;
-    this.reputation = initialReputation(); // factionId -> -100..100, all 0 until a background is applied
+    this.reputation = initialReputation(); // factionId -> -100..100, all 0 until an Origin is applied
     this.activeJobs = [];
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
     this.shops = {}; // locationId -> { stock: [...itemNames], lastRefresh: day } — see engine/shop.js

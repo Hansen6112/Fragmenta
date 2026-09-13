@@ -127,7 +127,7 @@ and only in the old contact zone — they produce words like Skarr-Daun,
 "iron given life."`,
   },
   // Only surfaced in the `lore` topic list for mages (isMage) — a small,
-  // concrete reward for choosing a mage background rather than just flavor.
+  // concrete reward for ending up a Mage/Bruise Class rather than just flavor.
   inner_kabal: {
     title: "What the Novitiates Whisper",
     requires: "isMage",

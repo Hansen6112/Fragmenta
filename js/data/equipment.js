@@ -1,6 +1,6 @@
 /*
  * FRAGMENTA — Equipment Slots
- * Items are plain descriptive strings (see data/backgrounds.js, data/jobs.js
+ * Items are plain descriptive strings (see data/origins.js, data/jobs.js
  * loot) with no structured "type" field, so which slot an item belongs to
  * is inferred from keywords in its name (inferEquipSlot) rather than looked
  * up. Items that match no slot's keywords (rations, a waterskin, a field

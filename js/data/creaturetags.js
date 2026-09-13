@@ -260,7 +260,7 @@ function rollEncounterLevel(playerLevel) {
 // still ran away with the fight on Attack/Defense alone even after Speed/
 // Accuracy/Agility were fixed. CREATURE_GROWTH_SCALE reins in Health/
 // Attack/Defense's growth to be in the same ballpark as a player's own
-// per-level growth (background growth rates are ~0.2-0.8 per stat per
+// per-level growth (a Class's own growth rates are ~0.2-0.8 per stat per
 // level; RarityWeight alone was 1-5 per level, before this).
 const CREATURE_GROWTH_SCALE = 0.2;
 // Accuracy/Agility/Speed deliberately DON'T scale off RarityWeight or
@@ -273,8 +273,8 @@ const CREATURE_GROWTH_SCALE = 0.2;
 // accurate/evasive/fast, or it becomes nearly unhittable and always acts
 // first regardless of the player's own level. Instead they grow at a flat
 // per-level rate (SECONDARY_STAT_GROWTH_PER_LEVEL) calibrated to roughly
-// match a player's own average Accuracy/Agility/Speed growth (background
-// growth rates are ~0.2-0.6 per stat per level) — Archetype is what
+// match a player's own average Accuracy/Agility/Speed growth (a Class's
+// own growth rates are ~0.2-0.6 per stat per level) — Archetype is what
 // differentiates them instead (a Skirmisher IS supposed to be quicker and
 // more evasive than a Tank, at any rarity or danger class).
 const SECONDARY_STAT_GROWTH_PER_LEVEL = 0.4;
