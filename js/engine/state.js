@@ -35,7 +35,7 @@ class GameState {
     this.origin = null;
     this.class = null;
     this.pointBuy = {}; // stat -> extra points allocated at creation, see applyCreation
-    this.scoutDeepenBonus = 0; // Scout-only level-15 "Deepen" choice: permanent secondary-growth multiplier bump
+    this.scoutDeepenBonus = 0; // Scout-only level-15 "Deepen" choice: flat permanent bonus added to speed/accuracy/agility (v0.10 — was a multiplier, matched to Mage's flat +6 magicBoost instead)
     this.nation = "sanguivorum";
     this.location = "zuevaron";
     this.level = 1;
@@ -217,20 +217,15 @@ class GameState {
     const om = (stat) => (originMult[stat] != null ? originMult[stat] : 1);
     const pb = this.pointBuy || {};
     const n = this.level - 1;
-    // Scout's level-15 "Deepen" choice (engine/parser.js's cmdChoose): a
-    // permanent multiplier on top of the class's own secondary-stat
-    // multiplier, not a separate growth rate — same "multiplier stacks,
-    // base rate never changes" rule as everything else on these 3 stats.
-    const secondaryBoost = 1 + (this.scoutDeepenBonus || 0);
     const oldMaxHealth = this.maxHealth;
     this.atk = BASE_ATK + (race.atkMod || 0) + (pb.atk || 0) + Math.round(PLAYER_GROWTH_BASE.atk * cls.growthMult.atk * om("atk") * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0) + (this.flags.victorsMomentumStacks || 0);
     this.def = BASE_DEF + (race.defMod || 0) + (pb.def || 0) + Math.round(PLAYER_GROWTH_BASE.def * cls.growthMult.def * om("def") * n) + equipmentBonus(this, "def") + setStatBonus(this, "def") + (this.soulLedgerDefBonus || 0);
     this.maxHealth = BASE_HEALTH + (race.healthMod || 0) + (pb.health || 0) + Math.round(PLAYER_GROWTH_BASE.health * cls.growthMult.health * om("health") * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0) + (this.soulLedgerHealthBonus || 0);
     this.magic = BASE_MAGIC + (race.magicMod || 0) + (pb.magic || 0) + Math.round(PLAYER_GROWTH_BASE.magic * cls.growthMult.magic * om("magic") * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0);
     this.knowledge = BASE_KNOWLEDGE + (race.knowledgeMod || 0) + (pb.knowledge || 0) + Math.round(PLAYER_GROWTH_BASE.knowledge * cls.growthMult.knowledge * om("knowledge") * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0) + (this.archiveEternalKnowledgeBonus || 0);
-    this.speed = BASE_SPEED + (race.speedMod || 0) + (pb.speed || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.speed * om("speed") * secondaryBoost * n) + equipmentBonus(this, "speed") + setStatBonus(this, "speed");
-    this.accuracy = BASE_ACCURACY + (race.accuracyMod || 0) + (pb.accuracy || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.accuracy * om("accuracy") * secondaryBoost * n) + equipmentBonus(this, "accuracy") + setStatBonus(this, "accuracy");
-    this.agility = BASE_AGILITY + (race.agilityMod || 0) + (pb.agility || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.agility * om("agility") * secondaryBoost * n) + equipmentBonus(this, "agility") + setStatBonus(this, "agility");
+    this.speed = BASE_SPEED + (race.speedMod || 0) + (pb.speed || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.speed * om("speed") * n) + (this.scoutDeepenBonus || 0) + equipmentBonus(this, "speed") + setStatBonus(this, "speed");
+    this.accuracy = BASE_ACCURACY + (race.accuracyMod || 0) + (pb.accuracy || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.accuracy * om("accuracy") * n) + (this.scoutDeepenBonus || 0) + equipmentBonus(this, "accuracy") + setStatBonus(this, "accuracy");
+    this.agility = BASE_AGILITY + (race.agilityMod || 0) + (pb.agility || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.agility * om("agility") * n) + (this.scoutDeepenBonus || 0) + equipmentBonus(this, "agility") + setStatBonus(this, "agility");
     // The Empty Hand (Artifact): fighting with no Off-Hand equipped is a
     // flat +50%/+25% multiplier, applied last on top of every other atk/
     // def source above (growth, gear, sets).

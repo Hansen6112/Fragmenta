@@ -1403,11 +1403,11 @@ function cmdChoose(arg, state) {
   if (state.flags.pendingScoutLevel15Choice) {
     const a = (arg || "").toLowerCase().trim();
     if (a === "deepen" || a === "boost") {
-      state.scoutDeepenBonus = (state.scoutDeepenBonus || 0) + 0.15;
+      state.scoutDeepenBonus = (state.scoutDeepenBonus || 0) + 2;
       state.recomputeStats(true);
       state.flags.pendingScoutLevel15Choice = false;
       state.flags.scoutLevel15ChoiceMade = true;
-      return [`You turn years of instinct inward — your Speed, Accuracy, and Agility all grow faster from here on. (+15% secondary growth, permanently)`];
+      return [`You turn years of instinct inward — your Speed, Accuracy, and Agility all sharpen at once, permanently. (+2 Speed, +2 Accuracy, +2 Agility)`];
     }
     if (a === "branch" || a === "vanish") {
       state.flags.scoutStealthBranchUnlocked = true;
@@ -1484,7 +1484,7 @@ function buildChoiceMenu(state) {
   if (state.flags.pendingScoutLevel15Choice) {
     return [
       { heading: "A turning point — choose your path" },
-      { label: "Deepen your instincts (+15% Speed/Accuracy/Agility growth, permanently)", command: "choose deepen" },
+      { label: "Deepen your instincts (+2 Speed, +2 Accuracy, +2 Agility, permanently)", command: "choose deepen" },
       { label: "Learn to vanish at the first sign of a fight", command: "choose branch" },
     ];
   }

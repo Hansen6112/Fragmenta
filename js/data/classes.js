@@ -34,15 +34,20 @@
  * averaged above what those Classes' old multipliers (0.85-0.95) gave
  * back. Scout no longer gets a baseline edge on these two stats from its
  * Class alone — that identity now lives in its level-15 "Deepen" choice
- * (state.scoutDeepenBonus), a real build decision rather than a free
- * starting advantage every Scout had regardless of choice.
+ * (state.scoutDeepenBonus, engine/state.js's recomputeStats), a real
+ * build decision rather than a free starting advantage every Scout had
+ * regardless of choice. Deepen is a flat +2 added directly to each of
+ * speed/accuracy/agility (v0.10 — originally a 15% multiplier on the
+ * already-small growth term, which only produced a "+1 by level 20"
+ * trickle; now mirrors Mage's own level-15 "boost" choice, a flat +6
+ * magicBoost in one stat, just split three ways instead of one).
  *
  * All growth numbers here are a first-pass reverse-engineering of the old
  * Background growth tables' identity shapes (fighter outpaces mage on atk/
  * def/health and the reverse on magic, knowledge spread broadly) —
- * corrected once already (v0.9, above) after a headless playtest, and
- * still flagged, same as data/races.js, as pending a further pass rather
- * than a locked balance.
+ * corrected twice already (v0.9/v0.10, above) after headless playtests,
+ * and still flagged, same as data/races.js, as pending a further pass
+ * rather than a locked balance.
  */
 
 const PLAYER_GROWTH_BASE = { atk: 0.4, def: 0.35, health: 0.9, magic: 0.4, knowledge: 0.45 };
