@@ -119,7 +119,7 @@ over time. Overreach a spell and the river may simply complete it anyway
     title: "The Old Tongues",
     text: `Two dead languages survive in fragments. Vaur'eth — soft, breath-shaped,
 oral, the oldest language on the continent, spoken by the Great Lizard of
-Drath Vorrumborrar and carried, compressed, in names like Vraul (once
+Drath Vorrumbruk and carried, compressed, in names like Vraul (once
 Voraul, "blood-ember"). Keth-Rakar — hard, carved, monumental, the Old
 Tongue of Dar-Rakvantim, meant to survive being chiseled into stone. The
 two share no root and sound nothing alike. Where they cross — rarely,
