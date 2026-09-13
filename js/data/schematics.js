@@ -5,8 +5,11 @@
  * engine/crafting.js's findSchematic and the `learn` command in
  * engine/parser.js for how a document gets there).
  *
- * Test-sample entry only, to verify the craft/learn plumbing end to end —
- * real schematic authoring is a separate, parallel pass.
+ * Test-sample entries only — real schematic authoring is a separate,
+ * parallel pass. Two entries specifically to prove the Class gate is
+ * per-registry, not global: SCHEMATICS carries no Class restriction at
+ * all (unlike RECIPES, Apothecary-gated in parser.js's cmdCraft), so any
+ * class should be able to craft either one once learned.
  */
 const SCHEMATICS = {
   reinforced_field_kit: {
@@ -14,5 +17,12 @@ const SCHEMATICS = {
     requiresSchematic: "field_kit_schematic",
     materials: ["a fragment of refined ore", "a strip of salvaged binding"],
     output: "a reinforced field kit",
+  },
+
+  sharpened_trail_kit: {
+    name: "Sharpened Trail Kit",
+    requiresSchematic: "trail_kit_schematic",
+    materials: ["a handful of scrap components", "a sprig of swamp nightroot"],
+    output: "a sharpened trail kit",
   },
 };

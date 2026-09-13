@@ -58,6 +58,7 @@ const VERB_SYNONYMS = {
   dismantle: ["dismantle", "salvage", "scrap"],
   craft: ["craft", "brew", "concoct"],
   learn: ["learn", "study"],
+  gather: ["gather", "forage"],
   reclaim: ["reclaim", "retrieve"],
   sanctuary: ["sanctuary", "shrine"],
   pray: ["pray", "offer"],
@@ -216,6 +217,8 @@ async function handleInput(rawInput, state) {
       return cmdCraft(arg, state);
     case "learn":
       return cmdLearn(arg, state);
+    case "gather":
+      return cmdGather(state);
     case "reclaim":
       return cmdReclaim(arg, state);
     case "sanctuary":
@@ -902,6 +905,23 @@ function cmdLearn(arg, state) {
   }
   state.knownSchematics.add(def.teachesSchematic);
   return [`You study ${item} closely. New schematic learned.`];
+}
+
+// Terrain-keyed raw materials (data/gathering.js's GATHERABLE_BY_TERRAIN),
+// keyed off the CURRENT LOCATION's own terrain regardless of sublocation —
+// gathering swamp nightroot happens in the swamp around a place, not
+// inside whichever building the player's standing in, same reasoning
+// cmdExplore's own encounter-tag lookup uses loc.terrain as its base case.
+// A terrain absent from the table (or present with an empty list) just
+// means nothing to find here yet — real terrain coverage is a separate,
+// parallel authoring pass, same as recipes/schematics.
+function cmdGather(state) {
+  const loc = state.currentLocation();
+  const options = GATHERABLE_BY_TERRAIN[loc.terrain];
+  if (!options || !options.length) return [`There's nothing worth gathering around ${loc.name}.`];
+  const material = options[Math.floor(Math.random() * options.length)];
+  state.inventory.push(material);
+  return [`You search the ${loc.terrain} nearby and come back with ${material}.`, ...advanceTime(state, 30, "gather")];
 }
 
 function cmdReclaim(arg, state) {
@@ -1917,7 +1937,8 @@ function cmdHelp() {
     "craft <name> (or brew/concoct) to make it if you're carrying the",
     "materials. Recipes are Apothecary-only to brew (some unlock straight",
     "from Knowledge, no document needed); schematics are open to anyone",
-    "who's learned them.",
+    "who's learned them. gather (or forage) turns up a raw material suited",
+    "to wherever you're currently standing, if the terrain has one.",
     "Almost everything above also has its own button in the interface —",
     "typing it out by hand is never required except for naming things",
     "and answering the shop's 'how many?' prompt.",

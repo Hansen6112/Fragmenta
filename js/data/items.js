@@ -1886,24 +1886,37 @@ const ITEM_DEFS = {
   "Astra Sa'Lahru's Broken Crest": { slot: "trinkets", tier: 5, bonuses: { atk: 4, def: 4 }, source: "companion" },
 
   // ---- Crafting system test samples (data/recipes.js, data/schematics.js,
-  // engine/crafting.js) — verifies the craft/learn plumbing end to end,
+  // data/gathering.js, engine/crafting.js) — a small, deliberately varied
+  // set proving the structural pieces (both recipe-unlock paths, both
+  // document types, three of the four stats with buff hooks, cleanse),
   // not final content; real recipe/schematic authoring is a separate,
-  // parallel pass. `bonuses: {}` on the two potions matches every other
-  // consumable above — formatItemBonuses has no null-guard for a missing
-  // `bonuses`, so every entry needs it even when empty.
+  // parallel pass. `bonuses: {}` on every consumable/document below
+  // matches every other consumable above — formatItemBonuses has no
+  // null-guard for a missing `bonuses`, so every entry needs it even when
+  // empty.
   "a minor fortifying draught": { slot: "consumable", tier: 1, bonuses: {}, useEffect: { type: "buff", stat: "def", amount: 3, turns: 3 }, source: "crafted" },
-  "a reinforced tonic": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "buff", stat: "agi", amount: 2, turns: 3 }, source: "crafted" },
-  "a reinforced field kit": { slot: "trinkets", tier: 2, bonuses: { def: 2, atk: 1 }, source: "crafted" },
+  "a clearwater tonic": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "cleanse", all: true }, source: "crafted" },
+  "a kabal-ward elixir": { slot: "consumable", tier: 3, bonuses: {}, useEffect: { type: "buff", stat: "agi", amount: 5, turns: 3 }, source: "crafted" },
+  "a reinforced field kit": { slot: "trinkets", tier: 2, bonuses: { def: 2 }, source: "crafted" },
+  "a sharpened trail kit": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "crafted" },
 
-  // Recipe/schematic documents — not consumable (there's nothing to "use"
-  // them for via the plain 'use' command; see the 'learn' command in
-  // parser.js), and not equippable gear either, so `slot` is deliberately
-  // neither — same idea as "a shard of returning breath"'s "ritual" slot
-  // above. `teachesRecipe`/`teachesSchematic` name the exact RECIPES/
-  // SCHEMATICS unlock key `learn` adds to state.knownRecipes/
-  // knownSchematics.
-  "a reinforced tonic recipe": { slot: "document", tier: 1, bonuses: {}, teachesRecipe: "reinforced_tonic_recipe", source: "quest" },
-  "a field kit schematic": { slot: "document", tier: 1, bonuses: {}, teachesSchematic: "field_kit_schematic", source: "quest" },
+  // Material — shop-purchasable, Thraekor only. Not "consumable" (there's
+  // nothing to 'use' it for, only 'craft'/'gather' logic consumes it) and
+  // not equipable gear either — `slot: "material"` is a new value, same
+  // idea as "a shard of returning breath"'s "ritual" slot above: not in
+  // EQUIP_SLOTS and not "consumable", so cmdEquip/cmdDismantle/cmdGive
+  // all already fall through cleanly to their existing "not gear"
+  // messages with no further changes needed (verified directly, not
+  // assumed).
+  "a vial of distilled ashroot": { slot: "material", tier: 2, bonuses: {}, region: "thraekor", source: "shop" },
+
+  // Recipe/schematic documents — deliberately slot: "document" (not
+  // "consumable"), taught via the 'learn' command (parser.js), not 'use'.
+  // teachesRecipe/teachesSchematic name the exact RECIPES/SCHEMATICS
+  // unlock key 'learn' adds to state.knownRecipes/knownSchematics.
+  "a stained page of Kabal apothecary notes": { slot: "document", tier: 3, bonuses: {}, teachesRecipe: "kabal_ward_recipe", source: "job" },
+  "a smith's schematic for a reinforced field kit": { slot: "document", tier: 2, bonuses: {}, teachesSchematic: "field_kit_schematic", source: "job" },
+  "a hunter's schematic for a sharpened trail kit": { slot: "document", tier: 2, bonuses: {}, teachesSchematic: "trail_kit_schematic", source: "shop" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
