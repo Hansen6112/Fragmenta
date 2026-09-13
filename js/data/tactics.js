@@ -60,6 +60,6 @@ const APOTHECARY_ABILITY = {
     name: "Fortify",
     knowledgeReq: 8,
     cooldown: 3,
-    description: "Brace yourself with a surge of applied know-how — +3 Defense for 3 turns. The enemy still gets its counter this turn.",
+    description: "Brace yourself with a surge of applied know-how — +Defense (scales with Knowledge) for 3 turns. The enemy still gets its counter this turn.",
   },
 };

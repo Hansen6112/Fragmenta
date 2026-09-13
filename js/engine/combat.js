@@ -1251,7 +1251,17 @@ function rollPlayerDamage(state, creature, activeElement) {
     // multiplier, so it still respects the natural magic-2..magic+2 spread.
     let base = randInt(magic - 2, magic + 2);
     if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
-    const multiplier = 1 + magic / 40;
+    // v0.9 playtest fix: was /40 — quadratic in magic, and combined with
+    // Mage's old 1.6x growth multiplier (see data/classes.js), an unspent
+    // Mage was one-shotting elite-tier enemies by level 20-25. Splitting
+    // the fix across both this slope and the growth multiplier (rather
+    // than cutting the multiplier alone to ~0.6, which would gut the
+    // class's identity below Warrior's own atk growth) moves each lever
+    // less. Isolated to the player — enemy elemental attacks
+    // (resolveEnemyRetaliation) use a different, non-quadratic formula,
+    // and companions have their own separate damage path that doesn't
+    // reference this constant.
+    const multiplier = 1 + magic / 60;
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
@@ -4581,9 +4591,15 @@ function useFortify(state) {
   if (state.health <= 0) return out;
   consumeTrailblazer(state);
   state.combat.cooldowns.fortify = t.cooldown;
+  // v0.9 follow-up: was a hardcoded flat +3, never scaling — confirmed
+  // during the same playtest pass to compound Apothecary's already-
+  // regressing physical damage output, since average enemy Attack climbs
+  // from ~4 (level 1) to ~10 (level 25) in the playtest's own sample while
+  // this stayed fixed. Scales gently with the same stat that gates it.
+  const fortifyAmount = 3 + Math.floor(state.knowledge / 4);
   state.combat.defBuffTurns = Math.max(state.combat.defBuffTurns, 3);
-  state.combat.defBuffAmount = Math.max(state.combat.defBuffAmount, 3);
-  out.push(`You brace yourself, applied know-how turned into hard defense — +3 Defense for 3 turns.`);
+  state.combat.defBuffAmount = Math.max(state.combat.defBuffAmount, fortifyAmount);
+  out.push(`You brace yourself, applied know-how turned into hard defense — +${fortifyAmount} Defense for 3 turns.`);
 
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
   out.push(...retaliation.lines);

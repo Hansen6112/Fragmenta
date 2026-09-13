@@ -64,13 +64,18 @@ const RACES = {
     tagline: "Swamp-born strength — slow to think it through, impossible to put down.",
     atkMod: 3,
     defMod: 3,
-    healthMod: 8,
+    healthMod: 6,
     magicMod: -1,
     knowledgeMod: 0,
     speedMod: -1,
     accuracyMod: 2,
-    agilityMod: -1,
-    // spend 12 (atk3+def3+hp8/2=4+acc2=12), refund 3 (magic/spd/agi) -> 9
+    agilityMod: 0,
+    // v0.9 playtest fix: agilityMod dump (-1) removed — was compounding
+    // with the accuracy/agility hit-gap the Dwarf entry below was also
+    // flagged for. Paid for by trimming healthMod (8 -> 6) rather than
+    // widening RACE_BUDGET, which would've helped every Race equally
+    // including the ones that never had this problem.
+    // spend 11 (atk3+def3+hp6/2=3+acc2=11), refund 2 (magic/spd) -> 9
   },
   elf: {
     name: "Elf",
@@ -90,12 +95,20 @@ const RACES = {
     tagline: "Built low, built heavy, built to still be standing when everything else has stopped.",
     atkMod: 2,
     defMod: 5,
-    healthMod: 10,
+    healthMod: 6,
     magicMod: -2,
     knowledgeMod: 2,
     speedMod: -2,
-    accuracyMod: 0,
-    agilityMod: -1,
-    // spend 14 (atk2+def5+hp10/2=5+know2=14), refund 5 (magic/spd/agi) -> 9
+    accuracyMod: 1,
+    agilityMod: 0,
+    // v0.9 playtest fix: confirmed via headless playtest that a level-1
+    // Dwarf was already behind the average common-tier enemy on both
+    // accuracy and agility before spending a single point-buy point, and
+    // closing that gap cost over half the entire point-buy pool. Removed
+    // the agility dump and added +1 accuracy; paid for by trimming
+    // healthMod (10 -> 6) rather than widening RACE_BUDGET, which
+    // would've helped every Race equally including the ones without
+    // this problem.
+    // spend 13 (atk2+def5+hp6/2=3+know2+acc1=13), refund 4 (magic/spd) -> 9
   },
 };

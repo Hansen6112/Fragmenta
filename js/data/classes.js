@@ -26,17 +26,27 @@
  * combat math (engine/combat.js's hitChance clamps at 10%/90%, Speed
  * decides turn order outright), where letting one Class's *base* rate run
  * away from another's reproduces the exact unwinnable-gap bug that system
- * already found and fixed for enemies.
+ * already found and fixed for enemies. Accuracy/agility now go one step
+ * further: every Class's multiplier on both is a flat 1.0 (only Speed
+ * still varies by Class) — a headless playtest (v0.9) found hit-chance
+ * parity against level-matched enemies decaying every level for 4 of 5
+ * Classes, since enemy ARCHETYPES-weighted accuracy/agility growth
+ * averaged above what those Classes' old multipliers (0.85-0.95) gave
+ * back. Scout no longer gets a baseline edge on these two stats from its
+ * Class alone — that identity now lives in its level-15 "Deepen" choice
+ * (state.scoutDeepenBonus), a real build decision rather than a free
+ * starting advantage every Scout had regardless of choice.
  *
  * All growth numbers here are a first-pass reverse-engineering of the old
  * Background growth tables' identity shapes (fighter outpaces mage on atk/
- * def/health and the reverse on magic, knowledge spread broadly, Scout-
- * flavored classes fastest/most precise) — flagged, same as data/races.js,
- * as pending a real playtest pass, not a locked balance.
+ * def/health and the reverse on magic, knowledge spread broadly) —
+ * corrected once already (v0.9, above) after a headless playtest, and
+ * still flagged, same as data/races.js, as pending a further pass rather
+ * than a locked balance.
  */
 
 const PLAYER_GROWTH_BASE = { atk: 0.4, def: 0.35, health: 0.9, magic: 0.4, knowledge: 0.45 };
-const PLAYER_SECONDARY_GROWTH_RATE = 0.35;
+const PLAYER_SECONDARY_GROWTH_RATE = 0.4;
 
 const CLASSES = {
   warrior: {
@@ -46,7 +56,7 @@ const CLASSES = {
     usesApothecary: false,
     isMage: false,
     growthMult: { atk: 1.3, def: 1.25, health: 1.3, magic: 0.2, knowledge: 0.8 },
-    secondaryMult: { speed: 0.9, accuracy: 0.95, agility: 0.85 },
+    secondaryMult: { speed: 0.9, accuracy: 1.0, agility: 1.0 },
   },
   scout: {
     name: "Scout",
@@ -55,7 +65,7 @@ const CLASSES = {
     usesApothecary: false,
     isMage: false,
     growthMult: { atk: 0.9, def: 0.8, health: 0.85, magic: 0.3, knowledge: 1.1 },
-    secondaryMult: { speed: 1.2, accuracy: 1.2, agility: 1.15 },
+    secondaryMult: { speed: 1.2, accuracy: 1.0, agility: 1.0 },
     // Migrated from the old Vaeloris Thornwatch Scout Background — a
     // Class trait now, not tied to any one Race/Origin. Nudges travel/
     // explore encounter chance and flee-success chance only (engine/
@@ -70,7 +80,7 @@ const CLASSES = {
     usesApothecary: true,
     isMage: false,
     growthMult: { atk: 0.5, def: 0.9, health: 1.0, magic: 0.7, knowledge: 1.3 },
-    secondaryMult: { speed: 0.9, accuracy: 0.95, agility: 0.9 },
+    secondaryMult: { speed: 0.9, accuracy: 1.0, agility: 1.0 },
   },
   mage: {
     name: "Mage",
@@ -78,8 +88,8 @@ const CLASSES = {
     usesTactics: false,
     usesApothecary: false,
     isMage: true,
-    growthMult: { atk: 0.4, def: 0.5, health: 0.8, magic: 1.6, knowledge: 1.2 },
-    secondaryMult: { speed: 0.9, accuracy: 0.9, agility: 0.85 },
+    growthMult: { atk: 0.4, def: 0.5, health: 0.8, magic: 1.2, knowledge: 1.2 },
+    secondaryMult: { speed: 0.9, accuracy: 1.0, agility: 1.0 },
   },
   bruise: {
     name: "Bruise",
@@ -87,7 +97,7 @@ const CLASSES = {
     usesTactics: false,
     usesApothecary: false,
     isMage: true,
-    growthMult: { atk: 0.5, def: 0.4, health: 0.75, magic: 1.3, knowledge: 0.9 },
-    secondaryMult: { speed: 1.15, accuracy: 1.0, agility: 1.2 },
+    growthMult: { atk: 0.5, def: 0.4, health: 0.75, magic: 1.0, knowledge: 0.9 },
+    secondaryMult: { speed: 1.15, accuracy: 1.0, agility: 1.0 },
   },
 };
