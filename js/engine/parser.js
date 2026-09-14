@@ -1683,7 +1683,14 @@ function buildChoiceMenu(state) {
     ];
   }
   if (state.flags.pendingApothecaryLevel15Choice) {
-    const partyNote = state.party.length === 0 ? " — you have no companions right now" : "";
+    // Checked against aliveAllies, not state.party.length — a fallen
+    // companion stays in the roster (killAlly just sets alive: false), so
+    // party.length alone would miss the "last ally just died" case and
+    // silently skip the note even though there's no one to ally-cast on.
+    let partyNote = "";
+    if (aliveAllies(state).length === 0) {
+      partyNote = state.party.length === 0 ? " — you have no companions right now" : " — none of your allies are still standing";
+    }
     return [
       { heading: "A turning point — choose your path" },
       { label: `Attendant's Instinct (+20% potency, ally-cast only, permanently)${partyNote}`, command: "choose attendant" },
