@@ -155,16 +155,31 @@ function pickHuntSite(loc) {
   return { subKey, tags: sub.dangerTags || ["urban"], siteName: sub.name };
 }
 
+// difficulty -> the highest dangerClass rank a hunt target may have.
+// Board bounties only go up to difficulty 5 today, but this covers 6+
+// defensively in case that ever changes.
+const HUNT_TARGET_DANGER_CEILING = {
+  1: DANGER_CLASS_RANK.normal,
+  2: DANGER_CLASS_RANK.normal,
+  3: DANGER_CLASS_RANK.elite,
+  4: DANGER_CLASS_RANK.boss,
+  5: DANGER_CLASS_RANK.world_boss, // no ceiling in practice — boss and world_boss both fair game
+};
+
 // Which creature a hunt targets — same tag/nation pool exploreOutcome
 // draws its encounters from (creaturesForTags, data/bestiary.js),
-// narrowed to whatever actually meets this bounty's own difficulty
-// (meetsBountyRequirement) so a 1-skull posting doesn't send someone
-// after something a 5-skull hunt should. Three fallback layers (in case
-// nothing at this site/nation/difficulty combination qualifies) so a
-// bounty can never end up with no target at all.
+// narrowed to whatever actually meets this bounty's own difficulty floor
+// (meetsBountyRequirement) and ceiling (HUNT_TARGET_DANGER_CEILING) so a
+// 1-skull posting doesn't send someone after something a 5-skull hunt
+// should, in either direction. Three fallback layers (in case nothing at
+// this site/nation/difficulty combination qualifies) so a bounty can
+// never end up with no target at all.
 function pickHuntTarget(tags, nation, difficulty) {
   const base = creaturesForTags(tags, nation);
-  const byDifficulty = base.filter((id) => meetsBountyRequirement(BESTIARY[id], difficulty));
+  const ceiling = HUNT_TARGET_DANGER_CEILING[difficulty] ?? DANGER_CLASS_RANK.world_boss;
+  const byDifficulty = base.filter(
+    (id) => meetsBountyRequirement(BESTIARY[id], difficulty) && dangerClassRank(BESTIARY[id]) <= ceiling
+  );
   let pool = byDifficulty.length ? byDifficulty : base;
   if (!pool.length) pool = creaturesForTags(["continental"], nation);
   if (!pool.length) pool = Object.keys(BESTIARY).filter((id) => !BESTIARY[id].special);
@@ -288,7 +303,7 @@ function makeBountyJob(boardLocationId, difficulty) {
     targetSubLocation: site.subKey,
     targetCreature,
     trackSequence: pickTrackSequence(creatureName, site.siteName),
-    maxAttempts: 6 - difficulty,
+    maxAttempts: Math.max(3, 6 - difficulty),
     attemptsUsed: 0,
     rewardGold: reward.gold,
     rewardRep: reward.rep,

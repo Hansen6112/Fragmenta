@@ -84,7 +84,7 @@ const CLASSES = {
     usesTactics: false,
     usesApothecary: true,
     isMage: false,
-    growthMult: { atk: 0.5, def: 0.9, health: 1.0, magic: 0.7, knowledge: 1.3 },
+    growthMult: { atk: 0.65, def: 0.9, health: 1.0, magic: 0.7, knowledge: 1.3 },
     secondaryMult: { speed: 0.9, accuracy: 1.0, agility: 1.0 },
   },
   mage: {
