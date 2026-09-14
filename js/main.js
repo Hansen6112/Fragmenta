@@ -1081,7 +1081,7 @@ function renderCombatMenu() {
     back.className = "combat-menu-btn";
     back.textContent = "Back";
     back.addEventListener("click", () => {
-      combatStage = stage === "attack" && aliveEnemies(state).length > 1 ? "target" : null;
+      combatStage = stage === "attack" && aliveEnemies(state).length > 1 ? "target" : stage.startsWith("apothecary_target:") ? "attack" : null;
       renderModals();
     });
     combatMenuEl.appendChild(back);

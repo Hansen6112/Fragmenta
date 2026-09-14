@@ -1938,7 +1938,11 @@ function applyPackAuraBuff(combat, creature, spec) {
 // cooldown/name/self-buff bookkeeping, so this just needs the resolved
 // dmgMult to scale the hit the same way.
 function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
-  if (!attackConnects(creature.acc, ally.agility)) {
+  // allyBuffStatTotal (companion.js): Steady Grip cast on this ally —
+  // same crafted-potion-buff storage effectiveAllyDef already reads for
+  // Defense.
+  const allyAgi = ally.agility + allyBuffStatTotal(ally, "agi");
+  if (!attackConnects(creature.acc, allyAgi)) {
     return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
   }
   const rawAtk = effectiveEnemyAtk(state, creature);
@@ -2050,10 +2054,15 @@ function allyAggressiveAction(state, ally) {
   const combat = state.combat;
   const target = combat.enemies[combat.activeIndex];
   if (!target || !target.alive) return [];
-  if (!attackConnects(ally.accuracy, target.creatureObj.agi)) {
+  // allyBuffStatTotal (companion.js): Rousing Tonic/Clear Focus cast on
+  // this ally, same crafted-potion-buff storage effectiveAllyDef already
+  // reads for Defense.
+  const allyAcc = ally.accuracy + allyBuffStatTotal(ally, "acc");
+  if (!attackConnects(allyAcc, target.creatureObj.agi)) {
     return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
   }
-  const dmg = Math.max(1, randInt(Math.round(ally.atk * 0.85), Math.round(ally.atk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5));
+  const allyAtk = ally.atk + allyBuffStatTotal(ally, "atk");
+  const dmg = Math.max(1, randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5));
   target.hp -= dmg;
   target.lastDamageType = "physical";
   const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
@@ -2937,7 +2946,7 @@ function applyDodgeBlockNegateBonuses(state) {
 function cooldownDisplayName(key) {
   if (TACTICS[key]) return TACTICS[key].name;
   if (ELEMENT_ABILITIES[key]) return ELEMENT_ABILITIES[key].name;
-  if (APOTHECARY_ABILITY[key]) return APOTHECARY_ABILITY[key].name;
+  if (APOTHECARY_ABILITIES[key]) return APOTHECARY_ABILITIES[key].name;
   return key;
 }
 
@@ -2994,7 +3003,9 @@ function availableActionNames(state) {
       .map((el) => ELEMENT_ABILITIES[el].name.toLowerCase());
   }
   if (classHasApothecary(state)) {
-    return fortifyAvailable(state) ? [APOTHECARY_ABILITY.fortify.name.toLowerCase()] : [];
+    return unlockedApothecaryAbilities(state)
+      .filter((id) => apothecaryAbilityAvailable(state, id))
+      .map((id) => APOTHECARY_ABILITIES[id].name.toLowerCase());
   }
   return unlockedTactics(state)
     .filter((id) => tacticAvailable(state, id))
@@ -3014,12 +3025,23 @@ function tacticAvailable(state, tacticId) {
   return (state.combat.cooldowns[tacticId] || 0) <= 0;
 }
 
-function fortifyAvailable(state) {
+function apothecaryAbilityAvailable(state, key) {
   if (!state.combat) return false;
-  const t = APOTHECARY_ABILITY.fortify;
+  const a = APOTHECARY_ABILITIES[key];
   const bypass = activationRestrictionsBypassed(state);
-  if (state.knowledge < t.knowledgeReq && !bypass) return false;
-  return (state.combat.cooldowns.fortify || 0) <= 0;
+  if (state.knowledge < a.knowledgeReq && !bypass) return false;
+  return (state.combat.cooldowns[key] || 0) <= 0;
+}
+
+// Attendant's Instinct / Self-Reliant (level-15 Apothecary branch,
+// parser.js's cmdChoose "pendingApothecaryLevel15Choice" resolution):
+// a flat +20% multiplier on the amount a stat-buff ability grants, either
+// unconditionally (Attendant's Instinct) or only when self-cast
+// (Self-Reliant). Never both — cmdChoose only ever sets one flag.
+function apothecaryPotencyMultiplier(state, isSelfCast) {
+  if (state.flags.apothecaryAttendantInstinct) return 1.2;
+  if (state.flags.apothecarySelfReliant && isSelfCast) return 1.2;
+  return 1;
 }
 
 function elementAbilityAvailable(state, elementKey) {
@@ -3135,9 +3157,18 @@ function buildCombatMenu(state, stage) {
           options.push({ label: ability.name, command: ability.name.toLowerCase() });
         });
     } else if (classHasApothecary(state)) {
-      if (fortifyAvailable(state)) {
-        options.push({ label: APOTHECARY_ABILITY.fortify.name, command: "fortify" });
-      }
+      // Self-only when the fight has no living ally (skips the target
+      // picker entirely, same one-click flow Fortify always had); with an
+      // ally up, the button navigates to "apothecary_target:<key>" instead
+      // of running a command directly.
+      const hasAllies = aliveAllies(state).length > 0;
+      unlockedApothecaryAbilities(state)
+        .filter((id) => apothecaryAbilityAvailable(state, id))
+        .forEach((id) => {
+          const a = APOTHECARY_ABILITIES[id];
+          if (hasAllies) options.push({ label: a.name, nextStage: `apothecary_target:${id}` });
+          else options.push({ label: a.name, command: a.name.toLowerCase() });
+        });
     } else {
       unlockedTactics(state)
         .filter((id) => tacticAvailable(state, id))
@@ -3163,6 +3194,20 @@ function buildCombatMenu(state, stage) {
         command: `use ${item}`,
       });
     }
+    return options;
+  }
+
+  // Apothecary ability target picker — only reached when the "attack"
+  // stage found a living ally to offer (otherwise the ability button runs
+  // self-cast directly, no sub-stage at all). "Back" from here returns to
+  // "attack" (see main.js's renderCombatMenu), not the top level.
+  if (stage.startsWith("apothecary_target:")) {
+    const a = APOTHECARY_ABILITIES[stage.slice("apothecary_target:".length)];
+    if (!a) return [];
+    options.push({ label: "Yourself", command: a.name.toLowerCase() });
+    aliveAllies(state).forEach((ally) => {
+      options.push({ label: ally.name, command: `${a.name.toLowerCase()} on ${ally.name}` });
+    });
     return options;
   }
 
@@ -4654,24 +4699,37 @@ function useDisarm(state) {
   return out;
 }
 
-// Apothecary's own ability (data/tactics.js's APOTHECARY_ABILITY) — a
+// Apothecary's kit (data/tactics.js's APOTHECARY_ABILITIES) — a
 // deliberately simpler cousin of Feint/Decoy/Ambush/Disarm above: same
-// Knowledge gate + cooldown + turn/retaliation shape, but self-targeted
-// only for now (a materials/crafting-driven ally-targeted version is the
-// deferred follow-up spec, see data/origins.js's header) and without the
-// Perfect Timing/Tactical Memory/Borrowed Seconds/First Kingdom cooldown-
+// Knowledge gate + cooldown + turn/retaliation shape, without the Perfect
+// Timing/Tactical Memory/Borrowed Seconds/First Kingdom cooldown-
 // reduction stack Tactics get, since none of that itemization is written
-// with a support buff in mind. Reuses combat.defBuffTurns/defBuffAmount —
-// the same Math.max-composed player Defense buff Stoneskin and several
-// Divine Regalia effects already share.
-function useFortify(state) {
-  if (!state.combat) return ["There's nothing here to fortify against."];
-  if (!classHasApothecary(state)) return ["Fortify isn't something your training covers. Try your class's own ability instead."];
-  let creature = getCombatCreature(state);
-  const t = APOTHECARY_ABILITY.fortify;
-  if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if ((state.combat.cooldowns.fortify || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Fortify is still recovering — ${state.combat.cooldowns.fortify} more turn(s).`];
+// with a support buff in mind. `targetArg` is whatever followed the
+// ability's own name in the typed/menu command — empty for self, or
+// "on <ally>" (matchApothecaryAbilityVerb/the combat-menu's own target
+// sub-stage both produce this same shape) for an ally cast. Self-cast
+// Defense/Attack reuse combat.defBuffTurns/atkBuffTurns — the same
+// Math.max-composed buffs Stoneskin and several Divine Regalia effects
+// already share — while Accuracy/Speed/Agility go through the generic
+// combat.playerBuffs map crafted potions already use, since those three
+// stats never got their own dedicated fields. Ally-cast always goes
+// through ally.buffs (companion.js's tickAllyBuffs already ages it down),
+// the same storage crafted-potion-on-ally already uses out of combat.
+function useApothecaryAbility(state, key, targetArg) {
+  const a = APOTHECARY_ABILITIES[key];
+  if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight. Try 'explore' if you're looking for one.`];
+  if (!classHasApothecary(state)) return [`${a.name} isn't something your training covers. Try your class's own ability instead.`];
+  if (state.knowledge < a.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that yet. (needs Knowledge ${a.knowledgeReq}+)`];
+  if ((state.combat.cooldowns[key] || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`${a.name} is still recovering — ${state.combat.cooldowns[key]} more turn(s).`];
 
+  const onMatch = (targetArg || "").trim().match(/^on\s+(.+)$/i);
+  let ally = null;
+  if (onMatch) {
+    ally = findAlly(state, onMatch[1]);
+    if (!ally) return [`No one in your party matches "${onMatch[1]}".`];
+  }
+
+  let creature = getCombatCreature(state);
   const out = beginTurn(state);
   if (!state.combat) return out;
   state.combat.turnTaken = true;
@@ -4683,17 +4741,10 @@ function useFortify(state) {
   out.push(...resolveSpeedInitiative(state, creature));
   if (state.health <= 0) return out;
   consumeTrailblazer(state);
-  state.combat.cooldowns.fortify = t.cooldown;
-  // v0.9 follow-up: was a hardcoded flat +3, never scaling — confirmed
-  // during the same playtest pass to compound Apothecary's already-
-  // regressing physical damage output, since average enemy Attack climbs
-  // from ~4 (level 1) to ~10 (level 25) in the playtest's own sample while
-  // this stayed fixed. Scales gently with the same stat that gates it.
-  const fortifyAmount = 3 + Math.floor(state.knowledge / 4);
-  state.combat.defBuffTurns = Math.max(state.combat.defBuffTurns, 3);
-  state.combat.defBuffAmount = Math.max(state.combat.defBuffAmount, fortifyAmount);
-  out.push(`You brace yourself, applied know-how turned into hard defense — +${fortifyAmount} Defense for 3 turns.`);
+  state.combat.cooldowns[key] = a.cooldown;
+  out.push(...applyApothecaryAbilityEffect(state, a, ally));
 
+  if (!state.combat || state.health <= 0) return out;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
@@ -4702,6 +4753,47 @@ function useFortify(state) {
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return out;
+}
+
+// v0.9 follow-up (Fortify, back when it was the only entry): was a
+// hardcoded flat +3, never scaling — confirmed during a playtest pass to
+// compound Apothecary's already-regressing physical damage output, since
+// average enemy Attack climbs from ~4 (level 1) to ~10 (level 25). Scales
+// gently with the same stat that gates every ability here, and applies to
+// all five stat buffs the same way.
+function applyApothecaryAbilityEffect(state, a, ally) {
+  const isSelf = !ally;
+  if (a.cleanse) {
+    if (isSelf) {
+      const cleared = Object.keys(state.combat.playerStatuses);
+      cleared.forEach((s) => delete state.combat.playerStatuses[s]);
+      return cleared.length ? [`${a.name} clears you: ${cleared.join(", ")}.`] : [`${a.name}, but nothing needed clearing.`];
+    }
+    // No status has ever been able to land on an ally in this engine (see
+    // companion.js's own file-header caveat) — declared-but-inert rather
+    // than faked, same convention applyConsumableEffectToAlly's cleanse
+    // branch already uses for the out-of-combat item version.
+    return [`You use ${a.name} on ${ally.name}, but there's nothing clinging to them to clear.`];
+  }
+
+  const amount = Math.round((3 + Math.floor(state.knowledge / 4)) * apothecaryPotencyMultiplier(state, isSelf));
+  if (isSelf) {
+    if (a.stat === "def") {
+      state.combat.defBuffTurns = Math.max(state.combat.defBuffTurns, 3);
+      state.combat.defBuffAmount = Math.max(state.combat.defBuffAmount, amount);
+    } else if (a.stat === "atk") {
+      state.combat.atkBuffTurns = Math.max(state.combat.atkBuffTurns, 3);
+      state.combat.atkBuffAmount = Math.max(state.combat.atkBuffAmount, amount);
+    } else {
+      state.combat.playerBuffs[a.stat] = { amount, turns: 3 };
+    }
+    return [`You use ${a.name} on yourself — +${amount} ${STAT_LABELS[a.stat] || a.stat} for 3 turns.`];
+  }
+
+  const allyStat = a.allyStat || a.stat;
+  if (!ally.buffs) ally.buffs = {};
+  ally.buffs[allyStat] = { amount, turns: 3 };
+  return [`You use ${a.name} on ${ally.name} — +${amount} ${STAT_LABELS[allyStat] || allyStat} for their next 3 rounds of combat.`];
 }
 
 // ---- Elemental abilities (mage only — one per element, replaces tactics) ----

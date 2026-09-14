@@ -321,6 +321,13 @@ class GameState {
             `or learn to vanish at the first sign of a fight (type 'choose branch').`
         );
       }
+      if (this.level === 15 && this.class === "apothecary" && !this.flags.apothecaryLevel15ChoiceMade) {
+        this.flags.pendingApothecaryLevel15Choice = true;
+        lines.push(
+          `You've reached a threshold few apothecaries ever feel coming. Open your hands wider, so your care works just as well on ` +
+            `anyone (type 'choose attendant'), or turn your craft inward, where it counts most (type 'choose self reliant').`
+        );
+      }
     }
     return lines;
   }

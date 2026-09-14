@@ -38,7 +38,6 @@ const VERB_SYNONYMS = {
   decoy: ["decoy"],
   ambush: ["ambush"],
   disarm: ["disarm"],
-  fortify: ["fortify"],
   ignite: ["ignite"],
   torrent: ["torrent"],
   stoneskin: ["stoneskin"],
@@ -93,6 +92,22 @@ function stripLeadingWords(str, words) {
   return s;
 }
 
+// Apothecary ability names are two words (Rousing Tonic, Field Triage,
+// Clear Focus, Fleet Step, Steady Grip — Fortify's the one exception), so
+// they can't go through resolveVerb's single-word (words[0]) matching the
+// way every other verb does. Checked directly against the full lowercased
+// input instead: an exact name match is a self-cast, "<name> on <ally>"
+// carries the rest through as-is for useApothecaryAbility's own "on"
+// parsing.
+function matchApothecaryAbilityVerb(lower) {
+  for (const [key, a] of Object.entries(APOTHECARY_ABILITIES)) {
+    const phrase = a.name.toLowerCase();
+    if (lower === phrase) return { key, rest: "" };
+    if (lower.startsWith(phrase + " ")) return { key, rest: lower.slice(phrase.length).trim() };
+  }
+  return null;
+}
+
 async function handleInput(rawInput, state) {
   const input = rawInput.trim();
   if (!input) return [];
@@ -100,16 +115,17 @@ async function handleInput(rawInput, state) {
   const words = lower.split(/\s+/);
   const verb = resolveVerb(words[0], words.length === 1);
   let arg = stripLeadingWords(lower.slice(words[0].length).trim(), ["to", "at", "the", "with"]);
+  const apothecaryAbilityMatch = matchApothecaryAbilityVerb(lower);
 
   // Combat takes priority for a small set of verbs
   if (state.combat) {
+    if (apothecaryAbilityMatch) return useApothecaryAbility(state, apothecaryAbilityMatch.key, apothecaryAbilityMatch.rest);
     if (verb === "fight") return playerAttack(state);
     if (verb === "flee") return attemptFlee(state);
     if (verb === "feint") return useFeint(state);
     if (verb === "decoy") return useDecoy(state);
     if (verb === "ambush") return useAmbush(state);
     if (verb === "disarm") return useDisarm(state);
-    if (verb === "fortify") return useFortify(state);
     if (ELEMENT_VERB_TO_KEY[verb]) return useElementAbility(state, ELEMENT_VERB_TO_KEY[verb]);
     if (verb === "target") return useTarget(state, arg);
     if (verb === "use") return useItem(state, arg);
@@ -133,6 +149,10 @@ async function handleInput(rawInput, state) {
       const options = ["fight", "flee", ...usable, ...(!friendly && aliveEnemies(state).length > 1 ? ["target"] : []), ...(hasUsableConsumable(state) ? ["use"] : []), ...(friendly ? ["talk", "leave"] : [])];
       return [`You're in the middle of an encounter. (${options.join(" / ")})`];
     }
+  }
+
+  if (apothecaryAbilityMatch) {
+    return [`Nothing to ${APOTHECARY_ABILITIES[apothecaryAbilityMatch.key].name.toLowerCase()} outside a fight. Try 'explore' if you're looking for one.`];
   }
 
   switch (verb) {
@@ -250,7 +270,6 @@ async function handleInput(rawInput, state) {
     case "decoy":
     case "ambush":
     case "disarm":
-    case "fortify":
     case "ignite":
     case "torrent":
     case "stoneskin":
@@ -1453,10 +1472,17 @@ function cmdSkills(state) {
   }
 
   if (classHasApothecary(state)) {
-    const t = APOTHECARY_ABILITY.fortify;
-    const unlocked = state.knowledge >= t.knowledgeReq;
-    const status = unlocked ? "unlocked" : `locked — needs Knowledge ${t.knowledgeReq}`;
-    return [`== Apothecary Ability == (Knowledge: ${state.knowledge})`, `- ${t.name} (${status}): ${t.description}`];
+    const lines = [`== Apothecary Abilities == (Knowledge: ${state.knowledge})`];
+    for (const [, a] of Object.entries(APOTHECARY_ABILITIES)) {
+      const unlocked = state.knowledge >= a.knowledgeReq;
+      const status = unlocked ? "unlocked" : `locked — needs Knowledge ${a.knowledgeReq}`;
+      lines.push(`- ${a.name} (${status}): ${a.description}`);
+    }
+    if (!state.flags.apothecaryLevel15ChoiceMade) {
+      lines.push("");
+      lines.push("A permanent choice about how far your care reaches opens at level 15.");
+    }
+    return lines;
   }
 
   const lines = [`== Tactics == (Knowledge: ${state.knowledge})`];
@@ -1551,6 +1577,22 @@ function cmdChoose(arg, state) {
     }
     return ["Choose 'deepen' to sharpen your own instincts permanently, or 'branch' to learn to vanish at the first sign of a fight."];
   }
+  if (state.flags.pendingApothecaryLevel15Choice) {
+    const a = (arg || "").toLowerCase().trim();
+    if (a === "attendant" || a === "instinct") {
+      state.flags.apothecaryAttendantInstinct = true;
+      state.flags.pendingApothecaryLevel15Choice = false;
+      state.flags.apothecaryLevel15ChoiceMade = true;
+      return [`You open your hands wider — every draught and tonic you make now works just as well on someone else as it does on you, permanently. (+20% potency, any target)`];
+    }
+    if (a === "self" || a === "self reliant" || a === "self-reliant" || a === "selfreliant" || a === "reliant") {
+      state.flags.apothecarySelfReliant = true;
+      state.flags.pendingApothecaryLevel15Choice = false;
+      state.flags.apothecaryLevel15ChoiceMade = true;
+      return [`You turn your own craft inward — everything you brew and cast on yourself hits harder, permanently. (+20% potency, self-cast only)`];
+    }
+    return ["Choose 'attendant' to strengthen every ability regardless of target, or 'self reliant' to strengthen only what you cast on yourself."];
+  }
   if (!state.flags.pendingLevel15Choice) {
     return ["There's nothing to choose right now."];
   }
@@ -1638,6 +1680,13 @@ function buildChoiceMenu(state) {
       { heading: "A turning point — choose your path" },
       { label: "Deepen your instincts (+2 Speed, +2 Accuracy, +2 Agility, permanently)", command: "choose deepen" },
       { label: "Learn to vanish at the first sign of a fight", command: "choose branch" },
+    ];
+  }
+  if (state.flags.pendingApothecaryLevel15Choice) {
+    return [
+      { heading: "A turning point — choose your path" },
+      { label: "Attendant's Instinct (+20% potency, any target, permanently)", command: "choose attendant" },
+      { label: "Self-Reliant (+20% potency, self-cast only, permanently)", command: "choose self reliant" },
     ];
   }
   if (state.flags.hadrianOfferPending || state.flags.hadrianThalvoraOfferPending) {
