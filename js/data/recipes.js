@@ -38,4 +38,31 @@ const RECIPES = {
     materials: ["a fragment of refined ore", "a sprig of swamp nightroot", "a vial of distilled ashroot"],
     output: "a kabal-ward elixir",
   },
+
+  // Same tier as minor_fortifying_draught above — an Attack counterpart,
+  // same two materials.
+  bracing_tincture: {
+    name: "Bracing Tincture",
+    knowledgeReq: 6,
+    materials: ["a handful of scrap components", "a sprig of swamp nightroot"],
+    output: "a bracing tincture",
+  },
+
+  // Same tier as clearwater_tonic above — an Accuracy counterpart.
+  hawkeye_elixir: {
+    name: "Hawkeye Elixir",
+    knowledgeReq: 12,
+    materials: ["a fragment of refined ore", "a vial of distilled ashroot"],
+    output: "a hawkeye elixir",
+  },
+
+  // Document-gated, same shape as kabal_ward_elixir above (see "a water-
+  // stained page of river-trade notes" in data/items.js) — a Speed
+  // counterpart, same three materials.
+  swiftwater_draught: {
+    name: "Swiftwater Draught",
+    requiresRecipe: "swiftwater_recipe",
+    materials: ["a fragment of refined ore", "a sprig of swamp nightroot", "a vial of distilled ashroot"],
+    output: "a swiftwater draught",
+  },
 };

@@ -1352,7 +1352,13 @@ function rollPlayerDamage(state, creature, activeElement) {
     const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
     const everyChoiceAtk = state.combat.everyChoiceAtkStacks || 0;
     const battleTemperedAtk = state.combat.battleTemperedAtkStacks || 0;
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0) + (state.combat.avatarOfEnduranceAtkBonus || 0) + (state.combat.workRefinesAtkStacks || 0) + (state.combat.avatarOfCreationAtkStacks || 0);
+    // playerBuffStatTotal(state, "atk"): the generic combat.playerBuffs map
+    // every crafted potion's "buff" useEffect writes to (applyConsumableEffect)
+    // — atk previously had no reader for it at all, unlike effectivePlayerDef's
+    // own dual defBuffAmount/playerBuffStatTotal("def") read below. Without
+    // this, an Attack-buffing consumable (e.g. a bracing tincture) would be a
+    // silent no-op: the item would say it worked, and do nothing.
+    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + playerBuffStatTotal(state, "atk") + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0) + (state.combat.avatarOfEnduranceAtkBonus || 0) + (state.combat.workRefinesAtkStacks || 0) + (state.combat.avatarOfCreationAtkStacks || 0);
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     // Master Craftsman (Divine Regalia — Smith's Grasp): compares this

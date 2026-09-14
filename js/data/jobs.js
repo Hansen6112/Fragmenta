@@ -236,6 +236,7 @@ const LOOT_BY_TIER = {
     "a Vaeloris heartwood longbow", "a Norrvael storm-rider lance", "a dwarven furnace shield",
     "a Sahrimori caravan master's veil", "a Sahrimori night-traveler's layered robe",
     "Thraekor hammer-gauntlets", "a swamp guide's insect-oiled cloak", "a Norrvael storm-rider's saddle charm",
+    "a water-stained page of river-trade notes",
   ],
   4: [
     "a masterwork weapon component, unassembled", "a vial of something faintly luminous", "an engraved signet of no house you recognize",

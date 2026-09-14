@@ -1897,6 +1897,9 @@ const ITEM_DEFS = {
   "a minor fortifying draught": { slot: "consumable", tier: 1, bonuses: {}, useEffect: { type: "buff", stat: "def", amount: 3, turns: 3 }, source: "crafted" },
   "a clearwater tonic": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "cleanse", all: true }, source: "crafted" },
   "a kabal-ward elixir": { slot: "consumable", tier: 3, bonuses: {}, useEffect: { type: "buff", stat: "agi", amount: 5, turns: 3 }, source: "crafted" },
+  "a bracing tincture": { slot: "consumable", tier: 1, bonuses: {}, useEffect: { type: "buff", stat: "atk", amount: 3, turns: 3 }, source: "crafted" },
+  "a hawkeye elixir": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "buff", stat: "acc", amount: 4, turns: 3 }, source: "crafted" },
+  "a swiftwater draught": { slot: "consumable", tier: 3, bonuses: {}, useEffect: { type: "buff", stat: "spd", amount: 5, turns: 3 }, source: "crafted" },
   "a reinforced field kit": { slot: "trinkets", tier: 2, bonuses: { def: 2 }, source: "crafted" },
   "a sharpened trail kit": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "crafted" },
 
@@ -1917,6 +1920,10 @@ const ITEM_DEFS = {
   "a stained page of Kabal apothecary notes": { slot: "document", tier: 3, bonuses: {}, teachesRecipe: "kabal_ward_recipe", source: "job" },
   "a smith's schematic for a reinforced field kit": { slot: "document", tier: 2, bonuses: {}, teachesSchematic: "field_kit_schematic", source: "job" },
   "a hunter's schematic for a sharpened trail kit": { slot: "document", tier: 2, bonuses: {}, teachesSchematic: "trail_kit_schematic", source: "shop" },
+  // Same job-loot path as "a stained page of Kabal apothecary notes" above
+  // — also added to LOOT_BY_TIER[3] (data/jobs.js) so it's actually
+  // reachable, not just tagged source: "job" with nowhere to drop from.
+  "a water-stained page of river-trade notes": { slot: "document", tier: 3, bonuses: {}, teachesRecipe: "swiftwater_recipe", source: "job" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
