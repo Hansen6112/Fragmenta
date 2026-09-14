@@ -1683,9 +1683,10 @@ function buildChoiceMenu(state) {
     ];
   }
   if (state.flags.pendingApothecaryLevel15Choice) {
+    const partyNote = state.party.length === 0 ? " — you have no companions right now" : "";
     return [
       { heading: "A turning point — choose your path" },
-      { label: "Attendant's Instinct (+20% potency, ally-cast only, permanently)", command: "choose attendant" },
+      { label: `Attendant's Instinct (+20% potency, ally-cast only, permanently)${partyNote}`, command: "choose attendant" },
       { label: "Self-Reliant (+20% potency, self-cast only, permanently)", command: "choose self reliant" },
     ];
   }

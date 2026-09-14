@@ -98,7 +98,7 @@ const APOTHECARY_ABILITIES = {
   },
   steady_grip: {
     name: "Steady Grip",
-    knowledgeReq: 19,
+    knowledgeReq: 15,
     cooldown: 3,
     stat: "agi",
     description: "Calms the nerves, firms the footing — +Agility (scales with Knowledge) for 3 turns, cast on yourself or an ally.",
