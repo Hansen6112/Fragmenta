@@ -3035,11 +3035,12 @@ function apothecaryAbilityAvailable(state, key) {
 
 // Attendant's Instinct / Self-Reliant (level-15 Apothecary branch,
 // parser.js's cmdChoose "pendingApothecaryLevel15Choice" resolution):
-// a flat +20% multiplier on the amount a stat-buff ability grants, either
-// unconditionally (Attendant's Instinct) or only when self-cast
-// (Self-Reliant). Never both — cmdChoose only ever sets one flag.
+// a flat +20% multiplier on the amount a stat-buff ability grants — mutual
+// opposites, each scoped to the target the other one excludes. Attendant's
+// Instinct only when cast on an ally (never self); Self-Reliant only when
+// self-cast (never an ally). Never both — cmdChoose only ever sets one flag.
 function apothecaryPotencyMultiplier(state, isSelfCast) {
-  if (state.flags.apothecaryAttendantInstinct) return 1.2;
+  if (state.flags.apothecaryAttendantInstinct && !isSelfCast) return 1.2;
   if (state.flags.apothecarySelfReliant && isSelfCast) return 1.2;
   return 1;
 }

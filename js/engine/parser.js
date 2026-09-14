@@ -1583,7 +1583,7 @@ function cmdChoose(arg, state) {
       state.flags.apothecaryAttendantInstinct = true;
       state.flags.pendingApothecaryLevel15Choice = false;
       state.flags.apothecaryLevel15ChoiceMade = true;
-      return [`You open your hands wider — every draught and tonic you make now works just as well on someone else as it does on you, permanently. (+20% potency, any target)`];
+      return [`You open your hands wider — every draught and tonic you make lands harder on whoever else needs it, permanently. (+20% potency, ally-cast only)`];
     }
     if (a === "self" || a === "self reliant" || a === "self-reliant" || a === "selfreliant" || a === "reliant") {
       state.flags.apothecarySelfReliant = true;
@@ -1685,7 +1685,7 @@ function buildChoiceMenu(state) {
   if (state.flags.pendingApothecaryLevel15Choice) {
     return [
       { heading: "A turning point — choose your path" },
-      { label: "Attendant's Instinct (+20% potency, any target, permanently)", command: "choose attendant" },
+      { label: "Attendant's Instinct (+20% potency, ally-cast only, permanently)", command: "choose attendant" },
       { label: "Self-Reliant (+20% potency, self-cast only, permanently)", command: "choose self reliant" },
     ];
   }
