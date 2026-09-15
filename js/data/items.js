@@ -1913,6 +1913,14 @@ const ITEM_DEFS = {
   // assumed).
   "a vial of distilled ashroot": { slot: "material", tier: 2, bonuses: {}, region: "thraekor", source: "shop" },
 
+  // Dungeon Delve supplies (data/dungeons.js) — ordinary travel gear, not
+  // region-locked. Consumed automatically at dungeon entry (torches) or
+  // per floor (rations) by engine/dungeon.js, never via 'use' — same
+  // "material" slot reasoning as distilled ashroot above, just without
+  // the region gate.
+  "a torch": { slot: "material", tier: 1, bonuses: {}, source: "shop" },
+  "a ration pack": { slot: "material", tier: 1, bonuses: {}, source: "shop" },
+
   // Recipe/schematic documents — deliberately slot: "document" (not
   // "consumable"), taught via the 'learn' command (parser.js), not 'use'.
   // teachesRecipe/teachesSchematic name the exact RECIPES/SCHEMATICS

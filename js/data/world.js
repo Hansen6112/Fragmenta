@@ -67,6 +67,11 @@ const TERRAIN_TAGS = {
   jungle: ["jungle", "forest", "continental"],
   tundra: ["tundra", "continental"],
   lake: ["lake", "river", "continental"],
+  // Dungeon Delve (data/dungeons.js) — its own terrain, not a reuse of
+  // wasteland/mountain, since a delve site is a standalone POI (its own
+  // location tag: isDungeon/dungeonDifficulty below), not a city district.
+  // Combines ruin + cave since a sealed-off vault reads as both.
+  dungeon: ["ruin", "cave", "continental"],
 };
 
 const LOCATIONS = {
@@ -1874,6 +1879,7 @@ const LOCATIONS = {
       { to: "vulcaron", days: 3, mode: "road" },
       { to: "minervon", days: 3, mode: "road" },
       { to: "daedaron", days: 3, mode: "road" },
+      { to: "sunken_archive", days: 1, mode: "road", desc: "a half-day into the flooded ruins outside the city" },
     ],
     // Apollyon's real district layout, built quarter by quarter (same
     // workflow as Arethon, Zuevaron, Aphroneth, Tritonath, Vulcaron,
@@ -2414,6 +2420,27 @@ const LOCATIONS = {
           "A quiet terrace overlooking Apollyon, where historians gather to reflect on the enduring legacy of the Empire and the countless stories still waiting to be uncovered.",
       },
     },
+  },
+  // Dungeon Delve (data/dungeons.js) — a standalone POI, not a sublocation
+  // of Apollyon proper: isDungeon/dungeonDifficulty are this system's own
+  // location tag, fixed per-POI rather than player-chosen (per Tyler).
+  // First-pass/test-sample content, one dungeon to prove the system end to
+  // end — the same "real authoring is a separate pass" treatment recipes.js
+  // and schematics.js got. Difficulty 2: enough floors/rooms to exercise
+  // every room type without needing the fullest 5-difficulty run to test.
+  sunken_archive: {
+    name: "The Sunken Archive",
+    nation: "sanguivorum",
+    terrain: "dungeon",
+    isCity: false,
+    isDungeon: true,
+    dungeonDifficulty: 2,
+    type: "dungeon",
+    danger: 3,
+    services: [],
+    description:
+      "A wing of the Guild Historia's own archive that flooded and collapsed long before Apollyon's current walls went up — sealed by the Guild, rediscovered by someone who didn't ask permission, sealed again. Whatever's down there now has had a very long time to make itself at home.",
+    connections: [{ to: "apollyon", days: 1, mode: "road", desc: "back to Apollyon" }],
   },
   tritonath: {
     name: "Tritonath",

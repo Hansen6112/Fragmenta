@@ -22,7 +22,8 @@ const VERB_SYNONYMS = {
   status: ["status", "stats", "health", "hp", "level", "xp"],
   lore: ["lore", "codex", "recall", "remember"],
   fight: ["fight", "attack", "strike", "hit"],
-  explore: ["explore", "search", "scout"],
+  explore: ["explore", "search", "scout", "continue"],
+  delve: ["delve", "descend"],
   flee: ["flee", "run", "escape", "retreat"],
   leave: ["leave", "ignore", "pass"],
   decline: ["decline", "refuse"],
@@ -176,8 +177,15 @@ async function handleInput(rawInput, state) {
       return cmdEquipment(state);
     case "talk":
       return cmdTalk(arg, state);
-    case "rest":
+    case "rest": {
+      // Dungeon Delve's own 3-tier rest (quick/medium/full — engine/
+      // dungeon.js's cmdDungeonRest) only kicks in mid-run with a
+      // recognized tier word; bare 'rest', or 'rest' anywhere outside an
+      // active dungeon, is the ordinary city rest unchanged.
+      const tier = arg.trim().toLowerCase();
+      if (state.activeDungeon && ["quick", "medium", "full"].includes(tier)) return cmdDungeonRest(state, tier);
       return cmdRest(state);
+    }
     case "sleep":
       return cmdSleep(state);
     case "heal":
@@ -186,7 +194,14 @@ async function handleInput(rawInput, state) {
       return cmdStatus(state);
     case "lore":
       return cmdLore(arg, state);
+    case "delve":
+      return enterDungeon(state, state.location);
     case "explore":
+      // Dungeon Delve reuses 'explore'/'search'/'continue' for room
+      // resolution while a run is active — same word, same "press
+      // forward into whatever's next" idea, dispatched by context rather
+      // than adding a competing verb.
+      if (state.activeDungeon) return cmdDungeonSearch(state);
       return cmdExplore(state);
     case "fight":
       // "fight" with no argument means nothing outside combat (the
@@ -199,6 +214,11 @@ async function handleInput(rawInput, state) {
     case "arena":
       return cmdArena(arg, state);
     case "flee":
+      // Dungeon Delve reuses 'flee'/'retreat'/'run'/'escape' for leaving
+      // a run outside combat (combat's own flee is handled entirely in
+      // the state.combat branch above and never reaches here) — same
+      // word, same "get out of danger" idea, dispatched by context.
+      if (state.activeDungeon) return cmdDungeonRetreat(state);
       return ["There's nothing to flee from right now."];
     case "quests":
       return cmdQuests(state);
@@ -1593,6 +1613,15 @@ function cmdChoose(arg, state) {
     }
     return ["Choose 'attendant' to strengthen every ability regardless of target, or 'self reliant' to strengthen only what you cast on yourself."];
   }
+  if (state.flags.pendingDungeonRetreat) {
+    const a = (arg || "").toLowerCase().trim();
+    if (a === "retreat" || a === "confirm" || a === "yes") {
+      state.flags.pendingDungeonRetreat = false;
+      return executeDungeonRetreat(state);
+    }
+    state.flags.pendingDungeonRetreat = false;
+    return ["You press on instead."];
+  }
   if (!state.flags.pendingLevel15Choice) {
     return ["There's nothing to choose right now."];
   }
@@ -1695,6 +1724,14 @@ function buildChoiceMenu(state) {
       { heading: "A turning point — choose your path" },
       { label: `Attendant's Instinct (+20% potency, ally-cast only, permanently)${partyNote}`, command: "choose attendant" },
       { label: "Self-Reliant (+20% potency, self-cast only, permanently)", command: "choose self reliant" },
+    ];
+  }
+  if (state.flags.pendingDungeonRetreat) {
+    const report = dungeonRetreatReport(state);
+    return [
+      { heading: `Retreat through ${report.roomsBack} room(s) — ${report.minutes} min, ${report.torchesNeeded} torch-hour(s)${report.willRepopulate ? " (torches out — cleared rooms will repopulate)" : ""}` },
+      { label: "Confirm retreat", command: "choose retreat" },
+      { label: "Keep exploring", command: "choose stay" },
     ];
   }
   if (state.flags.hadrianOfferPending || state.flags.hadrianThalvoraOfferPending) {

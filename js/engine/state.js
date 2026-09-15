@@ -94,6 +94,12 @@ class GameState {
     // since it carries structured data — same reasoning as arena/party
     // below being their own top-level fields.
     this.activeTrack = null;
+    // Dungeon Delve (data/dungeons.js, engine/dungeon.js): null outside a
+    // run. Set at entry: { difficulty, entryLocation, floors, currentFloorIndex,
+    // currentRoomIndex, torchHoursRemaining, floorsSinceRation, lootGainedThisRun,
+    // goldGainedThisRun }. Plain nested object, not under `flags` — same
+    // reasoning as activeTrack above (structured data, not a boolean).
+    this.activeDungeon = null;
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
     this.shops = {}; // locationId -> { stock: [...itemNames], lastRefresh: day } — see engine/shop.js
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
@@ -413,6 +419,7 @@ class GameState {
       reputation: this.reputation,
       activeJobs: this.activeJobs,
       activeTrack: this.activeTrack,
+      activeDungeon: this.activeDungeon,
       boards: this.boards,
       shops: this.shops,
       party: this.party,

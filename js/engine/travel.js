@@ -3,6 +3,41 @@
  * Dijkstra over the LOCATIONS graph, weighted by in-game days.
  */
 
+// Same Dijkstra as findPath below, but with no fixed destination — stops
+// the instant it pops a location matching `predicate`, rather than a
+// specific toId. Added for Dungeon Delve's rescue destination ("nearest
+// inn" — engine/combat.js's dungeonRescue): today's one dungeon POI
+// (sunken_archive) sits one hop from a city with "rest" service, but this
+// walks the real graph rather than assuming every future dungeon will be
+// that close to one. Returns null if nothing in the whole graph matches
+// (shouldn't happen — every nation has at least one rest-service city).
+function findNearestLocation(fromId, predicate) {
+  if (predicate(fromId, LOCATIONS[fromId])) return { id: fromId, days: 0 };
+  const dist = {};
+  const visited = new Set();
+  Object.keys(LOCATIONS).forEach((id) => (dist[id] = Infinity));
+  dist[fromId] = 0;
+
+  while (true) {
+    let current = null;
+    let best = Infinity;
+    for (const id of Object.keys(LOCATIONS)) {
+      if (!visited.has(id) && dist[id] < best) {
+        best = dist[id];
+        current = id;
+      }
+    }
+    if (current === null) return null;
+    if (current !== fromId && predicate(current, LOCATIONS[current])) return { id: current, days: dist[current] };
+    visited.add(current);
+    const loc = LOCATIONS[current];
+    for (const conn of loc.connections) {
+      const alt = dist[current] + conn.days;
+      if (alt < dist[conn.to]) dist[conn.to] = alt;
+    }
+  }
+}
+
 function findPath(fromId, toId) {
   if (fromId === toId) return { path: [fromId], days: 0 };
   const dist = {};

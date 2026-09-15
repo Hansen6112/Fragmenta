@@ -170,13 +170,19 @@ function effectivePlayerDef(state) {
   // Already negative (a debuff's own `def` value IS the signed delta —
   // -10 means "10 less Defense"), so it's added, not subtracted.
   const penalty = playerStatusStatTotal(state, "def");
-  if (penalty >= 0) return base;
+  // dungeonTorchRationMultiplier (engine/dungeon.js): Dungeon Delve's
+  // rationless debuff, applied to the whole effective value (same
+  // treatment as effectivePlayerAtk below) rather than just state.def —
+  // a no-op (returns 1) outside an active dungeon run.
+  const ratioMult = dungeonTorchRationMultiplier(state, "def");
+  if (penalty >= 0) return Math.round(base * ratioMult);
   // Bedrock (Regalia): Defense reductions can never push effective Defense
   // below 75% of its own unreduced base — floors the penalty rather than
   // negating it outright, unlike Unbreakable/Corrosionproof below (which
   // shrink or fully ignore the FIRST reduction at the moment it's applied).
   const reduced = base + penalty;
-  return hasEffect(state, "bedrock") ? Math.max(reduced, Math.round(base * 0.75)) : reduced;
+  const floored = hasEffect(state, "bedrock") ? Math.max(reduced, Math.round(base * 0.75)) : reduced;
+  return Math.round(floored * ratioMult);
 }
 
 // ---- Enemy Ability Engine: player-facing status effects ----
@@ -241,10 +247,42 @@ function playerStatusStatPctTotal(state, statKey) {
 function effectivePlayerAgility(state) {
   const pct = playerStatusStatPctTotal(state, "agiPct");
   const base = state.agility + playerStatusStatTotal(state, "agi") + playerBuffStatTotal(state, "agi");
-  return Math.max(0, Math.round(base * (1 + pct)));
+  // dungeonTorchRationMultiplier (engine/dungeon.js): Dungeon Delve's
+  // torchless debuff — a no-op (returns 1) outside an active dungeon run.
+  return Math.max(0, Math.round(base * (1 + pct) * dungeonTorchRationMultiplier(state, "agility")));
 }
 function effectivePlayerAccuracy(state) {
-  return Math.max(0, state.accuracy + playerStatusStatTotal(state, "acc") + playerBuffStatTotal(state, "acc"));
+  const base = state.accuracy + playerStatusStatTotal(state, "acc") + playerBuffStatTotal(state, "acc");
+  return Math.max(0, Math.round(base * dungeonTorchRationMultiplier(state, "accuracy")));
+}
+function effectivePlayerAtk(state) {
+  // Same formula rollPlayerDamage's physical branch has always inlined —
+  // pulled out here so Dungeon Delve's rationless debuff (and anything
+  // else later) has one place to read/scale, rather than re-deriving it.
+  // Calls consumeSiegeCorpsAtkCharge exactly once, same as before this
+  // was extracted — its charge-consuming side effect must not fire twice
+  // in the same damage roll (see rollPlayerDamage, which now calls this
+  // once and reuses the result for crushMult/craftsmanMult too).
+  const combat = state.combat;
+  const atkBuff = combat.atkBuffTurns > 0 ? combat.atkBuffAmount || 0 : 0;
+  const everyChoiceAtk = combat.everyChoiceAtkStacks || 0;
+  const battleTemperedAtk = combat.battleTemperedAtkStacks || 0;
+  const atk =
+    state.atk +
+    consumeSiegeCorpsAtkCharge(state) +
+    perfectBalanceBonus(state) +
+    (combat.lastStandAtkBonus || 0) +
+    (combat.livingSteelBonus || 0) +
+    atkBuff +
+    playerBuffStatTotal(state, "atk") +
+    everyChoiceAtk * 2 +
+    battleTemperedAtk +
+    (combat.windsOfChangeAtk || 0) +
+    (combat.avatarOfChaosAtkBonus || 0) +
+    (combat.avatarOfEnduranceAtkBonus || 0) +
+    (combat.workRefinesAtkStacks || 0) +
+    (combat.avatarOfCreationAtkStacks || 0);
+  return Math.round(atk * dungeonTorchRationMultiplier(state, "atk"));
 }
 function effectivePlayerSpeedForInitiative(state) {
   const pct = playerStatusStatPctTotal(state, "spdPct");
@@ -339,7 +377,14 @@ function tickPlayerStatuses(state) {
       if (dmg > 0) {
         applyPlayerDamage(state, dmg);
         lines.push(`${entry.name} saps ${dmg} health.`);
-        if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+        if (state.health <= 0) {
+          lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+          // The dungeon rescue can fire here and end combat outright — if
+          // it did, stop ticking the remaining statuses entirely rather
+          // than let a second DOT in this same tick deal more damage the
+          // (already-spent) rescue can't answer.
+          if (!state.combat) break;
+        }
       }
     }
     entry.turnsLeft -= 1;
@@ -659,7 +704,13 @@ function useItem(state, arg) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
 
   state.inventory.splice(idx, 1);
   out.push(...applyConsumableEffect(state, item, def.useEffect));
@@ -1349,16 +1400,12 @@ function rollPlayerDamage(state, creature, activeElement) {
   } else {
     const armorCrack = armorCrackAmount(state);
     const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
-    const atkBuff = state.combat.atkBuffTurns > 0 ? state.combat.atkBuffAmount || 0 : 0;
-    const everyChoiceAtk = state.combat.everyChoiceAtkStacks || 0;
-    const battleTemperedAtk = state.combat.battleTemperedAtkStacks || 0;
-    // playerBuffStatTotal(state, "atk"): the generic combat.playerBuffs map
-    // every crafted potion's "buff" useEffect writes to (applyConsumableEffect)
-    // — atk previously had no reader for it at all, unlike effectivePlayerDef's
-    // own dual defBuffAmount/playerBuffStatTotal("def") read below. Without
-    // this, an Attack-buffing consumable (e.g. a bracing tincture) would be a
-    // silent no-op: the item would say it worked, and do nothing.
-    const atk = state.atk + consumeSiegeCorpsAtkCharge(state) + perfectBalanceBonus(state) + (state.combat.lastStandAtkBonus || 0) + (state.combat.livingSteelBonus || 0) + atkBuff + playerBuffStatTotal(state, "atk") + everyChoiceAtk * 2 + battleTemperedAtk + (state.combat.windsOfChangeAtk || 0) + (state.combat.avatarOfChaosAtkBonus || 0) + (state.combat.avatarOfEnduranceAtkBonus || 0) + (state.combat.workRefinesAtkStacks || 0) + (state.combat.avatarOfCreationAtkStacks || 0);
+    // effectivePlayerAtk (above): the same formula this line used to
+    // compute inline, now shared with anything else that needs the
+    // player's effective Attack (Dungeon Delve's rationless debuff).
+    // Called exactly once per damage roll, same as before extraction —
+    // it consumes Siege Corps' one-shot Attack charge internally.
+    const atk = effectivePlayerAtk(state);
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     // Master Craftsman (Divine Regalia — Smith's Grasp): compares this
@@ -1613,7 +1660,12 @@ function resolveSpeedInitiative(state, creature) {
     .filter(({ e }) => e.alive && e.creatureObj && !e.creatureObj.friendly && enemyActsFirst(state, e.creatureObj))
     .sort((a, b) => (b.e.creatureObj.spd || 0) - (a.e.creatureObj.spd || 0));
   for (const { e, i } of fasterAlive) {
-    if (state.health <= 0) break;
+    // !state.combat also stops this: a lethal pre-emptive strike from an
+    // earlier enemy in this same loop can trigger the dungeon rescue,
+    // which heals the player back up and ends combat outright — without
+    // this check, the loop would see health > 0 again and let the NEXT
+    // faster enemy take a free swing the rescue never accounted for.
+    if (!state.combat || state.health <= 0) break;
     combat.enemyActedFirstThisRound = true;
     if (!e.creatureObj.flurry) e.skipNormalRetaliationThisRound = true;
     const prevActive = combat.activeIndex;
@@ -1697,7 +1749,12 @@ function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeI
     combat.activeIndex = prevActive;
     lines.push(...result.lines);
     if (i === callerActiveIndex) activeDamage = result.damage;
-    if (state.health <= 0) break;
+    // !state.combat: the dungeon rescue can fire mid-loop (this pack
+    // member's hit was lethal), healing the player and ending combat —
+    // without also checking combat here, the NEXT pack member in this
+    // same loop would see health > 0 again and still get its own swing,
+    // with no rescue left to answer it.
+    if (!state.combat || state.health <= 0) break;
   }
   return { lines, damage: activeDamage };
 }
@@ -2310,7 +2367,7 @@ function beginTurn(state) {
   // own death-check per DOT tick internally (mirroring the enemy-side
   // burn/bleed loop above), so nothing further is needed here.
   lines.push(...tickPlayerStatuses(state));
-  if (state.health <= 0) return lines;
+  if (!state.combat || state.health <= 0) return lines;
   // Crafted-potion buffs (playerBuffs) and any ally's own (companion.js's
   // tickAllyBuffs) age down the same way, once per round.
   tickPlayerBuffs(state);
@@ -2460,7 +2517,71 @@ function checkDeathPrevention(state) {
     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.2));
     if (healed > 0) msg += ` Avatar of Devotion answers in turn — mended for ${healed} health.${lines.length ? " " + lines.join(" ") : ""}`;
   }
+  // Dungeon Delve (data/dungeons.js): the Mugamiir Safor's rescue is the
+  // guaranteed last-resort save inside a dungeon run — checked only after
+  // every real cheat-death effect above has had its chance, same as those
+  // are checked in order of specificity among themselves.
+  if (!msg && state.activeDungeon) {
+    msg = dungeonRescue(state);
+  }
   return msg;
+}
+
+// Counterpart to checkDeathPrevention, for a lethal Trap room failure —
+// traps resolve outside state.combat entirely (engine/dungeon.js), and
+// every branch above unconditionally reads combat.xxx for its own
+// per-fight "used" flag, so calling checkDeathPrevention there would
+// throw. This only ever checks the one save that doesn't need a fight in
+// progress: the Mugamiir Safor's dungeon rescue. Equipment/Regalia
+// cheat-deaths (Elder Bark, Last Stand, ...) don't apply here — they're
+// framed as combat saves, and have nowhere safe to store their per-fight
+// flag without one.
+function checkTrapDeathPrevention(state) {
+  if (state.health > 0) return null;
+  if (state.activeDungeon) return dungeonRescue(state);
+  return null;
+}
+
+// The Mugamiir Safor's guaranteed rescue (per Tyler): strips only what
+// was gained THIS run (existing belongings are untouched), charges the
+// guild's own fee on top, and wakes the player at an inn in the nearest
+// city offering rest service — a real Dijkstra walk of the connections
+// graph (engine/travel.js's findNearestLocation), not an assumption that
+// every dungeon sits next to one. "Awaken" is read as a real night's
+// rest, not a bare 1-HP cheat-death: free lodging, a full heal, and the
+// same 8-hour time cost (and fatigue-clearing) as a normal night's sleep
+// — the Safor's own fee is what's actually charged, not the room.
+function dungeonRescue(state) {
+  const dungeon = state.activeDungeon;
+  for (const item of dungeon.lootGainedThisRun) {
+    const idx = state.inventory.indexOf(item);
+    if (idx >= 0) state.inventory.splice(idx, 1);
+  }
+  state.gold = Math.max(0, state.gold - dungeon.goldGainedThisRun);
+  // First-pass, flagged as unverified during the handoff review — expect
+  // a follow-up balance pass once this has actually been played.
+  const fee = dungeon.difficulty * 50;
+  state.gold = Math.max(0, state.gold - fee);
+  const nearest = findNearestLocation(dungeon.entryLocation, (id, loc) => loc.isCity && effectiveServices(loc).includes("rest"));
+  state.activeDungeon = null;
+  // The player has just been physically pulled out of the dungeon, so
+  // whatever fight was in progress ends here too — otherwise a second
+  // pack member's retaliation later in this same round would find the
+  // rescue already spent and the player un-saveable a second time. Every
+  // loop that iterates multiple enemies/DOT ticks within one player action
+  // already checks `!state.combat` as its stop condition for exactly this
+  // reason (see resolveOrSkipRetaliation, resolveSpeedInitiative,
+  // tickPlayerStatuses, beginTurn).
+  state.combat = null;
+  state.health = state.maxHealth;
+  advanceTime(state, 480, "dungeon rescue");
+  state.lastSleptDay = state.day;
+  if (nearest) {
+    state.location = nearest.id;
+    state.subLocation = null;
+  }
+  const townName = nearest ? LOCATIONS[nearest.id].name : "the nearest town";
+  return `The Mugamiir Safor pull you from the dark, ${fee} gold poorer for it — you wake at an inn in ${townName}, everything you found down there left behind.`;
 }
 
 // Resolves the enemy's retaliation for this turn, respecting Force's stun,
@@ -4043,6 +4164,10 @@ function resolveKill(state, creature) {
     state.inventory.push(loot);
     out.push(`It was also carrying ${formatItemLine(loot)}.`);
   }
+  // Dungeon Delve (engine/dungeon.js): every kill's own gold/loot counts
+  // toward this run's total, not just whichever kill happens to end the
+  // fight — a no-op outside an active dungeon.
+  trackDungeonKillRewards(state, goldFound, loot);
   if (hasEffect(state, "blood_debt")) {
     const healPct = masterOfArmsDoubles(state, "blood_debt") ? 0.4 : 0.2;
     const heal = Math.ceil(state.maxHealth * healPct);
@@ -4123,6 +4248,11 @@ function resolveKill(state, creature) {
   out.push(...applySoulLedger(state, creature));
   out.push(...state.gainXp(xpFromKill(state, creature)));
   out.push(...checkJobProgressOnKill(state, creature, huntJobId));
+  // Dungeon Delve (engine/dungeon.js): only clears the room once the
+  // whole encounter is over (state.combat null here means no survivors
+  // left — same moment checkJobProgressOnKill above keys off), not on
+  // an earlier kill within a pack fight.
+  checkDungeonRoomClearOnKill(state);
   return out;
 }
 
@@ -4199,7 +4329,13 @@ function playerAttack(state) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "attack"), ...applyWanderersReward(state, "attack"), ...applyActionTypeTracking(state, "attack"));
 
   // "Physical" here mirrors rollPlayerDamage's own branch check — a mage
@@ -4413,7 +4549,13 @@ function useFeint(state) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "feint"), ...applyWanderersReward(state, "feint"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "feint"));
   consumeTrailblazer(state);
   state.combat.nextAttackBonus = true;
@@ -4487,7 +4629,13 @@ function useDecoy(state) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
   // Captured now, before the player's own strike (below) has any chance to
   // kill this specific enemy — this is who's actually being decoyed, for
   // the skipNormalRetaliationThisRound flag further down.
@@ -4579,7 +4727,13 @@ function useAmbush(state) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
   consumeTrailblazer(state);
   // Captured now, before the strike below has any chance to kill this
@@ -4647,7 +4801,13 @@ function useDisarm(state) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "disarm"));
   consumeTrailblazer(state);
   let disarmMemory;
@@ -4746,7 +4906,13 @@ function useApothecaryAbility(state, key, targetArg) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
   consumeTrailblazer(state);
   state.combat.cooldowns[key] = a.cooldown;
   out.push(...applyApothecaryAbilityEffect(state, a, ally));
@@ -4839,7 +5005,13 @@ function useElementAbility(state, elementKey) {
     creature = getCombatCreature(state);
   }
   out.push(...resolveSpeedInitiative(state, creature));
-  if (state.health <= 0) return out;
+  // !state.combat: a faster enemy's pre-emptive strike inside
+  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
+  // the player back up and ends combat outright — checking health alone
+  // would miss that and let this function keep going into further
+  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // already null.
+  if (!state.combat || state.health <= 0) return out;
   // combat.spellCastCounter: an unconditional per-cast counter (every
   // elemental ability, regardless of what's equipped), shared by
   // Seedbearer (every 3rd) and Eureka (every 4th) below — the same
