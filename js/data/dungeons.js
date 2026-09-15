@@ -184,6 +184,20 @@ function assignCombatEncounters(rooms, difficulty, tags, nation) {
   });
 }
 
+// Per Tyler, tried before touching pack size or the shared danger tables:
+// a real floor-by-floor curve rather than every floor independently able
+// to hit the dungeon's full stated difficulty. Floor 0 is always gentler
+// (baseDifficulty - however many floors remain after it), ramping up one
+// step per floor so only the LAST floor ever reaches the dungeon's true
+// ceiling — a difficulty-5 dungeon eases through normal, ramps through
+// elite by floor 4, and only reaches world_boss on its final floor.
+// Doesn't touch HUNT_TARGET_DANGER_CEILING or anything shared with Hunt/
+// Track or the open-world danger tables — this only changes what
+// difficulty number a given FLOOR passes into assignCombatEncounters.
+function floorEffectiveDifficulty(baseDifficulty, floorIndex, floorCount) {
+  return Math.max(1, baseDifficulty - (floorCount - 1 - floorIndex));
+}
+
 // Generation, at entry. Guarantees at least one Rest room in the back
 // half of any floor with 6+ rooms (ROOM_TYPE_WEIGHTS' 10% alone could
 // otherwise leave a long floor with zero of them by bad luck) — first-
@@ -204,7 +218,8 @@ function generateDungeon(difficulty, tags, nation) {
       const idx = backHalfStart + Math.floor(Math.random() * (rooms.length - backHalfStart));
       rooms[idx] = { type: "rest", cleared: false };
     }
-    assignCombatEncounters(rooms, difficulty, tags, nation);
+    const floorDifficulty = floorEffectiveDifficulty(difficulty, f, floorCount);
+    assignCombatEncounters(rooms, floorDifficulty, tags, nation);
     rooms.push({ type: "exit", cleared: false });
     floors.push({ rooms });
   }
