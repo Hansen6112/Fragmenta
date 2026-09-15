@@ -95,9 +95,14 @@ function trapSuccessChance(trapType, difficulty, state) {
 // escalation from torch/ration debuffs — this function doesn't know the
 // difference between a fresh room and a repopulated one; the caller
 // (engine/dungeon.js) passes whatever difficulty number is correct.
-function pickDungeonCombatTarget(tags, nation, effectiveDifficulty) {
+// ceilingRankOverride (optional): a DANGER_CLASS_RANK value to use instead
+// of the difficulty's own ceiling — how generateDungeon keeps most of a
+// floor's combat rooms a tier gentler than its final one(s); omitted by
+// every other caller (the retreat-repopulation re-roll included), which
+// keep reading the difficulty's own ceiling exactly as before.
+function pickDungeonCombatTarget(tags, nation, effectiveDifficulty, ceilingRankOverride) {
   const base = creaturesForTags(tags, nation);
-  const ceiling = HUNT_TARGET_DANGER_CEILING[effectiveDifficulty] ?? DANGER_CLASS_RANK.world_boss;
+  const ceiling = ceilingRankOverride != null ? ceilingRankOverride : (HUNT_TARGET_DANGER_CEILING[effectiveDifficulty] ?? DANGER_CLASS_RANK.world_boss);
   const byDifficulty = base.filter(
     (id) => meetsBountyRequirement(BESTIARY[id], effectiveDifficulty) && dangerClassRank(BESTIARY[id]) <= ceiling
   );
@@ -145,9 +150,38 @@ function rollRoomType() {
 function rollRoom(difficulty, tags, nation) {
   const type = rollRoomType();
   const room = { type, cleared: false };
-  if (type === "combat") room.creatureId = pickDungeonCombatTarget(tags, nation, difficulty);
+  // Combat rooms don't pick their creature here — assignCombatEncounters
+  // does that once the floor's full room list (rest-room back-half
+  // insertion included) is settled, since which combat rooms count as
+  // "the final ones" depends on the finished layout, not this one slot.
   if (type === "trap") room.trapType = Object.keys(TRAP_TYPES)[Math.floor(Math.random() * Object.keys(TRAP_TYPES).length)];
   return room;
+}
+
+// Per Tyler: "not every enemy should be the highest possible tier... the
+// strongest tier is limited to the final rooms of a floor." POSITION-based,
+// not "the last however-many Combat rooms happen to fall" — a floor with
+// only one or two Combat rooms total (common; Combat is just 38% of
+// ROOM_TYPE_WEIGHTS, and floors can be as short as 3-5 rooms) would
+// otherwise have every single one of them count as "final" and keep
+// hitting the full ceiling, defeating the point. Only a Combat room whose
+// own slot falls in the floor's last quarter (by position, regardless of
+// type — mirrors the existing back-half rest-room placement above, just a
+// tighter window) may draw the difficulty's own danger ceiling; every
+// earlier Combat room is capped one tier below it. A short floor can
+// legitimately roll zero full-ceiling encounters this way — that's fine,
+// the difficulty's real teeth are meant to show up as you go deeper, not
+// on every floor's very first room.
+function assignCombatEncounters(rooms, difficulty, tags, nation) {
+  const combatIndices = rooms.map((r, i) => (r.type === "combat" ? i : -1)).filter((i) => i >= 0);
+  if (!combatIndices.length) return;
+  const fullCeiling = HUNT_TARGET_DANGER_CEILING[difficulty] ?? DANGER_CLASS_RANK.world_boss;
+  const loweredCeiling = Math.max(DANGER_CLASS_RANK.normal, fullCeiling - 1);
+  const finalZoneStart = Math.max(0, rooms.length - Math.max(1, Math.ceil(rooms.length / 4)));
+  combatIndices.forEach((i) => {
+    const ceiling = i >= finalZoneStart ? fullCeiling : loweredCeiling;
+    rooms[i].creatureId = pickDungeonCombatTarget(tags, nation, difficulty, ceiling);
+  });
 }
 
 // Generation, at entry. Guarantees at least one Rest room in the back
@@ -170,6 +204,7 @@ function generateDungeon(difficulty, tags, nation) {
       const idx = backHalfStart + Math.floor(Math.random() * (rooms.length - backHalfStart));
       rooms[idx] = { type: "rest", cleared: false };
     }
+    assignCombatEncounters(rooms, difficulty, tags, nation);
     rooms.push({ type: "exit", cleared: false });
     floors.push({ rooms });
   }
