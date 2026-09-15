@@ -254,7 +254,17 @@ function cmdDungeonSearch(state) {
   }
   if (room.type === "exit") {
     burnDungeonTime(state, 30);
-    return [...resolveExitRoom(state), ...advanceTime(state, 30, "dungeon")];
+    // generateDungeon gives every floor its own exit-type room, not just
+    // the last one — on an earlier floor this is stairs down, not the way
+    // out. Only the FINAL floor's exit room actually ends the run;
+    // markRoomCleared's own overflow check (currentRoomIndex running past
+    // this floor's last room) is exactly the existing floor-advance path,
+    // so reuse it here instead of a separate transition mechanism.
+    if (d.currentFloorIndex >= d.floors.length - 1) {
+      return [...resolveExitRoom(state), ...advanceTime(state, 30, "dungeon")];
+    }
+    markRoomCleared(state);
+    return [`You find the stairs down to the next floor.`, ...advanceTime(state, 30, "dungeon")];
   }
   burnDungeonTime(state, 30);
   const lines = [];
