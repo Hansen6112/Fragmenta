@@ -100,6 +100,32 @@ class GameState {
     // goldGainedThisRun }. Plain nested object, not under `flags` — same
     // reasoning as activeTrack above (structured data, not a boolean).
     this.activeDungeon = null;
+    // Main Quest Routing Tree (data/kabalroute.js) — the flag/variable
+    // schema the one-time gate-evaluation pass reads at the (not-yet-
+    // built) world-clock's "final act begins" trigger, plus whatever the
+    // Global Override (majorisEquippedCount, computed live from
+    // state.equipment — see kabalroute.js) has already resolved. Kept as
+    // one grouped object rather than loose top-level fields, same
+    // reasoning as activeDungeon/activeTrack above. terminalReached is
+    // null until either the Global Override fires (checked continuously,
+    // can happen at any point in play) or the one-time gate is evaluated
+    // — once set, it never changes.
+    this.kabalRoute = {
+      engagementCount: 0, // +1 per completed quest flagged Kabal-story (none exist yet)
+      supportedKabal: false,
+      attemptedConspirator: false,
+      turnedCabalAgainstPrimus: false,
+      killedPrimusInAmbush: false,
+      civilWarWon: false,
+      rallyShardsCollected: false,
+      rallyShardsTurnedIn: false,
+      activelyOpposedCabal: false,
+      huntedCabalMembers: false,
+      collectedAnyShards: false,
+      shardsHandedOver: false,
+      foughtBack: false,
+      terminalReached: null, // set once, by either the Override or the one-time gate — see checkMajorisOverride/evaluateMainQuestGate
+    };
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
     this.shops = {}; // locationId -> { stock: [...itemNames], lastRefresh: day } — see engine/shop.js
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
@@ -420,6 +446,7 @@ class GameState {
       activeJobs: this.activeJobs,
       activeTrack: this.activeTrack,
       activeDungeon: this.activeDungeon,
+      kabalRoute: this.kabalRoute,
       boards: this.boards,
       shops: this.shops,
       party: this.party,

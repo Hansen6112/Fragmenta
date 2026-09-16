@@ -15,6 +15,11 @@ const VERB_SYNONYMS = {
   equip: ["equip", "wear", "wield"],
   unequip: ["unequip", "unwear", "unwield", "remove"],
   equipment: ["equipment", "gear", "worn"],
+  // Dev/test-only: manually runs the Main Quest Routing Tree's one-time
+  // gate (engine/kabalroute.js) — no in-fiction meaning, and no real
+  // world-clock "final act begins" trigger exists yet to call this
+  // automatically. Not a command a player would ever be told about.
+  kabalroute: ["kabalroute"],
   talk: ["talk", "speak", "ask", "greet"],
   rest: ["rest"],
   sleep: ["sleep", "camp"],
@@ -196,6 +201,8 @@ async function handleInput(rawInput, state) {
       return cmdLore(arg, state);
     case "delve":
       return enterDungeon(state, state.location);
+    case "kabalroute":
+      return cmdKabalRoute(arg, state);
     case "explore":
       // Dungeon Delve reuses 'explore'/'search'/'continue' for room
       // resolution while a run is active — same word, same "press
@@ -702,6 +709,43 @@ function cmdEquipment(state) {
   return lines;
 }
 
+// Dev/test-only: prints the Main Quest Routing Tree's current flags, the
+// live Majoris count, and (if the one-time gate were evaluated right now)
+// which terminal it would reach — without actually locking that terminal
+// in unless the player asks it to (see the confirm step below). No real
+// world-clock trigger exists yet to call evaluateMainQuestGate on its
+// own; this is the only way to exercise it before that's built.
+function cmdKabalRoute(arg, state) {
+  const r = state.kabalRoute;
+  const lines = ["== Main Quest Routing (dev) =="];
+  if (r.terminalReached) {
+    lines.push(`Terminal already locked in: ${r.terminalReached}`);
+    lines.push(KABAL_ROUTE_TERMINAL_INFO[r.terminalReached]);
+    return lines;
+  }
+  const confirming = (arg || "").trim().toLowerCase() === "confirm";
+  if (!confirming) {
+    lines.push(`engagementCount: ${r.engagementCount} (needs ${KABAL_STORY_QUEST_THRESHOLD} to count as engaged)`);
+    lines.push(
+      `supportedKabal=${r.supportedKabal} attemptedConspirator=${r.attemptedConspirator} isMageOrBruise=${!!(state.flags.isMage || state.flags.isBruise)}`
+    );
+    lines.push(`turnedCabalAgainstPrimus=${r.turnedCabalAgainstPrimus} killedPrimusInAmbush=${r.killedPrimusInAmbush} civilWarWon=${r.civilWarWon}`);
+    lines.push(`rallyShardsCollected=${r.rallyShardsCollected} rallyShardsTurnedIn=${r.rallyShardsTurnedIn}`);
+    lines.push(`activelyOpposedCabal=${r.activelyOpposedCabal} huntedCabalMembers=${r.huntedCabalMembers}`);
+    lines.push(`collectedAnyShards=${r.collectedAnyShards} shardsHandedOver=${r.shardsHandedOver} foughtBack=${r.foughtBack}`);
+  }
+  lines.push(`majorisEquippedCount: ${majorisEquippedCount(state)} (6 triggers the Global Override at any time)`);
+  const preview = evaluateMainQuestGate(state);
+  // evaluateMainQuestGate locks in a real terminal as a side effect (this
+  // IS the one-time gate) — undo that unless the player actually asked to
+  // confirm, or the result was GAUNTLET_PENDING, which is never persisted.
+  if (!confirming && r.terminalReached) r.terminalReached = null;
+  lines.push(confirming ? `Locked in: ${preview}` : `If evaluated right now, this reaches: ${preview}`);
+  lines.push(KABAL_ROUTE_TERMINAL_INFO[preview]);
+  if (!confirming) lines.push(`('kabalroute confirm' to actually lock this in.)`);
+  return lines;
+}
+
 // Which slot an item goes in comes from data/items.js's registry when the
 // item is a known piece of gear, falling back to data/equipment.js's
 // keyword-based inferEquipSlot for anything unlisted (loot the registry
@@ -737,6 +781,7 @@ function cmdEquip(arg, state) {
     state.recomputeStats(true);
     const lines = [`You equip ${formatItemLine(item)}. (${EQUIP_SLOT_LABELS.trinkets})`];
     if (!wasPending && state.flags.pendingConduitAscendantChoice) lines.push(...conduitAscendantOfferLines(state));
+    lines.push(...checkMajorisOverride(state));
     return lines;
   }
 
@@ -753,6 +798,7 @@ function cmdEquip(arg, state) {
   state.recomputeStats(true);
   lines.push(`You equip ${formatItemLine(item)}. (${EQUIP_SLOT_LABELS[slot]})`);
   if (!wasPending && state.flags.pendingConduitAscendantChoice) lines.push(...conduitAscendantOfferLines(state));
+  lines.push(...checkMajorisOverride(state));
   return lines;
 }
 
@@ -775,7 +821,7 @@ function cmdUnequip(arg, state) {
         const item = state.equipment.trinkets.splice(idx, 1)[0];
         state.inventory.push(item);
         state.recomputeStats(true);
-        return [`You unequip ${item}.`];
+        return [`You unequip ${item}.`, ...checkMajorisOverride(state)];
       }
       continue;
     }
@@ -784,7 +830,7 @@ function cmdUnequip(arg, state) {
       state.equipment[slot] = null;
       state.inventory.push(current);
       state.recomputeStats(true);
-      return [`You unequip ${current}.`];
+      return [`You unequip ${current}.`, ...checkMajorisOverride(state)];
     }
   }
   return [`You don't have "${arg}" equipped.`];
