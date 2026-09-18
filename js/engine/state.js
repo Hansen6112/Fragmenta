@@ -126,6 +126,17 @@ class GameState {
       foughtBack: false,
       terminalReached: null, // set once, by either the Override or the one-time gate — see checkMajorisOverride/evaluateMainQuestGate
     };
+    // Investigate mini-game (engine/investigations.js). activeInvestigation
+    // is structured data (not under flags — same reasoning as activeTrack/
+    // activeDungeon/kabalRoute above), null outside a conversation:
+    // { questId, targetId, nodeIndex, pointsSoFar }. investigationProgress
+    // is durable and separate — { [questId]: { [targetId]: pointsEarned } }
+    // — since a mission's several targets are each one-shot conversations
+    // that need to accumulate toward one combined hunt bonus over time,
+    // long after any single conversation has ended and activeInvestigation
+    // has gone back to null.
+    this.activeInvestigation = null;
+    this.investigationProgress = {};
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
     this.shops = {}; // locationId -> { stock: [...itemNames], lastRefresh: day } — see engine/shop.js
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
@@ -447,6 +458,8 @@ class GameState {
       activeTrack: this.activeTrack,
       activeDungeon: this.activeDungeon,
       kabalRoute: this.kabalRoute,
+      activeInvestigation: this.activeInvestigation,
+      investigationProgress: this.investigationProgress,
       boards: this.boards,
       shops: this.shops,
       party: this.party,

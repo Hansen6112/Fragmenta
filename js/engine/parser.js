@@ -20,6 +20,7 @@ const VERB_SYNONYMS = {
   // world-clock "final act begins" trigger exists yet to call this
   // automatically. Not a command a player would ever be told about.
   kabalroute: ["kabalroute"],
+  investigate: ["investigate"],
   talk: ["talk", "speak", "ask", "greet"],
   rest: ["rest"],
   sleep: ["sleep", "camp"],
@@ -203,6 +204,8 @@ async function handleInput(rawInput, state) {
       return enterDungeon(state, state.location);
     case "kabalroute":
       return cmdKabalRoute(arg, state);
+    case "investigate":
+      return cmdInvestigate(state);
     case "explore":
       // Dungeon Delve reuses 'explore'/'search'/'continue' for room
       // resolution while a run is active — same word, same "press
@@ -453,6 +456,12 @@ function buildLocationMenu(state) {
   options.push({ heading: "Actions", id: "actions" });
   options.push({ label: "Explore", command: "explore" });
   options.push({ label: "Talk", command: "talk" });
+  // Investigate mini-game (engine/investigations.js) — the one place this
+  // button conditionally appears at all; the typed 'investigate' command
+  // itself already checks eligibility on its own and works with or
+  // without this button, same relationship every other shortcut here has
+  // to its underlying command.
+  if (findInvestigationTarget(state)) options.push({ label: "Investigate", command: "investigate" });
 
   const active = place || loc;
   const services = effectiveServices(active);
@@ -1562,6 +1571,10 @@ function cmdSkills(state) {
 
 function cmdChoose(arg, state) {
   const trackArg = (arg || "").toLowerCase().trim();
+  if (trackArg.startsWith("inv")) {
+    const optionIndex = parseInt(trackArg.replace("inv", ""), 10);
+    return chooseInvestigationOption(state, optionIndex);
+  }
   if (trackArg.startsWith("track")) {
     if (!state.activeTrack) return ["There's nothing to choose right now."];
     const job = state.activeJobs.find((j) => j.id === state.activeTrack.jobId);
@@ -1573,7 +1586,7 @@ function cmdChoose(arg, state) {
     const optionIndex = parseInt(trackArg.replace("track", ""), 10);
     const option = step.options[optionIndex];
     if (!option) return ["Choose one of the listed options."];
-    const chance = trackSuccessChance(option, state);
+    const chance = trackSuccessChance(option, state, job);
     const success = Math.random() < chance;
     if (success) {
       state.activeTrack.stepIndex++;
@@ -1703,6 +1716,21 @@ function cmdChoose(arg, state) {
 // buildCombatMenu (combat.js) so a choice arising mid-fight — e.g.
 // leveling to 15 off a kill — is never stranded behind a hidden input.
 function buildChoiceMenu(state) {
+  // Investigate mini-game (state.activeInvestigation — engine/
+  // investigations.js). Checked before Hunt/Track below since the two
+  // never overlap in practice (investigating happens before a hunt
+  // starts), but structurally the same "own top-level field" shape.
+  if (state.activeInvestigation) {
+    const node = currentInvestigationNode(state);
+    if (!node) {
+      state.activeInvestigation = null;
+      return null;
+    }
+    return [
+      { heading: node.prompt },
+      ...node.options.map((opt, i) => ({ label: opt.label, command: `choose inv${i}` })),
+    ];
+  }
   // Hunt/Track (state.activeTrack, not under state.flags since it carries
   // structured data — same reasoning as state.arena/state.party — set by
   // cmdHunt, resolved by cmdChoose's "trackN" branch below).

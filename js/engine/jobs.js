@@ -231,10 +231,16 @@ function failJob(state, job) {
 // chance (a Knowledge-6 character sees no adjustment at all, matching
 // the same Knowledge-6 baseline recomputeStats' own growth curves use
 // elsewhere), clamped to a floor/ceiling so no option is ever a sure
-// thing or a lost cause regardless of stats.
-function trackSuccessChance(option, state) {
+// thing or a lost cause regardless of stats. `job` is optional — only
+// jobs tagged job.investigateQuestId (engine/investigations.js) add the
+// Investigate mini-game's bonus on top; every other job is unaffected,
+// same behavior as before that system existed. Per Tyler, the bonus
+// applies to every roll across the whole hunt, not just a first attempt,
+// so it's added here at the base-chance level rather than consumed once.
+function trackSuccessChance(option, state, job) {
   const knowledgeBonus = (state.knowledge - 6) * 0.015;
-  return Math.max(0.15, Math.min(0.9, option.baseChance + knowledgeBonus));
+  const investigateBonus = job && job.investigateQuestId ? investigationBonusPercent(state, job.investigateQuestId) / 100 : 0;
+  return Math.max(0.15, Math.min(0.9, option.baseChance + knowledgeBonus + investigateBonus));
 }
 
 // Called from parser.js the moment travel ends at a new location.
