@@ -676,6 +676,23 @@ function useItem(state, arg) {
   const idx = state.inventory.findIndex((i) => i.toLowerCase().includes(needle));
   if (idx < 0) return [`You aren't carrying "${arg}".`];
   const item = state.inventory[idx];
+
+  // A ration pack is slot:"material" by design (matches every other
+  // crafting material — not directly usable, only consumed by system
+  // logic), but eating one is a real player action, not a crafting
+  // ingredient. Special-cased here, ahead of the consumable check below,
+  // rather than reclassifying the item and blurring a distinction that
+  // matters everywhere else materials show up. This is the actual fix for
+  // Dungeon Delve's rationless debuff: activeDungeon.rationSpentThisFloor
+  // previously had no writer anywhere in the codebase, so floorsSinceRation
+  // could only ever increase — see engine/dungeon.js's markRoomCleared.
+  if (item === "a ration pack") {
+    if (!state.activeDungeon) return ["No reason to eat that right now."];
+    state.inventory.splice(idx, 1);
+    state.activeDungeon.rationSpentThisFloor = true;
+    return ["You eat, keeping the hunger at bay for now."];
+  }
+
   const def = getItemDef(item);
   if (!def || def.slot !== "consumable") return [`${item} isn't something you can use like that.`];
   // A "buff" effect is a timed COMBAT bonus (turns = combat rounds,
@@ -723,7 +740,7 @@ function useItem(state, arg) {
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
 
 // Branches on useEffect.type — currently just "heal" (through the shared
@@ -2540,6 +2557,29 @@ function checkTrapDeathPrevention(state) {
   if (state.health > 0) return null;
   if (state.activeDungeon) return dungeonRescue(state);
   return null;
+}
+
+// Some enemy on-hit-taken passives (Quills-style reflect, Residual
+// Memory-style counter — applyEnemyOnHitTakenPassives, called from deep
+// inside rollPlayerDamage) deal damage straight to state.health with no
+// checkDeathPrevention call of their own: rollPlayerDamage only ever
+// returns a number, and every other silent side effect threaded through
+// it (Soul Leech, Avatar of War's lifesteal, ...) only ever heals, so
+// nothing there has ever needed one before. If that reflect alone was
+// lethal, and the round's own retaliation afterward happens to miss or
+// get evaded (every one of those branches returns out of
+// resolveEnemyRetaliation before it ever reaches its own
+// state.health <= 0 check), nothing else catches it — the fight would
+// otherwise sit at 0 Health with combat still active, forever. Every
+// action that can deal damage to an enemy (and so risk triggering one of
+// these passives) calls this once, right before its own final return, as
+// a last-resort net alongside the checks that already run inline
+// wherever a hit is applied directly.
+function checkReflectDeath(state, out) {
+  if (state.health > 0) return out;
+  const msg = state.combat ? checkDeathPrevention(state) : checkTrapDeathPrevention(state);
+  out.push(msg || `Everything goes dark.`);
+  return out;
 }
 
 // The Mugamiir Safor's guaranteed rescue (per Tyler): strips only what
@@ -4389,7 +4429,7 @@ function playerAttack(state) {
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
 
 function attemptFlee(state) {
@@ -4605,7 +4645,7 @@ function useFeint(state) {
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
 
 function useDecoy(state) {
@@ -4702,7 +4742,7 @@ function useDecoy(state) {
   out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
 
 function useAmbush(state) {
@@ -4775,7 +4815,7 @@ function useAmbush(state) {
   out.push(...retaliation.lines);
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
 
 function useDisarm(state) {
@@ -4863,7 +4903,7 @@ function useDisarm(state) {
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
 
 // Apothecary's kit (data/tactics.js's APOTHECARY_ABILITIES) — a
@@ -4925,7 +4965,7 @@ function useApothecaryAbility(state, key, targetArg) {
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
 
 // v0.9 follow-up (Fortify, back when it was the only entry): was a
@@ -5249,5 +5289,5 @@ function useElementAbility(state, elementKey) {
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
-  return out;
+  return checkReflectDeath(state, out);
 }
