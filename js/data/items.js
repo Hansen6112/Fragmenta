@@ -233,6 +233,11 @@ const ITEM_DEFS = {
   // (cuirass/shield/necklace/cloak) are all flat-stat, no-effect
   // Masterwork drake gear too, so this matches that pattern.
   "a drakebone hunting bow, fletched with shed scale": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, source: "monster" },
+  // First tier-4 item tagged source:"shop" — a deliberately generic,
+  // region/set-free test entry to exercise the new tier-4 shop pricing
+  // (see shopBuyPrice above), one per major slot category. Real,
+  // full tier-4 itemization is a later content pass.
+  "a masterwork blade": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, source: "shop" },
 
   // Off Hand
   "a hide-covered round shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "shop" },
@@ -280,6 +285,9 @@ const ITEM_DEFS = {
   "a Norrvael storm-rider harness": { slot: "chest", tier: 4, bonuses: { atk: 2, def: 2 }, effects: ["evasive_guard"], source: "contract" },
   "a Kabal river-thread vestment": { slot: "chest", tier: 4, bonuses: { magic: 4 }, effects: ["conduit_ease"], source: "faction", set: "Kabal" },
   "a luminous queen-carapace cuirass": { slot: "chest", tier: 4, bonuses: { def: 3, magic: 1 }, effects: ["corrosionproof", "spell_ward"], source: "contract" },
+  // Test entry for the new tier-4 shop pricing — see "a masterwork
+  // blade" above.
+  "a reinforced cuirass": { slot: "chest", tier: 4, bonuses: { def: 4 }, source: "shop" },
 
   // Gloves
   "fingerless bowman's gloves": { slot: "gloves", tier: 1, bonuses: { atk: 1 }, source: "shop" },
@@ -322,6 +330,9 @@ const ITEM_DEFS = {
   "a rotating Sahrimori contract-ring": { slot: "rings", tier: 4, bonuses: { knowledge: 4 }, effects: ["merchants_eye", "trailwise"], source: "contract" },
   "a Kabal river-calibration ring": { slot: "rings", tier: 4, bonuses: { magic: 4 }, effects: ["elemental_focus"], source: "faction", set: "Kabal" },
   "a blood-dark legion champion's ring": { slot: "rings", tier: 4, bonuses: { atk: 4 }, effects: ["executioner"], source: "monster" },
+  // Test entry for the new tier-4 shop pricing — see "a masterwork
+  // blade" above.
+  "a scholar's band": { slot: "rings", tier: 4, bonuses: { knowledge: 4 }, source: "shop" },
 
   // Necklace
   "an iron soldier's identification chain": { slot: "necklace", tier: 1, bonuses: { def: 1 }, source: "monster" },
@@ -2050,17 +2061,23 @@ function dismantleComponents(item) {
   return genericDismantleFallback(def ? def.tier : 1);
 }
 
-// Shop pricing (engine/shop.js). Buy price scales quadratically with
-// tier — 20/80/180/320/500/720/980/1280 gold for tiers 1-8, though shop
-// STOCK is currently only ever tier 1-3 (see items above's source:"shop"
-// entries); a player's own tier 4+ loot is still sellable at that same
-// formula's rate. Merchant's Eye (a long-authored-but-inert effect on
+// Shop pricing (engine/shop.js). Buy price scales CUBICALLY with tier —
+// 20/160/540/1,280/2,500/4,320/6,860/10,240 gold for tiers 1-8 — steeper
+// than the old quadratic curve on purpose: the economy simulation showed
+// tiers 2-4 pricing had income outrunning it (tier-3-across-all-slots
+// saturation by level 10, ~29,000g sitting idle at level 25). Tier 1
+// deliberately keeps the same value either formula gives it (20g) — early
+// game (levels 1-5) was already confirmed healthy and isn't the target
+// here. Shop STOCK was only ever tier 1-3 until the tier-4 entries added
+// alongside this change (see items above's source:"shop" entries) — a
+// player's own tier 4+ loot is still sellable at this same formula's
+// rate regardless. Merchant's Eye (a long-authored-but-inert effect on
 // several items — "Shop purchase prices -5%, sale prices +5%") and its
 // Sahrimor 2pc upgrade to 10% are the only price modifiers.
 function shopBuyPrice(itemName, state) {
   const def = getItemDef(itemName);
   if (!def) return null;
-  const base = 20 * def.tier * def.tier;
+  const base = 20 * def.tier * def.tier * def.tier;
   const discount = state ? merchantsEyeRate(state) : 0;
   return Math.max(1, Math.round(base * (1 - discount)));
 }
@@ -2072,7 +2089,7 @@ const SHOP_SELL_RATE = 0.4;
 function shopSellPrice(itemName, state) {
   const def = getItemDef(itemName);
   if (!def || def.slot === "ritual") return null;
-  const base = Math.round(20 * def.tier * def.tier * SHOP_SELL_RATE);
+  const base = Math.round(20 * def.tier * def.tier * def.tier * SHOP_SELL_RATE);
   const bonus = state ? merchantsEyeRate(state) : 0;
   return Math.max(1, Math.round(base * (1 + bonus)));
 }
