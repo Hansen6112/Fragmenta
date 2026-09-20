@@ -2083,13 +2083,23 @@ function shopBuyPrice(itemName, state) {
 }
 
 const SHOP_SELL_RATE = 0.4;
+// v2 follow-up: sell price deliberately stays on the OLD quadratic base
+// (20*tier^2), NOT the new cubic buy-price curve above — the first pass
+// let it inherit the cube ("no separate change needed"), and the
+// simulation showed that was the actual problem: it made selling a
+// displaced item proportionally more lucrative at the same rate buying
+// got more expensive, so the greedy upgrade loop's buy-then-sell cycle
+// cancelled out most of the intended sink (cumulative resale income came
+// in 3.3x higher than the old formula, and idle gold at level 25 rose
+// instead of falling). Decoupling this is the fix being tested: buy price
+// is the real lever now, sell price no longer moves with it.
 // Ritual items (slot: "ritual", e.g. "a shard of returning breath")
 // aren't sellable — they're a rare quest resource, not commodity gear;
 // see engine/parser.js's cmdEquip for the same exclusion on the equip side.
 function shopSellPrice(itemName, state) {
   const def = getItemDef(itemName);
   if (!def || def.slot === "ritual") return null;
-  const base = Math.round(20 * def.tier * def.tier * def.tier * SHOP_SELL_RATE);
+  const base = Math.round(20 * def.tier * def.tier * SHOP_SELL_RATE);
   const bonus = state ? merchantsEyeRate(state) : 0;
   return Math.max(1, Math.round(base * (1 + bonus)));
 }
