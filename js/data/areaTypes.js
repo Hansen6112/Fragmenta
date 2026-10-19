@@ -38,6 +38,9 @@ const AREA_TYPES = {
   ruins: { services: [], commands: ["explore", "search"], safe: false },
   wilderness: { services: [], commands: ["explore", "search", "flee"], safe: false },
   landmark: { services: [], commands: ["look", "examine"], safe: true },
+  // sunken_archive (world.js) has used type "dungeon" since Dungeon Delve
+  // landed, but no such type existed, so its command hints came back empty.
+  dungeon: { services: [], commands: ["look", "delve"], safe: false },
 };
 
 // A place's actual services: whatever it declares itself, else its
