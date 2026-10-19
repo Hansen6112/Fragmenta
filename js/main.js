@@ -1570,6 +1570,7 @@ async function handleBootInput(raw) {
       if (state) {
         bootStage = "playing";
         print(`Welcome back, ${state.playerName}. Day ${state.day}.`, "system");
+        (state.loadWarnings || []).forEach((w) => print(w, "danger"));
         printLines(cmdLook(state));
         return;
       }

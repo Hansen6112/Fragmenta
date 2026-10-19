@@ -285,6 +285,20 @@ function generateBoardJobs(locId) {
 
 let _jobIdCounter = 1;
 
+// Called from GameState.fromJSON: moves the counter past every job id
+// already present in a loaded save, so a fresh page load can't mint a
+// duplicate "job_3" alongside a saved one.
+function reseedJobIdCounter(state) {
+  let max = 0;
+  const scan = (job) => {
+    const m = /^job_(\d+)$/.exec((job && job.id) || "");
+    if (m) max = Math.max(max, Number(m[1]));
+  };
+  (state.activeJobs || []).forEach(scan);
+  for (const board of Object.values(state.boards || {})) (board.jobs || []).forEach(scan);
+  _jobIdCounter = Math.max(_jobIdCounter, max + 1);
+}
+
 function makeBountyJob(boardLocationId, difficulty) {
   const loc = LOCATIONS[boardLocationId];
   const flavor = BOUNTY_FLAVOR[difficulty][Math.floor(Math.random() * BOUNTY_FLAVOR[difficulty].length)];

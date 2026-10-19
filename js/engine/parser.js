@@ -312,8 +312,7 @@ async function handleInput(rawInput, state) {
     case "help":
       return cmdHelp();
     case "save":
-      state.save();
-      return ["Game saved."];
+      return [state.save() ? "Game saved." : "The game could not be saved — your browser refused to store it. Your previous save is untouched."];
     default:
       return ["That's not a command this world responds to. Everything here is menu- or button-driven — check what's available to you."];
   }

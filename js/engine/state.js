@@ -28,6 +28,58 @@ function fatigueTier(state) {
   return fatigueTierForDays(state.day - state.lastSleptDay);
 }
 
+// Save format version, stamped into every save by toJSON. Bump it whenever
+// the save shape changes in a way fromJSON needs to know about.
+const SAVE_KEY = "fragmenta_save";
+const SAVE_VERSION = 2;
+
+// Renamed registry keys: { oldId: newId }. Whenever a LOCATIONS or
+// ALLY_DEFS key is renamed (the sylmae/sylmere, orethmare/drathmere class
+// of fix), add the old -> new pair here so existing saves follow the rename
+// instead of pointing at an id that no longer exists (which crashes every
+// command that reads currentLocation()).
+const SAVE_KEY_MIGRATIONS = {
+  locations: {},
+  allies: {},
+};
+
+// Single source of truth for the nested state objects that used to be
+// spelled out separately in the constructor, applyCreation, and fromJSON.
+// fromJSON merges a save's copy over these, so a save written before a
+// sub-field existed still gets that field's default instead of undefined.
+function defaultArenaState() {
+  return {
+    participant: false, // gated by talking to the Game Master at Zuevaron's Grand Ovum
+    reputation: 0,
+    rank: "copper",
+    streak: 0, // consecutive wins — resets to 0 on any loss
+    championDefeated: false,
+    championHintGiven: false, // gates the "you've earned a shot at the Champion" line to once
+    tournamentRound: 0, // >0 while mid-tournament — 0 means no tournament in progress
+    tournamentTotal: 0,
+    tournamentPurseAccrued: 0, // gold banked so far this tournament, doubled on a full clear
+  };
+}
+
+function defaultKabalRoute() {
+  return {
+    engagementCount: 0, // +1 per completed quest flagged Kabal-story (none exist yet)
+    supportedKabal: false,
+    attemptedConspirator: false,
+    turnedCabalAgainstPrimus: false,
+    killedPrimusInAmbush: false,
+    civilWarWon: false,
+    rallyShardsCollected: false,
+    rallyShardsTurnedIn: false,
+    activelyOpposedCabal: false,
+    huntedCabalMembers: false,
+    collectedAnyShards: false,
+    shardsHandedOver: false,
+    foughtBack: false,
+    terminalReached: null, // set once, by either the Override or the one-time gate — see checkMajorisOverride/evaluateMainQuestGate
+  };
+}
+
 class GameState {
   constructor() {
     this.playerName = "Wanderer";
@@ -110,22 +162,7 @@ class GameState {
     // null until either the Global Override fires (checked continuously,
     // can happen at any point in play) or the one-time gate is evaluated
     // — once set, it never changes.
-    this.kabalRoute = {
-      engagementCount: 0, // +1 per completed quest flagged Kabal-story (none exist yet)
-      supportedKabal: false,
-      attemptedConspirator: false,
-      turnedCabalAgainstPrimus: false,
-      killedPrimusInAmbush: false,
-      civilWarWon: false,
-      rallyShardsCollected: false,
-      rallyShardsTurnedIn: false,
-      activelyOpposedCabal: false,
-      huntedCabalMembers: false,
-      collectedAnyShards: false,
-      shardsHandedOver: false,
-      foughtBack: false,
-      terminalReached: null, // set once, by either the Override or the one-time gate — see checkMajorisOverride/evaluateMainQuestGate
-    };
+    this.kabalRoute = defaultKabalRoute();
     // Investigate mini-game (engine/investigations.js). activeInvestigation
     // is structured data (not under flags — same reasoning as activeTrack/
     // activeDungeon/kabalRoute above), null outside a conversation:
@@ -146,17 +183,7 @@ class GameState {
     // hidden 0-100 tracker, entirely separate from the nation `reputation`
     // above; only ever shown to the player through the rank it crosses
     // into, never as a raw number.
-    this.arena = {
-      participant: false, // gated by talking to the Game Master at Zuevaron's Grand Ovum
-      reputation: 0,
-      rank: "copper",
-      streak: 0, // consecutive wins — resets to 0 on any loss
-      championDefeated: false,
-      championHintGiven: false, // gates the "you've earned a shot at the Champion" line to once
-      tournamentRound: 0, // >0 while mid-tournament — 0 means no tournament in progress
-      tournamentTotal: 0,
-      tournamentPurseAccrued: 0, // gold banked so far this tournament, doubled on a full clear
-    };
+    this.arena = defaultArenaState();
   }
 
   // Adds a new party member from ALLY_DEFS, at the player's current level,
@@ -230,10 +257,7 @@ class GameState {
     this.soulLedgerDefBonus = 0;
     this.archiveEternalSeen = [];
     this.archiveEternalKnowledgeBonus = 0;
-    this.arena = {
-      participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false,
-      championHintGiven: false, tournamentRound: 0, tournamentTotal: 0, tournamentPurseAccrued: 0,
-    };
+    this.arena = defaultArenaState();
     this.stealthMod = cls.stealthMod || 0;
     this.gold = origin.gold;
     this.inventory = [...origin.inventory];
@@ -415,6 +439,7 @@ class GameState {
 
   toJSON() {
     return {
+      saveVersion: SAVE_VERSION,
       playerName: this.playerName,
       race: this.race,
       origin: this.origin,
@@ -438,6 +463,17 @@ class GameState {
       primaryElement: this.primaryElement,
       secondaryElement: this.secondaryElement,
       tertiaryElement: this.tertiaryElement,
+      // Permanent Artifact/Divine Regalia progression — recomputeStats folds
+      // these into atk/def/maxHealth/magic/knowledge, so leaving them out of
+      // the save wiped them on the first recompute after every load.
+      battleScholarBonus: this.battleScholarBonus,
+      livingLegacyBonus: this.livingLegacyBonus,
+      soulLedgerCount: this.soulLedgerCount,
+      soulLedgerHealthBonus: this.soulLedgerHealthBonus,
+      soulLedgerMagicBonus: this.soulLedgerMagicBonus,
+      soulLedgerDefBonus: this.soulLedgerDefBonus,
+      archiveEternalSeen: this.archiveEternalSeen,
+      archiveEternalKnowledgeBonus: this.archiveEternalKnowledgeBonus,
       stealthMod: this.stealthMod,
       gold: this.gold,
       inventory: this.inventory,
@@ -480,10 +516,49 @@ class GameState {
     // the constructor's own default already covers that (Object.assign
     // above never touched it). A save mid-arena-development missing just
     // one newer sub-field still gets that field's default filled in.
-    s.arena = Object.assign({
-      participant: false, reputation: 0, rank: "copper", streak: 0, championDefeated: false,
-      championHintGiven: false, tournamentRound: 0, tournamentTotal: 0, tournamentPurseAccrued: 0,
-    }, data.arena || {});
+    s.arena = Object.assign(defaultArenaState(), data.arena || {});
+    // Same treatment for the routing-tree flags and faction meters: a save
+    // from before a flag/faction existed gets its default, never undefined
+    // (undefined + 1 is NaN, and a NaN engagementCount can never reach
+    // KABAL_STORY_QUEST_THRESHOLD).
+    s.kabalRoute = Object.assign(defaultKabalRoute(), data.kabalRoute || {});
+    s.reputation = Object.assign(initialReputation(), data.reputation || {});
+    for (const id of Object.keys(s.reputation)) {
+      const v = Number(s.reputation[id]);
+      s.reputation[id] = Number.isFinite(v) ? Math.max(-100, Math.min(100, v)) : 0;
+    }
+    // Non-fatal problems found while loading, for main.js to print once.
+    s.loadWarnings = [];
+    // Renamed location/ally keys (SAVE_KEY_MIGRATIONS above), then a hard
+    // fallback if the location still doesn't exist — otherwise every
+    // command that reads currentLocation() throws.
+    const locMap = SAVE_KEY_MIGRATIONS.locations;
+    if (locMap[s.location]) s.location = locMap[s.location];
+    if (!getLocation(s.location)) {
+      const origin = ORIGINS[s.origin];
+      const fallback = origin && getLocation(origin.startLocation) ? origin.startLocation : "zuevaron";
+      s.loadWarnings.push(`Your saved location ("${s.location}") no longer exists; you've been moved to ${getLocation(fallback).name}.`);
+      s.location = fallback;
+      s.subLocation = null;
+    }
+    const allyMap = SAVE_KEY_MIGRATIONS.allies;
+    s.party = (data.party || []).map((a) => (allyMap[a.defId] ? { ...a, defId: allyMap[a.defId] } : a)).filter((a) => {
+      if (ALLY_DEFS[a.defId]) return true;
+      s.loadWarnings.push(`A companion in this save ("${a.name || a.defId}") no longer exists and was removed from the party.`);
+      return false;
+    });
+    s.fallenAllies = (data.fallenAllies || []).map((f) => (allyMap[f.defId] ? { ...f, defId: allyMap[f.defId] } : f));
+    // A NaN anywhere in a stat serializes as null — never let that load
+    // back in as a 0-Health or null-Health character.
+    if (!Number.isFinite(s.health)) s.health = Number.isFinite(s.maxHealth) ? s.maxHealth : BASE_HEALTH;
+    s.party.forEach((a) => {
+      if (!Number.isFinite(a.health)) a.health = Number.isFinite(a.maxHealth) ? a.maxHealth : BASE_HEALTH;
+    });
+    // data/jobs.js's id counter is module state, not saved state — on a
+    // fresh page load it restarts at 1 and would mint ids that collide with
+    // jobs already in this save (the job.completed listener filters by id,
+    // so completing one would silently delete the other).
+    reseedJobIdCounter(s);
     // Normalizes away anything that can't be a valid current sublocation:
     // saves from before this existed (undefined), a city that's never had
     // sublocations, or a stale id left over from a since-changed city.
@@ -491,7 +566,7 @@ class GameState {
     if (!cityAtLoad || !cityAtLoad.sublocations || !cityAtLoad.sublocations[s.subLocation]) {
       s.subLocation = null;
     }
-    s.visited = new Set(data.visited || []);
+    s.visited = new Set((data.visited || []).map((id) => locMap[id] || id));
     // Saves from before the Lore tab's Enemies category existed have no
     // encounteredCreatures at all — defaults to empty, same as a fresh
     // game (they just won't see past fights retroactively added).
@@ -513,30 +588,45 @@ class GameState {
     return s;
   }
 
+  // Returns true on success. Keeps the previous save under a backup key so
+  // one bad write (or a corrupt save) never costs the whole journey.
   save() {
-    localStorage.setItem("fragmenta_save", JSON.stringify(this.toJSON()));
-  }
-
-  static load() {
-    const raw = localStorage.getItem("fragmenta_save");
-    if (!raw) return null;
     try {
-      const data = JSON.parse(raw);
-      // Pre-Race/Origin/Class saves (the old single `background` field)
-      // are an intentional breaking change, not a migration target — see
-      // data/origins.js's header. Treat one as if no save exists at all
-      // rather than let fromJSON's blanket Object.assign hand back a
-      // GameState with no race/class and crash the first time
-      // recomputeStats runs.
-      if (!data.race || !data.class) return null;
-      return GameState.fromJSON(data);
+      const previous = localStorage.getItem(SAVE_KEY);
+      if (previous) localStorage.setItem(SAVE_KEY + "_backup", previous);
+      localStorage.setItem(SAVE_KEY, JSON.stringify(this.toJSON()));
+      return true;
     } catch (e) {
-      return null;
+      console.error("Fragmenta: save failed", e);
+      return false;
     }
   }
 
+  static load() {
+    for (const key of [SAVE_KEY, SAVE_KEY + "_backup"]) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const data = JSON.parse(raw);
+        // Pre-Race/Origin/Class saves (the old single `background` field)
+        // are an intentional breaking change, not a migration target — see
+        // data/origins.js's header. Treat one as if no save exists at all
+        // rather than let fromJSON's blanket Object.assign hand back a
+        // GameState with no race/class and crash the first time
+        // recomputeStats runs.
+        if (!data.race || !data.class) return null;
+        const s = GameState.fromJSON(data);
+        if (key !== SAVE_KEY) s.loadWarnings.push("Your main save was unreadable; the previous save was loaded instead.");
+        return s;
+      } catch (e) {
+        console.error(`Fragmenta: could not load ${key}`, e);
+      }
+    }
+    return null;
+  }
+
   static hasSave() {
-    const raw = localStorage.getItem("fragmenta_save");
+    const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     try {
       const data = JSON.parse(raw);
