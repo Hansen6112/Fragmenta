@@ -90,6 +90,7 @@ const LOCATIONS = {
       { to: "arethon", days: 4, mode: "road", desc: "the Sanguivorum road north" },
       { to: "the_arbor", days: 5, mode: "river", desc: "downriver into Vaeloris" },
       { to: "sahurim", days: 6, mode: "road", desc: "the desert road east" },
+      { to: "zuevaron", days: 4, mode: "road" }, // return edge — zuevaron already listed kabal_tower
     ],
   },
 
@@ -7032,6 +7033,7 @@ const LOCATIONS = {
       { to: "kharzun", days: 12, mode: "road", desc: "canyon terrain, pack animals only" },
       { to: "zypherra", days: 8, mode: "road" },
       { to: "thalvora", days: 10, mode: "road" },
+      { to: "arethon", days: 13, mode: "road", desc: "the bridge road, through the Desert War front" }, // return edge — arethon already listed sahurim
     ],
     sublocations: {
       tavern: {
@@ -7067,6 +7069,7 @@ const LOCATIONS = {
       { to: "sahurim", days: 17, mode: "road" },
       { to: "kolven", days: 1, mode: "bridge", desc: "toll and inspection, no bypass" },
       { to: "black_sands", days: 4, mode: "road", desc: "no guide will take you further than the edge" },
+      { to: "zypherra", days: 6, mode: "road" }, // return edge — zypherra already listed nyssara
     ],
   },
   // Sahrimor's southern cursed territory — established in the Master
@@ -7206,7 +7209,9 @@ const LOCATIONS = {
     danger: 3,
     services: ["rest", "shop"],
     description: "A transitional waypoint city, still solid ground, the volcanic interior's danger a rumor here rather than a daily fact.",
-    connections: [{ to: "khar_veth", days: 4, mode: "road" }, { to: "vorreth", days: 5, mode: "road" }],
+    // drak_torr added: Drak-Torr listed Thurak but Thurak never listed it
+    // back, which left Drak-Torr and Skorrvel unreachable from anywhere.
+    connections: [{ to: "khar_veth", days: 4, mode: "road" }, { to: "vorreth", days: 5, mode: "road" }, { to: "drak_torr", days: 4, mode: "road" }],
   },
   velm: {
     name: "Velm",
@@ -7216,7 +7221,11 @@ const LOCATIONS = {
     danger: 4,
     services: ["rest"],
     description: "A dwarven town on the edge of the true volcanic interior, where every local knows exactly which ground is safe and shares that knowledge with almost no one.",
-    connections: [{ to: "khar_veth", days: 5, mode: "road" }, { to: "khar_dunn", days: 6, mode: "volcanic", desc: "guide required" }],
+    connections: [
+      { to: "khar_veth", days: 5, mode: "road" },
+      { to: "khar_dunn", days: 6, mode: "volcanic", desc: "guide required" },
+      { to: "skorrvel", days: 4, mode: "road" }, // return edge — skorrvel already listed velm
+    ],
   },
   vorreth: {
     name: "Vorreth",
