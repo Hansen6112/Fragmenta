@@ -156,7 +156,29 @@ function markKabalStoryQuestCompleted(state) {
 // persisted to terminalReached, since it's a routing destination, not a
 // final result; this is what actually sets the permanent terminal.
 function resolveGauntletOutcome(state, won) {
+  // Same "set once, never changes" rule as everywhere else — without this
+  // guard a Gauntlet result could overwrite a TERMINAL_THIRTEENTH the
+  // Global Override had already locked in.
+  if (state.kabalRoute.terminalReached) return state.kabalRoute.terminalReached;
   state.kabalRoute.terminalReached = won ? KABAL_ROUTE_TERMINALS.GAUNTLET_WIN : KABAL_ROUTE_TERMINALS.GAUNTLET_LOSE;
+  return state.kabalRoute.terminalReached;
+}
+
+// The ONE place a Fragmenta shard is ever granted. Shard ownership used to
+// live in three unconnected spots — state.knownFragments (count),
+// state.flags.hasFragmentMotus (never read), and kabalRoute.
+// collectedAnyShards (read by the routing gate, never set) — so a player
+// who found shards still routed as if they never had. `source` is a short
+// label for whatever later needs to know where shards came from.
+// NOTE for Tyler: confirm Fragmenta Motus finds should count toward the
+// routing tree's "collected any shards" branch; if only Majoris-tier
+// shards should, drop the collectedAnyShards line and set it from that
+// content instead.
+function grantFragmentShard(state, source) {
+  state.knownFragments += 1;
+  state.flags.hasFragmentMotus = true;
+  state.kabalRoute.collectedAnyShards = true;
+  Events.emit("fragment.acquired", { state, source: source || "unknown", total: state.knownFragments });
 }
 
 // The full tree, evaluated once at whatever instant this is called — see

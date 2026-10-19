@@ -125,8 +125,7 @@ function resolveJob(state, job) {
   lines.push(...state.gainXp(xpFromJob(job)));
 
   if (job.fragmentChance && Math.random() < job.fragmentChance && state.knownFragments < 3) {
-    state.knownFragments += 1;
-    state.flags.hasFragmentMotus = true;
+    grantFragmentShard(state, `job:${job.id}`);
     lines.push("Wrapped in with the payment is something else — a dull grey shard, warm to the touch. A Fragmenta Motus. You didn't expect that.");
   } else if (job.loot) {
     state.inventory.push(job.loot);

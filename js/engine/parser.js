@@ -5,6 +5,11 @@
  * layer (engine/generator.js) instead of a hard error.
  */
 
+// Dev/test-only commands (today just 'kabalroute', whose 'confirm' step
+// PERMANENTLY locks a save's ending) only respond with ?dev in the page
+// URL — otherwise any player who stumbles on the word can lock theirs.
+const DEV_MODE = typeof location !== "undefined" && /[?&]dev\b/.test(location.search || "");
+
 const VERB_SYNONYMS = {
   look: ["look", "l", "observe"],
   go: ["go", "travel", "walk", "head", "move", "enter", "return"],
@@ -203,6 +208,7 @@ async function handleInput(rawInput, state) {
     case "delve":
       return enterDungeon(state, state.location);
     case "kabalroute":
+      if (!DEV_MODE) return ["That's not a command this world responds to. Everything here is menu- or button-driven — check what's available to you."];
       return cmdKabalRoute(arg, state);
     case "investigate":
       return cmdInvestigate(state);
@@ -2141,8 +2147,7 @@ function exploreOutcome(state) {
     return [`You search ${where} and turn up ${gold} gold someone else lost track of.`, ...state.gainXp(5)];
   }
   if (roll < 0.62 && !state.knownFragments && loc.danger >= 3) {
-    state.knownFragments += 1;
-    state.flags.hasFragmentMotus = true;
+    grantFragmentShard(state, "explore");
     return [
       "Something in the dirt catches the light wrong. You dig it free: a piece of dull, grey stone, warm to the touch though the ground around it is cold.",
       "It doesn't look like much. You suspect that's the point. (a Fragmenta Motus — the smallest tier, the kind even the gods don't notice)",
