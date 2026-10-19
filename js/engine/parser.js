@@ -1101,7 +1101,8 @@ function cmdSendAllyHome(arg, state) {
   const ally = findDeadAllyPendingChoice(state, words.join(" ").trim());
   if (!ally) return ["No one needs sending home right now."];
   ally.pendingBodyChoice = false;
-  state.fallenAllies.push({ defId: ally.defId, name: ally.name, level: ally.level, diedDay: state.day });
+  state.fallenAllies.push({ defId: ally.defId, name: ally.name, level: ally.level, diedDay: state.day, relationship: ally.relationship || 0 });
+  resolveAllyDeath(state, ally.defId, "sanctuary");
   state.party = state.party.filter((a) => a !== ally);
   return [
     `You carry ${ally.name}'s body to the Sanctuary and lay them to rest among the others waiting for a second chance.`,
@@ -1111,6 +1112,7 @@ function cmdSendAllyHome(arg, state) {
 
 function cmdLeaveAllyBody(ally, state) {
   ally.pendingBodyChoice = false;
+  resolveAllyDeath(state, ally.defId, "left");
   state.party = state.party.filter((a) => a !== ally);
   return [`You leave ${ally.name} where they fell. Whatever comes next for them, it won't be your doing.`];
 }
@@ -1231,10 +1233,18 @@ function cmdRevive(arg, state) {
         `or ${DIVINE_FAVOR_REVIVAL_THRESHOLD} favor with the god of Death and Renewal (currently ${state.divineFavor}, raised with 'pray').`,
     ];
   }
+  // Verify the revival can actually succeed BEFORE spending anything —
+  // previously the shard/favor and the Sanctuary entry were consumed first,
+  // so a failed recruitAlly (renamed ALLY_DEFS key, ally somehow already in
+  // the party) destroyed both and left nothing to retry with.
+  if (!ALLY_DEFS[fallen.defId] || state.party.some((a) => a.defId === fallen.defId)) {
+    return [`Something went wrong bringing ${fallen.name} back. Nothing was spent.`];
+  }
+  const ally = state.recruitAlly(fallen.defId, { revived: true, relationship: fallen.relationship });
   if (method === "item") state.inventory.splice(ritualIdx, 1);
   else if (method === "favor") state.divineFavor -= DIVINE_FAVOR_REVIVAL_THRESHOLD;
   state.fallenAllies.splice(idx, 1);
-  const ally = state.recruitAlly(fallen.defId);
+  resolveAllyDeath(state, fallen.defId, "revived");
 
   const lines = [`${fallen.name} draws breath again. It is not a gentle thing to watch.`];
   if (method === "rite") lines.push("The Rite of Second Breath holds true.");

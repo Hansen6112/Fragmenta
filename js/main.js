@@ -1763,6 +1763,7 @@ async function runCommand(commandText, echoText) {
         jobMode = true;
       }
       if (state.health <= 0) {
+        recordPlayerDeath(state);
         print("");
         print("Your journey ends here. Refresh the page to begin again.", "danger");
         gameOver = true;

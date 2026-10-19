@@ -2096,6 +2096,13 @@ function killAlly(state, ally) {
 // fall — nothing about it requires the wearer to still be alive, and it
 // doesn't contribute anything to what's printed, so it's a clean first
 // real listener rather than staying hardwired inside killAlly itself.
+// Listener: every ally death goes on the run's permanent deathLog
+// (engine/state.js) — including ones later left behind, which otherwise
+// left no trace anywhere once the body was dealt with.
+Events.on("ally.died", ({ ally, state }) => {
+  recordDeath(state, { kind: "ally", defId: ally.defId, name: ally.name, relationship: ally.relationship || 0 });
+});
+
 Events.on("ally.died", ({ ally, state }) => {
   for (const slot of EQUIP_SLOTS) {
     if (slot === "trinkets") {

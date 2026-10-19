@@ -177,7 +177,16 @@ class GameState {
     this.boards = {}; // locationId -> { jobs: [...], lastRefresh: day }
     this.shops = {}; // locationId -> { stock: [...itemNames], lastRefresh: day } — see engine/shop.js
     this.party = []; // recruited allies — see recruitAlly/recomputeAllyStats below
-    this.fallenAllies = []; // { defId, name, level, diedDay } — bodies sent to the Sanctuary, awaiting revival (see parser.js)
+    this.fallenAllies = []; // { defId, name, level, diedDay, relationship } — bodies sent to the Sanctuary, awaiting revival (see parser.js)
+    // Append-only record of every death in this run — player and allies —
+    // for anything that later needs to know what happened (the multi-ending
+    // gate, companion epilogues). Entries: { id, kind: "player"|"ally",
+    // defId?, name, day, location, cause, resolution? }. Never pruned:
+    // reviving an ally adds a resolution, it doesn't erase the death.
+    this.deathLog = [];
+    // Stable identity for this character across saves/reloads, so the
+    // separate death ledger (recordPlayerDeath) can be matched back to it.
+    this.runId = null;
     this.divineFavor = 0; // standing with the Pantheon's god of Death and Renewal — one of three revival paths
     // The Grand Ovum (engine/arena.js) — Ovum Reputation ("Fame") is a
     // hidden 0-100 tracker, entirely separate from the nation `reputation`
@@ -191,7 +200,11 @@ class GameState {
   // adds nothing) if that ally is already in the party or the id is
   // unknown — the caller (parser.js's cmdRecruit) is responsible for any
   // recruitment gating; this just does the actual joining.
-  recruitAlly(defId) {
+  // `opts.revived`: a Sanctuary revival (parser.js's cmdRevive) — skips the
+  // ally's starting gear (it already went back to the pack when they fell;
+  // re-issuing it duplicated it on every death/revive cycle) and restores
+  // the relationship value they had when they died.
+  recruitAlly(defId, opts = {}) {
     if (!ALLY_DEFS[defId] || this.party.some((a) => a.defId === defId)) return null;
     const ally = {
       defId,
@@ -205,7 +218,7 @@ class GameState {
       // Raised by shared experience (engine/jobs.js's job.completed
       // listener, for now); nothing currently reads it for a reveal —
       // that's future companion-quest work, not built yet.
-      relationship: 0,
+      relationship: opts.relationship || 0,
       // Crafted-potion buffs used on this ally (see engine/combat.js's
       // applyConsumableEffectToAlly and companion.js's allyBuffStatTotal/
       // tickAllyBuffs) — keyed by stat, same { amount, turnsLeft } shape
@@ -220,7 +233,7 @@ class GameState {
     // their own signature gear rather than starting empty-handed like
     // Kessa; recomputeAllyStats below picks its stat bonuses up normally
     // through the usual equipmentBonus() path.
-    if (ALLY_DEFS[defId].startingEquipment) {
+    if (ALLY_DEFS[defId].startingEquipment && !opts.revived) {
       Object.assign(ally.equipment, ALLY_DEFS[defId].startingEquipment);
     }
     recomputeAllyStats(ally, this.level);
@@ -258,6 +271,8 @@ class GameState {
     this.archiveEternalSeen = [];
     this.archiveEternalKnowledgeBonus = 0;
     this.arena = defaultArenaState();
+    this.runId = "run_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+    this.deathLog = [];
     this.stealthMod = cls.stealthMod || 0;
     this.gold = origin.gold;
     this.inventory = [...origin.inventory];
@@ -502,6 +517,8 @@ class GameState {
       fallenAllies: this.fallenAllies,
       divineFavor: this.divineFavor,
       arena: this.arena,
+      runId: this.runId,
+      deathLog: this.deathLog,
     };
   }
 
@@ -559,6 +576,15 @@ class GameState {
     // jobs already in this save (the job.completed listener filters by id,
     // so completing one would silently delete the other).
     reseedJobIdCounter(s);
+    // Player deaths are never in the save itself (the game stops before
+    // another save can happen) — pull them back in from the durable ledger
+    // so reloading an earlier save doesn't erase that the death happened.
+    if (!Array.isArray(s.deathLog)) s.deathLog = [];
+    if (!s.runId) s.runId = "run_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8); // pre-ledger save
+    const known = new Set(s.deathLog.map((d) => d.id));
+    for (const entry of readDeathLedger()) {
+      if (entry.runId === s.runId && !known.has(entry.id)) s.deathLog.push({ ...entry, reloadedFromEarlierSave: true });
+    }
     // Normalizes away anything that can't be a valid current sublocation:
     // saves from before this existed (undefined), a city that's never had
     // sublocations, or a stale id left over from a since-changed city.
@@ -633,6 +659,65 @@ class GameState {
       return !!(data.race && data.class);
     } catch (e) {
       return false;
+    }
+  }
+}
+
+// ---- Death tracking ----
+
+const DEATH_LEDGER_KEY = "fragmenta_death_ledger";
+
+function readDeathLedger() {
+  try {
+    const raw = localStorage.getItem(DEATH_LEDGER_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function recordDeath(state, entry) {
+  const full = {
+    id: "death_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6),
+    day: state.day,
+    location: state.location,
+    cause: state.combat ? state.combat.name || null : null,
+    ...entry,
+  };
+  state.deathLog.push(full);
+  return full;
+}
+
+// Called by main.js the moment the player's Health hits 0. Writes to the
+// run's deathLog AND to a separate append-only localStorage ledger keyed
+// by runId — so the death survives "refresh and load the last save"
+// without this function deciding the permadeath question (it never
+// touches the save slot itself).
+function recordPlayerDeath(state) {
+  const entry = recordDeath(state, { kind: "player", name: state.playerName });
+  try {
+    const ledger = readDeathLedger();
+    ledger.push({ runId: state.runId, ...entry });
+    localStorage.setItem(DEATH_LEDGER_KEY, JSON.stringify(ledger));
+  } catch (e) {
+    console.error("Fragmenta: could not write death ledger", e);
+  }
+  return entry;
+}
+
+function playerDeathCount(state) {
+  return state.deathLog.filter((d) => d.kind === "player").length;
+}
+
+// Marks the most recent unresolved death of this ally with what the player
+// chose ("sanctuary" | "left") or what happened later ("revived").
+function resolveAllyDeath(state, defId, resolution) {
+  for (let i = state.deathLog.length - 1; i >= 0; i--) {
+    const d = state.deathLog[i];
+    if (d.kind === "ally" && d.defId === defId && (!d.resolution || resolution === "revived")) {
+      d.resolution = resolution;
+      return;
     }
   }
 }
