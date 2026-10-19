@@ -1770,6 +1770,12 @@ async function runCommand(commandText, echoText) {
         return;
       }
     }
+  } catch (e) {
+    // Without this, any exception inside a command (e.g. a save pointing at
+    // a since-renamed location) vanished into an unhandled promise
+    // rejection: no output, no error, the game just stopped responding.
+    console.error("Fragmenta: command failed", commandText, e);
+    print("Something broke while running that command (details are in the browser console). Your last save is unaffected.", "danger");
   } finally {
     renderActiveTab();
     renderModals();

@@ -1978,7 +1978,9 @@ function cmdQuests(state) {
   }
   lines.push("Word on the road:");
   for (const q of QUEST_HOOKS) {
-    if (q.trigger === "start" || state.flags[q.trigger]) lines.push("- " + q.text);
+    // "kabal_tower" was never a flag anything sets — it's a location id, so
+    // that hook could never appear. Location-id triggers fire on a visit.
+    if (q.trigger === "start" || state.flags[q.trigger] || state.visited.has(q.trigger)) lines.push("- " + q.text);
   }
   return lines;
 }
