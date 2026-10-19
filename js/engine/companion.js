@@ -265,11 +265,6 @@ function allyBuffStatTotal(ally, statKey) {
   const entry = buffs[statKey];
   return entry ? entry.amount : 0;
 }
-function allyBuffStatTotal(ally, statKey) {
-  const buffs = ally.buffs || {};
-  const entry = buffs[statKey];
-  return entry ? entry.amount : 0;
-}
 
 // Ages every active crafted-potion buff on one ally down by a round,
 // deleting it once its turns run out — mirrors combat.js's

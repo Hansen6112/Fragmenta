@@ -48,9 +48,12 @@ const HABITAT_TAGS = [
 // poolable — same `group` alone isn't enough (a `wild`/wolf shouldn't pool
 // with a `magical`/wolf-flavored construct just because they share the
 // narrower label).
+// Vocabulary only (nothing at runtime reads it) — checked by
+// tools/audit.js. "undead" and "construct" were missing even though 28
+// bestiary creatures use them.
 const CREATURE_FACTIONS = [
   "wild", "magical", "unnaturals", "kabal", "sanguivorum", "vaeloris",
-  "thraekor", "norrvael", "sahrimor", "neutral",
+  "thraekor", "norrvael", "sahrimor", "neutral", "undead", "construct",
 ];
 
 // spawnGroup -> whether/how a creature groups at spawn time. Undefined
@@ -60,8 +63,7 @@ const CREATURE_FACTIONS = [
 // and "squad" (organized humanoids) are functionally identical — both just
 // mean "eligible to pool with same-faction/same-group creatures" — the
 // distinction is flavor-text only (see rollEncounterGroup's callers).
-const SPAWN_GROUP_KINDS = ["solitary", "pack", "squad"];
-const DEFAULT_SPAWN_GROUP = "solitary";
+const SPAWN_GROUP_KINDS = ["solitary", "pack", "squad"]; // vocabulary only — checked by tools/audit.js
 
 // Group size (including the anchor spawn itself), weighted toward small —
 // a guaranteed-possible 5-wolf pack against a low-level player is rough

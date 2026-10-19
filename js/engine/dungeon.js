@@ -207,7 +207,6 @@ const DUNGEON_REST_TIERS = {
 };
 
 function resolveRestRoom(state, tier) {
-  const d = state.activeDungeon;
   const spec = DUNGEON_REST_TIERS[tier];
   if (!spec) return [`Rest how — quick, medium, or full?`];
   const lines = [];

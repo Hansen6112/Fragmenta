@@ -269,7 +269,6 @@ function rewardForDifficulty(difficulty, boardNation) {
 }
 
 function generateBoardJobs(locId) {
-  const loc = LOCATIONS[locId];
   const jobs = [];
   const typeOrder = Math.random() < 0.5 ? ["bounty", "courier", "bounty"] : ["courier", "bounty", "courier"];
   for (const type of typeOrder) {

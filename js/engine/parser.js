@@ -1,8 +1,8 @@
 /*
  * FRAGMENTA — Command Parser
  * A text-adventure verb parser with fuzzy object matching. Anything it
- * doesn't recognize as a known verb falls through to the hybrid generative
- * layer (engine/generator.js) instead of a hard error.
+ * doesn't recognize as a known verb gets a fixed "not a command" reply
+ * (handleInput's default case) — there is no generative fallback layer.
  */
 
 // Dev/test-only commands (today just 'kabalroute', whose 'confirm' step
@@ -1575,7 +1575,7 @@ function cmdSkills(state) {
   }
 
   const lines = [`== Tactics == (Knowledge: ${state.knowledge})`];
-  for (const [id, t] of Object.entries(TACTICS)) {
+  for (const t of Object.values(TACTICS)) {
     const unlocked = state.knowledge >= t.knowledgeReq;
     const status = unlocked ? "unlocked" : `locked — needs Knowledge ${t.knowledgeReq}`;
     lines.push(`- ${t.name} (${status}): ${t.description}`);

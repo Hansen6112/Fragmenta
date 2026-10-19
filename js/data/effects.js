@@ -11,10 +11,9 @@
  * ("multiple copies do not stack", "only the strongest applies", etc.)
  * for every effect where that even comes up.
  *
- * No items in data/items.js carry an effect yet — this is the engine and
- * registry only, fully wired into engine/combat.js (and trailwise into
- * engine/parser.js's travel encounter roll). Attaching specific effects
- * to specific items is a separate authoring pass.
+ * Items opt in via their `effects` array; hasEffect() below is the only
+ * reader. EFFECT_DEFS is the registry those ids must come from —
+ * tools/audit.js checks every item's effects against it.
  *
  * A few effects describe defending against a mechanic that doesn't exist
  * anywhere in the game yet (an enemy attack-reducing an enemy stun on the

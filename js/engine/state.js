@@ -152,7 +152,7 @@ class GameState {
     // goldGainedThisRun }. Plain nested object, not under `flags` — same
     // reasoning as activeTrack above (structured data, not a boolean).
     this.activeDungeon = null;
-    // Main Quest Routing Tree (data/kabalroute.js) — the flag/variable
+    // Main Quest Routing Tree (engine/kabalroute.js) — the flag/variable
     // schema the one-time gate-evaluation pass reads at the (not-yet-
     // built) world-clock's "final act begins" trigger, plus whatever the
     // Global Override (majorisEquippedCount, computed live from
@@ -221,7 +221,7 @@ class GameState {
       relationship: opts.relationship || 0,
       // Crafted-potion buffs used on this ally (see engine/combat.js's
       // applyConsumableEffectToAlly and companion.js's allyBuffStatTotal/
-      // tickAllyBuffs) — keyed by stat, same { amount, turnsLeft } shape
+      // tickAllyBuffs) — keyed by stat, same { amount, turns } shape
       // as combat.playerBuffs. Lives on the ally itself, not per-fight
       // companion state, since 'use <item> on <ally>' only ever happens
       // OUT of combat (see useItemOnAlly) — a buff applied before a fight
@@ -248,7 +248,6 @@ class GameState {
   // allocation step (main.js's ask_pointbuy stage / parser.js's 'add'/
   // 'sub' commands) — additive only, on top of Race's own values.
   applyCreation(raceKey, originKey, classKey, pointBuy) {
-    const race = RACES[raceKey];
     const origin = ORIGINS[originKey];
     const cls = CLASSES[classKey];
     this.race = raceKey;

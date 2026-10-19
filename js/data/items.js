@@ -56,7 +56,6 @@
  */
 
 const ITEM_RARITY_NAMES = { 1: "Common", 2: "Fine", 3: "Superior", 4: "Masterwork", 5: "Legendary", 6: "Mythic", 7: "Artifact", 8: "Divine Regalia" };
-const ITEM_TIER_BONUS = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 8, 6: 10, 7: 12, 8: 14 };
 // agi/acc/spd are aliases for agility/accuracy/speed — combat.js's player-
 // status/buff system (playerStatusStatTotal, playerBuffStatTotal) keys
 // stat-affecting effects on these abbreviated names, matching Bleed/
