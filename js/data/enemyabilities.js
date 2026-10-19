@@ -10,9 +10,11 @@
  * data/elementabilities.js on the player's own side.
  *
  * This is deliberately NOT a 1:1 transcription of every nuance in the
- * codex — leader-lives auras and pack-count bonuses key off actual alive
- * packmates (state.combat.enemies), which this engine already tracks, so
- * those ARE real; but a few codex mechanics (mid-fight summoning more
+ * codex. AUDIT NOTE (code-health pass): this header previously claimed
+ * leader auras and pack-count bonuses "ARE real" — they are not; no engine
+ * code handles the leaderAura/packCount triggers, nor ~40 other passive
+ * triggers declared below (run tools/audit.js for the live list). A
+ * passive whose trigger isn't handled is silently inert. A few codex mechanics (mid-fight summoning more
  * packmates, an instant-execute clause, "reforms on death") are authored
  * per-ability below only where a batch actually needs them, added
  * incrementally rather than pre-built speculatively.

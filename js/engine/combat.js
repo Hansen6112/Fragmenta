@@ -2970,10 +2970,21 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
 // spec's own values are already correctly signed (selfDebuff: { def: -10 },
 // selfBuff: { spd: 15 }) — no sign flip needed here, just apply them.
 function applyEnemySelfModifier(combat, creature, spec) {
-  const enemy = combat.enemies[combat.activeIndex];
+  // Book the reversal on the record that actually owns `creature`, not
+  // whoever happens to be active — the onKill path (an enemy finishing an
+  // ally) isn't guaranteed to be the active enemy.
+  const enemy = combat.enemies.find((e) => e.creatureObj === creature) || combat.enemies[combat.activeIndex];
   const turns = spec.turns || 1;
-  for (const [stat, amount] of Object.entries(spec)) {
-    if (stat === "turns" || typeof amount !== "number") continue;
+  for (const [key, raw] of Object.entries(spec)) {
+    if (key === "turns" || typeof raw !== "number") continue;
+    // `xPct` keys (Predator's Momentum, Endless Pursuit, Overclock, the
+    // onActiveUse family) used to be added verbatim as a junk `atkPct`
+    // field — the Attack bonus never happened. Convert to a flat amount of
+    // the stat's current value, same convention as applyPermanentSelfBuff.
+    const isPct = key.endsWith("Pct");
+    const stat = isPct ? key.slice(0, -3) : key;
+    const amount = isPct ? Math.round((creature[stat] || 0) * raw) : raw;
+    if (!amount) continue;
     creature[stat] = (creature[stat] || 0) + amount;
     enemy.selfBuffs.push({ stat, amount, turnsLeft: turns });
   }
