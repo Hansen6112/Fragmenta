@@ -3691,7 +3691,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   if (hasEffect(state, "weavers_insight")) {
     const statusBits = [];
     if (creature.element) statusBits.push(`${ELEMENTS[creature.element].name} affinity`);
-    if (creature.unique) statusBits.push("unique");
+    if (creature.spawnRarity === "unique") statusBits.push("unique"); // was creature.unique — a field nothing ever sets
     lines.push(
       `Weaver's Insight unravels the moment: ${withThe(creature.name, false)} has ${creature.hp} Health, ${creature.def} Defense, ${creature.atk} Attack` +
         (statusBits.length ? ` (${statusBits.join(", ")})` : "") + "."
@@ -4318,6 +4318,18 @@ function resolveKill(state, creature) {
 // line-free fragment inline in resolveKill above. Split into separate
 // listeners (rather than one handler doing all five) so each stays as
 // easy to find/reason about as it was as its own commented block.
+
+// Unique creatures: parser.js's travel/explore spawn pools already skip any
+// unique whose "defeated_<bestiaryKey>" flag is set — but nothing ever set
+// it, so every unique boss respawned forever and that filter was dead code.
+// (bestiaryKey is only stamped on BESTIARY-built fights, so the arena's
+// inline Champion — also spawnRarity "unique" — is correctly skipped.)
+Events.on("enemy.killed", ({ creature, state }) => {
+  if (creature && creature.spawnRarity === "unique" && creature.bestiaryKey) {
+    state.flags["defeated_" + creature.bestiaryKey] = true;
+  }
+});
+
 Events.on("enemy.killed", ({ state }) => {
   // Kessa's recruitment quest (parser.js's maybeTalkToKessa): "clear one
   // real fight" just means winning any combat encounter after she's made
