@@ -64,8 +64,8 @@ function concludeHadrianQuestFinale(state) {
   // borders — independent of, and not a reversal of, Hadrian's older
   // Sahrimor-military dislike from Astra Sa'Lahru's original death.
   const repGain = 5;
-  state.reputation.sanguivorum = Math.max(-100, Math.min(100, (state.reputation.sanguivorum || 0) + repGain));
-  state.reputation.sahrimor = Math.max(-100, Math.min(100, (state.reputation.sahrimor || 0) + repGain));
+  adjustReputation(state, "sanguivorum", repGain, "hadrian_quest");
+  adjustReputation(state, "sahrimor", repGain, "hadrian_quest");
   lines.push(`Sanguivorum +${repGain}, Sahrimor +${repGain} reputation.`);
 
   const hadrian = state.party.find((p) => p.defId === "hadrian");

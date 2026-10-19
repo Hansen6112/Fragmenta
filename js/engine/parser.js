@@ -1166,8 +1166,7 @@ function cmdPray(arg, state) {
       return [`Pray to whom? Try: ${gods.join(", ")}.`];
     }
     const factionId = godFactionId(god);
-    const before = state.reputation[factionId] || 0;
-    state.reputation[factionId] = Math.max(-100, Math.min(100, before + 1));
+    adjustReputation(state, factionId, 1, "prayer");
     return [`You offer a small prayer to ${god}. (+1 standing)`, ...advanceTime(state, 10, "pray")];
   }
 

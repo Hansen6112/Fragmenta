@@ -9,10 +9,6 @@
 const MAX_ACTIVE_JOBS = 4;
 const BOARD_REFRESH_DAYS = 4;
 
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
 function getOrRefreshBoard(state, locId) {
   let board = state.boards[locId];
   if (!board || state.day - board.lastRefresh >= BOARD_REFRESH_DAYS) {
@@ -122,7 +118,7 @@ function resolveJob(state, job) {
   state.gold += goldReward;
   const repParts = [];
   for (const [fid, amt] of Object.entries(job.rewardRep || {})) {
-    state.reputation[fid] = clamp((state.reputation[fid] || 0) + amt, -100, 100);
+    adjustReputation(state, fid, amt, `job:${job.id}`);
     repParts.push(`${FACTIONS[fid] ? FACTIONS[fid].name : fid} +${amt}`);
   }
   lines.push(`+${goldReward} gold${repParts.length ? " — " + repParts.join(", ") : ""}.`);
@@ -206,9 +202,8 @@ function checkJobProgressOnKill(state, creature, huntJobId) {
 
 // A hunt whose leads have run out (job.attemptsUsed reaches
 // job.maxAttempts after a failed track roll — see parser.js's cmdChoose).
-// Small, flat reputation penalty (mirrors resolveJob's own inline
-// reputation-mutation exactly — there's no separate adjustReputation
-// function to call) and the job is pulled from state.activeJobs, same as
+// Small, flat reputation penalty (through adjustReputation, same as
+// resolveJob's reward) and the job is pulled from state.activeJobs, same as
 // a completed one, just with no reward and no job.completed event (no
 // relationship bump, no "completed_" contract flag — this isn't a
 // completion).
@@ -218,7 +213,7 @@ function failJob(state, job) {
   const repParts = [];
   for (const [fid, amt] of Object.entries(job.rewardRep || {})) {
     const penalty = -Math.max(1, Math.round(amt * penaltyFraction));
-    state.reputation[fid] = clamp((state.reputation[fid] || 0) + penalty, -100, 100);
+    adjustReputation(state, fid, penalty, `job_failed:${job.id}`);
     repParts.push(`${FACTIONS[fid] ? FACTIONS[fid].name : fid} ${penalty}`);
   }
   const idx = state.activeJobs.findIndex((j) => j.id === job.id);

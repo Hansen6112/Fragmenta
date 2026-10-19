@@ -8,9 +8,9 @@
  * Reputation is a -100..100 meter per faction, stored on state.reputation.
  * Starting values come from the chosen Origin's qualitative map
  * (data/origins.js `reputation: { factionId: "friendly"|"cold"|"hostile" }`)
- * converted through QUALITATIVE_TO_NUMERIC. Nothing currently adjusts it
- * during play beyond character creation — see engine/reputation.js for the
- * (for-now-unused) adjustment hook this is deliberately structured around.
+ * converted through QUALITATIVE_TO_NUMERIC. During play, EVERY change goes
+ * through adjustReputation below (job/contract rewards and failures,
+ * temple prayer, quest outcomes) — never write state.reputation directly.
  */
 
 const FACTIONS = {
@@ -83,7 +83,13 @@ const QUALITATIVE_TO_NUMERIC = {
   hostile: -55,
   cold: -20,
   neutral: 0,
-  friendly: 35,
+  // Was 35 — which lands in the "Recognized" band (11..40), and
+  // reputationFor() collapses Recognized to "neutral". So every Origin's
+  // "friendly" relationship behaved exactly like neutral in every
+  // flavor/talk/encounter check. 45 sits inside "Trusted", the only band
+  // reputationFor() reports as "friendly". (Alternative fix: map
+  // Recognized -> "friendly" in reputationFor instead — Tyler's call.)
+  friendly: 45,
 };
 
 // -100..100, five bands. Kept simple and reusable for both display and any
@@ -97,7 +103,32 @@ const REPUTATION_TIERS = [
 ];
 
 function reputationTier(value) {
-  return (REPUTATION_TIERS.find((t) => value >= t.min && value <= t.max) || REPUTATION_TIERS[2]).label;
+  // Round and clamp first: the band edges are integers, so 10.5 or -150
+  // used to fall through every band and silently read as "Neutral".
+  const v = Number.isFinite(value) ? Math.max(-100, Math.min(100, Math.round(value))) : 0;
+  return (REPUTATION_TIERS.find((t) => v >= t.min && v <= t.max) || REPUTATION_TIERS[2]).label;
+}
+
+// The ONE place reputation changes during play. Validates the faction id
+// (a typo'd id used to silently create a brand-new key), clamps to
+// -100..100, and emits "reputation.changed" so later systems (multi-ending
+// bookkeeping, tier-crossing narration, achievements) can listen instead of
+// being wired into every call site. Returns the delta actually applied
+// after clamping.
+function adjustReputation(state, factionId, delta, source) {
+  if (!FACTIONS[factionId]) {
+    console.error(`Fragmenta: adjustReputation called with unknown faction "${factionId}" (source: ${source || "?"})`);
+    return 0;
+  }
+  const amount = Number(delta);
+  if (!Number.isFinite(amount) || amount === 0) return 0;
+  const before = Number.isFinite(state.reputation[factionId]) ? state.reputation[factionId] : 0;
+  const after = Math.max(-100, Math.min(100, before + amount));
+  state.reputation[factionId] = after;
+  if (after !== before) {
+    Events.emit("reputation.changed", { state, factionId, before, after, delta: after - before, source: source || "unknown" });
+  }
+  return after - before;
 }
 
 // Collapses the numeric meter down to the coarse "friendly"/"cold"/
