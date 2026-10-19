@@ -318,7 +318,10 @@ const BESTIARY = {
     native: "Druith",
     tags: ["swamp"],
     nations: ["vaeloris"],
-    locations: ["drath_vorrumborrar", "the_swamps_near"],
+    // Was ["drath_vorrumborrar", "the_swamps_near"] — neither is a LOCATIONS
+    // id (the swamp is drath_vorrumbruk). Nothing reads this field yet, so
+    // it was harmless, but it's the same rename-drift as sylmae/sylmere.
+    locations: ["drath_vorrumbruk"],
     hp: 45, atk: 11, def: 14, spd: 1, acc: 7, agi: 1,
     description: "An impossibly old crocodile that declined to stop growing and has, so far, declined to die. Scales harder than worked metal. Protected fiercely by the lizardfolk — never approach without their escort.",
     combatNotes: "Nearly immobile on land unless truly provoked. Never enter the water near it unescorted.",
@@ -2376,6 +2379,31 @@ const BESTIARY = {
     actives: ["cataclysmic_slam", "elemental_convergence", "guardians_judgment"],
   },
 };
+
+// Creature `tags` were authored against data/creaturetags.js's
+// HABITAT_TAGS vocabulary ("mountains", "ruins", "underground", ...), but
+// every spawn source emits world.js's TERRAIN_TAGS vocabulary ("mountain",
+// "ruin", "cave", ...) and creaturesForTags matches exact strings. Result:
+// 17 creatures (every ruin/underground construct and undead, Bone Roc,
+// Mountain Lion, the Keth-Rhovael Guardian/Queen, ...) could never spawn
+// anywhere, and ~50 more only spawned through their other tags. Normalized
+// once here, at load, so everything downstream sees one vocabulary.
+// `hills` has no terrain of its own — mapped to mountain (every hills
+// creature also carries a forest/plains tag). Tyler: adjust if that's not
+// the intended habitat.
+const HABITAT_TO_TERRAIN_TAG = {
+  mountains: ["mountain"],
+  hills: ["mountain"],
+  ruins: ["ruin"],
+  underground: ["cave"],
+  arctic: ["tundra"],
+  ocean: ["sea"],
+  wetlands: ["swamp"],
+};
+for (const creature of Object.values(BESTIARY)) {
+  if (!Array.isArray(creature.tags)) continue;
+  creature.tags = [...new Set(creature.tags.flatMap((t) => HABITAT_TO_TERRAIN_TAG[t] || [t]))];
+}
 
 function creaturesForTags(tagList, nation) {
   return Object.entries(BESTIARY)
