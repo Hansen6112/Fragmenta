@@ -740,7 +740,7 @@ function useItem(state, arg) {
 
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -2884,23 +2884,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
       combat.firstHitTakenUsed = true;
       if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
     }
-    edmg = applyShieldWall(state, edmg);
-  edmg = applyMasterDuelist(state, edmg);
-    edmg = applyUnbrokenLine(state, edmg);
-    edmg = Math.round(edmg * preparedResponseMultiplier(state));
-    edmg = Math.round(edmg * calmingPresenceMultiplier(state));
-    edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
-    edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
-    edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
-    edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
-    edmg = Math.round(edmg * adaptiveTideMagicMultiplier(state));
-    edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
-    edmg = applyUnyieldingWall(state, edmg);
-    const absorbLines1 = applyPlayerDamage(state, edmg);
-    if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
-      combat.adaptiveTideMagicStacks = Math.min(5, (combat.adaptiveTideMagicStacks || 0) + 1);
-    }
-    if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
+    const magicHit = mitigateAndApplyHitOnPlayer(state, edmg, "magic");
+    edmg = magicHit.edmg;
+    const absorbLines1 = magicHit.absorbLines;
     const elName = ELEMENTS[creature.element].name.toLowerCase();
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`, ...absorbLines1];
     if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
@@ -2914,23 +2900,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
   }
-  edmg = applyShieldWall(state, edmg);
-  edmg = applyMasterDuelist(state, edmg);
-  edmg = applyUnbrokenLine(state, edmg);
-  edmg = Math.round(edmg * preparedResponseMultiplier(state));
-  edmg = Math.round(edmg * calmingPresenceMultiplier(state));
-  edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
-  edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
-  edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
-  edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
-  edmg = Math.round(edmg * adaptiveTidePhysicalMultiplier(state));
-  edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
-  edmg = applyUnyieldingWall(state, edmg);
-  const absorbLines2 = applyPlayerDamage(state, edmg);
-  if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
-    combat.adaptiveTidePhysicalStacks = Math.min(5, (combat.adaptiveTidePhysicalStacks || 0) + 1);
-  }
-  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
+  const physicalHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
+  edmg = physicalHit.edmg;
+  const absorbLines2 = physicalHit.absorbLines;
   const verb = abilityCtx ? `uses ${abilityCtx.name} on you` : "hits back";
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
   // Enemy Ability Engine: the ability's own consequences, resolved after
@@ -3771,6 +3743,60 @@ Events.on("combat.started", ({ state }) => {
 // below 30% each fight, an immediate +6 Defense for 2 turns. Checked
 // anywhere player Health just changed downward, since it's a reactive
 // safety net rather than tied to a specific action.
+// Every "when you drop below X% Health" trigger, in their established
+// order. This list used to be pasted verbatim into seven separate action
+// handlers — a new Avatar/threshold effect added to six of them and missed
+// in the seventh would silently never fire on that action. Add new
+// low-Health triggers HERE, once.
+function lowHealthTriggerChecks(state) {
+  return [
+    ...checkHoldTheLine(state),
+    ...checkRootedResolve(state),
+    ...checkAvatarOfBloom(state),
+    ...checkAvatarOfPassing(state),
+    ...checkAvatarOfFate(state),
+    ...checkRallyTheLine(state),
+    ...checkAvatarOfWar(state),
+    ...checkAvatarOfKnowledge(state),
+    ...checkLoveEndures(state),
+    ...checkAvatarOfDevotion(state),
+    ...checkAvatarOfChaos(state),
+    ...checkAvatarOfEndurance(state),
+    ...checkAvatarOfFreedom(state),
+    ...checkAvatarOfCreation(state),
+    ...checkAvatarOfRenewal(state),
+    ...checkAvatarOfTime(state),
+  ];
+}
+
+// The incoming-damage mitigation pipeline for a hit on the PLAYER, shared
+// by all three places that used to carry their own copy (enemy-mage
+// counter, physical counter, failed flee). `kind` picks the Adaptive Tide
+// half ("magic" | "physical"). Returns { edmg, absorbLines } — edmg after
+// mitigation, absorbLines from applyPlayerDamage's Temporary Health.
+function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
+  const combat = state.combat;
+  edmg = applyShieldWall(state, edmg);
+  edmg = applyMasterDuelist(state, edmg);
+  edmg = applyUnbrokenLine(state, edmg);
+  edmg = Math.round(edmg * preparedResponseMultiplier(state));
+  edmg = Math.round(edmg * calmingPresenceMultiplier(state));
+  edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+  edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
+  edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
+  edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
+  edmg = Math.round(edmg * (kind === "magic" ? adaptiveTideMagicMultiplier(state) : adaptiveTidePhysicalMultiplier(state)));
+  edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
+  edmg = applyUnyieldingWall(state, edmg);
+  const absorbLines = applyPlayerDamage(state, edmg);
+  if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
+    const key = kind === "magic" ? "adaptiveTideMagicStacks" : "adaptiveTidePhysicalStacks";
+    combat[key] = Math.min(5, (combat[key] || 0) + 1);
+  }
+  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
+  return { edmg, absorbLines };
+}
+
 function checkHoldTheLine(state) {
   const combat = state.combat;
   if (!combat || combat.holdTheLineUsed || !hasSetTier(state, "Legion", 8)) return [];
@@ -4465,7 +4491,7 @@ function playerAttack(state) {
   const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -4525,28 +4551,14 @@ function attemptFlee(state) {
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
   }
-  edmg = applyShieldWall(state, edmg);
-  edmg = applyMasterDuelist(state, edmg);
-  edmg = applyUnbrokenLine(state, edmg);
-  edmg = Math.round(edmg * preparedResponseMultiplier(state));
-  edmg = Math.round(edmg * calmingPresenceMultiplier(state));
-  edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
-  edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
-  edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
-  edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
-  edmg = Math.round(edmg * adaptiveTidePhysicalMultiplier(state));
-  edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
-  edmg = applyUnyieldingWall(state, edmg);
-  const absorbLines = applyPlayerDamage(state, edmg);
-  if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
-    combat.adaptiveTidePhysicalStacks = Math.min(5, (combat.adaptiveTidePhysicalStacks || 0) + 1);
-  }
-  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
+  const fleeHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
+  edmg = fleeHit.edmg;
+  const absorbLines = fleeHit.absorbLines;
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     out.push(checkDeathPrevention(state) || `Everything goes dark.`);
   } else {
-    out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+    out.push(...lowHealthTriggerChecks(state));
   }
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -4681,7 +4693,7 @@ function useFeint(state) {
   }
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -4939,7 +4951,7 @@ function useDisarm(state) {
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -5001,7 +5013,7 @@ function useApothecaryAbility(state, key, targetArg) {
   if (!state.combat || state.health <= 0) return out;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
@@ -5325,7 +5337,7 @@ function useElementAbility(state, elementKey) {
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
   const retaliation = resolveOrSkipRetaliation(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...checkHoldTheLine(state), ...checkRootedResolve(state), ...checkAvatarOfBloom(state), ...checkAvatarOfPassing(state), ...checkAvatarOfFate(state), ...checkRallyTheLine(state), ...checkAvatarOfWar(state), ...checkAvatarOfKnowledge(state), ...checkLoveEndures(state), ...checkAvatarOfDevotion(state), ...checkAvatarOfChaos(state), ...checkAvatarOfEndurance(state), ...checkAvatarOfFreedom(state), ...checkAvatarOfCreation(state), ...checkAvatarOfRenewal(state), ...checkAvatarOfTime(state));
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
