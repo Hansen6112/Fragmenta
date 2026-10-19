@@ -127,7 +127,12 @@ function withThe(name, capitalize) {
 // the rest of the encounter; everything that computes enemy retaliation
 // damage should go through this instead of reading creature.atk directly.
 function effectiveEnemyAtk(state, creature) {
-  return Math.max(1, creature.atk - (state.combat.enemyAtkPenalty || 0));
+  // Enemy mages (data/enemymages.js) have `magic` and no `atk` at all —
+  // reading creature.atk directly made every physical-path hit from one
+  // (a failed flee, any swing at an ally) NaN, which then poisoned
+  // state.health / ally.health permanently. Fall back to their magic.
+  const base = creature.atk != null ? creature.atk : creature.magic != null ? creature.magic : 1;
+  return Math.max(1, base - (state.combat.enemyAtkPenalty || 0));
 }
 
 // Whether an attack connects at all, before any damage math or special
@@ -2645,6 +2650,12 @@ function dungeonRescue(state) {
 // layer, consumed here once rather than reimplemented at each of the 3
 // places an enemy hit actually reduces the player's Health.
 function applyPlayerDamage(state, dmg) {
+  // NaN <= 0 is false, so a NaN used to fall straight through to
+  // `state.health -= NaN`. Refuse it loudly instead of corrupting the save.
+  if (!Number.isFinite(dmg)) {
+    console.error("Fragmenta: non-finite damage to player ignored", dmg);
+    return [];
+  }
   if (dmg <= 0) return [];
   const combat = state.combat;
   let remaining = dmg;
