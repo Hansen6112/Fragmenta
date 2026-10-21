@@ -164,20 +164,22 @@ function resolveGauntletOutcome(state, won) {
   return state.kabalRoute.terminalReached;
 }
 
-// The ONE place a Fragmenta shard is ever granted. Shard ownership used to
-// live in three unconnected spots — state.knownFragments (count),
+// The ONE place a Fragmenta Motus shard is ever granted. Shard ownership
+// used to live in three unconnected spots — state.knownFragments (count),
 // state.flags.hasFragmentMotus (never read), and kabalRoute.
 // collectedAnyShards (read by the routing gate, never set) — so a player
 // who found shards still routed as if they never had. `source` is a short
 // label for whatever later needs to know where shards came from.
-// NOTE for Tyler: confirm Fragmenta Motus finds should count toward the
-// routing tree's "collected any shards" branch; if only Majoris-tier
-// shards should, drop the collectedAnyShards line and set it from that
-// content instead.
+// Per Tyler: a Fragmenta Motus find (the smallest tier — exploreOutcome's
+// own flavor text calls it "the kind even the gods don't notice") does
+// NOT set kabalRoute.collectedAnyShards. That branch is reserved for a
+// genuine Majoris-tier shard find, which isn't built yet (no acquisition
+// path exists for one — see this file's header) — whatever content adds
+// that should set the flag itself, directly, rather than this generic
+// Motus path setting it early.
 function grantFragmentShard(state, source) {
   state.knownFragments += 1;
   state.flags.hasFragmentMotus = true;
-  state.kabalRoute.collectedAnyShards = true;
   Events.emit("fragment.acquired", { state, source: source || "unknown", total: state.knownFragments });
 }
 
