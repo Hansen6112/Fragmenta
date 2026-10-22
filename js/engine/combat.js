@@ -2134,11 +2134,18 @@ function resolveEnemyActiveAbility(state, creature) {
   let dmgMult = ability.dmgMult;
   // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
   // Predator) apply to whichever active this creature happens to use
-  // first each fight, not to one specific ability by name.
+  // first each fight, not to one specific ability by name. Prepared
+  // Opening (H08 — "First damaging attack attempt gains +10 Accuracy and
+  // ×1.20 damage... consumed even on a miss") reuses this exact gate for
+  // its own Accuracy half: firstActiveUsed is set unconditionally below,
+  // before any hit/miss roll happens, so "consumed even on a miss" is
+  // already true for free.
+  let firstAttackAccBonus = 0;
   if (!enemy.firstActiveUsed) {
     for (const pid of creature.passives || []) {
       const p = getEnemyAbility(pid);
       if (p && p.trigger === "firstAttack" && p.dmgMultBonus) dmgMult *= p.dmgMultBonus;
+      if (p && p.trigger === "firstAttack" && p.accBonus) firstAttackAccBonus += p.accBonus;
     }
   }
   enemy.firstActiveUsed = true;
@@ -2190,7 +2197,7 @@ function resolveEnemyActiveAbility(state, creature) {
     id: abilityId,
     name: ability.name,
     dmgMult,
-    accBonus: ability.accBonus,
+    accBonus: (ability.accBonus || 0) + firstAttackAccBonus || undefined,
     aoe: !!ability.aoe,
     inflict: ability.inflict,
     selfDebuff: ability.selfDebuff,

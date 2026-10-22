@@ -682,17 +682,22 @@ const ENEMY_ABILITIES = {
   // and grants an ordinary timed selfBuff/packAuraBuff rather than
   // applyPermanentSelfBuff's permanent one.
   veteran_discipline: { name: "Veteran Discipline", type: "passive", trigger: "survivedBelowPct", pct: 0.5, selfBuff: { def: 5, turns: 2 }, oncePerCombat: true }, // H07
-  // Prepared Opening's damage half (×1.20 on this creature's first Active
-  // cast each combat) reuses the EXISTING firstAttack trigger/dmgMultBonus
-  // pattern (resolveEnemyActiveAbility, engine/combat.js) — already live
-  // for every creature with a firstAttack passive. Its other two clauses
-  // are not: the +10 Accuracy half has no equivalent "first cast only"
-  // hook (accBonus, added this batch for Precise Shot/H04, is per-ability,
-  // not first-cast-only), and "consumed even on a miss" can't be verified
-  // against a basic attack at all, since firstActiveUsed is only ever set
-  // when an Active ability actually resolves (resolveEnemyActiveAbility),
-  // never for a plain basic attack with no eligible Active available.
-  prepared_opening: { name: "Prepared Opening", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.20 }, // H08
+  // Prepared Opening ("First damaging attack attempt gains +10 Accuracy
+  // and ×1.20 damage... consumed even on a miss"): both the damage half
+  // (dmgMultBonus) and the Accuracy half (accBonus, a NEW firstAttack-
+  // passive field — distinct from an ability's own flat accBonus field,
+  // added for Precise Shot/H04 — the two now add together if a creature
+  // ever carried both) reuse the existing firstAttack trigger gate
+  // (resolveEnemyActiveAbility, engine/combat.js), which already marks
+  // itself consumed (enemy.firstActiveUsed = true) before any hit/miss
+  // roll happens, so "even on a miss" falls out for free. Still not
+  // modeled: a creature's very first ATTACK being a plain basic attack
+  // (no eligible Active at all) never touches firstActiveUsed, so
+  // Prepared Opening stays live for whenever this creature's first Active
+  // actually comes — the codex's "first damaging attack attempt" (any
+  // attack, not just an Active) is broader than that, but nothing in this
+  // engine lets a passive attach itself to a plain basic attack at all.
+  prepared_opening: { name: "Prepared Opening", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.20, accBonus: 10 }, // H08
   protective_cover: { name: "Protective Cover", type: "active", cooldown: 4, dmgMult: 0, packAuraBuff: { dmgReduction: 0.20, turns: 1, maxTargets: 1 } }, // H10
   last_stand: { name: "Last Stand", type: "passive", trigger: "survivedBelowPct", pct: 0.25, selfBuff: { dmgReduction: 0.15, turns: 2 }, oncePerCombat: true }, // H20
 
