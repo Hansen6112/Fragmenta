@@ -656,12 +656,7 @@ const ENEMY_ABILITIES = {
   // party cap (player + 2 allies) is 3, so this needs no cap of its own.
   calculated_volley: { name: "Calculated Volley", type: "active", cooldown: 5, dmgMult: 0.95, aoe: true }, // H16
   heavy_commitment: { name: "Heavy Commitment", type: "active", cooldown: 6, dmgMult: 2.1, selfDebuff: { def: -8, turns: 1 } }, // H17
-  // packAuraBuff only reaches packmates sharing this creature's own
-  // `group` tag (applyPackAuraBuff, engine/combat.js) — codex says "up to
-  // 2 other allies," but the engine hook buffs every group-tagged
-  // packmate present, uncapped; close enough given this engine's small
-  // typical pack sizes, flagged here rather than silently assumed exact.
-  breakthrough_order: { name: "Breakthrough Order", type: "active", cooldown: 6, dmgMult: 1.5, packAuraBuff: { atkPct: 0.10, turns: 1 } }, // H19
+  breakthrough_order: { name: "Breakthrough Order", type: "active", cooldown: 6, dmgMult: 1.5, packAuraBuff: { atkPct: 0.10, turns: 1, maxTargets: 2 } }, // H19
   scorpion_lunge: { name: "Scorpion Lunge", type: "active", cooldown: 5, dmgMult: 1.85, inflict: { status: "venom", chance: 1 }, selfDebuff: { acc: -10, turns: 1 } }, // H21
 
   // ---- Criminal Underworld (Gate 5B.8 skills codex) — Defensive, passive
@@ -698,16 +693,17 @@ const ENEMY_ABILITIES = {
   // when an Active ability actually resolves (resolveEnemyActiveAbility),
   // never for a plain basic attack with no eligible Active available.
   prepared_opening: { name: "Prepared Opening", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.20 }, // H08
-  // packAuraBuff's "every group-tagged packmate, uncapped" approximation
-  // (see breakthrough_order/H19 above) applies here too.
-  protective_cover: { name: "Protective Cover", type: "active", cooldown: 4, dmgMult: 0, packAuraBuff: { dmgReduction: 0.20, turns: 1 } }, // H10
+  protective_cover: { name: "Protective Cover", type: "active", cooldown: 4, dmgMult: 0, packAuraBuff: { dmgReduction: 0.20, turns: 1, maxTargets: 1 } }, // H10
   last_stand: { name: "Last Stand", type: "passive", trigger: "survivedBelowPct", pct: 0.25, selfBuff: { dmgReduction: 0.15, turns: 2 }, oncePerCombat: true }, // H20
 
   // ---- Criminal Underworld (Gate 5B.8 skills codex) — Leadership,
   // support, and summoning.
-  focused_rally: { name: "Focused Rally", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 5, turns: 2 } }, // H09
-  defensive_command: { name: "Defensive Command", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 5, turns: 2 } }, // H13
-  resolute_command: { name: "Resolute Command", type: "passive", trigger: "survivedBelowPct", pct: 0.5, packAuraBuff: { acc: 5, turns: 2 }, oncePerCombat: true }, // H15
+  // packAuraBuff's maxTargets (applyPackAuraBuff, engine/combat.js) now
+  // actually caps recipients to the codex's own "up to N other allies"
+  // instead of the old uncapped-group approximation (see H10/H19 below).
+  focused_rally: { name: "Focused Rally", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 5, turns: 2, maxTargets: 2 } }, // H09
+  defensive_command: { name: "Defensive Command", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 5, turns: 2, maxTargets: 3 } }, // H13
+  resolute_command: { name: "Resolute Command", type: "passive", trigger: "survivedBelowPct", pct: 0.5, packAuraBuff: { acc: 5, turns: 2, maxTargets: 3 }, oncePerCombat: true }, // H15
   // conditionalPackAuraBuff (engine/combat.js's resolveEnemyActiveAbility):
   // picks between two packAuraBuff shapes using the commander's OWN
   // current Health fraction at cast time. The codex doesn't say which
@@ -715,7 +711,7 @@ const ENEMY_ABILITIES = {
   // healthy presses the advantage (Accuracy), hurt calls for a
   // defensive order instead (Defense). Flip abovePct/atOrBelowPct here
   // if that reads backwards.
-  adaptive_orders: { name: "Adaptive Orders", type: "active", cooldown: 5, dmgMult: 0, conditionalPackAuraBuff: { pct: 0.5, abovePct: { acc: 5, turns: 2 }, atOrBelowPct: { def: 5, turns: 2 } } }, // H18
+  adaptive_orders: { name: "Adaptive Orders", type: "active", cooldown: 5, dmgMult: 0, conditionalPackAuraBuff: { pct: 0.5, abovePct: { acc: 5, turns: 2, maxTargets: 3 }, atOrBelowPct: { def: 5, turns: 2, maxTargets: 3 } } }, // H18
 
   // H22/H23: Call the Crew (Bandit Captain -> Bandit Cutthroat) and Guard
   // Reinforcements (Merchant Lord Guard Captain -> Veteran Merchant

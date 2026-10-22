@@ -2174,13 +2174,19 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName) {
 // shape as applyEnemySelfModifier, just fanned out across the roster
 // instead of just the caster. Packmates with no shared `group` (a solitary
 // creature, or one with no group tag at all) simply have no one to buff.
+// spec.maxTargets (Focused Rally/Defensive Command/Resolute Command/
+// Adaptive Orders: "up to 2/3 other allies") caps the recipients to the
+// first N found in roster order; omitted entirely for the older,
+// uncapped pack-buffs (Rallying Roar, Grave Formation, ...), which keep
+// buffing the whole group as before.
 function applyPackAuraBuff(combat, creature, spec) {
   if (!creature.group) return;
   const turns = spec.turns || 1;
-  for (const other of combat.enemies) {
-    if (!other.alive || other.creatureObj === creature || other.creatureObj.group !== creature.group) continue;
+  let recipients = combat.enemies.filter((other) => other.alive && other.creatureObj !== creature && other.creatureObj.group === creature.group);
+  if (spec.maxTargets != null) recipients = recipients.slice(0, spec.maxTargets);
+  for (const other of recipients) {
     for (const [key, amount] of Object.entries(spec)) {
-      if (key === "turns" || typeof amount !== "number") continue;
+      if (key === "turns" || key === "maxTargets" || typeof amount !== "number") continue;
       // A "...Pct" key (Rallying Roar's atkPct) buffs a fraction of the
       // recipient's OWN current value — resolved to a flat delta here, at
       // application time, so the reversal in tickEnemyPassives can just
