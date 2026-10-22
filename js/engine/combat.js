@@ -1965,6 +1965,7 @@ function resolveEnemyActiveAbility(state, creature) {
     id: abilityId,
     name: ability.name,
     dmgMult,
+    accBonus: ability.accBonus,
     aoe: !!ability.aoe,
     inflict: ability.inflict,
     selfDebuff: ability.selfDebuff,
@@ -2821,7 +2822,12 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // scoutStealthOpeningBonus below. Deliberately additive to the existing
   // Agility-vs-Accuracy formula rather than a hard override, so it stacks
   // normally with gear/effects that also touch Agility.
-  if (!attackConnects(creature.acc, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
+  // abilityCtx.accBonus (Precise Shot/H04): a flat Accuracy bonus for this
+  // one roll only — added directly to creature.acc rather than threaded as
+  // hitChance's extraChance, since the codex phrases it as a stat bonus
+  // ("+10 Accuracy"), not a direct hit-percentage bonus.
+  const accBonus = (abilityCtx && abilityCtx.accBonus) || 0;
+  if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
     return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
   }
   // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming

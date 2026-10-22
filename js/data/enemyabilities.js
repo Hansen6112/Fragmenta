@@ -625,6 +625,45 @@ const ENEMY_ABILITIES = {
   // Dreadroot at "4 summons" total, not 4 from each ability separately.
   grave_bloom: { name: "Grave Bloom", type: "active", cooldown: 6, dmgMult: 0, summon: { pool: ["zombie", "skeleton"], count: 2, maxActive: 4, capKey: "dreadroot_undead" } },
   corrupted_grove: { name: "Corrupted Grove", type: "passive", trigger: "periodicSummon", everyNTurns: 3, pool: ["zombie", "skeleton"], count: 1, maxActive: 4, healPctIfMaxed: 0.05, capKey: "dreadroot_undead" },
+
+  // ---- Criminal Underworld (Gate 5B.8 skills codex) — Offensive actives.
+  // H-codes are the codex's own cross-reference numbers, kept in trailing
+  // comments so a BESTIARY entry's "Active: H0x" can be translated to the
+  // real key once the nine Criminal Underworld creatures are built.
+  // "Until its next turn" reads as turns: 1 — the initiative system
+  // (engine/combat.js) ticks every self-buff/debuff down once per round in
+  // beginTurn, so a 1-turn effect clears right before this creature's own
+  // next action, same as the duration already means everywhere else in
+  // this file.
+  opportunistic_strike: { name: "Opportunistic Strike", type: "active", cooldown: 3, dmgMult: 1.3, bonusVsHealthBelowPct: { pct: 0.5, mult: 1.5 / 1.3 } }, // H01
+  committed_assault: { name: "Committed Assault", type: "active", cooldown: 4, dmgMult: 1.6, selfDebuff: { def: -5, turns: 1 } }, // H02
+  // accBonus (new field, engine/combat.js's resolveEnemyActiveAbility/
+  // resolveEnemyRetaliation): a flat Accuracy bonus added to THIS single
+  // attack roll only, unlike selfBuff/selfDebuff (which apply after the
+  // roll and last into next round) — "for this attack" has no other way
+  // to land before the roll it's meant to affect.
+  precise_shot: { name: "Precise Shot", type: "active", cooldown: 3, dmgMult: 1.4, accBonus: 10 }, // H04
+  suppressing_strike: { name: "Suppressing Strike", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } }, // H05
+  // Codex text: "increased to 145% when another human ally is alive" — no
+  // engine hook checks a caster's living allies by tag mid-ability (unlike
+  // bonusVsHealthBelowPct/AbovePct/bonusVsStatus, which all exist); the
+  // conditional escalation is declared-but-inert until that's built. Base
+  // 120% is fully live.
+  coordinated_assault: { name: "Coordinated Assault", type: "active", cooldown: 4, dmgMult: 1.2 }, // H11
+  heavy_impact: { name: "Heavy Impact", type: "active", cooldown: 5, dmgMult: 1.85, selfDebuff: { spd: -10, turns: 1 } }, // H12
+  exposed_weakness: { name: "Exposed Weakness", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } }, // H14
+  // "Up to 3 distinct targets" is just every living member of the player's
+  // side — aoe already hits the player plus every alive ally, and the
+  // party cap (player + 2 allies) is 3, so this needs no cap of its own.
+  calculated_volley: { name: "Calculated Volley", type: "active", cooldown: 5, dmgMult: 0.95, aoe: true }, // H16
+  heavy_commitment: { name: "Heavy Commitment", type: "active", cooldown: 6, dmgMult: 2.1, selfDebuff: { def: -8, turns: 1 } }, // H17
+  // packAuraBuff only reaches packmates sharing this creature's own
+  // `group` tag (applyPackAuraBuff, engine/combat.js) — codex says "up to
+  // 2 other allies," but the engine hook buffs every group-tagged
+  // packmate present, uncapped; close enough given this engine's small
+  // typical pack sizes, flagged here rather than silently assumed exact.
+  breakthrough_order: { name: "Breakthrough Order", type: "active", cooldown: 6, dmgMult: 1.5, packAuraBuff: { atkPct: 0.10, turns: 1 } }, // H19
+  scorpion_lunge: { name: "Scorpion Lunge", type: "active", cooldown: 5, dmgMult: 1.85, inflict: { status: "venom", chance: 1 }, selfDebuff: { acc: -10, turns: 1 } }, // H21
 };
 
 function getEnemyAbility(id) {
