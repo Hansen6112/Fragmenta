@@ -1825,16 +1825,27 @@ function resolveOneAllyAction(state, ally) {
 // player-or-ally roll, exactly as before this engine existed.
 function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
   const abilityCtx = resolveEnemyActiveAbility(state, creatureObj);
-  // packAuraBuff (Focused Rally, Defensive Command, Resolute Command,
-  // Adaptive Orders, Breakthrough Order, ...): a command/rally effect on
-  // the CASTER's own allies, not an on-hit consequence of whichever
-  // target the roll below happens to land on (or miss) — resolved once
+  // packAuraBuff/selfBuff/selfDebuff/healSelfPct (Guarded Stance, Committed
+  // Assault, Heavy Commitment, Focused Rally, Defensive Command, Resolute
+  // Command, Adaptive Orders, Breakthrough Order, ...): the cost or
+  // side-effect of USING the ability — "wearer suffers -5 Defense,"
+  // "grant allies +5 Accuracy" — not an on-hit consequence of whichever
+  // target the roll below happens to land on (or miss). Resolved once
   // here, unconditionally, before any hit/miss or player-vs-ally
-  // branching. Applying it deeper in the single-target paths instead
-  // silently dropped the buff on a miss, and never applied it at all
-  // when pickEnemyAttackTarget rolled an ally (resolveEnemyAttackOnAlly
-  // has no packAuraBuff hook of its own).
-  if (abilityCtx && abilityCtx.packAuraBuff) applyPackAuraBuff(state.combat, creatureObj, abilityCtx.packAuraBuff);
+  // branching. Applying them deeper in the single-target paths instead
+  // (as all four used to) silently dropped them on a miss, and never
+  // applied them at all when pickEnemyAttackTarget rolled an ally
+  // (resolveEnemyAttackOnAlly has no hook for any of these). inflict and
+  // healOnHitPct stay genuinely on-hit, resolved further down.
+  if (abilityCtx) {
+    if (abilityCtx.packAuraBuff) applyPackAuraBuff(state.combat, creatureObj, abilityCtx.packAuraBuff);
+    if (abilityCtx.selfDebuff) applyEnemySelfModifier(state.combat, creatureObj, abilityCtx.selfDebuff);
+    if (abilityCtx.selfBuff) applyEnemySelfModifier(state.combat, creatureObj, abilityCtx.selfBuff);
+    if (abilityCtx.healSelfPct) {
+      const heal = Math.round(state.combat.maxHp * abilityCtx.healSelfPct);
+      if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
+    }
+  }
   // Summons (Burrow Call, Nest Call, Brood Call, Grave Bloom) are a pure
   // support action — nothing is attacked, so this returns before ever
   // reaching the aoe/single-target damage paths below.
@@ -2228,7 +2239,13 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   // same crafted-potion-buff storage effectiveAllyDef already reads for
   // Defense.
   const allyAgi = ally.agility + allyBuffStatTotal(ally, "agi");
-  if (!attackConnects(creature.acc, allyAgi)) {
+  // abilityCtx.accBonus (Precise Shot/H04): "+10 Accuracy for this attack"
+  // has to count here too — resolveEnemyRetaliation already added it to
+  // its own roll, but this sibling function used to leave the ability's
+  // whole accuracy bonus on the floor whenever the roll happened to pick
+  // an ally instead of the player.
+  const accBonus = (abilityCtx && abilityCtx.accBonus) || 0;
+  if (!attackConnects(creature.acc + accBonus, allyAgi)) {
     return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
   }
   const rawAtk = effectiveEnemyAtk(state, creature);
@@ -2260,6 +2277,20 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   ally.health = Math.max(arenaFloor, ally.health - dmg);
   const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
   const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...protection.lines, ...mitigation.lines];
+  // abilityCtx.healOnHitPct: same "heals for a fraction of the damage this
+  // hit actually dealt" payout resolveEnemyRetaliation grants on a landed
+  // player hit — an ally hit is just as much a landed hit.
+  // abilityCtx.inflict is deliberately NOT applied here: it's a status/stat
+  // debuff on whichever target got hit, and allies have no equivalent
+  // status-effect slot (combat.playerStatuses is player-only) for one to
+  // land on — a real gap (Suppressing Strike/H05, Exposed Weakness/H14,
+  // Scorpion Lunge/H21 all silently skip their on-hit debuff when the roll
+  // picks an ally), left open rather than bolted onto allies without that
+  // being an explicit design call.
+  if (abilityCtx && abilityCtx.healOnHitPct && dmg > 0) {
+    const heal = Math.round(dmg * abilityCtx.healOnHitPct);
+    if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
+  }
   // Last Bastion's automatic retaliation (engine/companion.js) — a no-op
   // for any ally without one.
   lines.push(...maybeCompanionRetaliate(state, ally, creature));
@@ -3088,29 +3119,17 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   const absorbLines2 = physicalHit.absorbLines;
   const verb = abilityCtx ? `uses ${abilityCtx.name} on you` : "hits back";
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
-  // Enemy Ability Engine: the ability's own consequences, resolved after
-  // its damage has actually landed and been applied above — a status it
-  // may inflict on the player, a self-buff/self-debuff on the creature
-  // itself (both turn-limited, ticked in beginTurn), and healing the
-  // creature for a fraction of the damage it just dealt.
+  // Enemy Ability Engine: the ability's one genuinely on-hit consequence —
+  // a status it inflicts on the PLAYER specifically, only once its damage
+  // has actually landed and been applied above. selfBuff/selfDebuff/
+  // healSelfPct/packAuraBuff are all resolved once in resolveEnemyAction
+  // instead, ahead of this hit/miss roll — see the comment there for why.
   if (abilityCtx) {
     if (abilityCtx.inflict) lines.push(...applyAbilityInflict(state, abilityCtx.inflict, creature.name));
-    if (abilityCtx.selfDebuff) applyEnemySelfModifier(combat, creature, abilityCtx.selfDebuff);
-    if (abilityCtx.selfBuff) applyEnemySelfModifier(combat, creature, abilityCtx.selfBuff);
     if (abilityCtx.healOnHitPct && edmg > 0) {
       const heal = Math.round(edmg * abilityCtx.healOnHitPct);
       if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
     }
-    // Flesh Reconstruction (Grand Voran-Daun): a flat self-heal off max
-    // Health, independent of whether this particular use dealt damage —
-    // unlike healOnHitPct above, which only ever pays out on a landed hit.
-    if (abilityCtx.healSelfPct) {
-      const heal = Math.round(combat.maxHp * abilityCtx.healSelfPct);
-      if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
-    }
-    // packAuraBuff is resolved once in resolveEnemyAction, ahead of this
-    // hit/miss roll — not here, so a miss (or an ally-targeted roll,
-    // which never reaches this function at all) can't skip it.
   }
   if (edmg > 0) lines.push(...checkMercyOfTheVeil(state));
   if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
