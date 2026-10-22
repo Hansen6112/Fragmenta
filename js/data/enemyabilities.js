@@ -644,12 +644,11 @@ const ENEMY_ABILITIES = {
   // to land before the roll it's meant to affect.
   precise_shot: { name: "Precise Shot", type: "active", cooldown: 3, dmgMult: 1.4, accBonus: 10 }, // H04
   suppressing_strike: { name: "Suppressing Strike", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } }, // H05
-  // Codex text: "increased to 145% when another human ally is alive" — no
-  // engine hook checks a caster's living allies by tag mid-ability (unlike
-  // bonusVsHealthBelowPct/AbovePct/bonusVsStatus, which all exist); the
-  // conditional escalation is declared-but-inert until that's built. Base
-  // 120% is fully live.
-  coordinated_assault: { name: "Coordinated Assault", type: "active", cooldown: 4, dmgMult: 1.2 }, // H11
+  // bonusVsAllyAlive (engine/combat.js's resolveEnemyActiveAbility): "145%
+  // when another human ally is alive" — any other alive, non-friendly
+  // packmate in the fight counts (see the engine comment for why this
+  // isn't gated on a literal "human" tag).
+  coordinated_assault: { name: "Coordinated Assault", type: "active", cooldown: 4, dmgMult: 1.2, bonusVsAllyAlive: { mult: 1.45 / 1.2 } }, // H11
   heavy_impact: { name: "Heavy Impact", type: "active", cooldown: 5, dmgMult: 1.85, selfDebuff: { spd: -10, turns: 1 } }, // H12
   exposed_weakness: { name: "Exposed Weakness", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } }, // H14
   // "Up to 3 distinct targets" is just every living member of the player's

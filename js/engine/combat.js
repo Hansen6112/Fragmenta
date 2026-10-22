@@ -2022,6 +2022,15 @@ function resolveEnemyActiveAbility(state, creature) {
   if (ability.bonusVsHealthAbovePct && state.health >= state.maxHealth * ability.bonusVsHealthAbovePct.pct) {
     dmgMult *= ability.bonusVsHealthAbovePct.mult;
   }
+  // H11 Coordinated Assault ("increased to 145% when another human ally
+  // is alive", Gate 5B.8 skills codex): any other alive, non-friendly
+  // packmate in this same fight counts — these creatures are always
+  // fought alongside their own kind (escorts, squads, guard details),
+  // not literally gated on a "human" species tag no other ability here
+  // checks either.
+  if (ability.bonusVsAllyAlive && combat.enemies.some((e) => e.alive && e.creatureObj !== creature && !e.creatureObj.friendly)) {
+    dmgMult *= ability.bonusVsAllyAlive.mult;
+  }
   // Apex Instinct (Rau-Thauln): unlike the ability-specific bonuses above,
   // this applies to EVERY active the creature has, so it lives on the
   // passive itself rather than needing to be copy-pasted onto each one.
