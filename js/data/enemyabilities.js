@@ -672,16 +672,15 @@ const ENEMY_ABILITIES = {
   // other multiplier and the Defense subtraction — a creature-side
   // counterpart to the player's own damageReductionTurns-style fields.
   guarded_stance: { name: "Guarded Stance", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { dmgReduction: 0.20, turns: 1 } }, // H03
-  // H06 Countering Guard ("an explicit out-of-turn reaction dealing 40%
-  // Attack damage") is NOT implemented — a reactive strike outside the
-  // creature's own initiative slot is architecturally the same shape as
-  // the pre-emptive-strike/retaliation system this engine's turn order
-  // just moved away from (every combatant acts exactly once a round,
-  // flurry's guaranteed extra swing being the one deliberate exception).
-  // Declared (as a passive — every codex cites it that way) only so a
-  // future BESTIARY entry's "Passive: H06" has somewhere to point once
-  // this is designed for real.
-  countering_guard: { name: "Countering Guard", type: "passive", trigger: "outOfTurnReaction" }, // H06 — inert, see comment above
+  // H06 Countering Guard: "an explicit out-of-turn reaction dealing 40%
+  // Attack damage. Maximum once per round; cannot trigger recursively."
+  // Live — see engine/combat.js's checkCounteringGuard, which fires this
+  // the instant the player's own hit against this creature lands, as a
+  // genuine extra action outside the creature's normal initiative slot
+  // (the one other deliberate exception to "every combatant acts exactly
+  // once a round," alongside flurry's guaranteed extra swing — flurry is
+  // keyed off Speed, this is keyed off being hit).
+  countering_guard: { name: "Countering Guard", type: "passive", trigger: "counterOnHit", dmgMult: 0.4 }, // H06
   // survivedBelowPct (engine/combat.js's checkEnemyLowHealthTriggers): a
   // new passive trigger — fires immediately the same round the creature
   // survives a hit at or below `pct` Health, not on the next round's tick

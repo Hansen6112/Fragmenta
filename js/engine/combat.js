@@ -1609,8 +1609,39 @@ function applyPhysicalOnHitEffects(state, creature) {
     combat.enemyAtkPenalty = (combat.enemyAtkPenalty || 0) + 1;
     lines.push(`Your strike catches the tendon — ${withThe(creature.name, false)}'s attacks are weaker for the rest of this fight.`);
   }
+  lines.push(...checkCounteringGuard(state, creature));
   lines.push(...checkEnemyLowHealthTriggers(state, creature));
   return lines;
+}
+
+// H06 Countering Guard (Security and Enforcement/Sahrimor Military
+// codices, Gate 5B.8): "an explicit out-of-turn reaction dealing 40%
+// Attack damage. Maximum once per round; cannot trigger recursively."
+// Checked at the same chokepoint as checkEnemyLowHealthTriggers, right
+// after the player's own hit against the active creature lands and it
+// survives — a genuine extra action outside the creature's normal
+// initiative slot (the other deliberate exception to "every combatant
+// acts exactly once a round," alongside flurry's guaranteed extra swing;
+// flurry is keyed off Speed, this is keyed off being hit). Reuses
+// resolveEnemyRetaliation for the actual attack roll/damage/mitigation —
+// the same Accuracy-vs-Agility check, Guardian Spirit/evasion/Timeless
+// Guard interactions, and "uses <name> on you" flavor line any other
+// named attack already gets — passing a minimal synthetic abilityCtx
+// shaped just like resolveEnemyActiveAbility's own return value.
+// counterGuardUsedThisRound (reset in resolveSpeedInitiative alongside
+// actedEarlyThisRound) caps this at once per creature per round; "cannot
+// trigger recursively" holds by construction, since this counter-attack
+// is resolved directly here, never routed back through the player's own
+// on-hit pipeline that could re-enter this same check.
+function checkCounteringGuard(state, creature) {
+  const combat = state.combat;
+  const enemy = combat.enemies[combat.activeIndex];
+  if (!enemy || !enemy.alive || enemy.hp <= 0 || enemy.counterGuardUsedThisRound) return [];
+  const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnHit");
+  if (!passive) return [];
+  enemy.counterGuardUsedThisRound = true;
+  const result = resolveEnemyRetaliation(state, creature, 2, 0, { name: passive.name, dmgMult: passive.dmgMult });
+  return [`${withThe(creature.name, true)} reacts with a counter —`, ...result.lines];
 }
 
 // Enemy-side counterpart to the player's own lowHealthTriggerChecks — runs
@@ -1734,7 +1765,7 @@ function buildInitiativeOrder(state) {
 function resolveSpeedInitiative(state, creature) {
   const combat = state.combat;
   combat.enemyActedFirstThisRound = false;
-  combat.enemies.forEach((e) => { e.actedEarlyThisRound = false; });
+  combat.enemies.forEach((e) => { e.actedEarlyThisRound = false; e.counterGuardUsedThisRound = false; });
   aliveAllies(state).forEach((a) => { a.actedEarlyThisRound = false; });
   if (!creature || creature.friendly) return [];
   const lines = [];
@@ -2045,6 +2076,7 @@ function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature, arri
     maxHp,
     alive: true,
     actedEarlyThisRound: !!noArrivalAttack,
+    counterGuardUsedThisRound: false,
     disarmed: false,
     corroded: false,
     enemyAtkPenalty: 0,
@@ -3609,6 +3641,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     maxHp: creature.hp,
     alive: true,
     actedEarlyThisRound: false, // set by resolveSpeedInitiative; cleared (and read) by resolveRemainingInitiativeActions so this creature doesn't get a second slot this round
+    counterGuardUsedThisRound: false, // H06 Countering Guard's own once-per-round gate — see checkCounteringGuard
     disarmed: false, // whether Disarm has already landed on this target
     corroded: false, // whether Corrode has already landed on this target
     enemyAtkPenalty: 0, // lasting attack reduction from Disarm
@@ -5518,6 +5551,7 @@ function useElementAbility(state, elementKey) {
     if (!state.combat || state.health <= 0) return out;
     creature = getCombatCreature(state);
   } else if (castDamageDealt > 0) {
+    out.push(...checkCounteringGuard(state, creature));
     out.push(...checkEnemyLowHealthTriggers(state, creature));
   }
 
