@@ -877,7 +877,7 @@ function cmdParty(state) {
 }
 
 // Aggressive focuses attack, defensive weakens the enemy, support mends
-// whoever's hurting most (see combat.js's resolveAllyActions) — set per
+// whoever's hurting most (see combat.js's resolveOneAllyAction) — set per
 // ally, not party-wide, since a mixed party is the whole point.
 function cmdStance(arg, state) {
   if (!state.party.length) return ["You have no allies to command."];

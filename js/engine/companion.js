@@ -1,6 +1,6 @@
 /*
  * FRAGMENTA — Companion Ability Engine
- * Extends Ally System Core v1 (engine/combat.js's resolveAllyActions,
+ * Extends Ally System Core v1 (engine/combat.js's resolveOneAllyAction,
  * still exactly as it was for any ally with no abilityKit — Kessa is
  * entirely unaffected by this file) with individual per-ability
  * cooldowns, taunt/damage-reduction windows, and a stance-conditioned AI,
@@ -256,10 +256,12 @@ function effectiveAllyDef(ally) {
 // state, since the out-of-combat path needs it to survive until the next
 // fight's own beginTurn starts ticking it down (see tickAllyBuffs below).
 // `def` (effectiveAllyDef above), `acc`/`atk` (combat.js's
-// allyAggressiveAction) and `agi` (resolveEnemyAttackOnAlly's hit check)
-// all read this; `spd` has no consumer since allies have no speed-based
-// turn order at all (Fleet Step targets an ally's Agility instead — see
-// data/tactics.js's allyStat).
+// allyAggressiveAction), `agi` (resolveEnemyAttackOnAlly's hit check), and
+// `spd` (combat.js's effectiveAllySpeed, feeding the round's initiative
+// order) all read this — nothing currently grants a `spd` buff, but the
+// storage/read path is the same one every other stat already uses.
+// Fleet Step targets an ally's Agility instead — see data/tactics.js's
+// allyStat.
 function allyBuffStatTotal(ally, statKey) {
   const buffs = ally.buffs || {};
   const entry = buffs[statKey];
@@ -322,7 +324,7 @@ function veteranBonusPct(ally, kit) {
   return Math.min(passive.capPct, Math.floor(ally.healthLostPctThisCombat / 0.1) * passive.pctPer10);
 }
 
-// The single entry point combat.js's resolveAllyActions calls for any
+// The single entry point combat.js's resolveOneAllyAction calls for any
 // ally whose ALLY_DEFS entry carries an abilityKit — one action per
 // round, exactly like the generic 3-stance dispatch it replaces.
 function resolveCompanionAction(state, ally) {
@@ -409,7 +411,7 @@ function basicCompanionAttack(state, ally, enemies) {
 
 // Kills an enemy record on an ally's behalf — resolveKill (combat.js)
 // reads state.combat.activeIndex to know which record died, so this
-// briefly points it at the target (same dance resolveOrSkipRetaliation
+// briefly points it at the target (same dance resolveRemainingInitiativeActions
 // already does for a non-active pack member), rather than requiring the
 // ally to be attacking whichever enemy the PLAYER currently has active.
 function killEnemyAsAlly(state, target) {

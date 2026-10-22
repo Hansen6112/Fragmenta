@@ -14,11 +14,11 @@
  * plus Math.round(growth * (level-1)),
  * layered on the same BASE_* constants the player uses, plus whatever
  * shared-inventory gear is equipped in the ally's own equipment slots.
- * Allies don't have their own Speed-based turn slot — they act once per
- * round as a group, right at the top of it (combat.js's
- * resolveAllyActions). Death is permanent and a real threat in every
- * fight (combat.js's pickEnemyAttackTarget/killAlly) — see parser.js's
- * sanctuary/pray/rite/revive commands for the way back.
+ * Each alive ally gets their own Speed-based slot in the round's
+ * initiative order, same as the player and every enemy (combat.js's
+ * buildInitiativeOrder/resolveOneAllyAction). Death is permanent and a
+ * real threat in every fight (combat.js's pickEnemyAttackTarget/killAlly)
+ * — see parser.js's sanctuary/pray/rite/revive commands for the way back.
  */
 
 const ALLY_DEFS = {

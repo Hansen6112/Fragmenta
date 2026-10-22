@@ -68,7 +68,7 @@ const PER_ENEMY_FIELDS = [
   "hp", "maxHp",
   "corroded", "disarmed", "enemyAtkPenalty", "enemyDefPenalty", "enemyStunned",
   "hamstringApplied", "burn", "bleed", "reinforcedAttackCount", "lastDamageType",
-  "skipNormalRetaliationThisRound",
+  "actedEarlyThisRound",
   // Enemy Ability Engine (data/enemyabilities.js) — per-enemy so a pack of
   // several creatures each track their own cooldowns/stacks independently.
   "abilityCooldowns", "selfBuffs", "passiveOnceFlags", "firstActiveUsed",
@@ -730,7 +730,7 @@ function useItem(state, arg) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
 
@@ -738,7 +738,7 @@ function useItem(state, arg) {
   out.push(...applyConsumableEffect(state, item, def.useEffect));
   if (!state.combat || state.health <= 0) return out;
 
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -1630,77 +1630,124 @@ function applyHeartwoodVitality(state) {
 }
 
 // Speed (state.speed, data/races.js/classes.js/bestiary.js/enemymages.js
-// `spd`): how quickly an entity acts in combat. Turn order within a round
-// is simply whoever has the higher Speed — deterministic, not a dice
-// roll. Zero surprise for the common case: any creature at or below the
-// player's own Speed still lets the player act first exactly as before
-// this stat existed (ties favor the player, same default).
-function enemyActsFirst(state, creature) {
-  // Unhurried Step (Divine Regalia — Sandals of the Unbroken Path): "Enemy
-  // Haste, Speed, or Turn-order manipulation has no effect on you" — a
-  // flat, unconditional immunity to ever losing the initiative order.
-  if (hasEffect(state, "unhurried_step")) return false;
-  return (creature.spd || 0) > effectivePlayerSpeedForInitiative(state);
+// `spd`; an ally's own `speed` field — engine/state.js's recalcAllyStats):
+// how quickly a combatant acts in combat. Every alive combatant — the
+// player, every alive ally, every alive non-friendly enemy — gets exactly
+// one slot in a single round-wide order, fastest first; ties favor the
+// player/allies over enemies (the same default this engine has always
+// used, back when it only ever compared the player to one enemy).
+//
+// `actsFirst` outranks Speed entirely when set, breaking ties among
+// several actsFirst entries by Speed same as normal — a generic hook
+// (creature.actsFirst for an enemy, ally.actsFirst for an ally) that
+// nothing currently grants, ready for a future passive/effect to flip.
+// Unhurried Step (Divine Regalia — Sandals of the Unbroken Path) grants
+// the PLAYER this same actsFirst status unconditionally — "Enemy Haste,
+// Speed, or Turn-order manipulation has no effect on you."
+function effectiveAllySpeed(ally) {
+  return (ally.speed || 0) + allyBuffStatTotal(ally, "spd");
+}
+function buildInitiativeOrder(state) {
+  const combat = state.combat;
+  const entries = [];
+  for (const ally of aliveAllies(state)) {
+    entries.push({ kind: "ally", ref: ally, group: 0, speed: effectiveAllySpeed(ally), actsFirst: !!ally.actsFirst });
+  }
+  entries.push({ kind: "player", group: 0, speed: effectivePlayerSpeedForInitiative(state), actsFirst: hasEffect(state, "unhurried_step") });
+  combat.enemies.forEach((e, i) => {
+    if (!e.alive || !e.creatureObj || e.creatureObj.friendly) return;
+    entries.push({ kind: "enemy", ref: e, index: i, group: 1, speed: e.creatureObj.spd || 0, actsFirst: !!e.creatureObj.actsFirst });
+  });
+  entries.sort((a, b) => {
+    if (a.actsFirst !== b.actsFirst) return a.actsFirst ? -1 : 1;
+    if (b.speed !== a.speed) return b.speed - a.speed;
+    return a.group - b.group;
+  });
+  return entries;
 }
 
-// Resolves this round's turn order and, if the enemy is faster, lets it
-// strike before the player's chosen action gets a chance to resolve.
-// Called once at the very top of every player action function,
-// immediately after beginTurn(). Reuses resolveEnemyRetaliation for the
-// actual damage/mitigation math (defined further below, but plain
-// function declarations are hoisted) — using its default spread and no
-// bonus Defense, since none of the action-specific defensive bonuses
-// (Brace, Guarded Strike, ...) exist yet at this point in the round. That
-// also means every "the enemy's first attack this fight" gate (Guardian
-// Spirit, Guided Footsteps, Timeless Guard, Reinforced, ...) applies here
-// exactly as it would to a normal retaliation, since a pre-emptive strike
-// genuinely can be that first attack.
+// Resolves this round's turn order for whoever's initiative slot
+// (buildInitiativeOrder, above) comes BEFORE the player's own — anyone,
+// ally or enemy, fast enough to act before the player's chosen action
+// gets a chance to resolve. Called once at the very top of every player
+// action function, immediately after beginTurn(). Its counterpart,
+// resolveRemainingInitiativeActions (below), resolves everyone whose slot
+// comes after — together the two cover the whole round exactly once per
+// combatant (a `flurry` creature's own deliberate extra swing aside — see
+// resolveEnemyActionWithFlurry).
 //
-// This is turn ORDER, not an extra turn: acting first here normally means
-// the enemy's usual end-of-action retaliation is skipped for this same
-// round (see resolveOrSkipRetaliation) — one enemy action, just moved
-// earlier. The exception is BESTIARY's `flurry` creatures (a handful of
-// fast, dangerous, rare/unique monsters — Thunderbird, Drake, Dragon,
-// Banshee): for those specifically, being faster is a genuine extra
-// threat, so their normal retaliation still fires afterward too.
+// Reuses resolveEnemyRetaliation for the actual damage/mitigation math
+// (defined further below, but plain function declarations are hoisted) —
+// using its default spread and no bonus Defense, since none of the
+// action-specific defensive bonuses (Brace, Guarded Strike, ...) exist yet
+// at this point in the round. That also means every "the enemy's first
+// attack this fight" gate (Guardian Spirit, Guided Footsteps, Timeless
+// Guard, Reinforced, ...) applies here exactly as it would to a later hit,
+// since an early strike genuinely can be that first attack.
 //
 // combat.enemyActedFirstThisRound is left set for the rest of this action
 // to read — Stone's Patience (Divine Regalia — Foundation's Hammer) keys
 // directly off it in rollPlayerDamage.
 // creature (the caller's captured active target) is only used as the
-// legacy single-enemy early-return guard below — the real work loops
-// every alive enemy in the roster, so a pack of 3 faster wolves each get
-// their own pre-emptive strike, fastest first, not just the active one.
+// legacy single-enemy early-return guard below — the real work walks the
+// whole initiative order, so a pack of 3 faster wolves each get their own
+// early strike, fastest first, not just the active one.
 function resolveSpeedInitiative(state, creature) {
   const combat = state.combat;
   combat.enemyActedFirstThisRound = false;
-  combat.enemies.forEach((e) => { e.skipNormalRetaliationThisRound = false; });
+  combat.enemies.forEach((e) => { e.actedEarlyThisRound = false; });
+  aliveAllies(state).forEach((a) => { a.actedEarlyThisRound = false; });
   if (!creature || creature.friendly) return [];
   const lines = [];
-  const fasterAlive = combat.enemies
-    .map((e, i) => ({ e, i }))
-    .filter(({ e }) => e.alive && e.creatureObj && !e.creatureObj.friendly && enemyActsFirst(state, e.creatureObj))
-    .sort((a, b) => (b.e.creatureObj.spd || 0) - (a.e.creatureObj.spd || 0));
-  for (const { e, i } of fasterAlive) {
-    // !state.combat also stops this: a lethal pre-emptive strike from an
-    // earlier enemy in this same loop can trigger the dungeon rescue,
-    // which heals the player back up and ends combat outright — without
-    // this check, the loop would see health > 0 again and let the NEXT
-    // faster enemy take a free swing the rescue never accounted for.
-    if (!state.combat || state.health <= 0) break;
+  const order = buildInitiativeOrder(state);
+  const playerPos = order.findIndex((entry) => entry.kind === "player");
+  for (let pos = 0; pos < playerPos; pos++) {
+    // !state.combat/health: an early strike from an earlier entry in this
+    // same loop can be lethal, triggering the dungeon rescue (which heals
+    // the player back up and ends combat outright) or a kill that empties
+    // the enemy roster — without these checks, the loop would keep handing
+    // out free actions a resolved fight can't answer.
+    if (!state.combat || state.health <= 0 || !aliveEnemies(state).length) break;
+    const entry = order[pos];
+    if (entry.kind === "ally") {
+      if (!entry.ref.alive) continue;
+      entry.ref.actedEarlyThisRound = true;
+      lines.push(...resolveOneAllyAction(state, entry.ref));
+      continue;
+    }
+    const e = combat.enemies[entry.index];
+    if (!e.alive) continue;
     combat.enemyActedFirstThisRound = true;
-    if (!e.creatureObj.flurry) e.skipNormalRetaliationThisRound = true;
+    e.actedEarlyThisRound = true;
     const prevActive = combat.activeIndex;
-    combat.activeIndex = i;
-    const result = resolveEnemyAction(state, e.creatureObj, 2, 0);
+    combat.activeIndex = entry.index;
+    const result = resolveEnemyActionWithFlurry(state, e.creatureObj, 2, 0);
     combat.activeIndex = prevActive;
     lines.push(`${withThe(e.creatureObj.name, true)} is faster than you and acts first this round!`, ...result.lines);
   }
   return lines;
 }
 
-// Shared by both resolveSpeedInitiative and resolveOrSkipRetaliation: one
-// enemy's whole action for the round — try an Active ability first
+// One ally's single action for the round — the same stance/kit dispatch
+// that used to run for the whole party as a block (the old
+// resolveAllyActions) — factored out so each ally takes their own slot in
+// the Speed-ordered round instead of every ally always acting together,
+// unconditional of Speed, before anyone else.
+function resolveOneAllyAction(state, ally) {
+  // Companion Ability Engine (engine/companion.js): an ally whose
+  // ALLY_DEFS entry carries an abilityKit (Hadrian) runs its own real
+  // kit instead of the generic 3-stance dispatch below — everyone else
+  // (Kessa) is entirely unaffected.
+  const def = ALLY_DEFS[ally.defId];
+  if (def && def.abilityKit) return resolveCompanionAction(state, ally);
+  if (ally.stance === "defensive") return allyDefensiveAction(state, ally);
+  if (ally.stance === "support") return allySupportAction(state, ally);
+  return allyAggressiveAction(state, ally);
+}
+
+// Shared by both resolveSpeedInitiative and
+// resolveRemainingInitiativeActions: one enemy's whole action for the
+// round — try an Active ability first
 // (Enemy Ability Engine), and if it's an AoE one, resolve it against the
 // player AND every alive ally instead of the usual single pickEnemyAttackTarget
 // roll (an AoE active always hits the whole party, not a coin-flip subset
@@ -1732,51 +1779,79 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
     : resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx);
 }
 
-// Shared by every action that lets the enemy retaliate after the
-// player's own move resolves. If a given enemy already acted first this
-// round (resolveSpeedInitiative, above) and isn't a `flurry` creature, it
-// doesn't get a second action — this just reports that, without touching
-// `damage` in a way that could be confused for a miss (damage stays null,
-// not 0, so downstream "retaliation.damage === 0" dodge/riposte bonuses
-// correctly don't fire off of it). Loops every alive enemy (a pack fight
-// means every surviving member gets its turn, not just the one the player
-// is currently targeting) — `damage` on the returned object specifically
-// reflects the CALLER'S active target (matching the original single-enemy
-// contract exactly), so riposte/dodge bonuses stay scoped to "the thing
-// you just traded blows with," not the whole pack.
+// Wraps resolveEnemyAction with the BESTIARY `flurry` flag (a handful of
+// fast, dangerous, rare/unique monsters — Thunderbird, Drake, Dragon,
+// Banshee, +4 others): a genuine second action, back-to-back, wherever
+// this creature's own initiative slot falls — the one deliberate
+// exception the initiative system allows to "every combatant acts exactly
+// once a round." Unlike the old pre-emptive-strike/retaliation split, this
+// no longer depends on which phase of the round the creature landed in —
+// it always gets its extra swing immediately after its first one.
+function resolveEnemyActionWithFlurry(state, creatureObj, atkSpread, extraDef) {
+  const first = resolveEnemyAction(state, creatureObj, atkSpread, extraDef);
+  if (!creatureObj.flurry || !state.combat || state.health <= 0 || !aliveEnemies(state).length) return first;
+  const second = resolveEnemyAction(state, creatureObj, atkSpread, extraDef);
+  return {
+    lines: [...first.lines, `${withThe(creatureObj.name, true)} is fast enough to strike again!`, ...second.lines],
+    damage: second.damage,
+  };
+}
+
+// Resolves this round's turn order for whoever's initiative slot comes
+// AFTER the player's own chosen action has already resolved — the
+// counterpart to resolveSpeedInitiative above. Anyone (ally or enemy) who
+// already took their slot earlier this round (actedEarlyThisRound, set by
+// resolveSpeedInitiative) is skipped here, without touching `damage` in a
+// way that could be confused for a miss (damage stays null, not 0, so
+// downstream "retaliation.damage === 0" dodge/riposte bonuses correctly
+// don't fire off of it) — this just picks up wherever that phase left
+// off, in the same Speed order, so nobody acts twice except a `flurry`
+// creature's own deliberate extra swing (resolveEnemyActionWithFlurry).
+//
+// `damage` on the returned object specifically reflects the CALLER'S
+// active target (matching the original single-enemy contract exactly), so
+// riposte/dodge bonuses stay scoped to "the thing you just traded blows
+// with," not the whole pack.
 //
 // excludeIndex silently skips one specific enemy entirely (no line, no
 // damage) — Decoy/Ambush's own "this one specifically doesn't act" case,
 // which already gets its own dedicated flavor line at the call site and
-// isn't a pre-emptive-strike situation, so it deliberately does NOT reuse
-// skipNormalRetaliationThisRound's "already acted first" message.
-function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeIndex) {
+// isn't an early-strike situation, so it deliberately does NOT reuse
+// actedEarlyThisRound's "already acted first" message.
+function resolveRemainingInitiativeActions(state, creature, atkSpread, extraDef, excludeIndex) {
   const combat = state.combat;
   const callerActiveIndex = combat.activeIndex;
   const lines = [];
   let activeDamage = null;
-  for (let i = 0; i < combat.enemies.length; i++) {
+  const order = buildInitiativeOrder(state);
+  for (const entry of order) {
+    // !state.combat/health: the dungeon rescue, or a kill that empties the
+    // enemy roster, can fire mid-loop — without these checks, the next
+    // entry in this same loop would still get its own action, with no
+    // rescue left to answer it.
+    if (!state.combat || state.health <= 0 || !aliveEnemies(state).length) break;
+    if (entry.kind === "player") continue;
+    if (entry.kind === "ally") {
+      if (!entry.ref.alive || entry.ref.actedEarlyThisRound) continue;
+      lines.push(...resolveOneAllyAction(state, entry.ref));
+      continue;
+    }
+    const i = entry.index;
     const e = combat.enemies[i];
-    if (!e.alive || !e.creatureObj || e.creatureObj.friendly) continue;
+    if (!e.alive) continue;
     if (i === excludeIndex) continue;
     const prevActive = combat.activeIndex;
     combat.activeIndex = i;
     let result;
-    if (e.skipNormalRetaliationThisRound) {
-      e.skipNormalRetaliationThisRound = false;
+    if (e.actedEarlyThisRound) {
+      e.actedEarlyThisRound = false;
       result = { lines: [`${withThe(e.creatureObj.name, true)} already acted first this round and doesn't get a follow-up strike.`], damage: null };
     } else {
-      result = resolveEnemyAction(state, e.creatureObj, atkSpread, extraDef);
+      result = resolveEnemyActionWithFlurry(state, e.creatureObj, atkSpread, extraDef);
     }
     combat.activeIndex = prevActive;
     lines.push(...result.lines);
     if (i === callerActiveIndex) activeDamage = result.damage;
-    // !state.combat: the dungeon rescue can fire mid-loop (this pack
-    // member's hit was lethal), healing the player and ending combat —
-    // without also checking combat here, the NEXT pack member in this
-    // same loop would see health > 0 again and still get its own swing,
-    // with no rescue left to answer it.
-    if (!state.combat || state.health <= 0) break;
   }
   return { lines, damage: activeDamage };
 }
@@ -1785,16 +1860,16 @@ function resolveOrSkipRetaliation(state, creature, atkSpread, extraDef, excludeI
 // Allies live on state.party (engine/state.js), persistent across fights —
 // combat reads/writes an ally's .health directly rather than keeping a
 // separate per-fight copy, so nothing needs to be synced back whenever a
-// fight ends (win, flee, or otherwise). They act once per round as a
-// group, all at once, right at the top of it (see beginTurn's own call
-// below) rather than getting their own Speed-based slot in the initiative
-// order — a deliberate simplification, unrelated to the death mechanic
-// below. Death IS a real threat here, in every fight, not just Boss/World
-// Boss ones: enemies split their retaliation between the player and any
-// alive allies (pickEnemyAttackTarget), and an ally who's struck below 0
-// health falls permanently (killAlly) — there's no in-fight "downed,
-// recovers after combat" state. Reviving them is deliberately not easy;
-// see parser.js's sanctuary/pray/rite/revive commands.
+// fight ends (win, flee, or otherwise). Each alive ally gets their own
+// Speed-based slot in the round's initiative order (buildInitiativeOrder,
+// resolveSpeedInitiative/resolveRemainingInitiativeActions above) — not a
+// group acting together regardless of Speed. Death IS a real threat here,
+// in every fight, not just Boss/World Boss ones: enemies split their
+// attacks between the player and any alive allies (pickEnemyAttackTarget),
+// and an ally who's struck below 0 health falls permanently (killAlly) —
+// there's no in-fight "downed, recovers after combat" state. Reviving them
+// is deliberately not easy; see parser.js's sanctuary/pray/rite/revive
+// commands.
 function aliveAllies(state) {
   return (state.party || []).filter((a) => a.alive);
 }
@@ -1917,7 +1992,7 @@ function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature) {
     hp: creature.hp,
     maxHp: creature.hp,
     alive: true,
-    skipNormalRetaliationThisRound: false,
+    actedEarlyThisRound: false,
     disarmed: false,
     corroded: false,
     enemyAtkPenalty: 0,
@@ -2016,7 +2091,7 @@ function applyPackAuraBuff(combat, creature, spec) {
 // (shared-inventory) gear. `damage` on the returned object is always
 // null, never 0 — this attack didn't target the player at all, so it
 // must not read as "the player dodged" to the dodge/riposte bonuses that
-// key off resolveOrSkipRetaliation's returned damage.
+// key off resolveRemainingInitiativeActions's returned damage.
 // abilityCtx (Enemy Ability Engine, data/enemyabilities.js): set only when
 // this same action is an AoE active ability also striking every ally —
 // the player-facing half already resolved the ability's own selection/
@@ -2114,27 +2189,6 @@ Events.on("ally.died", ({ ally, state }) => {
     }
   }
 });
-
-function resolveAllyActions(state) {
-  if (!state.combat) return [];
-  const creature = getCombatCreature(state);
-  if (!creature || creature.friendly) return [];
-  const lines = [];
-  for (const ally of aliveAllies(state)) {
-    if (!state.combat || !aliveEnemies(state).length) break;
-    // Companion Ability Engine (engine/companion.js): an ally whose
-    // ALLY_DEFS entry carries an abilityKit (Hadrian) runs its own real
-    // kit instead of the generic 3-stance dispatch below — everyone else
-    // (Kessa) is entirely unaffected.
-    const def = ALLY_DEFS[ally.defId];
-    if (def && def.abilityKit) {
-      lines.push(...resolveCompanionAction(state, ally));
-    } else if (ally.stance === "defensive") lines.push(...allyDefensiveAction(state, ally));
-    else if (ally.stance === "support") lines.push(...allySupportAction(state, ally));
-    else lines.push(...allyAggressiveAction(state, ally));
-  }
-  return lines;
-}
 
 // Aggressive stance: pile onto whichever enemy the player is currently
 // targeting, using the same Accuracy-vs-Agility hit check as everything
@@ -2481,19 +2535,13 @@ function beginTurn(state) {
       if (healed > 0) lines.push(`Avatar of Renewal mends you for ${healed} health.`, ...healLines);
     }
   }
-  // Allies act once per round, as a group, right here at the very end of
-  // beginTurn — the one function every action (playerAttack, useFeint,
-  // useDecoy, useAmbush, useDisarm, useElementAbility, useItem, a failed
-  // attemptFlee) already calls first, so this is a single integration
-  // point rather than touching each of those separately. Guarded the same
-  // way the DOT tick above is: an ally landing the killing blow can end
-  // the fight before the player's own action gets to run, and every call
-  // site already checks `if (!state.combat) return ...` right after
-  // beginTurn returns.
-  if (state.combat) {
-    tickCompanionCombatTimers(state);
-    lines.push(...resolveAllyActions(state));
-  }
+  // Companion cooldown/buff-turn bookkeeping ages down every round
+  // regardless of whether (or when) an ally's own action actually lands —
+  // allies now take their action as part of the Speed-ordered initiative
+  // split (resolveSpeedInitiative/resolveRemainingInitiativeActions, both
+  // called by every action function right after this one returns), not
+  // here.
+  if (state.combat) tickCompanionCombatTimers(state);
   return lines;
 }
 
@@ -2622,7 +2670,7 @@ function dungeonRescue(state) {
   // rescue already spent and the player un-saveable a second time. Every
   // loop that iterates multiple enemies/DOT ticks within one player action
   // already checks `!state.combat` as its stop condition for exactly this
-  // reason (see resolveOrSkipRetaliation, resolveSpeedInitiative,
+  // reason (see resolveRemainingInitiativeActions, resolveSpeedInitiative,
   // tickPlayerStatuses, beginTurn).
   state.combat = null;
   state.health = state.maxHealth;
@@ -3449,7 +3497,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     hp: creature.hp,
     maxHp: creature.hp,
     alive: true,
-    skipNormalRetaliationThisRound: false, // set by resolveSpeedInitiative (unless the creature is `flurry`) so retaliation doesn't grant a second enemy action this round
+    actedEarlyThisRound: false, // set by resolveSpeedInitiative; cleared (and read) by resolveRemainingInitiativeActions so this creature doesn't get a second slot this round
     disarmed: false, // whether Disarm has already landed on this target
     corroded: false, // whether Corrode has already landed on this target
     enemyAtkPenalty: 0, // lasting attack reduction from Disarm
@@ -4440,7 +4488,7 @@ function playerAttack(state) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "attack"), ...applyWanderersReward(state, "attack"), ...applyActionTypeTracking(state, "attack"));
@@ -4489,7 +4537,7 @@ function playerAttack(state) {
   }
 
   const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -4530,6 +4578,18 @@ function attemptFlee(state) {
     if (!state.combat || state.health <= 0) return out;
     creature = getCombatCreature(state);
   }
+  // Flee isn't part of the Speed-ordered initiative split (it's always
+  // just one swing from the current active enemy, win or lose — see
+  // below), but allies still act every round regardless, same as any
+  // other action — just unconditionally here rather than slotted by
+  // their own Speed, since there's no "the player's own action" moment
+  // in a failed flee for an initiative order to be built around.
+  for (const ally of aliveAllies(state)) {
+    if (!state.combat || !aliveEnemies(state).length) break;
+    out.push(...resolveOneAllyAction(state, ally));
+  }
+  if (!state.combat || state.health <= 0) return out;
+  creature = getCombatCreature(state);
 
   const combat = state.combat;
   // A failed flee still only ever gives the current active enemy one
@@ -4646,7 +4706,7 @@ function useFeint(state) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "feint"), ...applyWanderersReward(state, "feint"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "feint"));
@@ -4691,7 +4751,7 @@ function useFeint(state) {
   if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
     state.combat.siegeCorpsAtkCharge = 2;
   }
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, braceBonus);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -4726,12 +4786,12 @@ function useDecoy(state) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
   // Captured now, before the player's own strike (below) has any chance to
   // kill this specific enemy — this is who's actually being decoyed, for
-  // the skipNormalRetaliationThisRound flag further down.
+  // the excludeIndex argument further down.
   const decoyedIndex = state.combat.activeIndex;
   out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "decoy"));
   consumeTrailblazer(state);
@@ -4786,7 +4846,7 @@ function useDecoy(state) {
   if (decoyedEnemy && decoyedEnemy.alive) {
     out.push(`${withThe(decoyedEnemy.creatureObj.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
   }
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0, decoyedIndex);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, decoyedIndex);
   out.push(...retaliation.lines);
   // Decoy always guarantees the decoyed enemy itself dealt no damage, so
   // Riposte/dodge bonuses fire unconditionally (matching the original
@@ -4824,14 +4884,14 @@ function useAmbush(state) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
   consumeTrailblazer(state);
   // Captured now, before the strike below has any chance to kill this
   // specific enemy — this is who's actually being ambushed, for the
-  // skipNormalRetaliationThisRound flag further down.
+  // excludeIndex argument further down.
   const ambushedIndex = state.combat.activeIndex;
 
   // Even an ambush can go wide — Accuracy vs Agility still decides it,
@@ -4864,7 +4924,7 @@ function useAmbush(state) {
   // Ambush only surprises the one creature it's aimed at — anyone else
   // still standing in a pack fight wasn't caught off guard and retaliates
   // normally, same as Decoy.
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0, ambushedIndex);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, ambushedIndex);
   out.push(...retaliation.lines);
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -4898,7 +4958,7 @@ function useDisarm(state) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
   out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "disarm"));
@@ -4949,7 +5009,7 @@ function useDisarm(state) {
   }
 
   const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, guardBonus);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -5003,7 +5063,7 @@ function useApothecaryAbility(state, key, targetArg) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
   consumeTrailblazer(state);
@@ -5011,7 +5071,7 @@ function useApothecaryAbility(state, key, targetArg) {
   out.push(...applyApothecaryAbilityEffect(state, a, ally));
 
   if (!state.combat || state.health <= 0) return out;
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, 0);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
@@ -5102,7 +5162,7 @@ function useElementAbility(state, elementKey) {
   // resolveSpeedInitiative can trigger the dungeon rescue, which heals
   // the player back up and ends combat outright — checking health alone
   // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveOrSkipRetaliation) with state.combat
+  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
   // combat.spellCastCounter: an unconditional per-cast counter (every
@@ -5335,7 +5395,7 @@ function useElementAbility(state, elementKey) {
   }
 
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
-  const retaliation = resolveOrSkipRetaliation(state, creature, 2, braceBonus);
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));

@@ -18,7 +18,7 @@
  * appear at. Every creature here has an `archetype` and `dangerClass`
  * assigned except `special: true` ones (archetype/dangerClass would be
  * inert on those — see above). `flurry` is a separate, narrower flag —
- * see engine/combat.js resolveSpeedInitiative.
+ * see engine/combat.js resolveEnemyActionWithFlurry.
  *
  * No Epic-rarity creature exists yet (levels 15-19 sit between Rare's
  * ceiling and Unique's floor) — every creature strong enough to warrant
@@ -152,7 +152,7 @@ const BESTIARY = {
     archetype: "artillery",
     dangerClass: "elite",
     spawnRarity: "rare",
-    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
+    flurry: true, // rare + high Speed: gets a genuine second action every round, back-to-back with its first (see engine/combat.js resolveEnemyActionWithFlurry)
   },
   drake: {
     name: "Drake",
@@ -164,7 +164,7 @@ const BESTIARY = {
     archetype: "bruiser",
     dangerClass: "elite",
     spawnRarity: "rare",
-    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
+    flurry: true, // rare + high Speed: gets a genuine second action every round, back-to-back with its first (see engine/combat.js resolveEnemyActionWithFlurry)
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   dragon: {
@@ -177,7 +177,7 @@ const BESTIARY = {
     archetype: "juggernaut",
     dangerClass: "world_boss",
     spawnRarity: "rare",
-    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
+    flurry: true, // rare + high Speed: gets a genuine second action every round, back-to-back with its first (see engine/combat.js resolveEnemyActionWithFlurry)
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   vampire_turned: {
@@ -278,7 +278,7 @@ const BESTIARY = {
     archetype: "assassin",
     dangerClass: "elite",
     spawnRarity: "rare",
-    flurry: true, // rare + high Speed: keeps its normal retaliation even in a round it already acted first in (see engine/combat.js resolveSpeedInitiative)
+    flurry: true, // rare + high Speed: gets a genuine second action every round, back-to-back with its first (see engine/combat.js resolveEnemyActionWithFlurry)
   },
   wraith: {
     name: "Wraith",
