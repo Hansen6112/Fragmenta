@@ -221,7 +221,18 @@ function isLevelEligibleForRarity(level, spawnRarityId) {
 // a level-1-5-band "trash" creature staying weak forever, regardless of
 // the player's level, is exactly the point of the level band; only Rare/
 // Epic/Unique creatures should ever scale toward a high-level player.
-function clampLevelToRarityBand(level, spawnRarityId) {
+//
+// levelBandExempt (BESTIARY field — Independent Armed Groups/Criminal
+// Underworld codex identities, Gate 5B.8): a hand-authored identity whose
+// own stated spawn levels span wider than any single Spawn Rarity band
+// (e.g. Mercenary Veteran's 18-25 crosses Epic/Unique) skips this clamp
+// entirely — unlike `special` (which also skips computeCreatureStats'
+// scaling altogether, wrong for something that's meant to keep leveling
+// across its whole band), this ONLY lifts the eligibility clamp; the
+// creature still scales normally through buildFightCreature at whatever
+// level an encounter/quest explicitly places it at (preRolledLevel).
+function clampLevelToRarityBand(level, spawnRarityId, levelBandExempt) {
+  if (levelBandExempt) return level;
   const row = SPAWN_RARITIES[spawnRarityId] || SPAWN_RARITIES[DEFAULT_SPAWN_RARITY];
   return Math.max(row.levelMin, Math.min(row.levelMax, level));
 }

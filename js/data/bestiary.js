@@ -2378,6 +2378,171 @@ const BESTIARY = {
     passives: ["earthen_form", "living_timber"],
     actives: ["cataclysmic_slam", "elemental_convergence", "guardians_judgment"],
   },
+
+  // ---- Independent Armed Groups (Gate 5B.8 equipment codex, v1) ----
+  // Eight Sahrimor-human identities — tribal fighters, caravan sellswords,
+  // and mercenary veterans/leaders. Species Base hp/atk/def/spd/acc/agi
+  // below are reverse-fit (not hand-authored from scratch) against this
+  // engine's own computeCreatureStats formula (data/creaturetags.js) so
+  // that, at each identity's stated reference level, it reproduces the
+  // codex's own "VERIFIED UNEQUIPPED" snapshot — exactly for every
+  // secondary stat, within ±1 for a handful of primary stats (the nearest
+  // integer base the formula's discrete rounding allows), at
+  // spawnRarity "common" (rarityWeight 1 — the only weight that keeps
+  // every stat's reverse-fit base non-negative all the way up to level
+  // 26; a creature's toughness here comes from Danger Class + Archetype,
+  // not a faster growth rate). levelBandExempt (data/creaturetags.js's
+  // clampLevelToRarityBand) lets each identity scale across its own full
+  // stated level band even though that band is wider than Common's
+  // official 1-5 eligibility window — these are hand-placed by a future
+  // encounter/quest (an explicit level, via startCombat's preRolledLevel),
+  // never the random wild-encounter roller, so the eligibility clamp
+  // itself (which only matters for a RANDOMLY rolled level) has nothing to
+  // protect against here. `equipment`/`equipmentBands` — see
+  // engine/combat.js's resolveEnemyEquipment/enemyEquipmentBonus: flat
+  // Attack/Defense/Health bonuses apply; Knowledge bonuses are recorded
+  // (creatureObj.equipmentKnowledge) but inert (no creature Knowledge stat
+  // exists); named wearer effects (Brace, Riposte, Feinting Edge,
+  // Heatproof, Stalwart, Surefooted, Guarded Strike, Opening Reach,
+  // Merchant's Eye, Tactical Memory, Executioner) are inert too — no
+  // engine hook lets an enemy carry a player-gear effect yet. Not wired
+  // into any spawn table/encounter yet — spawn weight, group size, and
+  // rewards are explicitly still TBD per the codex itself.
+  tribal_initiate: {
+    name: "Tribal Initiate",
+    native: "Independent tribal settlements, Sahrimor",
+    tags: ["desert", "plains"],
+    nations: ["sahrimor"],
+    hp: 22, atk: 4, def: 3, spd: 5, acc: 6, agi: 5,
+    description: "An entry-level tribal fighter — predictable opening, basic defense. Independent tribal groups aren't inherently hostile; whether this one is depends on the encounter.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "skirmisher",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipment: { mainhand: "a curved desert blade", chest: "a sun-bleached desert wrap", gloves: "a pair of desert wrap-cloths", boots: "sand-worn desert sandals" },
+    actives: ["stone_throw"],
+  },
+  desert_tribal_fighter: {
+    name: "Desert Tribal Fighter",
+    native: "Desert/oasis tribal areas, Sahrimor",
+    tags: ["desert"],
+    nations: ["sahrimor"],
+    hp: 36, atk: 5, def: 4, spd: 5, acc: 7, agi: 5,
+    description: "A prepared opening followed by a guard cycle — fights a round ahead of where it actually stands.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "skirmisher",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipment: { mainhand: "an oasis guard spear", offhand: "a brass round shield", chest: "layered desert robes", gloves: "a pair of desert wrap-cloths", boots: "sandwalker sandals", cloak: "a desert silk shawl" },
+    passives: ["prepared_opening"],
+    actives: ["opportunistic_strike", "guarded_stance"],
+  },
+  // Caravan Sellsword: one identity, three level-banded loadouts (V1
+  // 7-15, V2 16-23, V3 24-30) via equipmentBands — see
+  // resolveEnemyEquipment. Its own intrinsic kit (archetype/dangerClass/
+  // actives) stays constant across all three; only the gear (and, through
+  // it, effective Attack/Defense) changes.
+  caravan_sellsword: {
+    name: "Caravan Sellsword",
+    native: "Caravan roads and private contracts, Sahrimor",
+    tags: ["desert", "plains"],
+    nations: ["sahrimor"],
+    hp: 51, atk: 7, def: 4, spd: 4, acc: 7, agi: 5,
+    description: "Consistent contracted offense, backed by a disarming follow-up that leaves a target's own Attack suppressed.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "skirmisher",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipmentBands: [
+      { maxLevel: 15, equipment: { mainhand: "a river merchant's scimitar", offhand: "a brass round shield", helmet: "a desert veil hood", chest: "sunwoven brigandine", gloves: "desert rider gloves", boots: "caravan rider boots", cloak: "a caravan mantle" } },
+      { maxLevel: 23, equipment: { mainhand: "a golden crescent blade", offhand: "a gilded caravan shield", helmet: "Contract Veteran's Helm", chest: "a golden caravan harness", gloves: "golden duelist gloves", boots: "dunestrider greaves", rings: "Sellsword's Contract Band", cloak: "a caravan mantle" } },
+      { maxLevel: 30, equipment: { mainhand: "Oathsteel Contract Blade", offhand: "Veteran's Silverguard", helmet: "Contract Veteran's Helm", chest: "Indemnity Warcoat", gloves: "golden duelist gloves", boots: "dunestrider greaves", rings: "Sellsword's Contract Band", necklace: "Mercenary Oath Chain", cloak: "a sunwoven royal mantle" } },
+    ],
+    actives: ["committed_assault", "disarm_swipe"],
+  },
+  tribal_hunter: {
+    name: "Tribal Hunter",
+    native: "Oases and rural/desert terrain, Sahrimor",
+    tags: ["desert", "plains"],
+    nations: ["sahrimor"],
+    hp: 65, atk: 7, def: 5, spd: 5, acc: 6, agi: 7,
+    description: "Accurate burst damage against targets already weakened — an opening strike that only gets better once something's hurt.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "artillery",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipment: { mainhand: "Sahrimori Saltwind Bow", offhand: "Falcon-Fletched Quiver", helmet: "a desert veil hood", chest: "desert traveler's robes", gloves: "desert rider gloves", boots: "oasis traveler boots", cloak: "a desert silk shawl", trinkets: ["a desert sun coin"] },
+    passives: ["prepared_opening"],
+    actives: ["precise_shot", "opportunistic_strike"],
+  },
+  veteran_caravan_escort: {
+    name: "Veteran Caravan Escort",
+    native: "Merchant trails and escorted caravans, Sahrimor",
+    tags: ["desert", "plains"],
+    nations: ["sahrimor"],
+    hp: 81, atk: 7, def: 2, spd: 7, acc: 8, agi: 8,
+    description: "Protects a charge and cycles its own defenses — durable, and sturdier still once it's taken a real hit.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "tank",
+    dangerClass: "elite",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipment: { mainhand: "a sahrimor dune falcon spear", offhand: "a gilded caravan shield", helmet: "a brass desert helm", chest: "a golden caravan harness", gloves: "caravan guard gauntlets", boots: "dunestrider greaves", necklace: "a merchant prince's chain", cloak: "a caravan mantle", trinkets: ["a merchant's ledger seal"] },
+    passives: ["veteran_discipline"],
+    actives: ["protective_cover", "guarded_stance", "exposed_weakness"],
+  },
+  mercenary_veteran: {
+    name: "Mercenary Veteran",
+    native: "Contracts and caravan security, Sahrimor",
+    tags: ["desert", "plains"],
+    nations: ["sahrimor"],
+    hp: 107, atk: 7, def: 3, spd: 5, acc: 8, agi: 6,
+    description: "Veteran pressure backed by suppression — a disarming follow-up and a guard cycle, the same toolkit a Caravan Sellsword carries, hardened by experience.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "bruiser",
+    dangerClass: "elite",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipment: { mainhand: "a sunfire war scimitar", offhand: "a silk-wrapped buckler", helmet: "a brass desert helm", chest: "a golden caravan harness", gloves: "golden duelist gloves", boots: "dunestrider greaves", necklace: "Campaigner's Blade Chain", cloak: "a caravan mantle", trinkets: ["a desert sun coin"] },
+    passives: ["veteran_discipline"],
+    actives: ["committed_assault", "guarded_stance", "disarm_swipe"],
+  },
+  tribal_warleader: {
+    name: "Tribal Warleader",
+    native: "Tribal strongholds and organized groups, Sahrimor",
+    tags: ["desert", "plains"],
+    nations: ["sahrimor"],
+    hp: 108, atk: 4, def: 0, spd: 5, acc: 7, agi: 6,
+    description: "Commands a tribal stronghold — rallying its allies' Accuracy, shielding one from harm, and pressing its own advantage once another human ally still stands.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "leader",
+    dangerClass: "boss",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipment: { mainhand: "Sunclan Warleader's Khopesh", offhand: "a gilded caravan shield", helmet: "a caravan captain's turban", chest: "Oathwoven Tribal Warcoat", gloves: "golden duelist gloves", boots: "dunestrider greaves", rings: "a sultan's signet", necklace: "Desert Kinship Torque", cloak: "a sunwoven royal mantle", trinkets: ["a desert sun coin"] },
+    passives: ["resolute_command", "veteran_discipline"],
+    actives: ["focused_rally", "protective_cover", "coordinated_assault"],
+  },
+  mercenary_commander: {
+    name: "Mercenary Commander",
+    native: "Mercenary companies, Sahrimor",
+    tags: ["desert", "plains"],
+    nations: ["sahrimor"],
+    hp: 125, atk: 4, def: 0, spd: 4, acc: 7, agi: 5,
+    description: "Adaptive leadership backed by focused attacks — a commander who answers whatever's actually happening in the fight, not a fixed script.",
+    combatNotes: "From the Independent Armed Groups Equipment Codex (Gate 5B.8).",
+    archetype: "leader",
+    dangerClass: "boss",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    equipment: { mainhand: "Contract Marshal's Warblade", offhand: "Veteran's Silverguard", helmet: "Contract Veteran's Helm", chest: "Marshal's Indemnity Plate", gloves: "golden duelist gloves", boots: "dunestrider greaves", rings: "Commander's Bond Signet", necklace: "Mercenary Oath Chain", cloak: "a sunwoven royal mantle", trinkets: ["Veteran Contract Seal"] },
+    passives: ["resolute_command", "last_stand"],
+    actives: ["coordinated_assault", "adaptive_orders", "exposed_weakness", "committed_assault"],
+  },
 };
 
 // Creature `tags` were authored against data/creaturetags.js's

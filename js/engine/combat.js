@@ -3519,10 +3519,60 @@ function buildCombatMenu(state, stage) {
 // have no `id` field; that's purely the object key), so this is the one
 // place a kill-resolution check (engine/jobs.js's checkJobProgressOnKill,
 // for Hunt/Track bounties) can reliably learn "which species was this."
+// Enemy equipment (BESTIARY `equipment` — a flat { slot: itemName } map,
+// same shape as the player's own state.equipment) or `equipmentBands`
+// (Criminal Underworld/Independent Armed Groups codices, Gate 5B.8 — a
+// single identity whose gear changes at specific level thresholds, e.g.
+// Bandit Cutthroat/Caravan Sellsword's V1/V2/V3, each entry's `maxLevel`
+// the top of its band): resolved once per fight-build, below, into a flat
+// per-stat bonus added on top of the level-scaled "unequipped" stats
+// computeCreatureStats already produced — mirrors items.js's own
+// equipmentBonus() for the player, just reading a creature's own gear
+// instead of state.equipment. Knowledge bonuses are summed and stored
+// (creatureObj.equipmentKnowledge) but never added to any live stat —
+// these creatures have no Knowledge stat in this engine at all (the
+// codices' own "tracked separately" caveat). Named/triggered wearer
+// effects (Brace, Riposte, Feinting Edge, Heatproof, Stalwart,
+// Surefooted, Guarded Strike, Opening Reach, Merchant's Eye, Tactical
+// Memory, Executioner, ...) are NOT applied — every one of those effects
+// is currently checked via hasEffect(state, id) against the PLAYER's own
+// equipment only; there's no engine hook for an enemy to carry one. Left
+// declared-but-inert, consistent with this codebase's existing
+// inert-effect convention, pending that future engine work.
+function resolveEnemyEquipment(template, level) {
+  if (template.equipmentBands) {
+    const band = template.equipmentBands.find((b) => level <= b.maxLevel) || template.equipmentBands[template.equipmentBands.length - 1];
+    return band.equipment;
+  }
+  return template.equipment || null;
+}
+function enemyEquipmentBonus(equipment, statKey) {
+  if (!equipment) return 0;
+  let total = 0;
+  for (const value of Object.values(equipment)) {
+    for (const item of [].concat(value || [])) {
+      const def = ITEM_DEFS[item];
+      if (def && def.bonuses && def.bonuses[statKey]) total += def.bonuses[statKey];
+    }
+  }
+  return total;
+}
 function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
-  const clampedLevel = clampLevelToRarityBand(level, template.spawnRarity);
+  const clampedLevel = clampLevelToRarityBand(level, template.spawnRarity, template.levelBandExempt);
   const effectiveTemplate = dangerClassOverride ? Object.assign({}, template, { dangerClass: dangerClassOverride }) : template;
-  return Object.assign({}, effectiveTemplate, computeCreatureStats(effectiveTemplate, clampedLevel), { level: clampedLevel, bestiaryKey: bestiaryId });
+  const scaled = computeCreatureStats(effectiveTemplate, clampedLevel);
+  const equipment = resolveEnemyEquipment(effectiveTemplate, clampedLevel);
+  if (equipment) {
+    scaled.hp += enemyEquipmentBonus(equipment, "health");
+    scaled.atk += enemyEquipmentBonus(equipment, "atk");
+    scaled.def += enemyEquipmentBonus(equipment, "def");
+  }
+  const creature = Object.assign({}, effectiveTemplate, scaled, { level: clampedLevel, bestiaryKey: bestiaryId });
+  if (equipment) {
+    creature.equipment = equipment;
+    creature.equipmentKnowledge = enemyEquipmentBonus(equipment, "knowledge");
+  }
+  return creature;
 }
 
 function startCombat(state, creatureIdOrObject, preRolledLevel) {
