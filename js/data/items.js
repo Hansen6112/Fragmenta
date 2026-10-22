@@ -1981,6 +1981,29 @@ const ITEM_DEFS = {
   "Reaver Grips": { slot: "gloves", tier: 6, bonuses: { atk: 8 }, source: "monster" },
   "Ring of the Plunder-King": { slot: "rings", tier: 6, bonuses: { atk: 6, def: 3 }, source: "monster" },
   "Bloodstorm Battlecloak": { slot: "cloak", tier: 6, bonuses: { atk: 5, def: 4 }, source: "monster" },
+
+  // ---- Independent Armed Groups (Gate 5B.8 equipment codex, v1) ----
+  // 16 new-item proposals for the eight Independent Armed Groups
+  // identities (Tribal Initiate through Mercenary Commander) — flat stat
+  // bonuses only, no granted effects, per the codex's own item register
+  // (New-item design register). Same "data only for now" treatment as the
+  // Criminal Underworld codex's items: no acquisition path assigned yet.
+  "Contract Veteran's Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
+  "Sellsword's Contract Band": { slot: "rings", tier: 5, bonuses: { atk: 4, knowledge: 2 }, source: "monster" },
+  "Oathsteel Contract Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Veteran's Silverguard": { slot: "offhand", tier: 6, bonuses: { def: 7 }, source: "monster" },
+  "Indemnity Warcoat": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 7 }, source: "monster" },
+  "Mercenary Oath Chain": { slot: "necklace", tier: 5, bonuses: { atk: 3, def: 3 }, source: "monster" },
+  "Sahrimori Saltwind Bow": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, source: "monster" },
+  "Falcon-Fletched Quiver": { slot: "offhand", tier: 3, bonuses: { atk: 2, knowledge: 1 }, source: "monster" },
+  "Campaigner's Blade Chain": { slot: "necklace", tier: 5, bonuses: { atk: 4 }, source: "monster" },
+  "Sunclan Warleader's Khopesh": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Oathwoven Tribal Warcoat": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "monster" },
+  "Desert Kinship Torque": { slot: "necklace", tier: 5, bonuses: { def: 3, knowledge: 3 }, source: "monster" },
+  "Contract Marshal's Warblade": { slot: "mainhand", tier: 6, bonuses: { atk: 9 }, source: "monster" },
+  "Marshal's Indemnity Plate": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 8 }, source: "monster" },
+  "Commander's Bond Signet": { slot: "rings", tier: 6, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
+  "Veteran Contract Seal": { slot: "trinkets", tier: 5, bonuses: { atk: 3, knowledge: 3 }, source: "monster" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
