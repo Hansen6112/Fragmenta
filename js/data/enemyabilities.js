@@ -708,13 +708,14 @@ const ENEMY_ABILITIES = {
   focused_rally: { name: "Focused Rally", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 5, turns: 2 } }, // H09
   defensive_command: { name: "Defensive Command", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 5, turns: 2 } }, // H13
   resolute_command: { name: "Resolute Command", type: "passive", trigger: "survivedBelowPct", pct: 0.5, packAuraBuff: { acc: 5, turns: 2 }, oncePerCombat: true }, // H15
-  // H18 Adaptive Orders is NOT implemented: choosing between granting
-  // Defense or Accuracy based on "the commander's 50% Health threshold"
-  // needs bespoke branching code (no generic field picks between two
-  // different packAuraBuff shapes at cast time), and the codex text
-  // doesn't say which side of the threshold maps to which bonus. Flagged
-  // for a follow-up rather than guessed.
-  adaptive_orders: { name: "Adaptive Orders", type: "active", cooldown: 5, dmgMult: 0 }, // H18 — inert, see comment above
+  // conditionalPackAuraBuff (engine/combat.js's resolveEnemyActiveAbility):
+  // picks between two packAuraBuff shapes using the commander's OWN
+  // current Health fraction at cast time. The codex doesn't say which
+  // side of the 50% threshold maps to which bonus — inferred default:
+  // healthy presses the advantage (Accuracy), hurt calls for a
+  // defensive order instead (Defense). Flip abovePct/atOrBelowPct here
+  // if that reads backwards.
+  adaptive_orders: { name: "Adaptive Orders", type: "active", cooldown: 5, dmgMult: 0, conditionalPackAuraBuff: { pct: 0.5, abovePct: { acc: 5, turns: 2 }, atOrBelowPct: { def: 5, turns: 2 } } }, // H18
 
   // H22/H23: Call the Crew (Bandit Captain -> Bandit Cutthroat) and Guard
   // Reinforcements (Merchant Lord Guard Captain -> Veteran Merchant

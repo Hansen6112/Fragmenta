@@ -2040,6 +2040,23 @@ function resolveEnemyActiveAbility(state, creature) {
       dmgMult *= p.mult;
     }
   }
+  // H18 Adaptive Orders ("grant up to 3 other allies either +5 Defense or
+  // +5 Accuracy... selected deterministically using the commander's 50%
+  // Health threshold"): the codex doesn't say which side of the
+  // threshold maps to which bonus, so this is an inferred default —
+  // healthy (above the threshold) presses the advantage with Accuracy;
+  // hurt (at or below) calls for a defensive order instead. Resolved
+  // once here, at cast time, into the same packAuraBuff shape every
+  // other pack-buffing active already uses — applyPackAuraBuff itself
+  // needs no changes.
+  let packAuraBuff = ability.packAuraBuff;
+  if (ability.conditionalPackAuraBuff) {
+    const c = ability.conditionalPackAuraBuff;
+    // "The commander's" own Health threshold — combat.hp/maxHp (the
+    // PER_ENEMY_FIELDS proxy) already reads whichever enemy is active,
+    // which is this same casting creature, not the player.
+    packAuraBuff = combat.hp > combat.maxHp * c.pct ? c.abovePct : c.atOrBelowPct;
+  }
   return {
     id: abilityId,
     name: ability.name,
@@ -2051,7 +2068,7 @@ function resolveEnemyActiveAbility(state, creature) {
     selfBuff: ability.selfBuff,
     healOnHitPct: ability.healOnHitPct,
     healSelfPct: ability.healSelfPct,
-    packAuraBuff: ability.packAuraBuff,
+    packAuraBuff,
     summon: ability.summon,
   };
 }
