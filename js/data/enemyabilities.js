@@ -678,9 +678,10 @@ const ENEMY_ABILITIES = {
   // the pre-emptive-strike/retaliation system this engine's turn order
   // just moved away from (every combatant acts exactly once a round,
   // flurry's guaranteed extra swing being the one deliberate exception).
-  // Declared here as a placeholder only so a future BESTIARY entry's
-  // "Active: H06" has somewhere to point once this is designed for real.
-  countering_guard: { name: "Countering Guard", type: "active", cooldown: 0, dmgMult: 0 }, // H06 — inert, see comment above
+  // Declared (as a passive — every codex cites it that way) only so a
+  // future BESTIARY entry's "Passive: H06" has somewhere to point once
+  // this is designed for real.
+  countering_guard: { name: "Countering Guard", type: "passive", trigger: "outOfTurnReaction" }, // H06 — inert, see comment above
   // survivedBelowPct (engine/combat.js's checkEnemyLowHealthTriggers): a
   // new passive trigger — fires immediately the same round the creature
   // survives a hit at or below `pct` Health, not on the next round's tick
@@ -717,15 +718,16 @@ const ENEMY_ABILITIES = {
   // for a follow-up rather than guessed.
   adaptive_orders: { name: "Adaptive Orders", type: "active", cooldown: 5, dmgMult: 0 }, // H18 — inert, see comment above
 
-  // H22 Call the Crew and H23 Guard Reinforcements are deferred entirely:
-  // both are summon abilities (arrivalHpPct/noArrivalAttack options exist
-  // now — see buildSummonedEnemyRecord/resolveEnemySummon — matching
-  // "60% of normal maximum Health" and "no arrival-round attack"), but
-  // their summon targets (Bandit Cutthroat, Veteran Merchant Guard) don't
-  // exist as BESTIARY entries yet. A summon spec with a dangling
-  // creatureId would silently no-op at best and trip the audit's dangling-
-  // reference check at worst — these are added once those two creatures
-  // are built.
+  // H22/H23: Call the Crew (Bandit Captain -> Bandit Cutthroat) and Guard
+  // Reinforcements (Merchant Lord Guard Captain -> Veteran Merchant
+  // Guard) — "maximum four living hostiles, 60% arrival HP, no
+  // arrival-round attack, no rewards from the summon" (Gate 5B.8). The
+  // level passed to resolveEnemySummon is always the summoner's own
+  // (rollEncounterGroup's existing convention), so the summoned Veteran
+  // Merchant Guard resolves whichever of its V1/V2/V3 equipment bands
+  // matches that level, same as if it had spawned normally.
+  call_the_crew: { name: "Call the Crew", type: "active", cooldown: 6, dmgMult: 0, oncePerCombat: true, summon: { creatureId: "bandit_cutthroat", count: 1, maxActive: 4, arrivalHpPct: 0.6, noArrivalAttack: true } }, // H22
+  guard_reinforcements: { name: "Guard Reinforcements", type: "active", cooldown: 6, dmgMult: 0, oncePerCombat: true, summon: { creatureId: "veteran_merchant_guard", count: 1, maxActive: 4, arrivalHpPct: 0.6, noArrivalAttack: true } }, // H23
 };
 
 function getEnemyAbility(id) {
