@@ -1409,7 +1409,13 @@ function rollPlayerDamage(state, creature, activeElement) {
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
-    dmg = Math.max(1, Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult) - Math.floor(effDef / 10));
+    const preMitigation = Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult) - Math.floor(effDef / 10);
+    // dmgReduction (Enemy Ability Engine — Guarded Stance/
+    // Protective Cover/Last Stand, Gate 5B.8 skills codex): a flat final
+    // percentage shave off whatever damage already made it through every
+    // other multiplier and the Defense subtraction above — applied last,
+    // same as a shield would be, not folded into the multiplier chain.
+    dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0))));
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
     // cast during its 4-round window PERMANENTLY increases Magic by +2 —
     // unlike Avatar of Chaos/Endurance's own window-scoped bonus fields,
@@ -1442,7 +1448,9 @@ function rollPlayerDamage(state, creature, activeElement) {
     // the count of actual weapon swings.
     state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult));
+    // dmgReduction: see the magic branch above for why this is
+    // the last step, after every other multiplier.
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0))));
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every
     // successful physical attack during its window PERMANENTLY increases
     // Attack by +2 — see the spell-branch comment above for why this
@@ -1600,6 +1608,37 @@ function applyPhysicalOnHitEffects(state, creature) {
     combat.hamstringApplied = true;
     combat.enemyAtkPenalty = (combat.enemyAtkPenalty || 0) + 1;
     lines.push(`Your strike catches the tendon — ${withThe(creature.name, false)}'s attacks are weaker for the rest of this fight.`);
+  }
+  lines.push(...checkEnemyLowHealthTriggers(state, creature));
+  return lines;
+}
+
+// Enemy-side counterpart to the player's own lowHealthTriggerChecks — runs
+// right after a hit against the active creature lands and it survives,
+// checking its own "survivedBelowPct" passives (Veteran Discipline/
+// Resolute Command/Last Stand, Gate 5B.8 skills codex) against its current
+// Health fraction. Distinct from tickEnemyPassives' round-tick
+// "healthBelowPct" trigger (checked once at the top of the NEXT round, and
+// a PERMANENT buff via applyPermanentSelfBuff) — this fires immediately,
+// the same round the hit landed, and grants an ordinary timed selfBuff/
+// packAuraBuff that expires and reverses like any other. Called from
+// applyPhysicalOnHitEffects (playerAttack/Decoy/Ambush/Disarm) and
+// directly from useElementAbility, after its damage switch — the only two
+// places a hit against the active creature can land.
+function checkEnemyLowHealthTriggers(state, creature) {
+  const combat = state.combat;
+  const enemy = combat.enemies[combat.activeIndex];
+  if (!enemy || !enemy.alive || enemy.hp <= 0) return [];
+  const lines = [];
+  for (const pid of creature.passives || []) {
+    const p = getEnemyAbility(pid);
+    if (!p || p.trigger !== "survivedBelowPct") continue;
+    if (p.oncePerCombat && enemy.passiveOnceFlags[pid]) continue;
+    if (enemy.hp > enemy.maxHp * p.pct) continue;
+    if (p.oncePerCombat) enemy.passiveOnceFlags[pid] = true;
+    if (p.selfBuff) applyEnemySelfModifier(combat, creature, p.selfBuff);
+    if (p.packAuraBuff) applyPackAuraBuff(combat, creature, p.packAuraBuff);
+    lines.push(`${withThe(creature.name, true)} grits through the pain — ${p.name} takes hold.`);
   }
   return lines;
 }
@@ -1984,16 +2023,28 @@ function resolveEnemyActiveAbility(state, creature) {
 // pays out its own XP/gold/loot on death. `sourceKey` (the summoning
 // ability's own id) is what resolveEnemySummon below counts against a
 // spec's maxActive cap.
-function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature) {
+// arrivalHpPct (H22 Call the Crew/H23 Guard Reinforcements, Gate 5B.8
+// skills codex — "arrives at 60% of its normal maximum Health"): scales
+// the summon's starting hp down from its freshly rolled max, same as any
+// other wounded-on-arrival summon would. noArrivalAttack ("no
+// arrival-round attack") sets actedEarlyThisRound true instead of false —
+// the initiative system (buildInitiativeOrder/resolveSpeedInitiative/
+// resolveRemainingInitiativeActions) already treats that as "already took
+// its slot this round," so the summon simply sits out combat until next
+// round with no new mechanism needed; the very next round's
+// resolveSpeedInitiative resets the flag to false like it does for
+// everyone else.
+function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature, arrivalHpPct, noArrivalAttack) {
+  const maxHp = creature.hp;
   return {
     creatureId: id,
     creatureObj: creature,
     dynamicCreature: !!dynamicCreature, // true for a fully dynamic creature (engine/arena.js's gladiators) rather than a real BESTIARY id — see applyArchiveEternal, which skips species-tracking for those exactly like generateEnemyMage's own encounters already do
     name: creature.name,
-    hp: creature.hp,
-    maxHp: creature.hp,
+    hp: arrivalHpPct != null ? Math.max(1, Math.round(maxHp * arrivalHpPct)) : maxHp,
+    maxHp,
     alive: true,
-    actedEarlyThisRound: false,
+    actedEarlyThisRound: !!noArrivalAttack,
     disarmed: false,
     corroded: false,
     enemyAtkPenalty: 0,
@@ -2051,7 +2102,7 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName) {
     const template = BESTIARY[id];
     if (!template) continue;
     const creature = buildFightCreature(template, level, template.dangerClass, id);
-    combat.enemies.push(buildSummonedEnemyRecord(id, creature, key));
+    combat.enemies.push(buildSummonedEnemyRecord(id, creature, key, false, spec.arrivalHpPct, spec.noArrivalAttack));
     summoned.push(creature.name);
   }
   if (!summoned.length) {
@@ -2209,7 +2260,11 @@ function allyAggressiveAction(state, ally) {
     return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
   }
   const allyAtk = ally.atk + allyBuffStatTotal(ally, "atk");
-  const dmg = Math.max(1, randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5));
+  // dmgReduction (Enemy Ability Engine — Guarded Stance/
+  // Protective Cover/Last Stand): applies to an ally's own hits too, not
+  // just the player's — see rollPlayerDamage for the primary application.
+  const reduction = 1 - (target.creatureObj.dmgReduction || 0);
+  const dmg = Math.max(1, Math.round((randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5)) * reduction));
   target.hp -= dmg;
   target.lastDamageType = "physical";
   const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
@@ -4296,26 +4351,38 @@ function resolveKill(state, creature) {
   // state.combat out from under it.
   const huntJobId = state.combat && state.combat.huntJobId;
   const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
+  // Summoned enemies (summonSourceKey set — resolveEnemySummon) are
+  // reward-ineligible: no gold, no loot. Stated as an already-agreed rule
+  // in the Criminal Underworld equipment codex (Gate 5B.8) for its own
+  // H22/H23 summons, but applied uniformly here since nothing previously
+  // enforced it — every existing summoner ability (Burrow Call, Nest Call,
+  // Brood Call, Grave Bloom/Corrupted Grove) was paying out normally.
+  const isSummoned = !!state.combat.enemies[diedIndex].summonSourceKey;
   // isMercenary retired — no Origin under the Race/Class/Origin system
   // maps to the old Mercenary background's bounty bonus. Revisit if a
   // future Origin should carry it forward.
   const bounty = 1;
-  // Scales off the creature's own encounter level (falling back to the
-  // player's level for quest/job-tied creatures that skip the level roll
-  // — see startCombat) and its Danger Class multiplier, replacing the old
-  // flat tier-based formula.
-  const rewardLevel = creature.level || state.level;
-  const goldFound = Math.round(randInt(1, 4) * Math.ceil(rewardLevel / 5) * dangerClassMultiplier(creature.dangerClass) * bounty);
-  state.gold += goldFound;
-  out.push(`You find ${goldFound} gold on/near the creature.`);
-  const loot = rollCreatureLoot(state, creature);
-  if (loot) {
-    state.inventory.push(loot);
-    out.push(`It was also carrying ${formatItemLine(loot)}.`);
+  let goldFound = 0;
+  let loot = null;
+  if (!isSummoned) {
+    // Scales off the creature's own encounter level (falling back to the
+    // player's level for quest/job-tied creatures that skip the level roll
+    // — see startCombat) and its Danger Class multiplier, replacing the old
+    // flat tier-based formula.
+    const rewardLevel = creature.level || state.level;
+    goldFound = Math.round(randInt(1, 4) * Math.ceil(rewardLevel / 5) * dangerClassMultiplier(creature.dangerClass) * bounty);
+    state.gold += goldFound;
+    out.push(`You find ${goldFound} gold on/near the creature.`);
+    loot = rollCreatureLoot(state, creature);
+    if (loot) {
+      state.inventory.push(loot);
+      out.push(`It was also carrying ${formatItemLine(loot)}.`);
+    }
   }
   // Dungeon Delve (engine/dungeon.js): every kill's own gold/loot counts
   // toward this run's total, not just whichever kill happens to end the
-  // fight — a no-op outside an active dungeon.
+  // fight — a no-op outside an active dungeon (and, now, for a
+  // reward-ineligible summon, since goldFound/loot are 0/null above).
   trackDungeonKillRewards(state, goldFound, loot);
   if (hasEffect(state, "blood_debt")) {
     const healPct = masterOfArmsDoubles(state, "blood_debt") ? 0.4 : 0.2;
@@ -4395,7 +4462,9 @@ function resolveKill(state, creature) {
   out.push(...applyVanguardMomentum(state));
   out.push(...applyPassingWhisper(state));
   out.push(...applySoulLedger(state, creature));
-  out.push(...state.gainXp(xpFromKill(state, creature)));
+  // Reward-ineligible summons (isSummoned, above) skip XP too — "no
+  // rewards from the summon" means gold, loot, AND XP.
+  if (!isSummoned) out.push(...state.gainXp(xpFromKill(state, creature)));
   out.push(...checkJobProgressOnKill(state, creature, huntJobId));
   // Dungeon Delve (engine/dungeon.js): only clears the room once the
   // whole encounter is over (state.combat null here means no survivors
@@ -5398,6 +5467,8 @@ function useElementAbility(state, elementKey) {
     out.push(...resolveKill(state, creature));
     if (!state.combat || state.health <= 0) return out;
     creature = getCombatCreature(state);
+  } else if (castDamageDealt > 0) {
+    out.push(...checkEnemyLowHealthTriggers(state, creature));
   }
 
   let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;

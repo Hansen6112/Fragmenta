@@ -664,6 +664,68 @@ const ENEMY_ABILITIES = {
   // typical pack sizes, flagged here rather than silently assumed exact.
   breakthrough_order: { name: "Breakthrough Order", type: "active", cooldown: 6, dmgMult: 1.5, packAuraBuff: { atkPct: 0.10, turns: 1 } }, // H19
   scorpion_lunge: { name: "Scorpion Lunge", type: "active", cooldown: 5, dmgMult: 1.85, inflict: { status: "venom", chance: 1 }, selfDebuff: { acc: -10, turns: 1 } }, // H21
+
+  // ---- Criminal Underworld (Gate 5B.8 skills codex) — Defensive, passive
+  // and reaction abilities. dmgReduction (engine/combat.js's
+  // rollPlayerDamage/allyAggressiveAction) is a new flat-percentage field:
+  // the final shave off whatever damage already made it through every
+  // other multiplier and the Defense subtraction — a creature-side
+  // counterpart to the player's own damageReductionTurns-style fields.
+  guarded_stance: { name: "Guarded Stance", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { dmgReduction: 0.20, turns: 1 } }, // H03
+  // H06 Countering Guard ("an explicit out-of-turn reaction dealing 40%
+  // Attack damage") is NOT implemented — a reactive strike outside the
+  // creature's own initiative slot is architecturally the same shape as
+  // the pre-emptive-strike/retaliation system this engine's turn order
+  // just moved away from (every combatant acts exactly once a round,
+  // flurry's guaranteed extra swing being the one deliberate exception).
+  // Declared here as a placeholder only so a future BESTIARY entry's
+  // "Active: H06" has somewhere to point once this is designed for real.
+  countering_guard: { name: "Countering Guard", type: "active", cooldown: 0, dmgMult: 0 }, // H06 — inert, see comment above
+  // survivedBelowPct (engine/combat.js's checkEnemyLowHealthTriggers): a
+  // new passive trigger — fires immediately the same round the creature
+  // survives a hit at or below `pct` Health, not on the next round's tick
+  // like the pre-existing healthBelowPct trigger (tickEnemyPassives),
+  // and grants an ordinary timed selfBuff/packAuraBuff rather than
+  // applyPermanentSelfBuff's permanent one.
+  veteran_discipline: { name: "Veteran Discipline", type: "passive", trigger: "survivedBelowPct", pct: 0.5, selfBuff: { def: 5, turns: 2 }, oncePerCombat: true }, // H07
+  // Prepared Opening's damage half (×1.20 on this creature's first Active
+  // cast each combat) reuses the EXISTING firstAttack trigger/dmgMultBonus
+  // pattern (resolveEnemyActiveAbility, engine/combat.js) — already live
+  // for every creature with a firstAttack passive. Its other two clauses
+  // are not: the +10 Accuracy half has no equivalent "first cast only"
+  // hook (accBonus, added this batch for Precise Shot/H04, is per-ability,
+  // not first-cast-only), and "consumed even on a miss" can't be verified
+  // against a basic attack at all, since firstActiveUsed is only ever set
+  // when an Active ability actually resolves (resolveEnemyActiveAbility),
+  // never for a plain basic attack with no eligible Active available.
+  prepared_opening: { name: "Prepared Opening", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.20 }, // H08
+  // packAuraBuff's "every group-tagged packmate, uncapped" approximation
+  // (see breakthrough_order/H19 above) applies here too.
+  protective_cover: { name: "Protective Cover", type: "active", cooldown: 4, dmgMult: 0, packAuraBuff: { dmgReduction: 0.20, turns: 1 } }, // H10
+  last_stand: { name: "Last Stand", type: "passive", trigger: "survivedBelowPct", pct: 0.25, selfBuff: { dmgReduction: 0.15, turns: 2 }, oncePerCombat: true }, // H20
+
+  // ---- Criminal Underworld (Gate 5B.8 skills codex) — Leadership,
+  // support, and summoning.
+  focused_rally: { name: "Focused Rally", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 5, turns: 2 } }, // H09
+  defensive_command: { name: "Defensive Command", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 5, turns: 2 } }, // H13
+  resolute_command: { name: "Resolute Command", type: "passive", trigger: "survivedBelowPct", pct: 0.5, packAuraBuff: { acc: 5, turns: 2 }, oncePerCombat: true }, // H15
+  // H18 Adaptive Orders is NOT implemented: choosing between granting
+  // Defense or Accuracy based on "the commander's 50% Health threshold"
+  // needs bespoke branching code (no generic field picks between two
+  // different packAuraBuff shapes at cast time), and the codex text
+  // doesn't say which side of the threshold maps to which bonus. Flagged
+  // for a follow-up rather than guessed.
+  adaptive_orders: { name: "Adaptive Orders", type: "active", cooldown: 5, dmgMult: 0 }, // H18 — inert, see comment above
+
+  // H22 Call the Crew and H23 Guard Reinforcements are deferred entirely:
+  // both are summon abilities (arrivalHpPct/noArrivalAttack options exist
+  // now — see buildSummonedEnemyRecord/resolveEnemySummon — matching
+  // "60% of normal maximum Health" and "no arrival-round attack"), but
+  // their summon targets (Bandit Cutthroat, Veteran Merchant Guard) don't
+  // exist as BESTIARY entries yet. A summon spec with a dangling
+  // creatureId would silently no-op at best and trip the audit's dangling-
+  // reference check at worst — these are added once those two creatures
+  // are built.
 };
 
 function getEnemyAbility(id) {
