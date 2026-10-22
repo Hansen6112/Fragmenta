@@ -1825,6 +1825,16 @@ function resolveOneAllyAction(state, ally) {
 // player-or-ally roll, exactly as before this engine existed.
 function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
   const abilityCtx = resolveEnemyActiveAbility(state, creatureObj);
+  // packAuraBuff (Focused Rally, Defensive Command, Resolute Command,
+  // Adaptive Orders, Breakthrough Order, ...): a command/rally effect on
+  // the CASTER's own allies, not an on-hit consequence of whichever
+  // target the roll below happens to land on (or miss) — resolved once
+  // here, unconditionally, before any hit/miss or player-vs-ally
+  // branching. Applying it deeper in the single-target paths instead
+  // silently dropped the buff on a miss, and never applied it at all
+  // when pickEnemyAttackTarget rolled an ally (resolveEnemyAttackOnAlly
+  // has no packAuraBuff hook of its own).
+  if (abilityCtx && abilityCtx.packAuraBuff) applyPackAuraBuff(state.combat, creatureObj, abilityCtx.packAuraBuff);
   // Summons (Burrow Call, Nest Call, Brood Call, Grave Bloom) are a pure
   // support action — nothing is attacked, so this returns before ever
   // reaching the aoe/single-target damage paths below.
@@ -3098,7 +3108,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
       const heal = Math.round(combat.maxHp * abilityCtx.healSelfPct);
       if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
     }
-    if (abilityCtx.packAuraBuff) applyPackAuraBuff(combat, creature, abilityCtx.packAuraBuff);
+    // packAuraBuff is resolved once in resolveEnemyAction, ahead of this
+    // hit/miss roll — not here, so a miss (or an ally-targeted roll,
+    // which never reaches this function at all) can't skip it.
   }
   if (edmg > 0) lines.push(...checkMercyOfTheVeil(state));
   if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
