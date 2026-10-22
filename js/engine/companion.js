@@ -13,16 +13,23 @@
  * pieces of Hadrian's kit have no real mechanical hook to attach to yet
  * and are left as flavor/declared-but-inert rather than faked:
  *   - His Poison/Toxic/Decay vulnerability (data/hadrian.js's
- *     HADRIAN.vulnerability) and its Iron Faith offset (below) map onto
- *     the `venom` status effect, but nothing in this engine currently
- *     inflicts a status effect on an ALLY (only on the player) — so
- *     neither multiplier has a live trigger today. Kept as data for
- *     whenever that changes.
+ *     HADRIAN.vulnerability) maps onto the `venom` status effect, and IS
+ *     now live — an enemy ability's `inflict` can land a status on an
+ *     ally (ally.statuses; see engine/combat.js's applyAllyStatus/
+ *     tickAllyStatuses), and tickAllyStatuses reads this exact
+ *     vulnerability field to scale Venom's DOT tick on him specifically.
+ *     ("Iron Faith," once mentioned here as an offsetting multiplier,
+ *     turned out to name no ability anywhere in data/hadrian.js — nothing
+ *     was ever built under that name, so there's no offset to wire.)
  *   - Steadfast Gaze (Accuracy-reduction immunity) and Grounded Resolve
  *     (Initiative-reduction resistance), both from the Legendary
- *     ascension below — nothing currently reduces an ALLY's Accuracy or
- *     Speed either (only an enemy's, via the player's own Disarm/
- *     Groundbreaker), so both are declared and otherwise inert.
+ *     ascension below — an ally's Accuracy/Speed CAN be reduced now (the
+ *     same ally.statuses a status's `debuff.acc`/`debuff.spd`/`spdPct`
+ *     applies through, read by allyAggressiveAction/effectiveAllySpeed),
+ *     but the ascension itself still doesn't exist (hasAscendedRegalia is
+ *     permanently false until Hadrian's Personal Quest is built), so
+ *     there's no immunity to check for yet either — still declared and
+ *     otherwise inert, for a different reason than before.
  *   - Groundbreaker's -10 Accuracy debuff on enemies IS wired (see
  *     applyGroundbreakerAccuracyDebuff/tickGroundbreakerDebuffs below).
  *
@@ -245,7 +252,12 @@ function effectiveAllyDef(ally) {
     (ally.reactiveDefBonus || 0) +
     (ally.ascendedSetDefBonus || 0) +
     (ally.noNameForgottenDefBonus || 0) +
-    allyBuffStatTotal(ally, "def")
+    allyBuffStatTotal(ally, "def") +
+    // allyStatusStatTotal (engine/combat.js): a Defense-reducing status an
+    // enemy ability just inflicted on this ally (Shield Crush-style
+    // inflict.custom, or a named STATUS_EFFECTS entry like Off Balance) —
+    // same already-signed-delta convention playerStatusStatTotal uses.
+    allyStatusStatTotal(ally, "def")
   );
 }
 

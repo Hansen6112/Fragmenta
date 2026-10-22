@@ -367,6 +367,101 @@ function applyAbilityInflict(state, inflict, sourceName) {
   return [];
 }
 
+// ---- Enemy Ability Engine: ally-facing status effects ----
+// An ally's own parallel to combat.playerStatuses — same STATUS_EFFECTS
+// table, same { name, debuff, dot, turnsLeft, stacks } shape, keyed the
+// same way (a named status's own id, or "custom:<source>:<stat,...>" for
+// an ability's inline inflict.custom) — but stored on the ally itself
+// (ally.statuses), not per-fight combat state, and with none of the
+// player-only defensive interceptors applyPlayerStatus checks first
+// (Immutable, Fortune's Favor, Nature's Persistence, Unbreakable/
+// Corrosionproof, Blessing of Acceptance all key off the PLAYER's own
+// equipped Divine Regalia/Legendary gear via hasEffect(state, ...) — no
+// ally has an equivalent gear-immunity system today, so applying one of
+// those checks to an ally would be inventing a mechanic, not wiring an
+// existing one). Lazy-initialized like ally.buffs, so a save from before
+// this field existed still works the first time something tries to use
+// it on that ally.
+function allyStatusStatTotal(ally, statKey) {
+  const statuses = ally.statuses || {};
+  let total = 0;
+  for (const entry of Object.values(statuses)) {
+    if (!entry.debuff) continue;
+    const stacks = entry.stacks || 1;
+    if (typeof entry.debuff[statKey] === "number") total += entry.debuff[statKey] * stacks;
+  }
+  return total;
+}
+function allyStatusStatPctTotal(ally, statKey) {
+  const statuses = ally.statuses || {};
+  let total = 0;
+  for (const entry of Object.values(statuses)) {
+    if (!entry.debuff) continue;
+    if (typeof entry.debuff[statKey] === "number") total += entry.debuff[statKey];
+  }
+  return total;
+}
+function applyAllyStatus(ally, key, spec, sourceName) {
+  if (!ally.statuses) ally.statuses = {};
+  const label = spec.name || key;
+  const turns = spec.turns != null ? spec.turns : 2;
+  const existing = ally.statuses[key];
+  if (spec.stackable) {
+    const stacks = Math.min(spec.maxStacks || 1, (existing ? existing.stacks : 0) + 1);
+    ally.statuses[key] = { name: label, debuff: spec.debuff, dot: spec.dot, turnsLeft: turns, stacks };
+  } else {
+    ally.statuses[key] = { name: label, debuff: spec.debuff, dot: spec.dot, turnsLeft: turns, stacks: 1 };
+  }
+  return [sourceName ? `${withThe(sourceName, true)} inflicts ${label} on ${ally.name}.` : `${ally.name} suffers ${label}.`];
+}
+// Ally-targeted sibling of applyAbilityInflict — same roll/shape, applied
+// via applyAllyStatus instead of applyPlayerStatus. Called from
+// resolveEnemyAttackOnAlly after a hit on an ally lands.
+function applyAbilityInflictOnAlly(ally, inflict, sourceName) {
+  if (!inflict || Math.random() >= (inflict.chance != null ? inflict.chance : 1)) return [];
+  if (inflict.status) {
+    const def = getStatusEffect(inflict.status);
+    if (!def) return [];
+    return applyAllyStatus(ally, inflict.status, def, sourceName);
+  }
+  if (inflict.custom) {
+    const { turns, ...debuff } = inflict.custom;
+    return applyAllyStatus(ally, "custom:" + sourceName + ":" + Object.keys(debuff).join(","), { debuff, turns, name: sourceName }, sourceName);
+  }
+  return [];
+}
+// Ticks every active ally status by one turn, same cadence/shape as
+// tickPlayerStatuses — called from beginTurn for every living ally,
+// right alongside tickAllyBuffs. Hadrian's Ankahru-wound vulnerability
+// (data/hadrian.js's HADRIAN.vulnerability, read here via
+// ALLY_DEFS[ally.defId].abilityKit) is the one ally-side status
+// multiplier this engine defines — a no-op for any ally without one.
+function tickAllyStatuses(state, ally) {
+  const lines = [];
+  const statuses = ally.statuses;
+  if (!statuses) return lines;
+  const def = ALLY_DEFS[ally.defId];
+  const vulnerability = def && def.abilityKit && def.abilityKit.vulnerability;
+  for (const [key, entry] of Object.entries(statuses)) {
+    if (entry.dot && ally.alive) {
+      const stacks = entry.stacks || 1;
+      let dmg = Math.max(0, Math.round(ally.maxHealth * entry.dot.pctMaxHp * stacks));
+      if (vulnerability && vulnerability.statuses.includes(key)) dmg = Math.round(dmg * vulnerability.multiplier);
+      if (dmg > 0) {
+        // The Grand Ovum (engine/arena.js): same non-lethal floor a direct
+        // hit on an ally already respects (resolveEnemyAttackOnAlly).
+        const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
+        ally.health = Math.max(arenaFloor, ally.health - dmg);
+        lines.push(`${entry.name} saps ${ally.name}'s health for ${dmg}.`);
+        if (ally.health <= 0) lines.push(...killAlly(state, ally));
+      }
+    }
+    entry.turnsLeft -= 1;
+    if (entry.turnsLeft <= 0) delete statuses[key];
+  }
+  return lines;
+}
+
 // Ticks every active player status by one turn: damage-over-time first
 // (Heatproof halves Burning specifically, per its own wording), then
 // duration. Called from beginTurn, the same place enemy-side burn/bleed
@@ -821,12 +916,21 @@ function applyConsumableEffectToAlly(item, ally, effect) {
     ally.buffs[effect.stat] = { amount: effect.amount, turns: effect.turns };
     return [`You give ${item} to ${ally.name} — +${effect.amount} ${STAT_LABELS[effect.stat] || effect.stat} for their next ${effect.turns} rounds of combat.`];
   }
-  // Cleanse has nothing to do for an ally today — no status effect has
-  // ever been able to land on one (see companion.js's own file-header
-  // caveat on this exact gap); declared-but-inert rather than faked,
-  // same "design honesty" convention as Hadrian's dormant kit fields.
+  // Same shape as the player's own cleanse branch above — ally.statuses
+  // may still be carrying a status that hadn't finished ticking down when
+  // the last fight ended (startCombat only resets it at the START of the
+  // NEXT fight, so there's a real window between fights where this
+  // matters), even though useItemOnAlly itself only ever runs outside
+  // combat.
   if (effect.type === "cleanse") {
-    return [`You use ${item} on ${ally.name}, but there's nothing clinging to them to clear.`];
+    if (!ally.statuses) ally.statuses = {};
+    const cleared = effect.all
+      ? Object.keys(ally.statuses)
+      : effect.statuses.filter((s) => ally.statuses[s]);
+    cleared.forEach((s) => delete ally.statuses[s]);
+    return cleared.length
+      ? [`You use ${item} on ${ally.name}, clearing: ${cleared.join(", ")}.`]
+      : [`You use ${item} on ${ally.name}, but there's nothing clinging to them to clear.`];
   }
   return [`You use ${item} on ${ally.name}, but nothing happens.`];
 }
@@ -1715,7 +1819,11 @@ function applyHeartwoodVitality(state) {
 // the PLAYER this same actsFirst status unconditionally — "Enemy Haste,
 // Speed, or Turn-order manipulation has no effect on you."
 function effectiveAllySpeed(ally) {
-  return (ally.speed || 0) + allyBuffStatTotal(ally, "spd");
+  // allyStatusStatTotal/allyStatusStatPctTotal: Slowed/Stagger/Pinned/...
+  // lowering this ally's own Speed, same flat-then-pct shape
+  // effectivePlayerSpeedForInitiative already uses for the player.
+  const base = (ally.speed || 0) + allyBuffStatTotal(ally, "spd") + allyStatusStatTotal(ally, "spd");
+  return Math.max(0, Math.round(base * (1 + allyStatusStatPctTotal(ally, "spdPct"))));
 }
 function buildInitiativeOrder(state) {
   const combat = state.combat;
@@ -2237,8 +2345,13 @@ function applyPackAuraBuff(combat, creature, spec) {
 function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   // allyBuffStatTotal (companion.js): Steady Grip cast on this ally —
   // same crafted-potion-buff storage effectiveAllyDef already reads for
-  // Defense.
-  const allyAgi = ally.agility + allyBuffStatTotal(ally, "agi");
+  // Defense. allyStatusStatTotal/allyStatusStatPctTotal: an inflicted
+  // status (Chilled, Pinned, Restrained, ...) lowering this ally's own
+  // Agility — same shape as effectivePlayerAgility's own pct-then-flat
+  // combination.
+  const allyAgiBase = ally.agility + allyBuffStatTotal(ally, "agi") + allyStatusStatTotal(ally, "agi");
+  const allyAgiPct = allyStatusStatPctTotal(ally, "agiPct");
+  const allyAgi = Math.max(0, Math.round(allyAgiBase * (1 + allyAgiPct)));
   // abilityCtx.accBonus (Precise Shot/H04): "+10 Accuracy for this attack"
   // has to count here too — resolveEnemyRetaliation already added it to
   // its own roll, but this sibling function used to leave the ability's
@@ -2280,13 +2393,13 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   // abilityCtx.healOnHitPct: same "heals for a fraction of the damage this
   // hit actually dealt" payout resolveEnemyRetaliation grants on a landed
   // player hit — an ally hit is just as much a landed hit.
-  // abilityCtx.inflict is deliberately NOT applied here: it's a status/stat
-  // debuff on whichever target got hit, and allies have no equivalent
-  // status-effect slot (combat.playerStatuses is player-only) for one to
-  // land on — a real gap (Suppressing Strike/H05, Exposed Weakness/H14,
-  // Scorpion Lunge/H21 all silently skip their on-hit debuff when the roll
-  // picks an ally), left open rather than bolted onto allies without that
-  // being an explicit design call.
+  // abilityCtx.inflict (Suppressing Strike/H05, Exposed Weakness/H14,
+  // Scorpion Lunge/H21, ...): applyAbilityInflictOnAlly — ally.statuses'
+  // own applier, same unconditional-once-the-roll-connected placement as
+  // applyAbilityInflict above (not gated on dmg > 0 — a hit that's fully
+  // mitigated to 0 damage still "landed" for this purpose, same as the
+  // player branch).
+  if (abilityCtx && abilityCtx.inflict) lines.push(...applyAbilityInflictOnAlly(ally, abilityCtx.inflict, creature.name));
   if (abilityCtx && abilityCtx.healOnHitPct && dmg > 0) {
     const heal = Math.round(dmg * abilityCtx.healOnHitPct);
     if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
@@ -2359,12 +2472,16 @@ function allyAggressiveAction(state, ally) {
   if (!target || !target.alive) return [];
   // allyBuffStatTotal (companion.js): Rousing Tonic/Clear Focus cast on
   // this ally, same crafted-potion-buff storage effectiveAllyDef already
-  // reads for Defense.
-  const allyAcc = ally.accuracy + allyBuffStatTotal(ally, "acc");
+  // reads for Defense. allyStatusStatTotal: an inflicted status (Buried,
+  // Disoriented, Drowsy, ...) lowering this ally's own Accuracy.
+  const allyAcc = ally.accuracy + allyBuffStatTotal(ally, "acc") + allyStatusStatTotal(ally, "acc");
   if (!attackConnects(allyAcc, target.creatureObj.agi)) {
     return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
   }
-  const allyAtk = ally.atk + allyBuffStatTotal(ally, "atk");
+  // atkPct (Intimidated, Feared, ...): a status's own fractional Attack
+  // penalty, same pct-of-base shape effectivePlayerAtk-adjacent code uses.
+  const allyAtkBase = ally.atk + allyBuffStatTotal(ally, "atk") + allyStatusStatTotal(ally, "atk");
+  const allyAtk = Math.max(0, Math.round(allyAtkBase * (1 + allyStatusStatPctTotal(ally, "atkPct"))));
   // dmgReduction (Enemy Ability Engine — Guarded Stance/
   // Protective Cover/Last Stand): applies to an ally's own hits too, not
   // just the player's — see rollPlayerDamage for the primary application.
@@ -2615,7 +2732,10 @@ function beginTurn(state) {
   // Crafted-potion buffs (playerBuffs) and any ally's own (companion.js's
   // tickAllyBuffs) age down the same way, once per round.
   tickPlayerBuffs(state);
-  aliveAllies(state).forEach((ally) => tickAllyBuffs(ally));
+  aliveAllies(state).forEach((ally) => {
+    tickAllyBuffs(ally);
+    lines.push(...tickAllyStatuses(state, ally));
+  });
   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
   // Regeneration HoT set up once at combat start (see startCombat),
   // ticked here identically in shape to burn/bleed but healing instead of
@@ -3879,6 +3999,13 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   enemies.forEach((e) => {
     if (!e.dynamicCreature) state.encounteredCreatures.add(e.creatureId);
   });
+  // Enemy-inflicted ally statuses (ally.statuses — Bleed, Venom, Pinned,
+  // ...; see tickAllyStatuses) are combat-scoped like the player's own
+  // combat.playerStatuses, unlike ally.buffs (a deliberately-given potion
+  // buff, which IS meant to survive into the next fight) — reset here so
+  // a status that never finished ticking down before this fight started
+  // doesn't silently resume dealing damage in an unrelated one.
+  (state.party || []).forEach((ally) => { ally.statuses = {}; });
   // Companion Ability Engine (engine/companion.js): fresh cooldowns/taunt
   // state/once-per-combat flags for any kit-bearing ally, same "doesn't
   // carry over between fights" contract the enemy side already has.
