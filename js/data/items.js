@@ -1942,6 +1942,45 @@ const ITEM_DEFS = {
   // — also added to LOOT_BY_TIER[3] (data/jobs.js) so it's actually
   // reachable, not just tagged source: "job" with nowhere to drop from.
   "a water-stained page of river-trade notes": { slot: "document", tier: 3, bonuses: {}, teachesRecipe: "swiftwater_recipe", source: "job" },
+
+  // ---- Criminal Underworld (Gate 5B.8 equipment codex, v1) ----
+  // 28 new-item proposals for the nine Criminal Underworld bandit/smuggler
+  // identities (Street Ruffian through Bandit Warlord) — flat stat bonuses
+  // only, no granted effects, per the codex's own item register (Section
+  // 5). Not yet wired into any shop/drop/quest acquisition path — data
+  // only, per the codex's own "this document does not register new items,
+  // finalize loot drops, or modify live game data" authority boundary; the
+  // nine BESTIARY entries that would equip these (and the enemy-equipment
+  // system needed to let a creature wear them) are deferred until the
+  // codex's referenced ability codes (H01-H23) are defined.
+  "Sahrimori Alley Shiv": { slot: "offhand", tier: 1, bonuses: { atk: 1 }, source: "monster" },
+  "Sahrimori Veilknife": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, source: "monster" },
+  "Desert Fang Parrying Knife": { slot: "offhand", tier: 3, bonuses: { atk: 2, def: 1 }, source: "monster" },
+  "Underworld Threadcoat": { slot: "chest", tier: 3, bonuses: { atk: 1, def: 2 }, source: "monster" },
+  "Smuggler's Dustcloak": { slot: "cloak", tier: 3, bonuses: { atk: 2, knowledge: 1 }, source: "monster" },
+  "Duskfang Veilknife": { slot: "mainhand", tier: 5, bonuses: { atk: 6 }, source: "monster" },
+  "Sahrimori Reaver's Shiv": { slot: "offhand", tier: 4, bonuses: { atk: 3, def: 1 }, source: "monster" },
+  "Nightmarket Shadowcoat": { slot: "chest", tier: 5, bonuses: { atk: 2, def: 4 }, source: "monster" },
+  "Veilrunner Mantle": { slot: "cloak", tier: 5, bonuses: { atk: 3, knowledge: 2 }, source: "monster" },
+  "Nightglass Fang": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Scorpion-Tail Shiv": { slot: "offhand", tier: 5, bonuses: { atk: 4, def: 2 }, source: "monster" },
+  "Black-Silk Executioner's Coat": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 4 }, source: "monster" },
+  "Hands of the Hidden Blade": { slot: "gloves", tier: 6, bonuses: { atk: 5 }, source: "monster" },
+  "Underworld Blood-Signet": { slot: "rings", tier: 5, bonuses: { atk: 3, knowledge: 2 }, source: "monster" },
+  "Mantle of the Last Witness": { slot: "cloak", tier: 6, bonuses: { atk: 4, knowledge: 2 }, source: "monster" },
+  "Cutthroat's Black Token": { slot: "trinkets", tier: 5, bonuses: { atk: 2 }, source: "monster" },
+  "Enforcer's Knuckle Chain": { slot: "necklace", tier: 4, bonuses: { atk: 4 }, source: "monster" },
+  "Smuggler's Night Mantle": { slot: "cloak", tier: 4, bonuses: { atk: 2, knowledge: 2 }, source: "monster" },
+  "Outlaw Command Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Plundered Sunward Buckler": { slot: "offhand", tier: 6, bonuses: { def: 6, knowledge: 2 }, source: "monster" },
+  "Captain's Duneplate": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "monster" },
+  "Bandit Chieftain Signet": { slot: "rings", tier: 6, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
+  "Scourge of the Sandroads": { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, source: "monster" },
+  "Blood-Iron Warlord Crown": { slot: "helmet", tier: 6, bonuses: { atk: 4, def: 5 }, source: "monster" },
+  "Scavenged Warlord Warplate": { slot: "chest", tier: 6, bonuses: { def: 9 }, source: "monster" },
+  "Reaver Grips": { slot: "gloves", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Ring of the Plunder-King": { slot: "rings", tier: 6, bonuses: { atk: 6, def: 3 }, source: "monster" },
+  "Bloodstorm Battlecloak": { slot: "cloak", tier: 6, bonuses: { atk: 5, def: 4 }, source: "monster" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
