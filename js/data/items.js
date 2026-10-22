@@ -2004,6 +2004,61 @@ const ITEM_DEFS = {
   "Marshal's Indemnity Plate": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 8 }, source: "monster" },
   "Commander's Bond Signet": { slot: "rings", tier: 6, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
   "Veteran Contract Seal": { slot: "trinkets", tier: 5, bonuses: { atk: 3, knowledge: 3 }, source: "monster" },
+
+  // ---- Security and Enforcement (Gate 5B.8 equipment codex, v1) ----
+  // 14 new-item proposals for the Security and Enforcement roster
+  // (Junior Merchant Guard through Merchant Lord Shieldmaster).
+  "Merchant Ward Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
+  "Merchant Guard Oath Signet": { slot: "rings", tier: 5, bonuses: { def: 4 }, source: "monster" },
+  "Merchant Lord Bastion Spear": { slot: "mainhand", tier: 6, bonuses: { atk: 7, def: 2 }, source: "monster" },
+  "Reinforced Lord's Aegis": { slot: "offhand", tier: 6, bonuses: { def: 8 }, source: "monster" },
+  "Lord's Guard Cuirass": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "monster" },
+  "Bulwark Gauntlets": { slot: "gloves", tier: 6, bonuses: { atk: 4, def: 3 }, source: "monster" },
+  "Merchant Lord Suppression Seal": { slot: "rings", tier: 5, bonuses: { atk: 4 }, source: "monster" },
+  "Captain's Edict Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Merchant Lord Captain's Helm": { slot: "helmet", tier: 6, bonuses: { def: 6 }, source: "monster" },
+  "Merchant Lord Command Plate": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "monster" },
+  "Captain's Authority Signet": { slot: "rings", tier: 5, bonuses: { def: 4, knowledge: 3 }, source: "monster" },
+  "Oathbound Shieldhammer": { slot: "mainhand", tier: 6, bonuses: { atk: 7 }, source: "monster" },
+  "Merchant Lord's Grand Shield": { slot: "offhand", tier: 6, bonuses: { def: 10 }, source: "monster" },
+  "Shieldmaster Plate": { slot: "chest", tier: 6, bonuses: { def: 9 }, source: "monster" },
+
+  // ---- Sahrimor Military (Gate 5B.8 equipment codex, v1) ----
+  // 33 new-item proposals for the Sahrimor Military roster (Fedahl
+  // Recruit through Sardarr Army Commander).
+  "Bahrun Boarding Hook": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
+  "Farahl Scout Lance": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
+  "Ramahsi Patrol Bow": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
+  "Fedahl Veteran Visor": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
+  "Sahrimori Vigil Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Fedahl Battle Guard": { slot: "offhand", tier: 6, bonuses: { def: 6 }, source: "monster" },
+  "Fedahl Campaign Cuirass": { slot: "chest", tier: 6, bonuses: { def: 7 }, source: "monster" },
+  "Fedahl Service Ring": { slot: "rings", tier: 5, bonuses: { atk: 3, def: 3 }, source: "monster" },
+  "Ramahsi Sharpshooter Bow": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, source: "monster" },
+  "Ramahsi War Quiver": { slot: "offhand", tier: 4, bonuses: { atk: 4 }, source: "monster" },
+  "Filhari Elephant Goad": { slot: "mainhand", tier: 5, bonuses: { atk: 6 }, source: "monster" },
+  "Filhari Harness Guard": { slot: "offhand", tier: 5, bonuses: { def: 5 }, source: "monster" },
+  "Filhari Rider Lamellar": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "monster" },
+  "War Elephant Battle Crest": { slot: "trinkets", tier: 5, bonuses: { atk: 4, def: 2 }, source: "monster" },
+  "Akharul Venom-Lance": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Akharu Riding Harness": { slot: "offhand", tier: 5, bonuses: { def: 5 }, source: "monster" },
+  "Akharul Scorpion Rider Scale": { slot: "chest", tier: 5, bonuses: { atk: 2, def: 6 }, source: "monster" },
+  "Qahir Field Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
+  "Qahir Officer Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
+  "Qahir Command Harness": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "monster" },
+  "Qahir Signet": { slot: "rings", tier: 5, bonuses: { atk: 3, knowledge: 3 }, source: "monster" },
+  "Amahri Marshal Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 9 }, source: "monster" },
+  "Amahri Guard Buckler": { slot: "offhand", tier: 6, bonuses: { def: 7 }, source: "monster" },
+  "Amahri Field Plate": { slot: "chest", tier: 6, bonuses: { def: 8, knowledge: 2 }, source: "monster" },
+  "Amahri Command Ring": { slot: "rings", tier: 5, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
+  "Sardarr War Scimitar": { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, source: "monster" },
+  "Sardarr Command Shield": { slot: "offhand", tier: 6, bonuses: { def: 8 }, source: "monster" },
+  "Sardarr War Helm": { slot: "helmet", tier: 6, bonuses: { def: 7 }, source: "monster" },
+  "Sardarr Command Plate": { slot: "chest", tier: 6, bonuses: { def: 9, knowledge: 2 }, source: "monster" },
+  "Sardarr Standard Gauntlets": { slot: "gloves", tier: 5, bonuses: { atk: 5 }, source: "monster" },
+  "Sardarr Signet": { slot: "rings", tier: 6, bonuses: { atk: 5, knowledge: 4 }, source: "monster" },
+  "High Command Torc": { slot: "necklace", tier: 5, bonuses: { def: 4, knowledge: 3 }, source: "monster" },
+  "Command Banner Fragment": { slot: "trinkets", tier: 5, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
