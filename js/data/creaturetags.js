@@ -117,47 +117,67 @@ function poolmatesFor(template) {
 
 const DANGER_CLASS_BY_RANK_LIST = ["normal", "elite", "boss", "world_boss"];
 
+// A pool candidate is eligible to join an encounter rolled at `level` if
+// its own BESTIARY `levelRange: [min, max]` (Gate 5B.8 approved-band data)
+// contains that level. A creature with no `levelRange` (everything outside
+// the 40 Gate 5B.8 identities — wildlife packs, legacy human squads) is
+// always eligible, same as before this field existed, so their long-
+// established pooling behavior is untouched.
+function isLevelEligible(creature, level) {
+  if (!creature || !creature.levelRange) return true;
+  const [min, max] = creature.levelRange;
+  return level >= min && level <= max;
+}
+
 // Rolls the full spawn group for an encounter anchored on `anchorId`
 // (the creature the game already decided should appear, e.g. via
-// creaturesForTags). Returns an array of { id, dangerClass } — combat.js's
-// startCombat still does the actual per-member level clamp/stat-scaling
-// (clampLevelToRarityBand/computeCreatureStats), same as it already does
-// for a single creature.
+// creaturesForTags), at the encounter's already-rolled `level`. Returns an
+// array of { id, dangerClass } — combat.js's startCombat still does the
+// actual per-member level clamp/stat-scaling (clampLevelToRarityBand/
+// computeCreatureStats), same as it already does for a single creature.
 //
 // Two independent, additive rules:
 // - Pack/Squad: only if the anchor itself is tagged spawnGroup "pack" or
-//   "squad" AND a pool exists. Rolls a weighted group size (1-5, via
-//   rollGroupSize/GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS, keyed off the
+//   "squad" AND an eligible pool exists. Rolls a weighted group size (1-5,
+//   via rollGroupSize/GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS, keyed off the
 //   anchor's own Danger Class), filling any additional slots with random
-//   picks from the pool — each capped to the anchor's own Danger Class
-//   rank (never a higher tier than the encounter's own anchor) and left
-//   at the anchor's level (same level band, per design).
+//   picks from the pool, left at the anchor's level (same level band, per
+//   design). A pick keeps its OWN natural Danger Class — it is never
+//   downgraded to fit the anchor's class (Gate 5B.8 Combat Testing Pass 3,
+//   Section 2: approved Normal/Elite/Boss classification must be
+//   preserved) — eligibility is enforced purely by excluding any pool
+//   member whose own levelRange doesn't cover this encounter's level
+//   (same source, point 5: exclude ineligible candidates rather than
+//   scale/downgrade them in). If the eligible pool is smaller than the
+//   rolled size (or empty), the squad simply comes up short rather than
+//   looping forever or falling back to an ineligible pick.
 // - Leader underlings: ANY archetype "leader" creature (regardless of its
-//   own spawnGroup tag) always brings up to 2 underlings from the same
-//   pool, hard-capped to Normal Danger Class regardless of the leader's
-//   own class — added on top of whatever the pack/squad roll already
-//   produced, capped at 5 total.
-function rollEncounterGroup(anchorId) {
+//   own spawnGroup tag) brings up to 2 underlings from the same eligible
+//   pool, each kept at its own natural Danger Class — added on top of
+//   whatever the pack/squad roll already produced, capped at 5 total.
+function rollEncounterGroup(anchorId, level) {
   const template = BESTIARY[anchorId];
   const anchorDangerClass = (template && template.dangerClass) || DEFAULT_DANGER_CLASS;
   const members = [{ id: anchorId, dangerClass: anchorDangerClass }];
   if (!template || template.special) return members;
-  const pool = poolmatesFor(template);
+  const fullPool = poolmatesFor(template);
+  if (!fullPool.length) return members;
+  const encounterLevel = typeof level === "number" ? level : template.levelRange ? template.levelRange[0] : 1;
+  const pool = fullPool.filter((id) => isLevelEligible(BESTIARY[id], encounterLevel));
   if (!pool.length) return members;
-  const ceilingRank = dangerClassRank(template);
-  const pickCapped = () => {
+  const pickNatural = () => {
     const pickId = pool[Math.floor(Math.random() * pool.length)];
-    const pickRank = Math.min(dangerClassRank(BESTIARY[pickId]), ceilingRank);
-    return { id: pickId, dangerClass: DANGER_CLASS_BY_RANK_LIST[pickRank] };
+    const pick = BESTIARY[pickId];
+    const dangerClass = (pick && pick.dangerClass) || DEFAULT_DANGER_CLASS;
+    return { id: pickId, dangerClass };
   };
   if (template.spawnGroup === "pack" || template.spawnGroup === "squad") {
     const size = rollGroupSize(anchorDangerClass);
-    while (members.length < size) members.push(pickCapped());
+    while (members.length < size) members.push(pickNatural());
   }
   if (template.archetype === "leader") {
     for (let i = 0; i < 2 && members.length < 5; i++) {
-      const pickId = pool[Math.floor(Math.random() * pool.length)];
-      members.push({ id: pickId, dangerClass: "normal" });
+      members.push(pickNatural());
     }
   }
   return members;
