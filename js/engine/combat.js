@@ -1008,6 +1008,17 @@ function executionerMultiplier(state) {
   return combat.hp <= combat.maxHp * executionerThreshold(state) ? 1.2 : 1;
 }
 
+// Generalized Executioner, for an enemy or ally attacker: any ATTACKER
+// wearing it gets 1.2x vs a DEFENDER at or below 30% of its own max
+// Health. A non-player attacker has no equivalent to the player's own
+// set-tier threshold-widening (Drake Hunter 6pc etc. — a player-only
+// Regalia system, out of scope here), so this always uses the flat 30%
+// base rather than reading executionerThreshold.
+function executionerMultiplierFor(attacker, defenderHp, defenderMaxHp) {
+  if (!hasEffect(attacker, "executioner")) return 1;
+  return defenderHp <= defenderMaxHp * 0.3 ? 1.2 : 1;
+}
+
 // Dragonslayer (Drake Hunter 6pc): a final multiplier against creatures
 // tagged draven (Drake, Dragon), "applied after all other damage
 // calculations" per its own spec — so it's applied last, outside both
@@ -1514,6 +1525,14 @@ function applyBeneficialEffectBonuses(state, duration) {
 
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
+  // Brace/Guarded Strike, generalized: this creature may have banked a
+  // Defense bonus against its next incoming hit (resolveEnemyAction's own
+  // non-damaging-action branch, or its own landed basic attack — see
+  // resolveEnemyRetaliation/resolveEnemyAttackOnAlly) — consumed here, the
+  // one place the player's own damage against any creature is computed.
+  const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
+  creature.braceBonusDef = 0;
+  creature.guardedStrikeBonusDef = 0;
   const execMult = executionerMultiplier(state);
   const dragonMult = dragonslayerMultiplier(state, creature);
   const bleedMult = bleedExploitationMultiplier(state);
@@ -1561,7 +1580,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // reference this constant.
     const multiplier = 1 + magic / 60;
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
-    const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+    const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
     // v0.11: spell power is mitigated by the target's FULL Defense through
     // the shared ratio rule (was a near-irrelevant flat -Defense/10), then
@@ -1588,7 +1607,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     }
   } else {
     const armorCrack = armorCrackAmount(state);
-    const effDef = Math.max(0, creature.def - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
+    const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
     // effectivePlayerAtk (above): the same formula this line used to
     // compute inline, now shared with anything else that needs the
     // player's effective Attack (Dungeon Delve's rationless debuff).
@@ -1757,6 +1776,19 @@ function applyOpeningReach(state, dmg) {
   if (!hasEffect(state, "opening_reach")) return dmg;
   const mult = hasSetTier(state, "Norrvael", 6) ? 1.3 : 1.15;
   return Math.round(dmg * mult);
+}
+
+// Generalized Opening Reach, for an enemy or ally attacker: the same
+// "first ordinary physical attack this fight deals 1.15x" rule as
+// applyOpeningReach above, tracked per-combatant instead of on the
+// player's own state.combat flag. Only ever called from a plain
+// basic-attack branch (never an Active cast), mirroring applyOpeningReach's
+// own scope exactly — no Norrvael 6pc widening, that's a player-only set.
+function applyOpeningReachForActor(actor, dmg) {
+  if (actor.firstPhysicalAttackDone) return dmg;
+  actor.firstPhysicalAttackDone = true;
+  if (!hasEffect(actor, "opening_reach")) return dmg;
+  return Math.round(dmg * 1.15);
 }
 
 // Deep Cut (Bleed) and Hamstring both roll off any successful physical
@@ -2016,6 +2048,25 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
       if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
     }
   }
+  // Brace, generalized: the player's own version fires on a specific
+  // no-damage Tactic/spell (Feint, Stoneskin, the Earth no-damage cast —
+  // see resolveFeint/useApothecaryAbility/useElementAbility); an enemy has
+  // no equivalent named action, so the closest honest analog is "this
+  // creature's own chosen action this round deals no damage at all" — a
+  // pure summon, or any dmgMult: 0 active (Protective Cover/Focused Rally/
+  // Defensive Command — Guarded Stance etc. still roll an attack, just at
+  // reduced power, so they don't qualify). Banked once, consumed by
+  // whichever hit lands on this creature next (rollPlayerDamage,
+  // resolveEnemyAttackOnAlly's target — wait, this creature IS the
+  // attacker there — so really: rollPlayerDamage and allyAggressiveAction,
+  // the two places something else's damage against THIS creature is
+  // computed) — not scoped to "the very next action" the way the player's
+  // own compound retaliation call is, since enemies have no symmetric
+  // compound structure to hook into; an honest, slightly looser version of
+  // the same idea.
+  if (abilityCtx && (abilityCtx.summon || abilityCtx.dmgMult === 0) && hasEffect(creatureObj, "brace")) {
+    creatureObj.braceBonusDef = 3;
+  }
   // Summons (Burrow Call, Nest Call, Brood Call, Grave Bloom) are a pure
   // support action — nothing is attacked, so this returns before ever
   // reaching the aoe/single-target damage paths below.
@@ -2248,7 +2299,20 @@ function resolveEnemyActiveAbility(state, creature) {
   const abilityId = eligible[Math.floor(Math.random() * eligible.length)];
   const ability = getEnemyAbility(abilityId);
   if (ability.oncePerCombat) enemy.passiveOnceFlags[abilityId] = true;
-  cooldowns[abilityId] = ability.cooldown;
+  // Feinting Edge/Tactical Memory, generalized: both are written against
+  // the player's own named Tactics (Feint's cooldown specifically;
+  // Feint/Decoy/Disarm's cooldowns generally) that an enemy has no
+  // equivalent of, so the closest honest analog is this creature's own
+  // Active cooldown — a proportional -1 rather than Feinting Edge's flat
+  // override-to-1 (which would be a wildly bigger effect on an active with
+  // a 5-7 round cooldown than Feint's own 2-round one).
+  let setCooldown = ability.cooldown;
+  if (setCooldown && hasEffect(creature, "feinting_edge")) setCooldown = Math.max(1, setCooldown - 1);
+  if (setCooldown && !enemy.tacticalMemoryUsed && hasEffect(creature, "tactical_memory") && Math.random() < 0.2) {
+    enemy.tacticalMemoryUsed = true;
+    setCooldown = Math.max(1, setCooldown - 1);
+  }
+  cooldowns[abilityId] = setCooldown;
   let dmgMult = ability.dmgMult;
   // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
   // Predator, Prepared Opening/H08) — see firstAttackPassiveBonus above.
@@ -2473,14 +2537,25 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   // an ally instead of the player.
   const accBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
   if (!attackConnects(creature.acc + accBonus, allyAgi)) {
-    return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
+    // Riposte, generalized: this creature's own attack just dealt the
+    // ally zero damage (a miss) — if the ALLY wears Riposte, it counters
+    // THIS creature (the attacker, not the one who got missed).
+    const enemySlot = state.combat.enemies[state.combat.activeIndex];
+    return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`, ...riposteCounterByAllyOnEnemy(state, ally, enemySlot)], damage: null };
   }
   const rawAtk = effectiveEnemyAtk(state, creature);
   // effectiveAllyDef (engine/companion.js): base Def plus every temporary/
   // permanent companion bonus (Champion's Challenge, the Legendary
   // ascension's flat set bonus, No Name Forgotten, Brothers in Arms/
   // Honor Beyond Death) — all zero for any ally without one (Kessa).
-  const effectiveDef = effectiveAllyDef(ally);
+  // Brace/Guarded Strike, generalized: consume whatever this ally banked
+  // against its next incoming hit (allyDefensiveAction/allySupportAction/
+  // allyAggressiveAction) — an enemy's attack counts just as much as
+  // another enemy's would.
+  const bankedDef = (ally.braceBonusDef || 0) + (ally.guardedStrikeBonusDef || 0);
+  ally.braceBonusDef = 0;
+  ally.guardedStrikeBonusDef = 0;
+  const effectiveDef = effectiveAllyDef(ally) + bankedDef;
   // v0.11: shared ratio mitigation against the ally's full Defense (was
   // a flat -50% Defense) — allies and the player now follow one rule.
   // basicFirstBonus.dmgMultBonus: see resolveEnemyRetaliation's own copy
@@ -2488,6 +2563,13 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   let dmg = abilityCtx
     ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
     : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
+  // Opening Reach/Executioner, generalized — same basic-attack-only scope
+  // as resolveEnemyRetaliation's own copy of this pair.
+  if (!abilityCtx) dmg = applyOpeningReachForActor(creature, dmg);
+  dmg = Math.round(dmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
+  // Guarded Strike, generalized: bank +2 Defense for this creature against
+  // whatever hits it next, same basic-attack-only scope.
+  if (!abilityCtx && dmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
   // Legion's Memory / Brothers in Arms (engine/companion.js): Hadrian may
   // redirect part of this hit onto himself, or buff himself reactively,
   // BEFORE the target's own mitigation runs — a no-op unless Hadrian is
@@ -2594,7 +2676,9 @@ function allyAggressiveAction(state, ally) {
   // Disoriented, Drowsy, ...) lowering this ally's own Accuracy.
   const allyAcc = ally.accuracy + allyBuffStatTotal(ally, "acc") + allyStatusStatTotal(ally, "acc");
   if (!attackConnects(allyAcc, target.creatureObj.agi)) {
-    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
+    // Riposte, generalized: this ally's own attack just dealt the target
+    // zero damage (a miss) — if the target wears Riposte, it counters here.
+    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, target, ally)];
   }
   // atkPct (Intimidated, Feared, ...): a status's own fractional Attack
   // penalty, same pct-of-base shape effectivePlayerAtk-adjacent code uses.
@@ -2604,10 +2688,26 @@ function allyAggressiveAction(state, ally) {
   // Protective Cover/Last Stand): applies to an ally's own hits too, not
   // just the player's — see rollPlayerDamage for the primary application.
   const reduction = 1 - (target.creatureObj.dmgReduction || 0);
-  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), target.creatureObj.def) * reduction)); // v0.11 shared ratio mitigation
+  // Brace/Guarded Strike, generalized: consume whatever this target banked
+  // against its next incoming hit (see resolveEnemyAction/
+  // resolveEnemyRetaliation) — an ally's attack counts just as much as the
+  // player's own.
+  const bankedDef = (target.creatureObj.braceBonusDef || 0) + (target.creatureObj.guardedStrikeBonusDef || 0);
+  target.creatureObj.braceBonusDef = 0;
+  target.creatureObj.guardedStrikeBonusDef = 0;
+  let dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), target.creatureObj.def + bankedDef) * reduction)); // v0.11 shared ratio mitigation
+  // Opening Reach/Executioner, generalized — this ally's own first basic
+  // physical attack this fight, and a finisher bonus vs a badly wounded
+  // target, same as the player's and an enemy's own versions above.
+  dmg = applyOpeningReachForActor(ally, dmg);
+  dmg = Math.round(dmg * executionerMultiplierFor(ally, target.hp, target.maxHp));
   target.hp -= dmg;
   target.lastDamageType = "physical";
   const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
+  // Guarded Strike, generalized: bank +2 Defense for this ally against
+  // whatever hits it next, same scope as the enemy/player versions (a
+  // landed basic physical attack only).
+  if (hasEffect(ally, "guarded_strike")) ally.guardedStrikeBonusDef = 2;
   if (target.hp <= 0 && target.alive) lines.push(...resolveKill(state, target.creatureObj));
   return lines;
 }
@@ -2620,6 +2720,11 @@ function allyDefensiveAction(state, ally) {
   const combat = state.combat;
   const target = combat.enemies[combat.activeIndex];
   if (!target || !target.alive) return [];
+  // Brace, generalized: Defensive stance deals no damage at all — the
+  // ally's own "no-damage action" equivalent to the player's Feint/
+  // Stoneskin, same as a dmgMult: 0 enemy active. Banked against whatever
+  // hits this ally next (see allyAggressiveAction/resolveEnemyAttackOnAlly).
+  if (hasEffect(ally, "brace")) ally.braceBonusDef = 3;
   const cap = 6;
   if ((target.enemyAtkPenalty || 0) >= cap) {
     return [`${ally.name} keeps ${withThe(target.creatureObj.name, false)} off balance.`];
@@ -2633,6 +2738,9 @@ function allyDefensiveAction(state, ally) {
 // allies yet, but the comparison is written generally so it keeps working
 // once Phase 2 lets allies take damage too.
 function allySupportAction(state, ally) {
+  // Brace, generalized — see allyDefensiveAction's own copy of this
+  // comment; Support stance is this ally's other no-damage action.
+  if (hasEffect(ally, "brace")) ally.braceBonusDef = 3;
   const candidates = [{ isPlayer: true, hp: state.health, maxHp: state.maxHealth }].concat(
     aliveAllies(state)
       .filter((a) => a !== ally)
@@ -3315,7 +3423,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     const def = effectivePlayerDef(state) + bonusDef + coldBonus;
     // v0.11: shared ratio mitigation against the player's full Defense
     // (was a flat -Defense/10, so armor did almost nothing against mages).
-    let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup));
+    let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
     // Adaptive Ward (Mythic): the first elemental hit taken each fight
     // establishes resistance to that element for the rest of the fight;
     // this triggering hit isn't itself reduced, only subsequent hits of
@@ -3362,6 +3470,11 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   let edmg = abilityCtx
     ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), playerDef))) : 0)
     : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0); // atk: 0 = intentionally harmless (Vaelorn) — effectiveEnemyAtk floors at 1, so check the raw stat
+  // Opening Reach, generalized (applyOpeningReachForActor): only on a
+  // plain basic attack, same scope as the player's own version — an
+  // Active cast never qualifies, abilityCtx or not.
+  if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+  edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
   if (edmg > 0 && !combat.firstHitTakenUsed) {
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
@@ -3369,6 +3482,12 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   const physicalHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
   edmg = physicalHit.edmg;
   const absorbLines2 = physicalHit.absorbLines;
+  // Guarded Strike, generalized: after THIS creature's own landed basic
+  // physical attack (ability casts don't qualify, mirroring the player's
+  // own isPhysicalHit scope), bank +2 Defense against whatever hits it
+  // next — consumed in rollPlayerDamage/allyAggressiveAction, the two
+  // places something else's damage against this creature is computed.
+  if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
   const verb = abilityCtx ? `uses ${abilityCtx.name} on you` : "hits back";
   const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
   // Enemy Ability Engine: the ability's one genuinely on-hit consequence —
@@ -3536,6 +3655,55 @@ function maybeRiposte(state, creature) {
     state.combat.whiteWatchRiposteDefBonus = (state.combat.whiteWatchRiposteDefBonus || 0) + 2;
   }
   if (state.combat.hp <= 0) lines.push(...resolveKill(state, creature));
+  return lines;
+}
+
+// Generalized Riposte, for an enemy or ally wearer: the same "a free 0.5x
+// follow-up when the incoming hit deals zero damage" idea as maybeRiposte
+// above, mirrored at the three places a non-player wearer's own attacker
+// can land a zero-damage hit (a miss) on it — called right at each of
+// those miss branches rather than through a shared "retaliation dealt 0"
+// signal, since enemies/allies have no equivalent compound retaliation
+// call for that signal to live in. No Clash of Steel/White Watch
+// widening — both are player-only Regalia systems.
+function riposteCounterOnPlayer(state, creature) {
+  if (!hasEffect(creature, "riposte") || !state.combat || state.combat.hp <= 0) return [];
+  if (!attackConnects(creature.acc, effectivePlayerAgility(state))) {
+    return [`${withThe(creature.name, true)} seizes the opening, but the riposte doesn't land.`];
+  }
+  const atk = effectiveEnemyAtk(state, creature);
+  const playerDef = effectivePlayerDef(state);
+  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
+  const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
+  const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte for ${hit.edmg} damage.`, ...hit.absorbLines];
+  if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+  return lines;
+}
+// Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
+// the enemy counters the ally. Called from allyAggressiveAction's miss
+// branch.
+function riposteCounterByEnemyOnAlly(state, target, ally) {
+  if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
+  const creature = target.creatureObj;
+  const atk = effectiveEnemyAtk(state, creature);
+  const effectiveDef = effectiveAllyDef(ally);
+  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), effectiveDef) * 0.5));
+  ally.health = Math.max(0, ally.health - dmg);
+  const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte on ${ally.name} for ${dmg} damage.`];
+  if (ally.health <= 0) lines.push(...killAlly(state, ally));
+  return lines;
+}
+// Wearer = the ALLY an enemy's attack just missed — the ally counters the
+// enemy. Called from resolveEnemyAttackOnAlly's miss branch; `enemySlot`
+// is the per-fight enemy slot object (combat.enemies[i], not just its
+// creatureObj), since landing the hit needs to mutate its own .hp/.alive.
+function riposteCounterByAllyOnEnemy(state, ally, enemySlot) {
+  if (!enemySlot || !enemySlot.alive || !hasEffect(ally, "riposte")) return [];
+  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, Math.round(ally.atk * 0.85)), Math.round(ally.atk * 1.15)), enemySlot.creatureObj.def) * 0.5));
+  enemySlot.hp -= dmg;
+  enemySlot.lastDamageType = "physical";
+  const lines = [`${ally.name} seizes the opening — a free riposte on ${withThe(enemySlot.creatureObj.name, false)} for ${dmg} damage.`];
+  if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, enemySlot.creatureObj));
   return lines;
 }
 
@@ -5012,6 +5180,11 @@ function playerAttack(state) {
   // real attempt) or any of the on-hit-only effects below.
   if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
     out.push(`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`);
+    // Riposte, generalized: the enemy wearer's mirror of the player's own
+    // maybeRiposte — scoped to the player's plain basic attack only (the
+    // ability-cast/Tactic miss paths don't carry this yet, a deliberate
+    // scope limit for this pass, not an oversight).
+    out.push(...riposteCounterOnPlayer(state, creature));
   } else {
     let dmg = rollPlayerDamage(state, creature, activeElement);
     if (isPhysical) dmg = applyOpeningReach(state, dmg);

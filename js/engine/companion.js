@@ -440,7 +440,16 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   // "The Unbroken Champion" 4pc: abilities used while Defensive or
   // Support have their cooldown reduced by 1 turn.
   const cdrActive = hasAscendedRegalia(ally) && (ally.stance === "defensive" || ally.stance === "support");
-  ally.abilityCooldowns[ability.id] = Math.max(0, ability.cooldown - (cdrActive ? 1 : 0));
+  // Feinting Edge/Tactical Memory, generalized (see resolveEnemyActiveAbility
+  // in engine/combat.js for the fuller comment): the same proportional -1
+  // equivalent, for a companion's own kit cooldowns.
+  let hadrianCooldown = Math.max(0, ability.cooldown - (cdrActive ? 1 : 0));
+  if (hadrianCooldown && hasEffect(ally, "feinting_edge")) hadrianCooldown = Math.max(0, hadrianCooldown - 1);
+  if (hadrianCooldown && !ally.tacticalMemoryUsed && hasEffect(ally, "tactical_memory") && Math.random() < 0.2) {
+    ally.tacticalMemoryUsed = true;
+    hadrianCooldown = Math.max(0, hadrianCooldown - 1);
+  }
+  ally.abilityCooldowns[ability.id] = hadrianCooldown;
   const lines = [];
   const veteranPct = veteranBonusPct(ally, kit);
 

@@ -311,9 +311,18 @@ const EFFECT_DEFS = {
 
 // Whether any currently-equipped item carries the given effect id. Boolean
 // presence only — see file header on why this never "stacks" by count.
+// Entity-neutral: `state` is usually the player, but an enemy creature
+// object or an ally both carry `.equipment` in this exact same slot->item
+// shape (buildFightCreature/recomputeAllyStats — see engine/combat.js), so
+// this already works unchanged for either. A creature with no equipment at
+// all (a dynamic/summoned enemy, or a synthetic test fixture) has no
+// `.equipment` object, or an authored bestiary equipment band that simply
+// omits an unused slot like trinkets — both read as "no effects," not a
+// crash.
 function hasEffect(state, effectId) {
+  if (!state.equipment) return false;
   for (const slot of EQUIP_SLOTS) {
-    const items = slot === "trinkets" ? state.equipment.trinkets : (state.equipment[slot] ? [state.equipment[slot]] : []);
+    const items = slot === "trinkets" ? (state.equipment.trinkets || []) : (state.equipment[slot] ? [state.equipment[slot]] : []);
     for (const item of items) {
       const def = ITEM_DEFS[item];
       if (def && def.effects && def.effects.includes(effectId)) return true;
