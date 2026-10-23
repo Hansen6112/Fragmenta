@@ -1623,23 +1623,26 @@ function cmdChoose(arg, state) {
   }
   if (state.flags.pendingSoulLedgerChoice) {
     const a = (arg || "").toLowerCase().trim();
+    // v0.11 PLAYER_STAT_SCALE: each soulLedger*Bonus is a raw stat-point
+    // grant, folded into recomputeStats' own scaledStat()'d maxHealth/
+    // magic/def totals — the real gift is PLAYER_STAT_SCALE x the raw +1.
     if (a === "health" || a === "hp") {
       state.soulLedgerHealthBonus += 1;
       state.flags.pendingSoulLedgerChoice = false;
       state.recomputeStats(true);
-      return [`Soul Ledger — a permanent gift. +1 max Health.`];
+      return [`Soul Ledger — a permanent gift. +${flatStat(1)} max Health.`];
     }
     if (a === "magic") {
       state.soulLedgerMagicBonus += 1;
       state.flags.pendingSoulLedgerChoice = false;
       state.recomputeStats(true);
-      return [`Soul Ledger — a permanent gift. +1 Magic.`];
+      return [`Soul Ledger — a permanent gift. +${flatStat(1)} Magic.`];
     }
     if (a === "defense" || a === "def") {
       state.soulLedgerDefBonus += 1;
       state.flags.pendingSoulLedgerChoice = false;
       state.recomputeStats(true);
-      return [`Soul Ledger — a permanent gift. +1 Defense.`];
+      return [`Soul Ledger — a permanent gift. +${flatStat(1)} Defense.`];
     }
     return ["Choose 'health', 'magic', or 'defense' for the Soul Ledger's permanent gift."];
   }
@@ -1704,7 +1707,9 @@ function cmdChoose(arg, state) {
     state.recomputeStats(true);
     state.flags.pendingLevel15Choice = false;
     state.flags.level15ChoiceMade = true;
-    return [`You turn everything inward. Your command of ${ELEMENTS[state.primaryElement].name} deepens permanently. (+6 Magic)`];
+    // v0.11 PLAYER_STAT_SCALE: magicBoost is a raw stat-point grant,
+    // folded into recomputeStats' own scaledStat()'d magic total.
+    return [`You turn everything inward. Your command of ${ELEMENTS[state.primaryElement].name} deepens permanently. (+${flatStat(6)} Magic)`];
   }
   const key = findElement(a);
   if (!key) {
@@ -1783,7 +1788,7 @@ function buildChoiceMenu(state) {
   if (state.flags.pendingLevel15Choice) {
     const options = [
       { heading: "A turning point — choose your path" },
-      { label: `Deepen ${ELEMENTS[state.primaryElement].name} (+6 Magic permanently)`, command: "choose boost" },
+      { label: `Deepen ${ELEMENTS[state.primaryElement].name} (+${flatStat(6)} Magic permanently)`, command: "choose boost" },
     ];
     Object.keys(ELEMENTS).forEach((key) => {
       if (key !== state.primaryElement) {

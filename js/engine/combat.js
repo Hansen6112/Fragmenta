@@ -545,7 +545,12 @@ function applyStatusCleanseOnHeal(state) {
     combat.calmWatersDefBonus = Math.min(12, (combat.calmWatersDefBonus || 0) + 4);
     combat.calmWatersMagicBonus = Math.min(12, (combat.calmWatersMagicBonus || 0) + 4);
     combat.calmWatersTurns = 2;
-    lines.push(`Calm Waters settles over you — +4 Defense, +4 Magic for 2 rounds.`);
+    // v0.11 PLAYER_STAT_SCALE: calmWatersDefBonus/MagicBonus are raw stat
+    // points, folded into effectivePlayerDef/effectiveMagic's flatStat()'d
+    // total — the +4 actually granted here is PLAYER_STAT_SCALE x bigger
+    // by the time it reaches those stats, so the line names the real
+    // number, not the raw per-proc design value.
+    lines.push(`Calm Waters settles over you — +${flatStat(4)} Defense, +${flatStat(4)} Magic for 2 rounds.`);
   }
   return lines;
 }
@@ -573,7 +578,10 @@ function applyLivingSteel(state) {
   const combat = state.combat;
   if (!hasEffect(state, "living_steel") || combat.actionCounter % 3 !== 0 || combat.livingSteelBonus >= 5) return [];
   combat.livingSteelBonus += 1;
-  return [`Living Steel hardens further — +1 Attack, +1 Defense (now +${combat.livingSteelBonus}/+${combat.livingSteelBonus}).`];
+  // v0.11 PLAYER_STAT_SCALE: livingSteelBonus is a raw stat-point stack,
+  // folded into effectivePlayerAtk/effectivePlayerDef's flatStat()'d
+  // total — the real grant is PLAYER_STAT_SCALE x the raw +1/stack.
+  return [`Living Steel hardens further — +${flatStat(1)} Attack, +${flatStat(1)} Defense (now +${flatStat(combat.livingSteelBonus)}/+${flatStat(combat.livingSteelBonus)}).`];
 }
 
 // Perfect Balance (Legendary): whenever base Attack and Defense are within
@@ -1133,7 +1141,9 @@ function applyEndlessStudy(state, actionKey) {
   if (combat.endlessStudyKeys.includes(actionKey) || (combat.endlessStudyMagicBonus || 0) >= 20) return [];
   combat.endlessStudyKeys.push(actionKey);
   combat.endlessStudyMagicBonus = Math.min(20, (combat.endlessStudyMagicBonus || 0) + 2);
-  return [`Endless Study — a new technique, understood; +2 Magic (now +${combat.endlessStudyMagicBonus}).`];
+  // v0.11 PLAYER_STAT_SCALE: endlessStudyMagicBonus is a raw stat-point
+  // stack, folded into effectiveMagic's flatStat()'d total.
+  return [`Endless Study — a new technique, understood; +${flatStat(2)} Magic (now +${flatStat(combat.endlessStudyMagicBonus)}).`];
 }
 
 // Prepared Response (Divine Regalia — Librarian's Ward): the enemy in
@@ -1333,7 +1343,9 @@ function applyActionTypeTracking(state, actionType) {
     combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
     combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
-    lines.push(`Ever Forward — three strides, three shapes; +10 Attack, +10 Magic for ${dur} rounds.`);
+    // v0.11 PLAYER_STAT_SCALE: the flatStat(10) above is the real grant;
+    // the bare "10" is only the pre-scale design value.
+    lines.push(`Ever Forward — three strides, three shapes; +${flatStat(10)} Attack, +${flatStat(10)} Magic for ${dur} rounds.`);
   }
   return lines;
 }
@@ -1357,7 +1369,8 @@ function applyWanderersReward(state, actionKey) {
     combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
     combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
-    lines.push(`Wanderer's Reward — new ground, new strength; +4 Attack, +4 Magic for ${dur} rounds.`);
+    // v0.11 PLAYER_STAT_SCALE: see Ever Forward's own copy of this note.
+    lines.push(`Wanderer's Reward — new ground, new strength; +${flatStat(4)} Attack, +${flatStat(4)} Magic for ${dur} rounds.`);
   }
   combat.recentActionKeys = [actionKey, ...recent].slice(0, 2);
   return lines;
@@ -2953,7 +2966,9 @@ function checkDeathPrevention(state) {
     combat.lastStandUsed = true;
     state.health = 1;
     combat.lastStandAtkBonus = (combat.lastStandAtkBonus || 0) + 5;
-    msg = `Last Stand — you refuse to fall. 1 Health, and +5 Attack for what's left of this fight.`;
+    // v0.11 PLAYER_STAT_SCALE: lastStandAtkBonus is a raw stat-point
+    // grant, folded into effectivePlayerAtk's flatStat()'d total.
+    msg = `Last Stand — you refuse to fall. 1 Health, and +${flatStat(5)} Attack for what's left of this fight.`;
   } else if (hasEffect(state, "between_worlds") && !combat.betweenWorldsUsed) {
     // Between Worlds (Divine Regalia — Veil of the Ferryman): the same
     // "leaves you at 1 Health" cheat-death shape as Last Stand above, but
@@ -3538,7 +3553,12 @@ function applyDodgeBlockNegateBonuses(state) {
     if (atkStacks < 5) {
       combat.everyChoiceAtkStacks = atkStacks + 1;
       combat.everyChoiceMagicStacks = (combat.everyChoiceMagicStacks || 0) + 1;
-      lines.push(`Every Choice Matters — the near miss sharpens you; +2 Attack, +2 Magic (now +${(atkStacks + 1) * 2}/+${(atkStacks + 1) * 2}).`);
+      // v0.11 PLAYER_STAT_SCALE: each stack is worth 2 Attack/Magic by
+      // design (the *2 below, unchanged) — that design total is then
+      // itself folded into effectivePlayerAtk/effectiveMagic's own
+      // flatStat()'d sum, so the real grant is PLAYER_STAT_SCALE x bigger
+      // again on top of the per-stack "2."
+      lines.push(`Every Choice Matters — the near miss sharpens you; +${flatStat(2)} Attack, +${flatStat(2)} Magic (now +${flatStat((atkStacks + 1) * 2)}/+${flatStat((atkStacks + 1) * 2)}).`);
     }
   }
   if (hasSetTier(state, "Regalia of the Woven Thread", 4) && !combat.threadsOfConsequencePending) {
@@ -4323,7 +4343,7 @@ function checkHoldTheLine(state) {
   const dur = applyBeneficialEffectBonuses(state, 2);
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
   combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(6)));
-  return [`Hold the Line — your training snaps into place as your Health falls; +6 Defense for 2 turns.`];
+  return [`Hold the Line — your training snaps into place as your Health falls; +${flatStat(6)} Defense for 2 turns.`];
 }
 
 // Rooted Resolve (Divine Regalia — Verdant Aegis): the first time the
@@ -4338,7 +4358,7 @@ function checkRootedResolve(state) {
   const dur = applyBeneficialEffectBonuses(state, 3);
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
   combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(8)));
-  return [`Rooted Resolve — you plant yourself as your Health falls; +8 Defense for 3 turns.`];
+  return [`Rooted Resolve — you plant yourself as your Health falls; +${flatStat(8)} Defense for 3 turns.`];
 }
 
 // Love Endures (Divine Regalia — Bloom of Devotion): the first time each
@@ -4373,7 +4393,7 @@ function checkRallyTheLine(state) {
   combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
   combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(10)));
-  return [`Rally the Line — your Health falls, and the line holds; +10 Attack, +10 Defense for 4 rounds.`];
+  return [`Rally the Line — your Health falls, and the line holds; +${flatStat(10)} Attack, +${flatStat(10)} Defense for 4 rounds.`];
 }
 
 // Avatar of Bloom (Regalia of the First Bloom 6pc): once per fight, the
@@ -4668,7 +4688,9 @@ function applyVanguardMomentum(state) {
   if (before >= 5) return [];
   state.flags.vanguardMomentumStacks = before + 1;
   state.recomputeStats(true);
-  return [`Vanguard Momentum — the fight sharpens you; +1 Attack (${before + 1}/5 this streak).`];
+  // v0.11 PLAYER_STAT_SCALE: vanguardMomentumStacks is a raw stat-point
+  // stack, summed into recomputeStats' own scaledStat()'d atk total.
+  return [`Vanguard Momentum — the fight sharpens you; +${flatStat(1)} Attack (${before + 1}/5 this streak).`];
 }
 
 // Passing Whisper (Divine Regalia — Ring of Last Breath): +1 Magic per
@@ -4683,7 +4705,8 @@ function applyPassingWhisper(state) {
   if (before >= 15) return [];
   state.flags.passingWhisperStacks = before + 1;
   state.recomputeStats(true);
-  return [`Passing Whisper — a departing breath lends you strength; +1 Magic (${before + 1}/15 this streak).`];
+  // v0.11 PLAYER_STAT_SCALE: see Vanguard Momentum's own copy of this note.
+  return [`Passing Whisper — a departing breath lends you strength; +${flatStat(1)} Magic (${before + 1}/15 this streak).`];
 }
 
 // Soul Ledger (Divine Regalia — Coin of the Ferryman): a permanent,
