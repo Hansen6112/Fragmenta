@@ -65,20 +65,40 @@ const CREATURE_FACTIONS = [
 // distinction is flavor-text only (see rollEncounterGroup's callers).
 const SPAWN_GROUP_KINDS = ["solitary", "pack", "squad"]; // vocabulary only — checked by tools/audit.js
 
-// Group size (including the anchor spawn itself), weighted toward small —
-// a guaranteed-possible 5-wolf pack against a low-level player is rough
-// without real tuning, so most encounters stay at 1-2 with the full 5 rare.
+// Group size (including the anchor spawn itself), weighted by the anchor's
+// own Danger Class — a flat distribution regardless of tier meant a
+// "normal" entry-level trash mob rolled the same odds of a 5-wide squad as
+// a "boss". At level 1 (where a character's own power hasn't scaled at
+// all yet) that turned an intended 1v1 into a coinflip-or-worse purely on
+// this roll: a combat-sim balance pass (880 simulated fights) measured
+// solo-vs-player win rate at 100% for every Danger Class/level, but a
+// "normal" anchor rolling 2+ members at level 1 dropped that to 36%
+// overall (16% without allies) — a cliff that had mostly closed by level
+// 10 (73%) and was gone by level 20+ (99%), since the player's own gear/
+// level had caught up to the same multiplicative threat by then. normal
+// now leans hard toward staying solo; elite keeps the original flat
+// distribution (already reasonably group-prone — a lone "elite" escort
+// was never the common case); boss leans INTO bigger groups, matching
+// several bosses' own flavor text ("reduce its entourage"); world_boss is
+// defined for parity but currently unreachable — every world_boss
+// BESTIARY entry uses spawnGroup "solitary", not "pack"/"squad".
 // Index 0 -> size 1, index 4 -> size 5.
-const GROUP_SIZE_WEIGHTS = [45, 25, 15, 10, 5];
+const GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS = {
+  normal: [70, 18, 7, 3, 2],
+  elite: [45, 25, 15, 10, 5],
+  boss: [25, 25, 20, 20, 10],
+  world_boss: [25, 25, 20, 20, 10],
+};
 
-function rollGroupSize() {
-  const total = GROUP_SIZE_WEIGHTS.reduce((a, b) => a + b, 0);
+function rollGroupSize(dangerClass) {
+  const weights = GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS[dangerClass] || GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS[DEFAULT_DANGER_CLASS];
+  const total = weights.reduce((a, b) => a + b, 0);
   let roll = Math.random() * total;
-  for (let i = 0; i < GROUP_SIZE_WEIGHTS.length; i++) {
-    roll -= GROUP_SIZE_WEIGHTS[i];
+  for (let i = 0; i < weights.length; i++) {
+    roll -= weights[i];
     if (roll < 0) return i + 1;
   }
-  return GROUP_SIZE_WEIGHTS.length;
+  return weights.length;
 }
 
 // Every non-special BESTIARY id sharing BOTH faction and group with the
@@ -106,11 +126,12 @@ const DANGER_CLASS_BY_RANK_LIST = ["normal", "elite", "boss", "world_boss"];
 //
 // Two independent, additive rules:
 // - Pack/Squad: only if the anchor itself is tagged spawnGroup "pack" or
-//   "squad" AND a pool exists. Rolls a weighted group size (1-5,
-//   GROUP_SIZE_WEIGHTS), filling any additional slots with random picks
-//   from the pool — each capped to the anchor's own Danger Class rank
-//   (never a higher tier than the encounter's own anchor) and left at the
-//   anchor's level (same level band, per design).
+//   "squad" AND a pool exists. Rolls a weighted group size (1-5, via
+//   rollGroupSize/GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS, keyed off the
+//   anchor's own Danger Class), filling any additional slots with random
+//   picks from the pool — each capped to the anchor's own Danger Class
+//   rank (never a higher tier than the encounter's own anchor) and left
+//   at the anchor's level (same level band, per design).
 // - Leader underlings: ANY archetype "leader" creature (regardless of its
 //   own spawnGroup tag) always brings up to 2 underlings from the same
 //   pool, hard-capped to Normal Danger Class regardless of the leader's
@@ -130,7 +151,7 @@ function rollEncounterGroup(anchorId) {
     return { id: pickId, dangerClass: DANGER_CLASS_BY_RANK_LIST[pickRank] };
   };
   if (template.spawnGroup === "pack" || template.spawnGroup === "squad") {
-    const size = rollGroupSize();
+    const size = rollGroupSize(anchorDangerClass);
     while (members.length < size) members.push(pickCapped());
   }
   if (template.archetype === "leader") {
