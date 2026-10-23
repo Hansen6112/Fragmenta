@@ -6,6 +6,18 @@
  *   node tools/combatsim.js wildBoar drake  # just these creatures, with suggested stat fixes
  *   node tools/combatsim.js --off           # every creature >35% off its target, with suggestions
  *   node tools/combatsim.js --fights 20     # more fights per class per creature (default 8)
+ *   node tools/combatsim.js --party         # Elite/Boss/World Boss vs the floor party (see below)
+ *   node tools/combatsim.js --party drake   # just these creatures, vs the floor party
+ *
+ * v0.11d — party-first: Fragmenta is meant to be played as a party of four,
+ * solo being the hardest way to play. The TTK/TTD bands below are the SOLO
+ * scorecard and still govern Normals (a lone character must be able to
+ * win one). Elites and up are calibrated against the FLOOR PARTY instead —
+ * the player plus 3 independent mercenaries (Kessa-shaped, at 72.5% of a
+ * unique ally's Attack/Defense/Health, same tier gear), fought at each
+ * creature's approved MINIMUM level, basic Attack only — and scored by
+ * win rate against these targets (better allies, gear and play are what
+ * push above them):  Elite ~60%   Boss ~35%   World Boss ~10%
  *
  * Runs the REAL engine headless (same sandbox approach as tools/audit.js):
  * a level-matched player of each of the five Classes, in the best tier-
@@ -162,6 +174,55 @@ function suggest(m) {
 
 // friendly creatures (Vaelorn) can't be attacked in the real game — playerAttack refuses — so they're not combat tuning targets
 const ids = (only.length ? only : Object.keys(BESTIARY)).filter((id) => BESTIARY[id] && !BESTIARY[id].special && !BESTIARY[id].friendly);
+
+// ---- --party: Elite and up vs the floor party ----
+if (flag("--party")) {
+  const PARTY_WIN_TARGET = { elite: 0.6, boss: 0.35, world_boss: 0.1 };
+  const MERC_QUALITY = 0.725;
+  const ALLY_DEFS = G("ALLY_DEFS");
+  for (let i = 1; i <= 3; i++) ALLY_DEFS["sim_merc_" + i] = Object.assign({}, ALLY_DEFS.kessa, { name: "Mercenary " + i, abilityKit: undefined });
+  const minLevel = (t) => {
+    const lo = t.levelRange ? t.levelRange[0] : SPAWN_RARITIES[t.spawnRarity || "common"].levelMin;
+    return G("clampLevelToRarityBand")(lo, t.spawnRarity, t.levelBandExempt);
+  };
+  const partyFight = (cls, L, id) => {
+    const s = makePlayer(cls, L);
+    for (let i = 1; i <= 3; i++) {
+      const a = s.recruitAlly("sim_merc_" + i);
+      for (const [slot, item] of Object.entries(gearFor(L, "atk"))) a.equipment[slot] = item;
+      G("recomputeAllyStats")(a, L);
+      a.atk = Math.round(a.atk * MERC_QUALITY); a.def = Math.round(a.def * MERC_QUALITY);
+      a.maxHealth = Math.round(a.maxHealth * MERC_QUALITY); a.health = a.maxHealth;
+    }
+    G("startCombat")(s, id, L);
+    if (!s.combat) return null;
+    const e0 = s.combat.enemies[0];
+    let rounds = 0;
+    while (s.combat && s.health > 0 && rounds < 150) { G("playerAttack")(s); rounds++; }
+    return { won: s.health > 0 && !(e0.alive && e0.hp > 0), allyDeaths: s.party.filter((a) => !a.alive).length };
+  };
+  const rows = [];
+  for (const id of ids) {
+    const t = BESTIARY[id], dc = t.dangerClass || "normal";
+    if (!(dc in PARTY_WIN_TARGET)) continue;
+    const L = minLevel(t);
+    let w = 0, d = 0, n = 0;
+    for (const cls of CLASS_IDS) for (let i = 0; i < N; i++) { const r = partyFight(cls, L, id); if (!r) continue; n++; w += r.won ? 1 : 0; d += r.allyDeaths; }
+    if (n) rows.push({ id, dc, L, win: w / n, deaths: d / n, target: PARTY_WIN_TARGET[dc] });
+  }
+  const med = (a) => { const s2 = [...a].sort((x, y) => x - y); return s2[s2.length >> 1]; };
+  if (!only.length) {
+    for (const dc of Object.keys(PARTY_WIN_TARGET)) {
+      const g = rows.filter((r) => r.dc === dc);
+      if (g.length) console.log(`${dc.padEnd(11)} n=${String(g.length).padEnd(4)} median floor-party win ${(med(g.map((r) => r.win)) * 100).toFixed(0).padStart(3)}% (target ${PARTY_WIN_TARGET[dc] * 100}%)  ally deaths/fight ${med(g.map((r) => r.deaths)).toFixed(2)}`);
+    }
+    console.log("\nMore than 20 points off target:");
+  }
+  for (const r of rows.filter((x) => only.length || Math.abs(x.win - x.target) > 0.2)) {
+    console.log(`  ${r.id.padEnd(28)} ${r.dc.padEnd(10)} L${String(r.L).padEnd(3)} floor-party win ${(r.win * 100).toFixed(0).padStart(3)}% (target ${r.target * 100}%)  ally deaths/fight ${r.deaths.toFixed(2)}  -> ${r.win > r.target ? "too easy: raise atk/hp" : "too hard: lower atk/hp"}`);
+  }
+  process.exit(0);
+}
 const results = ids.map(measure).filter(Boolean);
 const fmt = (x) => x.toFixed(1).padStart(5);
 const off = (m) => m.ttk > m.target.ttk * 1.35 || m.ttk < m.target.ttk / 1.35 || m.ttd > m.target.ttd * 1.35 || m.ttd < m.target.ttd / 1.35;

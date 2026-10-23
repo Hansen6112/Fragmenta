@@ -2126,7 +2126,21 @@ function aliveAllies(state) {
 // one actually swinging a weapon at it, after all), but allies standing
 // in a fight aren't safe just for existing — the remainder is split
 // evenly across however many are currently alive.
-const ENEMY_TARGETS_ALLY_SHARE = 0.4;
+//
+// v0.11d: the player's share now shrinks with party size instead of a
+// flat 60% — 70% with one ally, ~47% with two, 35% with a full party of
+// four (PLAYER_TARGET_SHARE_WEIGHT / party size, never below the floor).
+// A flat 60% meant a full party barely protected the player, whose death
+// ends the run, so ally quality hardly moved outcomes: a measured party of
+// three independent mercenaries and one of three company mercenaries won
+// at the same rate. Scaled this way allies genuinely take hits (and,
+// with permadeath, can be lost to them), and better allies win more.
+const PLAYER_TARGET_SHARE_WEIGHT = 1.4;
+const PLAYER_TARGET_SHARE_FLOOR = 0.35;
+function playerTargetShare(aliveAllyCount) {
+  if (aliveAllyCount <= 0) return 1;
+  return Math.min(1, Math.max(PLAYER_TARGET_SHARE_FLOOR, PLAYER_TARGET_SHARE_WEIGHT / (aliveAllyCount + 1)));
+}
 function pickEnemyAttackTarget(state) {
   // Companion Ability Engine (engine/companion.js): a taunt in effect
   // (Shielding Presence/Champion's Challenge/Last Bastion) overrides the
@@ -2136,9 +2150,9 @@ function pickEnemyAttackTarget(state) {
   const allies = aliveAllies(state);
   if (!allies.length) return { kind: "player" };
   const roll = Math.random();
-  const playerShare = 1 - ENEMY_TARGETS_ALLY_SHARE;
+  const playerShare = playerTargetShare(allies.length);
   if (roll < playerShare) return { kind: "player" };
-  const perAlly = ENEMY_TARGETS_ALLY_SHARE / allies.length;
+  const perAlly = (1 - playerShare) / allies.length;
   const idx = Math.min(allies.length - 1, Math.floor((roll - playerShare) / perAlly));
   return { kind: "ally", ally: allies[idx] };
 }

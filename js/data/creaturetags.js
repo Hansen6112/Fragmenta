@@ -97,11 +97,14 @@ const GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS = {
 // near-certain loss (Combat Test v0.11b, §3). Rather than weakening group
 // members (which would make a pack less dangerous than its members are
 // alone), group SIZE is gated by level band, so groups grow as the
-// character does: 2 through level 5, 3 through 10, 4 through 15, 5 from 16.
+// character does: solo only through level 2 (v0.11d — the forced-solo
+// window before a first mercenary hire is affordable), 2 through 5, 3
+// through 10, 4 through 15, 5 from 16.
 // Keyed off the PLAYER's level, not the encounter's rolled level (+/-3), so
 // an unlucky high roll can't spawn a level-10-sized group on a level-5
 // character. Leader underlings count toward the same cap.
 const GROUP_SIZE_CAP_BY_LEVEL = [
+  { maxLevel: 2, cap: 1 },
   { maxLevel: 5, cap: 2 },
   { maxLevel: 10, cap: 3 },
   { maxLevel: 15, cap: 4 },
@@ -191,7 +194,15 @@ function rollEncounterGroup(anchorId, level, playerLevel) {
   const fullPool = poolmatesFor(template);
   if (!fullPool.length) return members;
   const encounterLevel = typeof level === "number" ? level : template.levelRange ? template.levelRange[0] : 1;
-  const pool = fullPool.filter((id) => isLevelEligible(BESTIARY[id], encounterLevel));
+  // v0.11d: a group's extra members never outrank its anchor. Every
+  // member still keeps its own natural Danger Class (Pass 3, Section 2 —
+  // nothing is downgraded); outranking members are simply EXCLUDED, the
+  // same way level-ineligible ones are (Section 2, point 5). Without this,
+  // wildlife pools — whose members mostly have no levelRange, so they're
+  // "eligible" at every level — let a level-8 Razorback pack draw Tusk
+  // King, a World Boss, as an ordinary packmate.
+  const anchorRank = DANGER_CLASS_RANK[anchorDangerClass] ?? 0;
+  const pool = fullPool.filter((id) => isLevelEligible(BESTIARY[id], encounterLevel) && dangerClassRank(BESTIARY[id]) <= anchorRank);
   if (!pool.length) return members;
   const pickNatural = () => {
     const pickId = pool[Math.floor(Math.random() * pool.length)];
@@ -255,10 +266,23 @@ const DANGER_CLASSES = { normal: 1.0, elite: 1.5, boss: 2.5, world_boss: 4.0 };
 //   World Boss: ~30-50 to kill, 4-5 to die  (needs a party/a plan)
 // These are averages per Danger Class, not per-creature limits —
 // Archetype deliberately pushes individual creatures off-center.
+//
+// v0.11d — party-first: the game is meant to be played with a party of
+// four (player + 3), solo being the hardest way to play. Elite/Boss/World
+// Boss multipliers are calibrated against the FLOOR party (player + 3
+// independent mercenaries at ~72% of a unique ally's stats, tier gear) at
+// each creature's approved MINIMUM level, so basic attacks alone don't
+// win reliably and better allies, gear and play are what push the odds:
+//   Elite: party ~60% basic-attack win   Boss: ~35%   World Boss: ~10%
+// Normals stay tuned from the solo side (a lone character must be able to
+// win one), and threaten a party through group size instead. The Attack
+// column isn't monotonic across classes because it corrects for how the
+// Enemy Codex authored each class's base stats — the in-fight result is
+// what's ordered, not the multiplier.
 const DANGER_CLASS_STAT_MULTS = {
   normal: { health: 1.0, attack: 1.0, defense: 1.0 },
-  elite: { health: 2.1, attack: 1.2, defense: 1.15 },
-  boss: { health: 6.0, attack: 1.6, defense: 1.3 },
+  elite: { health: 2.9, attack: 2.45, defense: 1.15 },
+  boss: { health: 7.0, attack: 2.4, defense: 1.3 },
   world_boss: { health: 13.0, attack: 1.7, defense: 1.5 },
 };
 function dangerClassStatMultiplier(dangerClassId, statKey) {
