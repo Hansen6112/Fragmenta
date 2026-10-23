@@ -651,10 +651,14 @@ const ENEMY_ABILITIES = {
   coordinated_assault: { name: "Coordinated Assault", type: "active", cooldown: 4, dmgMult: 1.2, bonusVsAllyAlive: { mult: 1.45 / 1.2 } }, // H11
   heavy_impact: { name: "Heavy Impact", type: "active", cooldown: 5, dmgMult: 1.85, selfDebuff: { spd: -10, turns: 1 } }, // H12
   exposed_weakness: { name: "Exposed Weakness", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } }, // H14
-  // "Up to 3 distinct targets" is just every living member of the player's
-  // side — aoe already hits the player plus every alive ally, and the
-  // party cap (player + 2 allies) is 3, so this needs no cap of its own.
-  calculated_volley: { name: "Calculated Volley", type: "active", cooldown: 5, dmgMult: 0.95, aoe: true }, // H16
+  // "No more than 3 distinct targets" (Combat Test Pass 3, Section 6): the
+  // generic aoe branch (engine/combat.js's resolveEnemyAction) has no cap
+  // of its own — it hits the player plus every alive ally, so this relied
+  // on today's 2-companion content ceiling to coincidentally never exceed
+  // 3, not on an actual rule. aoeMaxTargets enforces the codex's own cap
+  // directly (player counts as the first of the 3), independent of how
+  // many companions ever end up existing.
+  calculated_volley: { name: "Calculated Volley", type: "active", cooldown: 5, dmgMult: 0.95, aoe: true, aoeMaxTargets: 3 }, // H16
   heavy_commitment: { name: "Heavy Commitment", type: "active", cooldown: 6, dmgMult: 2.1, selfDebuff: { def: -8, turns: 1 } }, // H17
   breakthrough_order: { name: "Breakthrough Order", type: "active", cooldown: 6, dmgMult: 1.5, packAuraBuff: { atkPct: 0.10, turns: 1, maxTargets: 2 } }, // H19
   scorpion_lunge: { name: "Scorpion Lunge", type: "active", cooldown: 5, dmgMult: 1.85, inflict: { status: "venom", chance: 1 }, selfDebuff: { acc: -10, turns: 1 } }, // H21

@@ -2014,7 +2014,14 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
     const lines = [];
     const playerResult = resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx);
     lines.push(...playerResult.lines);
-    for (const ally of aliveAllies(state)) {
+    // H16 Calculated Volley ("no more than 3 distinct targets"): the
+    // player always counts as the first target, so aoeMaxTargets - 1 is
+    // how many allies still get struck. Abilities with no aoeMaxTargets
+    // (every other aoe active — Earthshaker, Ground Slam, Bone Storm,
+    // ...) keep hitting every alive ally, unchanged.
+    const allies = aliveAllies(state);
+    const aoeAllies = abilityCtx.aoeMaxTargets != null ? allies.slice(0, Math.max(0, abilityCtx.aoeMaxTargets - 1)) : allies;
+    for (const ally of aoeAllies) {
       if (!state.combat) break;
       const allyResult = resolveEnemyAttackOnAlly(state, creatureObj, ally, abilityCtx);
       lines.push(...allyResult.lines);
@@ -2022,9 +2029,15 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
     return { lines, damage: playerResult.damage };
   }
   const target = pickEnemyAttackTarget(state);
+  // H08 Prepared Opening et al: an active cast already folded its
+  // firstAttack bonus into abilityCtx (resolveEnemyActiveAbility); a plain
+  // basic attack (abilityCtx null) never ran that check at all, so it's
+  // applied here instead — exactly once per action either way, since
+  // firstAttackPassiveBonus always consumes the flag when called.
+  const basicFirstBonus = abilityCtx ? null : firstAttackPassiveBonus(state, creatureObj);
   return target.kind === "ally"
-    ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, abilityCtx)
-    : resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx);
+    ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, abilityCtx, basicFirstBonus)
+    : resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx, basicFirstBonus);
 }
 
 // Wraps resolveEnemyAction with the BESTIARY `flurry` flag (a handful of
@@ -2157,6 +2170,33 @@ function pickEnemyAttackTarget(state) {
   return { kind: "ally", ally: allies[idx] };
 }
 
+// H08 Prepared Opening ("First damaging attack attempt gains +10 Accuracy
+// and x1.20 damage... consumed even on a miss") and the Ambush/Silent
+// Hunter/Patient Hunter/Ambush Predator family: these firstAttack-trigger
+// passives apply to whichever ATTACK this creature happens to make first
+// each fight — a basic attack if it has no eligible active that turn, an
+// active cast otherwise, per the codex's own "whether basic or active"
+// wording. Extracted so both paths consume the SAME flag exactly once:
+// resolveEnemyActiveAbility calls this when an active is selected;
+// resolveEnemyAction calls it directly for a plain basic attack when
+// resolveEnemyActiveAbility returns null. enemy.firstActiveUsed is set
+// unconditionally, before any hit/miss roll happens elsewhere, so
+// "consumed even on a miss" holds for both paths.
+function firstAttackPassiveBonus(state, creature) {
+  const enemy = state.combat.enemies[state.combat.activeIndex];
+  let dmgMultBonus = 1;
+  let accBonus = 0;
+  if (!enemy.firstActiveUsed) {
+    for (const pid of creature.passives || []) {
+      const p = getEnemyAbility(pid);
+      if (p && p.trigger === "firstAttack" && p.dmgMultBonus) dmgMultBonus *= p.dmgMultBonus;
+      if (p && p.trigger === "firstAttack" && p.accBonus) accBonus += p.accBonus;
+    }
+  }
+  enemy.firstActiveUsed = true;
+  return { dmgMultBonus, accBonus };
+}
+
 // Enemy Ability Engine (data/enemyabilities.js): picks one off-cooldown
 // Active ability from this creature's own `actives` list, puts it on
 // cooldown, resolves any conditional damage-multiplier bonuses (a
@@ -2167,7 +2207,9 @@ function pickEnemyAttackTarget(state) {
 // usual flat attack roll — or null, meaning this creature just makes a
 // normal attack this turn (no eligible ability, or it has none at all —
 // every BESTIARY creature without an `actives` array behaves exactly as
-// it did before this engine existed).
+// it did before this engine existed). resolveEnemyAction applies
+// firstAttackPassiveBonus itself when this returns null, so a plain
+// basic attack isn't left out of H08's own "whether basic or active" rule.
 function resolveEnemyActiveAbility(state, creature) {
   if (!creature.actives || !creature.actives.length) return null;
   const combat = state.combat;
@@ -2196,22 +2238,10 @@ function resolveEnemyActiveAbility(state, creature) {
   cooldowns[abilityId] = ability.cooldown;
   let dmgMult = ability.dmgMult;
   // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
-  // Predator) apply to whichever active this creature happens to use
-  // first each fight, not to one specific ability by name. Prepared
-  // Opening (H08 — "First damaging attack attempt gains +10 Accuracy and
-  // ×1.20 damage... consumed even on a miss") reuses this exact gate for
-  // its own Accuracy half: firstActiveUsed is set unconditionally below,
-  // before any hit/miss roll happens, so "consumed even on a miss" is
-  // already true for free.
-  let firstAttackAccBonus = 0;
-  if (!enemy.firstActiveUsed) {
-    for (const pid of creature.passives || []) {
-      const p = getEnemyAbility(pid);
-      if (p && p.trigger === "firstAttack" && p.dmgMultBonus) dmgMult *= p.dmgMultBonus;
-      if (p && p.trigger === "firstAttack" && p.accBonus) firstAttackAccBonus += p.accBonus;
-    }
-  }
-  enemy.firstActiveUsed = true;
+  // Predator, Prepared Opening/H08) — see firstAttackPassiveBonus above.
+  const firstBonus = firstAttackPassiveBonus(state, creature);
+  dmgMult *= firstBonus.dmgMultBonus;
+  const firstAttackAccBonus = firstBonus.accBonus;
   if (ability.bonusVsStatus && combat.playerStatuses && combat.playerStatuses[ability.bonusVsStatus.status]) {
     dmgMult *= ability.bonusVsStatus.mult;
   }
@@ -2262,6 +2292,7 @@ function resolveEnemyActiveAbility(state, creature) {
     dmgMult,
     accBonus: (ability.accBonus || 0) + firstAttackAccBonus || undefined,
     aoe: !!ability.aoe,
+    aoeMaxTargets: ability.aoeMaxTargets,
     inflict: ability.inflict,
     selfDebuff: ability.selfDebuff,
     selfBuff: ability.selfBuff,
@@ -2412,7 +2443,7 @@ function applyPackAuraBuff(combat, creature, spec) {
 // the player-facing half already resolved the ability's own selection/
 // cooldown/name/self-buff bookkeeping, so this just needs the resolved
 // dmgMult to scale the hit the same way.
-function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
+function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstBonus) {
   // allyBuffStatTotal (companion.js): Steady Grip cast on this ally —
   // same crafted-potion-buff storage effectiveAllyDef already reads for
   // Defense. allyStatusStatTotal/allyStatusStatPctTotal: an inflicted
@@ -2427,7 +2458,7 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   // its own roll, but this sibling function used to leave the ability's
   // whole accuracy bonus on the floor whenever the roll happened to pick
   // an ally instead of the player.
-  const accBonus = (abilityCtx && abilityCtx.accBonus) || 0;
+  const accBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
   if (!attackConnects(creature.acc + accBonus, allyAgi)) {
     return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`], damage: null };
   }
@@ -2439,9 +2470,11 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   const effectiveDef = effectiveAllyDef(ally);
   // v0.11: shared ratio mitigation against the ally's full Defense (was
   // a flat -50% Defense) — allies and the player now follow one rule.
+  // basicFirstBonus.dmgMultBonus: see resolveEnemyRetaliation's own copy
+  // of this comment — only ever set on a plain basic attack.
   let dmg = abilityCtx
     ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
-    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef))) : 0);
+    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
   // Legion's Memory / Brothers in Arms (engine/companion.js): Hadrian may
   // redirect part of this hit onto himself, or buff himself reactively,
   // BEFORE the target's own mitigation runs — a no-op unless Hadrian is
@@ -3142,7 +3175,7 @@ function scoutStealthOpeningBonus(state, combat) {
   return 8;
 }
 
-function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCtx) {
+function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
   // Reinforced (Divine Regalia — Forgeguard Buckler): every 3rd enemy
@@ -3178,7 +3211,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // one roll only — added directly to creature.acc rather than threaded as
   // hitChance's extraChance, since the codex phrases it as a stat bonus
   // ("+10 Accuracy"), not a direct hit-percentage bonus.
-  const accBonus = (abilityCtx && abilityCtx.accBonus) || 0;
+  const accBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
   if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
     return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
   }
@@ -3306,9 +3339,14 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // spread like any other swing, and a connecting hit always deals >= 1.
   // An ability with dmgMult 0 (pure utility) still deals nothing.
   const playerDef = effectivePlayerDef(state) + bonusDef;
+  // basicFirstBonus.dmgMultBonus (H08 Prepared Opening et al, on a plain
+  // basic attack — see firstAttackPassiveBonus/resolveEnemyAction): an
+  // active cast's own dmgMult already has this folded in by
+  // resolveEnemyActiveAbility, so it's only ever set here when abilityCtx
+  // is null.
   let edmg = abilityCtx
     ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), playerDef))) : 0)
-    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef))) : 0); // atk: 0 = intentionally harmless (Vaelorn) — effectiveEnemyAtk floors at 1, so check the raw stat
+    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0); // atk: 0 = intentionally harmless (Vaelorn) — effectiveEnemyAtk floors at 1, so check the raw stat
   if (edmg > 0 && !combat.firstHitTakenUsed) {
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
