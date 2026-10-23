@@ -160,7 +160,8 @@ function suggest(m) {
   return out.length ? out.join(", ") + " (approx; re-run)" : "on target";
 }
 
-const ids = (only.length ? only : Object.keys(BESTIARY)).filter((id) => BESTIARY[id] && !BESTIARY[id].special);
+// friendly creatures (Vaelorn) can't be attacked in the real game — playerAttack refuses — so they're not combat tuning targets
+const ids = (only.length ? only : Object.keys(BESTIARY)).filter((id) => BESTIARY[id] && !BESTIARY[id].special && !BESTIARY[id].friendly);
 const results = ids.map(measure).filter(Boolean);
 const fmt = (x) => x.toFixed(1).padStart(5);
 const off = (m) => m.ttk > m.target.ttk * 1.35 || m.ttk < m.target.ttk / 1.35 || m.ttd > m.target.ttd * 1.35 || m.ttd < m.target.ttd / 1.35;

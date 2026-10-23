@@ -90,8 +90,36 @@ const GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS = {
   world_boss: [25, 25, 20, 20, 10],
 };
 
-function rollGroupSize(dangerClass) {
-  const weights = GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS[dangerClass] || GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS[DEFAULT_DANGER_CLASS];
+// v0.11c: the largest group (anchor included) that can spawn against a
+// player of a given level. Under the v0.11 ratio Defense rule a hit never
+// clamps to 0, so every squadmate is a real threat — several entry-tier
+// attackers acting every round against one level-1 character was a
+// near-certain loss (Combat Test v0.11b, §3). Rather than weakening group
+// members (which would make a pack less dangerous than its members are
+// alone), group SIZE is gated by level band, so groups grow as the
+// character does: 2 through level 5, 3 through 10, 4 through 15, 5 from 16.
+// Keyed off the PLAYER's level, not the encounter's rolled level (+/-3), so
+// an unlucky high roll can't spawn a level-10-sized group on a level-5
+// character. Leader underlings count toward the same cap.
+const GROUP_SIZE_CAP_BY_LEVEL = [
+  { maxLevel: 5, cap: 2 },
+  { maxLevel: 10, cap: 3 },
+  { maxLevel: 15, cap: 4 },
+  { maxLevel: Infinity, cap: 5 },
+];
+function maxGroupSizeForLevel(level) {
+  const row = GROUP_SIZE_CAP_BY_LEVEL.find((r) => (level || 1) <= r.maxLevel);
+  return row ? row.cap : 5;
+}
+
+// `cap` (optional) limits the roll to sizes 1..cap, re-weighting among the
+// allowed sizes — the original odds BETWEEN allowed sizes are preserved
+// (a level-1 Normal is 70:18 solo-vs-pair, i.e. ~80% solo / ~20% pair),
+// rather than folding every disallowed 3-5 roll into the largest allowed
+// size (which would have made pairs MORE common at level 1 than before).
+function rollGroupSize(dangerClass, cap) {
+  const allWeights = GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS[dangerClass] || GROUP_SIZE_WEIGHTS_BY_DANGER_CLASS[DEFAULT_DANGER_CLASS];
+  const weights = cap ? allWeights.slice(0, Math.max(1, cap)) : allWeights;
   const total = weights.reduce((a, b) => a + b, 0);
   let roll = Math.random() * total;
   for (let i = 0; i < weights.length; i++) {
@@ -155,7 +183,7 @@ function isLevelEligible(creature, level) {
 //   own spawnGroup tag) brings up to 2 underlings from the same eligible
 //   pool, each kept at its own natural Danger Class — added on top of
 //   whatever the pack/squad roll already produced, capped at 5 total.
-function rollEncounterGroup(anchorId, level) {
+function rollEncounterGroup(anchorId, level, playerLevel) {
   const template = BESTIARY[anchorId];
   const anchorDangerClass = (template && template.dangerClass) || DEFAULT_DANGER_CLASS;
   const members = [{ id: anchorId, dangerClass: anchorDangerClass }];
@@ -171,12 +199,13 @@ function rollEncounterGroup(anchorId, level) {
     const dangerClass = (pick && pick.dangerClass) || DEFAULT_DANGER_CLASS;
     return { id: pickId, dangerClass };
   };
+  const cap = maxGroupSizeForLevel(playerLevel != null ? playerLevel : encounterLevel);
   if (template.spawnGroup === "pack" || template.spawnGroup === "squad") {
-    const size = rollGroupSize(anchorDangerClass);
+    const size = rollGroupSize(anchorDangerClass, cap);
     while (members.length < size) members.push(pickNatural());
   }
   if (template.archetype === "leader") {
-    for (let i = 0; i < 2 && members.length < 5; i++) {
+    for (let i = 0; i < 2 && members.length < cap; i++) {
       members.push(pickNatural());
     }
   }

@@ -3893,7 +3893,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     // its OWN species' Spawn Rarity band, so a Common packmate spawning
     // alongside a Rare leader doesn't scale past what Common ever allows.
     const rolled = preRolledLevel != null ? preRolledLevel : rollEncounterLevel(state.level);
-    roster = rollEncounterGroup(creatureIdOrObject, rolled).map((member) => ({
+    roster = rollEncounterGroup(creatureIdOrObject, rolled, state.level).map((member) => ({ // v0.11c: group size capped by player level band
       id: member.id,
       creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass, member.id),
       dynamicCreature: false,
