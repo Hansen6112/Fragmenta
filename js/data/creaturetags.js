@@ -200,8 +200,42 @@ const ARCHETYPES = {
   berserker: { health: 1.10, attack: 1.45, defense: 0.80, speed: 1.05, accuracy: 1.00, agility: 0.90 },
 };
 
-// Danger Class -> flat multiplier applied on top of everything else.
+// Danger Class -> flat multiplier. Still the single "how big a deal is
+// this kill" number for XP (engine/leveling.js) and loot drop chance
+// (data/items.js) — but NO LONGER applied to combat stats (v0.11).
 const DANGER_CLASSES = { normal: 1.0, elite: 1.5, boss: 2.5, world_boss: 4.0 };
+
+// v0.11 combat retune: Danger Class's effect on combat stats, split per
+// stat. The old single multiplier scaled Health, Attack AND Defense
+// together, so a World Boss was 4x as durable, 4x as hard-hitting and 4x
+// as armored at once — multiplicative on both sides of every exchange
+// (~16x the effective threat of a Normal, not 4x). Now Health carries
+// most of a bigger Danger Class's weight (longer fights), Attack and
+// Defense much less (they still hit harder and shrug off more, without
+// one-shotting or becoming unhittable). The Health column was calibrated
+// against the bands with tools/combatsim.js, not picked on paper: the
+// Enemy Codex authors a Boss's base Health about the same as a Normal's
+// (Iron Tusk and Razorback are both 48) and relies on this multiplier for
+// the difference, so it carries the full ratio between the bands' kill
+// times. Bands these were tuned toward
+// (level-matched, tier-appropriate gear, basic Attack only, no allies —
+// skilled play with tactics/cooldowns/items is meant to beat these):
+//   Normal: ~3-5 rounds to kill, 12+ rounds to die
+//   Elite: ~6-10 to kill, 8-10 to die
+//   Boss: ~15-25 to kill, 6-8 to die   (basic attacks alone lose)
+//   World Boss: ~30-50 to kill, 4-5 to die  (needs a party/a plan)
+// These are averages per Danger Class, not per-creature limits —
+// Archetype deliberately pushes individual creatures off-center.
+const DANGER_CLASS_STAT_MULTS = {
+  normal: { health: 1.0, attack: 1.0, defense: 1.0 },
+  elite: { health: 2.1, attack: 1.2, defense: 1.15 },
+  boss: { health: 6.0, attack: 1.6, defense: 1.3 },
+  world_boss: { health: 13.0, attack: 1.7, defense: 1.5 },
+};
+function dangerClassStatMultiplier(dangerClassId, statKey) {
+  const row = DANGER_CLASS_STAT_MULTS[dangerClassId] || DANGER_CLASS_STAT_MULTS[DEFAULT_DANGER_CLASS];
+  return row[statKey] != null ? row[statKey] : 1;
+}
 const DANGER_CLASS_RANK = { normal: 0, elite: 1, boss: 2, world_boss: 3 };
 const DEFAULT_DANGER_CLASS = "normal";
 
@@ -298,7 +332,7 @@ function rollEncounterLevel(playerLevel) {
 // Turns a species' hand-authored hp/atk/def/spd/acc/agi (the "Species
 // Base") into the actual stats a specific leveled, rarity-weighted,
 // archetyped, danger-classed encounter uses. Health/Attack/Defense:
-//   Final = (Species Base + (Level-1) * Rarity Weight * CREATURE_GROWTH_SCALE) * Archetype Mult * Danger Class Mult
+//   Final = (Species Base + (Level-1) * Rarity Weight * CREATURE_GROWTH_SCALE) * Archetype Mult * Danger Class Stat Mult (v0.11: per-stat, see DANGER_CLASS_STAT_MULTS)
 // Speed/Accuracy/Agility (see SECONDARY_STAT_GROWTH_PER_LEVEL below):
 //   Final = (Species Base + (Level-1) * SECONDARY_STAT_GROWTH_PER_LEVEL) * Archetype Mult
 // Health is floored at 1 (a creature can't exist at 0 Health); every other
@@ -334,13 +368,11 @@ const CREATURE_GROWTH_SCALE = 0.2;
 const SECONDARY_STAT_GROWTH_PER_LEVEL = 0.4;
 function computeCreatureStats(creature, level) {
   const rarityWeight = spawnRarityWeight(creature.spawnRarity);
-  const dangerMult = dangerClassMultiplier(creature.dangerClass);
   const levels = Math.max(0, level - 1);
-  const growth = levels * rarityWeight * CREATURE_GROWTH_SCALE;
   const secondaryGrowth = levels * SECONDARY_STAT_GROWTH_PER_LEVEL;
   const scale = (base, statKey, floor, secondary) => {
-    const g = secondary ? secondaryGrowth : growth;
-    const d = secondary ? 1 : dangerMult;
+    const g = secondary ? secondaryGrowth : levels * rarityWeight * CREATURE_GROWTH_SCALE;
+    const d = secondary ? 1 : dangerClassStatMultiplier(creature.dangerClass, statKey); // v0.11: per-stat split
     return Math.max(floor, Math.round((((base || 0) + g) * archetypeMultiplier(statKey, creature.archetype)) * d));
   };
   return {

@@ -546,7 +546,7 @@ function checkHadrianAmbush(state, locId) {
       combatNotes: "",
       friendly: false,
     };
-    state.combat.enemies.push(buildSummonedEnemyRecord(extra.id, extra, "thalvora_ambush", true));
+    state.combat.enemies.push(buildSummonedEnemyRecord(extra.id, legacyScaledCreature(extra), "thalvora_ambush", true)); // v0.11 PLAYER_STAT_SCALE
   }
   state.combat.isHadrianAmbush = true;
   return lines;

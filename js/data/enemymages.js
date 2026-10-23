@@ -46,8 +46,31 @@ function pickWeightedElement(nationId) {
 }
 
 // tier: 1-5, same danger scale as BESTIARY creatures.
-function generateEnemyMage(nationId, tier) {
+// v0.11 combat retune: enemy mages used to be sized purely by the
+// location's danger tier (magic 3+3t, hp 6+4t — capped at 18 magic/26 hp
+// even when a level-25 player met one), so they fell off completely past
+// the early game. They now scale like any other creature: a Species Base
+// (below) run through computeCreatureStats at an encounter level rolled
+// off the PLAYER's level, as an Artillery-archetype Normal. `magic` is
+// carried through the attack slot of that formula. `tier` still picks
+// nothing but flavor if `playerLevel` is supplied; callers that don't
+// pass it fall back to the old tier*5 level.
+const ENEMY_MAGE_BASE = { hp: 50, magic: 20, def: 2, spd: 6, acc: 6, agi: 5 }; // fitted (v0.11) to an Artillery Normal — glass cannon: ~2-3 rounds to kill, ~8-11 to die, levels 4-20
+function enemyMageSpawnRarity(level) {
+  if (level < 5) return "common";
+  if (level < 10) return "uncommon";
+  if (level < 15) return "rare";
+  if (level < 20) return "epic";
+  return "unique";
+}
+
+function generateEnemyMage(nationId, tier, playerLevel) {
   const t = Math.max(1, Math.min(5, tier || 1));
+  const level = playerLevel != null ? rollEncounterLevel(playerLevel) : t * 5;
+  const stats = computeCreatureStats(
+    { hp: ENEMY_MAGE_BASE.hp, atk: ENEMY_MAGE_BASE.magic, def: ENEMY_MAGE_BASE.def, spd: ENEMY_MAGE_BASE.spd, acc: ENEMY_MAGE_BASE.acc, agi: ENEMY_MAGE_BASE.agi, archetype: "artillery", dangerClass: "normal", spawnRarity: enemyMageSpawnRarity(level) },
+    level
+  );
   const titles = ENEMY_MAGE_TITLES[nationId] || ENEMY_MAGE_TITLES.kabal;
   const title = titles[Math.floor(Math.random() * titles.length)];
   const flavorName = generateNameForNation(nationId);
@@ -64,17 +87,18 @@ function generateEnemyMage(nationId, tier) {
     // used to read a flat `tier` now read a Level, so this is a simple
     // proportional stand-in (location danger 1-5 -> level 5-25) rather
     // than a real roll.
-    level: t * 5,
+    level,
     element,
-    magic: 3 + t * 3,
-    def: 1 + t,
-    hp: 6 + t * 4,
-    spd: 4 + t,
-    acc: 4 + t,
-    agi: 3 + t,
+    magic: stats.atk,
+    def: stats.def,
+    hp: stats.hp,
+    spd: stats.spd,
+    acc: stats.acc,
+    agi: stats.agi,
     description: `${ELEMENTS[element].description} A rival practitioner, and not a friendly one — ${ELEMENTS[element].name.toLowerCase()} already gathers at their fingertips.`,
     combatNotes: "An elemental combatant — its magic favors and disfavors specific elements just like yours does.",
     tags: ["mage_encounter"],
+    statScaled: true, // already on the v0.11 scale via computeCreatureStats — see combat.js legacyScaledCreature
     friendly: false,
   };
 }

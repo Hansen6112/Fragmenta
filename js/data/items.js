@@ -2123,7 +2123,7 @@ function itemRarityName(tier) {
 function formatItemBonuses(item) {
   const def = getItemDef(item);
   if (!def) return "";
-  const parts = Object.entries(def.bonuses).map(([k, v]) => `+${v} ${STAT_LABELS[k] || k}`);
+  const parts = Object.entries(def.bonuses).map(([k, v]) => `+${scaledStat(k, v)} ${STAT_LABELS[k] || k}`); // v0.11: shown at PLAYER_STAT_SCALE, what it really grants
   return parts.length ? `${itemRarityName(def.tier)}, ${parts.join(", ")}` : itemRarityName(def.tier);
 }
 
@@ -2142,7 +2142,7 @@ function itemDescription(item) {
   if (!def) return "An item of uncertain make.";
   if (def.slot === "consumable") return `${itemRarityName(def.tier)} consumable — ${describeUseEffect(def.useEffect)}`;
   const slotLabel = def.slot === "trinkets" ? EQUIP_SLOT_LABELS.trinkets : (EQUIP_SLOT_LABELS[def.slot] || def.slot);
-  const bonusParts = Object.entries(def.bonuses || {}).map(([k, v]) => `+${v} ${STAT_LABELS[k] || k}`);
+  const bonusParts = Object.entries(def.bonuses || {}).map(([k, v]) => `+${scaledStat(k, v)} ${STAT_LABELS[k] || k}`); // v0.11: PLAYER_STAT_SCALE
   const bonusText = bonusParts.length ? bonusParts.join(", ") : "no stat bonus";
   return `${itemRarityName(def.tier)} ${slotLabel} — ${bonusText}.`;
 }
@@ -2152,7 +2152,7 @@ function itemDescription(item) {
 function describeUseEffect(effect) {
   if (!effect) return "does nothing when used.";
   if (effect.type === "heal") return `restores ${Math.round(effect.pct * 100)}% of max health when used.`;
-  if (effect.type === "buff") return `grants +${effect.amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns in combat.`;
+  if (effect.type === "buff") return `grants +${scaledStat(effect.stat, effect.amount)} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns in combat.`;
   if (effect.type === "cleanse") return effect.all ? "clears every active status effect." : `clears: ${(effect.statuses || []).join(", ")}.`;
   return "does something when used.";
 }

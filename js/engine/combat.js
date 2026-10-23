@@ -155,6 +155,36 @@ function attackConnects(attackerAccuracy, defenderAgility, extraChance) {
   return Math.random() < hitChance(attackerAccuracy, defenderAgility, extraChance);
 }
 
+// ---- v0.11 combat retune: unified Defense mitigation ----
+// Every damage path in the game (player physical, player spell, enemy
+// physical, enemy ability, enemy mage, failed flee, allies/companions in
+// both directions) used to carry its own Defense rule — subtract 100%,
+// 50%, 33% or 10% of Defense, floor at 0 or 1. Subtractive Defense has a
+// cliff at both ends: once Defense >= incoming power the hit does nothing
+// (geared players became immune to Normal/Elite enemies by mid-game), and
+// once power >> Defense the hit is effectively unmitigated (World Bosses
+// one-shot). This replaces all of them with one RATIO rule:
+//
+//   damage = power^2 / (power + defense * DEF_WEIGHT)
+//
+// power == defense -> half damage; defense 3x power -> a quarter; defense
+// never zeroes a hit and never stops mattering. Every connecting hit with
+// any power behind it deals at least 1. Damage multipliers (crits, Feint,
+// set bonuses, dmgReduction) apply AFTER mitigation, so a 1.5x crit is
+// exactly 1.5x the damage, not 1.5x the pre-armor power (which the
+// squared term would amplify to ~2x).
+const DEF_WEIGHT = 1.0;
+function mitigate(power, defense) {
+  if (!(power > 0)) return 0;
+  const d = Math.max(0, defense || 0) * DEF_WEIGHT;
+  return (power * power) / (power + d);
+}
+// Random spread for an enemy ability hit — abilities used to be a fixed
+// atk * dmgMult with no variance at all, unlike every ordinary swing.
+function abilityPower(atk, dmgMult) {
+  return atk * dmgMult * (0.9 + Math.random() * 0.2);
+}
+
 // Earth's Stoneskin adds a temporary universal defense bonus; Evasive
 // Guard and Queen Carapace's carapace_adaptation each add a permanent-
 // for-the-fight bonus (capped +3 and +9 respectively) whenever their
@@ -168,7 +198,10 @@ function effectivePlayerDef(state) {
   // (Regalia): a temporary Defense bonus whenever Cleansing Current clears
   // a status — see applyStatusCleanseOnHeal.
   const calmWatersDef = combat.calmWatersTurns > 0 ? combat.calmWatersDefBonus || 0 : 0;
-  const base = state.def + buff + (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0) + (combat.orderedMindDefStacks || 0) + calmWatersDef + playerBuffStatTotal(state, "def");
+  // v0.11: flat in-combat stacks scale through flatStat (PLAYER_STAT_SCALE);
+  // `buff` and playerBuffs are already scaled where they're granted.
+  const flatStacks = (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0) + (combat.orderedMindDefStacks || 0) + calmWatersDef;
+  const base = state.def + buff + flatStat(flatStacks) + playerBuffStatTotal(state, "def");
   // Enemy Ability Engine (data/enemyabilities.js): a Defense-reducing
   // status an enemy's active ability just inflicted (Shield Crush, ...),
   // summed across whatever's currently active in combat.playerStatuses.
@@ -272,14 +305,14 @@ function effectivePlayerAtk(state) {
   const atkBuff = combat.atkBuffTurns > 0 ? combat.atkBuffAmount || 0 : 0;
   const everyChoiceAtk = combat.everyChoiceAtkStacks || 0;
   const battleTemperedAtk = combat.battleTemperedAtkStacks || 0;
-  const atk =
-    state.atk +
+  // v0.11: every in-combat stack below is a flat "+N Attack" authored in
+  // stat points, so the sum goes through flatStat (PLAYER_STAT_SCALE).
+  // atkBuff and playerBuffs are already scaled where they're granted.
+  const flatStacks =
     consumeSiegeCorpsAtkCharge(state) +
     perfectBalanceBonus(state) +
     (combat.lastStandAtkBonus || 0) +
     (combat.livingSteelBonus || 0) +
-    atkBuff +
-    playerBuffStatTotal(state, "atk") +
     everyChoiceAtk * 2 +
     battleTemperedAtk +
     (combat.windsOfChangeAtk || 0) +
@@ -287,6 +320,7 @@ function effectivePlayerAtk(state) {
     (combat.avatarOfEnduranceAtkBonus || 0) +
     (combat.workRefinesAtkStacks || 0) +
     (combat.avatarOfCreationAtkStacks || 0);
+  const atk = state.atk + flatStat(flatStacks) + atkBuff + playerBuffStatTotal(state, "atk");
   return Math.round(atk * dungeonTorchRationMultiplier(state, "atk"));
 }
 function effectivePlayerSpeedForInitiative(state) {
@@ -548,7 +582,7 @@ function applyLivingSteel(state) {
 // can't recursively push itself in or out of range.
 function perfectBalanceBonus(state) {
   if (!hasEffect(state, "perfect_balance")) return 0;
-  return Math.abs(state.atk - state.def) <= 2 ? 2 : 0;
+  return Math.abs(state.atk - state.def) <= flatStat(2) ? 2 : 0; // v0.11: threshold on scaled stats; the +2 itself is scaled by the caller's flatStat
 }
 
 // Kingslayer (Legendary): +25% damage against Elite/Boss-equivalent
@@ -652,7 +686,8 @@ function effectiveMagic(state) {
   // Calm Waters (Regalia): a temporary Magic bonus granted whenever
   // Cleansing Current clears a status — see applyStatusCleanseOnHeal.
   const calmWatersMagic = combat && combat.calmWatersTurns > 0 ? combat.calmWatersMagicBonus || 0 : 0;
-  return state.magic + ((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + magicBuff + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic;
+  // v0.11: flat stacks scale through flatStat; magicBuff is scaled at grant.
+  return state.magic + magicBuff + flatStat(((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -729,7 +764,7 @@ function applyHeal(state, amount) {
   if (healed > 0 && combat && hasSetTier(state, "Regalia of the Endless Tide", 4)) {
     combat.endlessCurrentStacks = Math.min(5, (combat.endlessCurrentStacks || 0) + 1);
     const dur = applyBeneficialEffectBonuses(state, 3);
-    const grant = applyBlessingOfCreationBonus(state, combat.endlessCurrentStacks * 2);
+    const grant = applyBlessingOfCreationBonus(state, flatStat(combat.endlessCurrentStacks * 2)); // v0.11 PLAYER_STAT_SCALE
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
     combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, grant);
     combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
@@ -741,11 +776,11 @@ function applyHeal(state, amount) {
   // immediately gain +5 Attack/+5 Magic/+5 Defense for 2 rounds.
   if (healed > 0 && combat && combat.avatarOfDevotionTurns > 0) {
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 2);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 5));
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 2);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, 5));
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
     combat.defBuffTurns = Math.max(combat.defBuffTurns, 2);
-    combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 5));
+    combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(5)));
   }
   // Cleansing Current / Calm Waters (Regalia): now genuinely live —
   // combat.playerStatuses (Enemy Ability Engine) means there's finally
@@ -857,8 +892,9 @@ function applyConsumableEffect(state, item, effect) {
   // useItem's own guard above already rejects a "buff" effect outside
   // combat, so state.combat is always live here.
   if (effect.type === "buff") {
-    state.combat.playerBuffs[effect.stat] = { amount: effect.amount, turns: effect.turns };
-    return [`You drink ${item} — +${effect.amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns.`];
+    const amount = scaledStat(effect.stat, effect.amount); // v0.11 PLAYER_STAT_SCALE (Attack/Defense/Magic only)
+    state.combat.playerBuffs[effect.stat] = { amount, turns: effect.turns };
+    return [`You drink ${item} — +${amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns.`];
   }
   if (effect.type === "cleanse") {
     const cleared = effect.all
@@ -913,8 +949,9 @@ function applyConsumableEffectToAlly(item, ally, effect) {
     // Saves from before ally.buffs existed (state.js's recruitAlly) won't
     // have the field at all.
     if (!ally.buffs) ally.buffs = {};
-    ally.buffs[effect.stat] = { amount: effect.amount, turns: effect.turns };
-    return [`You give ${item} to ${ally.name} — +${effect.amount} ${STAT_LABELS[effect.stat] || effect.stat} for their next ${effect.turns} rounds of combat.`];
+    const amount = scaledStat(effect.stat, effect.amount); // v0.11 PLAYER_STAT_SCALE
+    ally.buffs[effect.stat] = { amount, turns: effect.turns };
+    return [`You give ${item} to ${ally.name} — +${amount} ${STAT_LABELS[effect.stat] || effect.stat} for their next ${effect.turns} rounds of combat.`];
   }
   // Same shape as the player's own cleanse branch above — ally.statuses
   // may still be carrying a status that hadn't finished ticking down when
@@ -1227,7 +1264,7 @@ function temperedSteelMultiplier(state) {
 // Attack-vs-Defense comparison has no equivalent meaning for a Magic-vs-
 // Defense spell roll).
 function masterCraftsmanMultiplier(atk, creature) {
-  return atk - creature.def >= 10 ? 1.2 : 1;
+  return atk - creature.def >= flatStat(10) ? 1.2 : 1; // v0.11: margin on the PLAYER_STAT_SCALE'd scale
 }
 
 // Borrowed Seconds (Divine Regalia — Epochkeeper): every 4th action
@@ -1293,9 +1330,9 @@ function applyActionTypeTracking(state, actionType) {
   if (hasSetTier(state, "Regalia of the Endless Horizon", 4) && combat.actionTypeHistory.length === 3 && new Set(combat.actionTypeHistory).size === 3) {
     const dur = applyBeneficialEffectBonuses(state, 3);
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 10));
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, 10));
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
     lines.push(`Ever Forward — three strides, three shapes; +10 Attack, +10 Magic for ${dur} rounds.`);
   }
   return lines;
@@ -1317,9 +1354,9 @@ function applyWanderersReward(state, actionKey) {
   if (!recent.includes(actionKey)) {
     const dur = applyBeneficialEffectBonuses(state, 2);
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 4));
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, 4));
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
     lines.push(`Wanderer's Reward — new ground, new strength; +4 Attack, +4 Magic for ${dur} rounds.`);
   }
   combat.recentActionKeys = [actionKey, ...recent].slice(0, 2);
@@ -1453,11 +1490,11 @@ function applyBeneficialEffectBonuses(state, duration) {
   const d = duration + (hasEffect(state, "faithful_heart") ? 1 : 0);
   if (hasSetTier(state, "Regalia of the Eternal Heart", 4)) {
     combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, d);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, 2);
+    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, flatStat(2));
     combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, d);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, 2);
+    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, flatStat(2));
     combat.defBuffTurns = Math.max(combat.defBuffTurns, d);
-    combat.defBuffAmount = Math.max(combat.defBuffAmount, 2);
+    combat.defBuffAmount = Math.max(combat.defBuffAmount, flatStat(2));
   }
   return d;
 }
@@ -1513,7 +1550,14 @@ function rollPlayerDamage(state, creature, activeElement) {
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     const overflowMult = arcaneOverflowMultiplier(state);
-    const preMitigation = Math.round(base * multiplier * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult) - Math.floor(effDef / 10);
+    // v0.11: spell power is mitigated by the target's FULL Defense through
+    // the shared ratio rule (was a near-irrelevant flat -Defense/10), then
+    // every multiplier applies to the post-armor result. Precision
+    // Formula's 30% Defense-ignore (already folded into effDef above) is
+    // now the spell-side armor-penetration tool rather than a rounding
+    // error.
+    const spellPower = base * multiplier;
+    const preMitigation = Math.round(mitigate(spellPower, effDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
     // dmgReduction (Enemy Ability Engine — Guarded Stance/
     // Protective Cover/Last Stand, Gate 5B.8 skills codex): a flat final
     // percentage shave off whatever damage already made it through every
@@ -1544,7 +1588,9 @@ function rollPlayerDamage(state, creature, activeElement) {
     // hit's own effective Attack (all the buffs/stacks above already
     // folded in) against the enemy's raw Defense.
     const craftsmanMult = hasEffect(state, "master_craftsman") ? masterCraftsmanMultiplier(atk, creature) : 1;
-    const base = randInt(atk - 2, atk + 2) - Math.floor(effDef / 3);
+    // v0.11: shared ratio mitigation (was a flat -Defense/3 before the
+    // multiplier chain) — see mitigate() near the top of this file.
+    const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), effDef);
     // Echoing Arsenal (Artifact): every 5th physical/weapon-attack roll
     // (playerAttack, Ambush, Decoy, Disarm — anything landing in this
     // "else" branch) deals double damage. Its own counter, separate from
@@ -1657,7 +1703,10 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
     if (!ability || ability.trigger !== "onHitTaken") continue;
     if (ability.reflectPctOfAtk) {
       const reflect = Math.max(0, Math.round((creature.atk || 0) * ability.reflectPctOfAtk));
-      if (reflect > 0) state.health = Math.max(0, state.health - reflect);
+      // v0.11: routed through applyPlayerDamage (Temporary Health, NaN
+      // guard, on-damage-taken stacks) instead of writing state.health
+      // directly. Still silent — no message channel here.
+      if (reflect > 0) applyPlayerDamage(state, reflect);
     }
     // Powdered Wings-style: the creature inflicts a status back on
     // whoever just struck it (silent, like the reflect above — this
@@ -1671,7 +1720,7 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
     // path, no message line.
     if (ability.counterChance && ability.counterPctOfAtk && Math.random() < ability.counterChance) {
       const counter = Math.max(0, Math.round((creature.atk || 0) * ability.counterPctOfAtk));
-      if (counter > 0) state.health = Math.max(0, state.health - counter);
+      if (counter > 0) applyPlayerDamage(state, counter); // v0.11: see reflect above
     }
   }
 }
@@ -2374,9 +2423,11 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx) {
   // ascension's flat set bonus, No Name Forgotten, Brothers in Arms/
   // Honor Beyond Death) — all zero for any ally without one (Kessa).
   const effectiveDef = effectiveAllyDef(ally);
+  // v0.11: shared ratio mitigation against the ally's full Defense (was
+  // a flat -50% Defense) — allies and the player now follow one rule.
   let dmg = abilityCtx
-    ? Math.max(0, Math.round(rawAtk * abilityCtx.dmgMult) - Math.round(effectiveDef * 0.5))
-    : Math.max(0, randInt(rawAtk - 1, rawAtk + 1) - Math.round(effectiveDef * 0.5));
+    ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
+    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef))) : 0);
   // Legion's Memory / Brothers in Arms (engine/companion.js): Hadrian may
   // redirect part of this hit onto himself, or buff himself reactively,
   // BEFORE the target's own mitigation runs — a no-op unless Hadrian is
@@ -2493,7 +2544,7 @@ function allyAggressiveAction(state, ally) {
   // Protective Cover/Last Stand): applies to an ally's own hits too, not
   // just the player's — see rollPlayerDamage for the primary application.
   const reduction = 1 - (target.creatureObj.dmgReduction || 0);
-  const dmg = Math.max(1, Math.round((randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5)) * reduction));
+  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), target.creatureObj.def) * reduction)); // v0.11 shared ratio mitigation
   target.hp -= dmg;
   target.lastDamageType = "physical";
   const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
@@ -3200,7 +3251,9 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     }
     const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
     const def = effectivePlayerDef(state) + bonusDef + coldBonus;
-    let edmg = Math.max(0, Math.round(base * matchup) - Math.floor(def / 10));
+    // v0.11: shared ratio mitigation against the player's full Defense
+    // (was a flat -Defense/10, so armor did almost nothing against mages).
+    let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup));
     // Adaptive Ward (Mythic): the first elemental hit taken each fight
     // establishes resistance to that element for the rest of the fight;
     // this triggering hit isn't itself reduced, only subsequent hits of
@@ -3234,9 +3287,14 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     return { lines, damage: edmg };
   }
   const atk = effectiveEnemyAtk(state, creature);
+  // v0.11: shared ratio mitigation (was a flat -100% Defense, floor 0 —
+  // the "geared player is immune" bug). Abilities now carry a +/-10%
+  // spread like any other swing, and a connecting hit always deals >= 1.
+  // An ability with dmgMult 0 (pure utility) still deals nothing.
+  const playerDef = effectivePlayerDef(state) + bonusDef;
   let edmg = abilityCtx
-    ? Math.max(0, Math.round(atk * abilityCtx.dmgMult) - effectivePlayerDef(state) - bonusDef)
-    : Math.max(0, randInt(atk - 1, atk + (atkSpread || 2)) - effectivePlayerDef(state) - bonusDef);
+    ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), playerDef))) : 0)
+    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef))) : 0); // atk: 0 = intentionally harmless (Vaelorn) — effectiveEnemyAtk floors at 1, so check the raw stat
   if (edmg > 0 && !combat.firstHitTakenUsed) {
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
@@ -3785,9 +3843,11 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
   const scaled = computeCreatureStats(effectiveTemplate, clampedLevel);
   const equipment = resolveEnemyEquipment(effectiveTemplate, clampedLevel);
   if (equipment) {
-    scaled.hp += enemyEquipmentBonus(equipment, "health");
-    scaled.atk += enemyEquipmentBonus(equipment, "atk");
-    scaled.def += enemyEquipmentBonus(equipment, "def");
+    // v0.11: enemy gear goes through the same PLAYER_STAT_SCALE a player
+    // wearing that item gets — the item is worth the same either way.
+    scaled.hp += scaledStat("health", enemyEquipmentBonus(equipment, "health"));
+    scaled.atk += scaledStat("atk", enemyEquipmentBonus(equipment, "atk"));
+    scaled.def += scaledStat("def", enemyEquipmentBonus(equipment, "def"));
   }
   const creature = Object.assign({}, effectiveTemplate, scaled, { level: clampedLevel, bestiaryKey: bestiaryId });
   if (equipment) {
@@ -3797,9 +3857,26 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
   return creature;
 }
 
+// v0.11: hand-built creatures that skip computeCreatureStats (arena
+// gladiators, the Champion, quest bosses like the Salahru Revenant, the
+// Kabal Enforcer patrol) were all authored against the OLD player stat
+// scale — bring their Health/Attack/Defense/Magic up by the same
+// PLAYER_STAT_SCALE the player got, so they stay the fight they were
+// written to be. A creature built through computeCreatureStats already
+// lives on the new scale and sets `statScaled: true` (generateEnemyMage).
+function legacyScaledCreature(creature) {
+  if (!creature || creature.statScaled) return creature;
+  const out = Object.assign({}, creature, { statScaled: true });
+  for (const key of ["hp", "atk", "def", "magic"]) {
+    if (typeof out[key] === "number") out[key] = Math.round(out[key] * PLAYER_STAT_SCALE);
+  }
+  return out;
+}
+
 function startCombat(state, creatureIdOrObject, preRolledLevel) {
   const isDynamic = typeof creatureIdOrObject === "object";
-  const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject];
+  if (isDynamic) creatureIdOrObject = legacyScaledCreature(creatureIdOrObject);
+  const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject].special ? legacyScaledCreature(BESTIARY[creatureIdOrObject]) : BESTIARY[creatureIdOrObject];
   // Quest/job-tied encounters (BESTIARY's `special` flag — e.g. Kabal
   // Enforcer patrols) and already-fully-generated dynamic creatures
   // (enemy mages) are exempt from the level roll and stat scaling below,
@@ -4193,7 +4270,7 @@ function checkHoldTheLine(state) {
   combat.holdTheLineUsed = true;
   const dur = applyBeneficialEffectBonuses(state, 2);
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
-  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 6));
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(6)));
   return [`Hold the Line — your training snaps into place as your Health falls; +6 Defense for 2 turns.`];
 }
 
@@ -4208,7 +4285,7 @@ function checkRootedResolve(state) {
   combat.rootedResolveUsed = true;
   const dur = applyBeneficialEffectBonuses(state, 3);
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
-  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 8));
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(8)));
   return [`Rooted Resolve — you plant yourself as your Health falls; +8 Defense for 3 turns.`];
 }
 
@@ -4241,9 +4318,9 @@ function checkRallyTheLine(state) {
   combat.rallyTheLineUsed = true;
   const dur = applyBeneficialEffectBonuses(state, 4);
   combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, 10));
+  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
   combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
-  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, 10));
+  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(10)));
   return [`Rally the Line — your Health falls, and the line holds; +10 Attack, +10 Defense for 4 rounds.`];
 }
 
@@ -4351,7 +4428,7 @@ function checkAvatarOfKnowledge(state) {
   combat.avatarOfKnowledgeTurns = dur;
   combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
   combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.5)));
-  combat.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, 25);
+  combat.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, flatStat(25));
   const creature = getCombatCreature(state);
   return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${combat.hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
 }
@@ -4961,7 +5038,9 @@ function attemptFlee(state) {
     if (tl) out.push(tl);
     return out;
   }
-  let edmg = Math.max(0, randInt(effectiveEnemyAtk(state, creature) - 1, effectiveEnemyAtk(state, creature) + 1) - effectivePlayerDef(state));
+  // v0.11: shared ratio mitigation — see mitigate().
+  const fleeAtk = effectiveEnemyAtk(state, creature);
+  let edmg = creature.atk === 0 ? 0 : Math.max(1, Math.round(mitigate(randInt(Math.max(1, fleeAtk - 1), fleeAtk + 1), effectivePlayerDef(state))));
   if (edmg > 0 && !combat.firstHitTakenUsed) {
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
@@ -5457,7 +5536,10 @@ function applyApothecaryAbilityEffect(state, a, ally) {
     return [`You use ${a.name} on ${ally.name}, but there's nothing clinging to them to clear.`];
   }
 
-  const amount = Math.round((3 + Math.floor(state.knowledge / 4)) * apothecaryPotencyMultiplier(state, isSelf));
+  const rawAmount = Math.round((3 + Math.floor(state.knowledge / 4)) * apothecaryPotencyMultiplier(state, isSelf));
+  // v0.11: Attack/Defense/Magic buffs land on the PLAYER_STAT_SCALE'd stat
+  // they're added to; Accuracy/Agility/Speed ones stay as-is.
+  const amount = scaledStat(isSelf ? a.stat : a.allyStat || a.stat, rawAmount);
   if (isSelf) {
     if (a.stat === "def") {
       state.combat.defBuffTurns = Math.max(state.combat.defBuffTurns, 3);
@@ -5658,9 +5740,9 @@ function useElementAbility(state, elementKey) {
       break;
     }
     case "earth": {
-      let defBonus = Math.max(3, Math.round((state.magic / 3) * dmgMult));
-      if (focusActive) defBonus += 1;
-      if (surgeActive) defBonus += 3;
+      let defBonus = Math.max(flatStat(3), Math.round((state.magic / 3) * dmgMult)); // v0.11: state.magic is already scaled; the flat floor/bonuses go through flatStat
+      if (focusActive) defBonus += flatStat(1);
+      if (surgeActive) defBonus += flatStat(3);
       state.combat.defBuffTurns = 3;
       state.combat.defBuffAmount = defBonus;
       out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);

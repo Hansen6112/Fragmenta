@@ -235,7 +235,7 @@ function isAnyoneInRealDanger(state, protectingAlly) {
 // buff plus Paid in Blood's per-kill stacking (Legendary ascension,
 // Sash passive) — added to ally.atk before any ability's own multiplier.
 function hadrianFlatAtkBonus(ally) {
-  return (ally.reactiveAtkBonus || 0) + (hasAscendedRegalia(ally) ? ally.paidInBloodStacks || 0 : 0);
+  return flatStat((ally.reactiveAtkBonus || 0) + (hasAscendedRegalia(ally) ? ally.paidInBloodStacks || 0 : 0)); // v0.11 PLAYER_STAT_SCALE
 }
 
 // Total Defense an ascended-or-not Hadrian brings to a hit taken:
@@ -248,10 +248,8 @@ function hadrianFlatAtkBonus(ally) {
 function effectiveAllyDef(ally) {
   return (
     (ally.def || 0) +
-    (ally.bonusDefAmount || 0) +
-    (ally.reactiveDefBonus || 0) +
-    (ally.ascendedSetDefBonus || 0) +
-    (ally.noNameForgottenDefBonus || 0) +
+    // v0.11: flat companion bonuses scale with PLAYER_STAT_SCALE, like ally.def itself
+    flatStat((ally.bonusDefAmount || 0) + (ally.reactiveDefBonus || 0) + (ally.ascendedSetDefBonus || 0) + (ally.noNameForgottenDefBonus || 0)) +
     allyBuffStatTotal(ally, "def") +
     // allyStatusStatTotal (engine/combat.js): a Defense-reducing status an
     // enemy ability just inflicted on this ally (Shield Crush-style
@@ -409,7 +407,7 @@ function basicCompanionAttack(state, ally, enemies) {
     return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
   }
   const atk = ally.atk + hadrianFlatAtkBonus(ally);
-  let dmg = Math.max(1, randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)) - Math.round((target.creatureObj.def || 0) * 0.5));
+  let dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), target.creatureObj.def))); // v0.11 shared ratio mitigation (engine/combat.js)
   dmg = applyHadrianOutgoingDamageBonuses(ally, dmg, target.creatureObj);
   target.hp -= dmg;
   target.lastDamageType = "physical";
@@ -496,7 +494,7 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   // rises from 20% to 30%; Groundbreaker's splash rises from 60% to 75%.
   const defIgnore = (ability.defIgnorePct || 0) + (ascended && ability.id === "crushing_blow" ? 0.1 : 0);
   const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (ascended ? 0.15 : 0) : 0;
-  let primaryDmg = Math.max(1, Math.round(baseAtk * ability.atkMult) - Math.round((target.creatureObj.def || 0) * (1 - defIgnore) * 0.5));
+  let primaryDmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, (target.creatureObj.def || 0) * (1 - defIgnore)))); // v0.11 shared ratio mitigation
   primaryDmg = applyHadrianOutgoingDamageBonuses(ally, primaryDmg, target.creatureObj);
   target.hp -= primaryDmg;
   target.lastDamageType = "physical";
@@ -507,7 +505,7 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   if (ability.splashAll) {
     for (const e of enemies) {
       if (e === target || !e.alive) continue;
-      let splashDmg = Math.max(1, Math.round(baseAtk * splashAtkMult) - Math.round((e.creatureObj.def || 0) * 0.5));
+      let splashDmg = Math.max(1, Math.round(mitigate(baseAtk * splashAtkMult, e.creatureObj.def))); // v0.11 shared ratio mitigation
       splashDmg = applyHadrianOutgoingDamageBonuses(ally, splashDmg, e.creatureObj);
       e.hp -= splashDmg;
       e.lastDamageType = "physical";
@@ -661,7 +659,7 @@ function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
   const kit = def.abilityKit;
   const veteranPct = veteranBonusPct(ally, kit);
   const atk = ally.atk + hadrianFlatAtkBonus(ally);
-  let dmg = Math.max(1, Math.round(atk * (ally.retaliatePct + veteranPct)) - Math.round((record.creatureObj.def || 0) * 0.5));
+  let dmg = Math.max(1, Math.round(mitigate(atk * (ally.retaliatePct + veteranPct), record.creatureObj.def))); // v0.11 shared ratio mitigation
   dmg = applyHadrianOutgoingDamageBonuses(ally, dmg, record.creatureObj);
   record.hp -= dmg;
   record.lastDamageType = "physical";

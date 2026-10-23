@@ -148,7 +148,7 @@ async function handleInput(rawInput, state) {
     }
     if (verb === "talk" && getCombatCreature(state).friendly) {
       state.combat = null;
-      const { healed } = applyHeal(state, 6);
+      const { healed } = applyHeal(state, flatStat(6)); // v0.11 PLAYER_STAT_SCALE
       return [
         "It tilts its great bark-covered head toward you. No words — just a sound like creaking wood, structured, patient.",
         `Warmth spreads through a wound you didn't realize still ached. You heal ${healed} health.`,
@@ -590,7 +590,7 @@ function executeTravel(state, path, totalDays) {
       let combatant = null;
       let combatantLevel = null;
       if (Math.random() < ENEMY_MAGE_CHANCE) {
-        combatant = generateEnemyMage(legLoc.nation, legDanger);
+        combatant = generateEnemyMage(legLoc.nation, legDanger, state.level);
       } else {
         const tags = TERRAIN_TAGS[legLoc.terrain] || ["continental"];
         const isHostileHere = state.flags.wanted || reputationFor(state, legLoc.nation) === "hostile";
@@ -2129,7 +2129,7 @@ function exploreOutcome(state) {
   const roll = Math.random();
   if (roll < encounterChance) {
     if (!urbanDanger && Math.random() < ENEMY_MAGE_CHANCE) {
-      return startCombat(state, generateEnemyMage(loc.nation, loc.danger || 1));
+      return startCombat(state, generateEnemyMage(loc.nation, loc.danger || 1, state.level));
     }
     const isHostileHere = state.flags.wanted || reputationFor(state, loc.nation) === "hostile";
     const pool = creaturesForTags(tags, loc.nation)

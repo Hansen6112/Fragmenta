@@ -2,14 +2,51 @@
  * FRAGMENTA — Game State
  */
 
-const BASE_ATK = 5;
+// v0.11 combat retune: base Attack 5 -> 12 and base Magic 3 -> 8 (both
+// before PLAYER_STAT_SCALE, below). The codex creatures were measured
+// ~2x too tough for a level 1-10 character and about right by level 15+:
+// early-game damage is base-stat dominated while late-game damage is
+// gear dominated, so raising the BASE lifts the early end of the curve
+// far more than the late end, flattening the mismatch instead of
+// shifting it.
+const BASE_ATK = 12;
 const BASE_DEF = 2;
 const BASE_HEALTH = 20;
-const BASE_MAGIC = 3;
+const BASE_MAGIC = 8; // v0.11 — see BASE_ATK above
 const BASE_KNOWLEDGE = 3;
 const BASE_SPEED = 5;
 const BASE_ACCURACY = 5;
 const BASE_AGILITY = 5;
+
+// v0.11 combat retune: the player's combat-stat scale. Before this, a
+// level-3 character had ~26 Health and hit for ~6, while the hand-
+// authored Enemy Codex creatures at the same level carried 50-80 Health
+// and 15+ Attack — the two sides were authored on different scales. 2x is
+// the value at which the codex's own authored Health lands, on median,
+// almost exactly in its Danger Class band (measured with tools/
+// combatsim.js — see the v0.11 notes there). Rather
+// than shrinking every codex creature down to the player's scale (which
+// left early enemies at 1-20 Health, where a single crit or miss decides
+// the whole fight and archetype identity has no room to show), the
+// player's own Attack/Defense/Health/Magic come up to the codex's scale.
+//
+// Applied ONCE, at the stat-total level: everything summed into
+// atk/def/maxHealth/magic in recomputeStats (base, Race, point-buy,
+// growth, gear, set bonuses) and recomputeAllyStats is multiplied by it,
+// and flat in-combat bonuses (Regalia stacks, potion/tactic buffs) go
+// through flatStat(). Item and set data stay authored in "stat points";
+// the tooltip shows the scaled value (formatItemBonuses) so what an item
+// says it gives is what it actually gives. Speed/Accuracy/Agility/
+// Knowledge are NOT scaled — they feed hit-chance/initiative thresholds
+// and Knowledge gates, which are scale-free comparisons.
+const PLAYER_STAT_SCALE = 2;
+const SCALED_COMBAT_STATS = { atk: true, def: true, health: true, magic: true };
+function scaledStat(statKey, value) {
+  return SCALED_COMBAT_STATS[statKey] ? Math.round(value * PLAYER_STAT_SCALE) : value;
+}
+function flatStat(value) {
+  return Math.round(value * PLAYER_STAT_SCALE);
+}
 
 // Fatigue: how many days without a full sleep before each debuff kicks
 // in. Checked from most-severe down so the worst applicable tier wins.
@@ -327,10 +364,10 @@ class GameState {
     const pb = this.pointBuy || {};
     const n = this.level - 1;
     const oldMaxHealth = this.maxHealth;
-    this.atk = BASE_ATK + (race.atkMod || 0) + (pb.atk || 0) + Math.round(PLAYER_GROWTH_BASE.atk * cls.growthMult.atk * om("atk") * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0) + (this.flags.victorsMomentumStacks || 0);
-    this.def = BASE_DEF + (race.defMod || 0) + (pb.def || 0) + Math.round(PLAYER_GROWTH_BASE.def * cls.growthMult.def * om("def") * n) + equipmentBonus(this, "def") + setStatBonus(this, "def") + (this.soulLedgerDefBonus || 0);
-    this.maxHealth = BASE_HEALTH + (race.healthMod || 0) + (pb.health || 0) + Math.round(PLAYER_GROWTH_BASE.health * cls.growthMult.health * om("health") * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0) + (this.soulLedgerHealthBonus || 0);
-    this.magic = BASE_MAGIC + (race.magicMod || 0) + (pb.magic || 0) + Math.round(PLAYER_GROWTH_BASE.magic * cls.growthMult.magic * om("magic") * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0);
+    this.atk = scaledStat("atk", BASE_ATK + (race.atkMod || 0) + (pb.atk || 0) + Math.round(PLAYER_GROWTH_BASE.atk * cls.growthMult.atk * om("atk") * n) + equipmentBonus(this, "atk") + setStatBonus(this, "atk") + (this.flags.vanguardMomentumStacks || 0) + (this.flags.victorsMomentumStacks || 0));
+    this.def = scaledStat("def", BASE_DEF + (race.defMod || 0) + (pb.def || 0) + Math.round(PLAYER_GROWTH_BASE.def * cls.growthMult.def * om("def") * n) + equipmentBonus(this, "def") + setStatBonus(this, "def") + (this.soulLedgerDefBonus || 0));
+    this.maxHealth = scaledStat("health", BASE_HEALTH + (race.healthMod || 0) + (pb.health || 0) + Math.round(PLAYER_GROWTH_BASE.health * cls.growthMult.health * om("health") * n) + equipmentBonus(this, "health") + setStatBonus(this, "health") + (this.livingLegacyBonus || 0) + (this.soulLedgerHealthBonus || 0));
+    this.magic = scaledStat("magic", BASE_MAGIC + (race.magicMod || 0) + (pb.magic || 0) + Math.round(PLAYER_GROWTH_BASE.magic * cls.growthMult.magic * om("magic") * n) + (this.magicBoost || 0) + equipmentBonus(this, "magic") + setStatBonus(this, "magic") + (this.flags.passingWhisperStacks || 0) + (this.soulLedgerMagicBonus || 0));
     this.knowledge = BASE_KNOWLEDGE + (race.knowledgeMod || 0) + (pb.knowledge || 0) + Math.round(PLAYER_GROWTH_BASE.knowledge * cls.growthMult.knowledge * om("knowledge") * n) + equipmentBonus(this, "knowledge") + setStatBonus(this, "knowledge") + (this.battleScholarBonus || 0) + (this.archiveEternalKnowledgeBonus || 0);
     this.speed = BASE_SPEED + (race.speedMod || 0) + (pb.speed || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.speed * om("speed") * n) + (this.scoutDeepenBonus || 0) + equipmentBonus(this, "speed") + setStatBonus(this, "speed");
     this.accuracy = BASE_ACCURACY + (race.accuracyMod || 0) + (pb.accuracy || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.accuracy * om("accuracy") * n) + (this.scoutDeepenBonus || 0) + equipmentBonus(this, "accuracy") + setStatBonus(this, "accuracy");
@@ -738,9 +775,9 @@ function recomputeAllyStats(ally, level) {
   const g = def.growth || {};
   const oldMaxHealth = ally.maxHealth || 0;
   ally.level = level;
-  ally.atk = BASE_ATK + (def.atkMod || 0) + Math.round((g.atk || 0) * n) + equipmentBonus(ally, "atk");
-  ally.def = BASE_DEF + (def.defMod || 0) + Math.round((g.def || 0) * n) + equipmentBonus(ally, "def");
-  ally.maxHealth = BASE_HEALTH + (def.healthMod || 0) + Math.round((g.health || 0) * n) + equipmentBonus(ally, "health");
+  ally.atk = scaledStat("atk", BASE_ATK + (def.atkMod || 0) + Math.round((g.atk || 0) * n) + equipmentBonus(ally, "atk")); // v0.11 PLAYER_STAT_SCALE
+  ally.def = scaledStat("def", BASE_DEF + (def.defMod || 0) + Math.round((g.def || 0) * n) + equipmentBonus(ally, "def")); // v0.11 PLAYER_STAT_SCALE
+  ally.maxHealth = scaledStat("health", BASE_HEALTH + (def.healthMod || 0) + Math.round((g.health || 0) * n) + equipmentBonus(ally, "health")); // v0.11 PLAYER_STAT_SCALE
   ally.accuracy = BASE_ACCURACY + (def.accuracyMod || 0) + Math.round((g.accuracy || 0) * n) + equipmentBonus(ally, "accuracy");
   ally.agility = BASE_AGILITY + (def.agilityMod || 0) + Math.round((g.agility || 0) * n) + equipmentBonus(ally, "agility");
   ally.speed = BASE_SPEED + (def.speedMod || 0) + Math.round((g.speed || 0) * n) + equipmentBonus(ally, "speed");
@@ -749,7 +786,7 @@ function recomputeAllyStats(ally, level) {
   // needed for Hadrian's stat sheet (data/hadrian.js) — nothing in
   // combat reads an ally's Magic/Knowledge today, so these are inert
   // numbers for now, kept accurate for anything that reads them later.
-  ally.magic = BASE_MAGIC + (def.magicMod || 0) + Math.round((g.magic || 0) * n) + equipmentBonus(ally, "magic");
+  ally.magic = scaledStat("magic", BASE_MAGIC + (def.magicMod || 0) + Math.round((g.magic || 0) * n) + equipmentBonus(ally, "magic")); // v0.11 PLAYER_STAT_SCALE
   ally.knowledge = BASE_KNOWLEDGE + (def.knowledgeMod || 0) + Math.round((g.knowledge || 0) * n) + equipmentBonus(ally, "knowledge");
   if (ally.health == null) {
     ally.health = ally.maxHealth;
