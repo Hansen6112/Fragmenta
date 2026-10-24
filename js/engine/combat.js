@@ -1967,8 +1967,8 @@ function buildInitiativeOrder(state) {
 function resolveSpeedInitiative(state, creature) {
   const combat = state.combat;
   combat.enemyActedFirstThisRound = false;
-  combat.enemies.forEach((e) => { e.actedEarlyThisRound = false; e.counterGuardUsedThisRound = false; });
-  aliveAllies(state).forEach((a) => { a.actedEarlyThisRound = false; });
+  combat.enemies.forEach((e) => { e.actedEarlyThisRound = false; e.counterGuardUsedThisRound = false; e.creatureObj.riposteUsedThisRound = false; });
+  aliveAllies(state).forEach((a) => { a.actedEarlyThisRound = false; a.riposteUsedThisRound = false; });
   if (!creature || creature.friendly) return [];
   const lines = [];
   const order = buildInitiativeOrder(state);
@@ -3666,8 +3666,34 @@ function maybeRiposte(state, creature) {
 // signal, since enemies/allies have no equivalent compound retaliation
 // call for that signal to live in. No Clash of Steel/White Watch
 // widening — both are player-only Regalia systems.
+//
+// Non-player trigger cap (G5B8-EQ-REG-01 follow-up, Enemy-Design-approved
+// Option C): a floor party generates far more miss-events per fight than
+// a single attacker does, so an uncapped non-player Riposte scales with
+// party size rather than fight length — confirmed severe on at least one
+// natural carrier (Naqari Section Leader). Capped at once per round
+// (riposteUsedThisRound, reset in resolveSpeedInitiative alongside
+// counterGuardUsedThisRound/actedEarlyThisRound) AND twice total per
+// combat (riposteUsesThisCombat, never reset mid-fight — a fresh
+// creature/ally record every combat already gives it a clean slate).
+// The damage formula and eligible triggers below are byte-for-byte
+// unchanged from before this cap existed; this only gates whether a
+// non-player wearer's reaction fires THIS instance. The player's own
+// Riposte (maybeRiposte above) is untouched — uncapped, as before.
+function nonPlayerRiposteCapAllows(wearer) {
+  if (!wearer) return false;
+  if (wearer.riposteUsedThisRound) return false;
+  if ((wearer.riposteUsesThisCombat || 0) >= 2) return false;
+  return true;
+}
+function markNonPlayerRiposteFired(wearer) {
+  wearer.riposteUsedThisRound = true;
+  wearer.riposteUsesThisCombat = (wearer.riposteUsesThisCombat || 0) + 1;
+}
 function riposteCounterOnPlayer(state, creature) {
   if (!hasEffect(creature, "riposte") || !state.combat || state.combat.hp <= 0) return [];
+  if (!nonPlayerRiposteCapAllows(creature)) return [];
+  markNonPlayerRiposteFired(creature);
   if (!attackConnects(creature.acc, effectivePlayerAgility(state))) {
     return [`${withThe(creature.name, true)} seizes the opening, but the riposte doesn't land.`];
   }
@@ -3684,6 +3710,8 @@ function riposteCounterOnPlayer(state, creature) {
 // branch.
 function riposteCounterByEnemyOnAlly(state, target, ally) {
   if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
+  if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
+  markNonPlayerRiposteFired(target.creatureObj);
   const creature = target.creatureObj;
   const atk = effectiveEnemyAtk(state, creature);
   const effectiveDef = effectiveAllyDef(ally);
@@ -3699,6 +3727,8 @@ function riposteCounterByEnemyOnAlly(state, target, ally) {
 // creatureObj), since landing the hit needs to mutate its own .hp/.alive.
 function riposteCounterByAllyOnEnemy(state, ally, enemySlot) {
   if (!enemySlot || !enemySlot.alive || !hasEffect(ally, "riposte")) return [];
+  if (!nonPlayerRiposteCapAllows(ally)) return [];
+  markNonPlayerRiposteFired(ally);
   const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, Math.round(ally.atk * 0.85)), Math.round(ally.atk * 1.15)), enemySlot.creatureObj.def) * 0.5));
   enemySlot.hp -= dmg;
   enemySlot.lastDamageType = "physical";
@@ -4114,6 +4144,15 @@ function legacyScaledCreature(creature) {
 }
 
 function startCombat(state, creatureIdOrObject, preRolledLevel) {
+  // Per-combat ally flags: allies live on state.party, persistent across
+  // fights (unlike an enemy's creatureObj, rebuilt fresh every encounter
+  // below) — anything meant to gate "once per fight" on an ally has to be
+  // explicitly reset here, or it silently becomes "once ever" instead.
+  // riposteUsedThisRound/riposteUsesThisCombat (generalized Riposte's
+  // non-player trigger cap) are new; tacticalMemoryUsed (companion.js's
+  // Hadrian-kit cooldown hook) already existed and had exactly this gap —
+  // fixed here too, since it's the identical bug, not a separate one.
+  (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; });
   const isDynamic = typeof creatureIdOrObject === "object";
   if (isDynamic) creatureIdOrObject = legacyScaledCreature(creatureIdOrObject);
   const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject].special ? legacyScaledCreature(BESTIARY[creatureIdOrObject]) : BESTIARY[creatureIdOrObject];
