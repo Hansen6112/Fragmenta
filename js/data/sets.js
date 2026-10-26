@@ -467,14 +467,38 @@ const SETS = {
       6: { effects: ["avatar_of_time"], description: "Avatar of Time — once per combat, dropping below 25% Health zeroes every cooldown and grants 3 rounds of +25% damage, frozen buff durations, and free Ability/Tactic cooldowns" },
     },
   },
+  // Dregnar Ashvein's 10-piece Mythic loadout (Step 4 Stage B, DEP-05):
+  // `exclusive: true` is the one opt-in flag that changes hasSetTier/
+  // setStatBonus's behavior — only the single highest met tier is ever
+  // active here, the opposite of every set above. Tiers below aren't a
+  // staged cumulative progression the way Legion's 2/4/6/8pc are; each is
+  // its own complete bonus, superseded (not stacked) by the next.
+  "First Sword's Regalia": {
+    theme: "Dregnar Ashvein's ten-piece Mythic loadout — Ashquench and nine supporting pieces.",
+    exclusive: true,
+    bonuses: {
+      2: { bonuses: { def: 2 }, description: "First Sword's Bearing — +2 Defense" },
+      4: { bonuses: { atk: 2 }, description: "Unquenched Purpose — +2 Attack" },
+      6: { effects: ["flowing_discipline"], description: "Flowing Discipline — after a no-damage defensive action, next successful physical hit ×1.10 (one pending charge, expires after 2 global turns)" },
+      8: { effects: ["winters_verdict"], description: "Winter's Verdict — first successful physical hit against a Chilled target each combat ×1.15" },
+      10: { effects: ["first_swords_legacy", "elemental_sovereignty"], description: "First Sword's Legacy + Elemental Sovereignty — once/combat surviving at ≤40% Health grants +3 Attack for 2 attempts (independent of, and stacks with, any intrinsic +3 Attack effect); a successful water-element ability grants +15% Attack/Defense/Magic/Accuracy/Agility/Speed for 2 turns, refresh only" },
+    },
+  },
 };
 
 // How many equipped pieces (across all slots, trinkets included) belong
 // to a given set right now.
 function setPieceCount(state, setName) {
+  // Entity-neutral like hasEffect (data/effects.js): `state` is usually
+  // the player (always a fully-populated emptyEquipment() object, every
+  // slot present), but an enemy/ally creature with a partial or absent
+  // `equipment` field can be passed too (Dregnar Ashvein Stage B's
+  // hasSetTier calls) — guard both the missing-object and missing-
+  // trinkets-array cases the player's own equipment never hits.
+  if (!state.equipment) return 0;
   let count = 0;
   for (const slot of EQUIP_SLOTS) {
-    const items = slot === "trinkets" ? state.equipment.trinkets : (state.equipment[slot] ? [state.equipment[slot]] : []);
+    const items = slot === "trinkets" ? (state.equipment.trinkets || []) : (state.equipment[slot] ? [state.equipment[slot]] : []);
     for (const item of items) {
       const def = ITEM_DEFS[item];
       if (def && def.set === setName) count++;
@@ -483,19 +507,46 @@ function setPieceCount(state, setName) {
   return count;
 }
 
+// Exclusive-tier sets (set.exclusive === true, e.g. Dregnar Ashvein's
+// First Sword's Regalia): only the SINGLE highest threshold currently met
+// is active — unlike every other set, lower thresholds do NOT also apply
+// simultaneously. Returns the highest met tier number, or null if none is
+// met. A set with no `exclusive` flag never calls this; its tiers stay
+// independently, cumulatively active exactly as before this existed.
+function highestMetExclusiveTier(set, count) {
+  let best = null;
+  for (const tier of Object.keys(set.bonuses)) {
+    const t = Number(tier);
+    if (count >= t && (best === null || t > best)) best = t;
+  }
+  return best;
+}
+
 function hasSetTier(state, setName, tier) {
   const set = SETS[setName];
   if (!set || !set.bonuses[tier]) return false;
-  return setPieceCount(state, setName) >= tier;
+  const count = setPieceCount(state, setName);
+  if (set.exclusive) return highestMetExclusiveTier(set, count) === Number(tier);
+  return count >= tier;
 }
 
 // Sums flat stat bonuses from every set threshold currently met — the
-// set-layer sibling to items.js's equipmentBonus().
+// set-layer sibling to items.js's equipmentBonus(). Exclusive sets only
+// ever contribute their single highest-met tier's bonuses.
 function setStatBonus(state, statKey) {
   let total = 0;
   for (const setName of Object.keys(SETS)) {
+    const set = SETS[setName];
     const count = setPieceCount(state, setName);
-    for (const [tier, bonus] of Object.entries(SETS[setName].bonuses)) {
+    if (set.exclusive) {
+      const best = highestMetExclusiveTier(set, count);
+      if (best != null) {
+        const bonus = set.bonuses[best];
+        if (bonus.bonuses && bonus.bonuses[statKey]) total += bonus.bonuses[statKey];
+      }
+      continue;
+    }
+    for (const [tier, bonus] of Object.entries(set.bonuses)) {
       if (count >= Number(tier) && bonus.bonuses && bonus.bonuses[statKey]) total += bonus.bonuses[statKey];
     }
   }
@@ -504,7 +555,10 @@ function setStatBonus(state, statKey) {
 
 // One line per set with at least 1 piece equipped, e.g.
 // "Legion (3 pcs): 2pc +2 Defense [ACTIVE] · 4pc Shield Wall... [3 more needed]"
-// Shared by the `equipment` text command and the Equipment tab UI.
+// Shared by the `equipment` text command and the Equipment tab UI. Reuses
+// hasSetTier for the [ACTIVE] check (rather than re-deriving "count >= t"
+// here) so exclusive sets display correctly without a second copy of the
+// highest-tier-only logic: only one tier line shows [ACTIVE] at a time.
 function describeSetProgress(state) {
   const lines = [];
   for (const [setName, set] of Object.entries(SETS)) {
@@ -514,8 +568,8 @@ function describeSetProgress(state) {
       .sort((a, b) => Number(a[0]) - Number(b[0]))
       .map(([tier, bonus]) => {
         const t = Number(tier);
-        const active = count >= t;
-        return `${tier}pc ${bonus.description}${active ? " [ACTIVE]" : ` [needs ${t - count} more]`}`;
+        const active = hasSetTier(state, setName, t);
+        return `${tier}pc ${bonus.description}${active ? " [ACTIVE]" : count >= t ? " [superseded]" : ` [needs ${t - count} more]`}`;
       });
     lines.push(`${setName} (${count} pc equipped): ${tierParts.join(" · ")}`);
   }

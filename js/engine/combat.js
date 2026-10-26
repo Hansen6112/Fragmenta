@@ -66,7 +66,7 @@ function getCombatCreature(state) {
 const PER_ENEMY_FIELDS = [
   "creatureId", "creatureObj", "dynamicCreature", "name",
   "hp", "maxHp",
-  "corroded", "disarmed", "enemyAtkPenalty", "enemyDefPenalty", "enemyStunned",
+  "corroded", "disarmed", "enemyAtkPenalty", "enemyDefPenalty", "enemyStunCharges",
   "hamstringApplied", "burn", "bleed", "reinforcedAttackCount", "lastDamageType",
   "actedEarlyThisRound",
   // Enemy Ability Engine (data/enemyabilities.js) — per-enemy so a pack of
@@ -185,6 +185,17 @@ function abilityPower(atk, dmgMult) {
   return atk * dmgMult * (0.9 + Math.random() * 0.2);
 }
 
+// Elemental Sovereignty (First Sword's Regalia 10pc, exclusive): +15% to
+// Attack/Defense/Magic/Accuracy/Agility/Speed (not Health) for 2 global
+// turns after a qualifying water-element cast, applied here at each of
+// those stats' own single "effective" accessor — the same convention
+// dungeonTorchRationMultiplier already uses — so it's computed off the
+// already-scaled-and-equipped value, never recursively re-applied across
+// a refresh (each call just re-reads the live base, it doesn't compound).
+function sovereigntyMultiplier(state) {
+  return state.combat && state.combat.sovereigntyTurnsLeft > 0 ? 1.15 : 1;
+}
+
 // Earth's Stoneskin adds a temporary universal defense bonus; Evasive
 // Guard and Queen Carapace's carapace_adaptation each add a permanent-
 // for-the-fight bonus (capped +3 and +9 respectively) whenever their
@@ -212,7 +223,7 @@ function effectivePlayerDef(state) {
   // rationless debuff, applied to the whole effective value (same
   // treatment as effectivePlayerAtk below) rather than just state.def —
   // a no-op (returns 1) outside an active dungeon run.
-  const ratioMult = dungeonTorchRationMultiplier(state, "def");
+  const ratioMult = dungeonTorchRationMultiplier(state, "def") * sovereigntyMultiplier(state);
   if (penalty >= 0) return Math.round(base * ratioMult);
   // Bedrock (Regalia): Defense reductions can never push effective Defense
   // below 75% of its own unreduced base — floors the penalty rather than
@@ -287,11 +298,11 @@ function effectivePlayerAgility(state) {
   const base = state.agility + playerStatusStatTotal(state, "agi") + playerBuffStatTotal(state, "agi");
   // dungeonTorchRationMultiplier (engine/dungeon.js): Dungeon Delve's
   // torchless debuff — a no-op (returns 1) outside an active dungeon run.
-  return Math.max(0, Math.round(base * (1 + pct) * dungeonTorchRationMultiplier(state, "agility")));
+  return Math.max(0, Math.round(base * (1 + pct) * dungeonTorchRationMultiplier(state, "agility") * sovereigntyMultiplier(state)));
 }
 function effectivePlayerAccuracy(state) {
   const base = state.accuracy + playerStatusStatTotal(state, "acc") + playerBuffStatTotal(state, "acc");
-  return Math.max(0, Math.round(base * dungeonTorchRationMultiplier(state, "accuracy")));
+  return Math.max(0, Math.round(base * dungeonTorchRationMultiplier(state, "accuracy") * sovereigntyMultiplier(state)));
 }
 function effectivePlayerAtk(state) {
   // Same formula rollPlayerDamage's physical branch has always inlined —
@@ -321,12 +332,12 @@ function effectivePlayerAtk(state) {
     (combat.workRefinesAtkStacks || 0) +
     (combat.avatarOfCreationAtkStacks || 0);
   const atk = state.atk + flatStat(flatStacks) + atkBuff + playerBuffStatTotal(state, "atk");
-  return Math.round(atk * dungeonTorchRationMultiplier(state, "atk"));
+  return Math.round(atk * dungeonTorchRationMultiplier(state, "atk") * sovereigntyMultiplier(state));
 }
 function effectivePlayerSpeedForInitiative(state) {
   const pct = playerStatusStatPctTotal(state, "spdPct");
   const base = state.speed + playerStatusStatTotal(state, "spd") + playerBuffStatTotal(state, "spd");
-  return Math.max(0, Math.round(base * (1 + pct)));
+  return Math.max(0, Math.round(base * (1 + pct) * sovereigntyMultiplier(state)));
 }
 
 // Applies (or refreshes/stacks) a status onto the player, after checking
@@ -695,7 +706,8 @@ function effectiveMagic(state) {
   // Cleansing Current clears a status — see applyStatusCleanseOnHeal.
   const calmWatersMagic = combat && combat.calmWatersTurns > 0 ? combat.calmWatersMagicBonus || 0 : 0;
   // v0.11: flat stacks scale through flatStat; magicBuff is scaled at grant.
-  return state.magic + magicBuff + flatStat(((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
+  const total = state.magic + magicBuff + flatStat(((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
+  return Math.round(total * sovereigntyMultiplier(state));
 }
 
 // Central heal entry point (Divine Regalia): every place that restores the
@@ -1533,6 +1545,12 @@ function rollPlayerDamage(state, creature, activeElement) {
   const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
   creature.braceBonusDef = 0;
   creature.guardedStrikeBonusDef = 0;
+  // Sure Foundation (DRA-E05): physical-only, so kept out of
+  // bankedDefBonus above (which Brace/Guarded Strike apply to both the
+  // magic and physical branches below) — only peeked here; the physical
+  // branch itself decides whether to consume it, since "magic bypasses"
+  // means a magic hit in between shouldn't spend the pending charge.
+  const sureFoundationDef = creature.sureFoundationBonusDef || 0;
   const execMult = executionerMultiplier(state);
   const dragonMult = dragonslayerMultiplier(state, creature);
   const bleedMult = bleedExploitationMultiplier(state);
@@ -1607,7 +1625,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     }
   } else {
     const armorCrack = armorCrackAmount(state);
-    const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
+    const effDef = Math.max(0, creature.def + bankedDefBonus + sureFoundationDef - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
     // effectivePlayerAtk (above): the same formula this line used to
     // compute inline, now shared with anything else that needs the
     // player's effective Attack (Dungeon Delve's rationless debuff).
@@ -1633,6 +1651,18 @@ function rollPlayerDamage(state, creature, activeElement) {
     // dmgReduction: see the magic branch above for why this is
     // the last step, after every other multiplier.
     dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0))));
+    // Sure Foundation (DRA-E05): this physical hit just landed (dmg is
+    // always >= 1 by this point — a miss never reaches rollPlayerDamage
+    // at all) — so any pending charge is now spent (whether or not this
+    // creature even carries the effect, consuming is unconditional on a
+    // landed physical hit), and a fresh one is banked for the creature's
+    // NEXT incoming physical hit if it still carries the effect.
+    creature.sureFoundationBonusDef = 0;
+    creature.sureFoundationBonusDefTurnsLeft = 0;
+    if (hasEffect(creature, "dra_e05_sure_foundation")) {
+      creature.sureFoundationBonusDef = 2;
+      creature.sureFoundationBonusDefTurnsLeft = 2;
+    }
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every
     // successful physical attack during its window PERMANENTLY increases
     // Attack by +2 — see the spell-branch comment above for why this
@@ -2166,10 +2196,38 @@ function dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpr
     p03Active = true;
     e.draP03Charges -= 1;
   }
+  // First Sword's Legacy (First Sword's Regalia 10pc, exclusive): a
+  // SEPARATE +3 Attack source from DRA-P03 above, stored on the wearer
+  // (creatureObj, matching every other item/set-effect field) rather than
+  // the slot (e, matching every other intrinsic-passive field) — the two
+  // are deliberately independent and meant to stack additively (owner
+  // decision: up to +6 total when both are simultaneously active).
+  let legacyActive = false;
+  if ((creatureObj.legacyCharges || 0) > 0) {
+    creatureObj.atk += 3;
+    legacyActive = true;
+    creatureObj.legacyCharges -= 1;
+  }
+  // Black-Ice Reserve (DRA-E09): captured BEFORE the call below, not
+  // after — this attempt's own resolveEnemyRetaliation call can ITSELF
+  // freshly grant a pending charge (via a successful Chilled application,
+  // handled inside that function), and consuming unconditionally after
+  // the call would immediately wipe out that same fresh grant before any
+  // LATER attempt ever got to use it. Only a charge that was already
+  // pending BEFORE this attempt started gets consumed here — "on the
+  // attempt, even a miss" per its own rule, enforced here since
+  // resolveEnemyRetaliation only ever peeks/applies the damage multiplier
+  // when the attack actually landed.
+  const hadBlackIceReservePending = !!creatureObj.blackIceReservePending;
   const ctx = abilityCtx ? { ...abilityCtx, accBonus: (abilityCtx.accBonus || 0) + accBonus } : null;
   const basicFirstBonus = abilityCtx ? null : { accBonus, dmgMultBonus: 1 };
   const result = resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
   if (p03Active) creatureObj.atk -= 3;
+  if (legacyActive) creatureObj.atk -= 3;
+  if (hadBlackIceReservePending) {
+    creatureObj.blackIceReservePending = false;
+    creatureObj.blackIceReserveTurnsLeft = 0;
+  }
   // DRA-P02 Martial Precision: a landed plain basic attack (not an active)
   // banks the same +5 Accuracy Guarded Concentration grants for Barrier —
   // the two never stack, so this simply (re)sets the one shared slot.
@@ -2192,6 +2250,15 @@ function resolveDregnarAttempt(state, e, creatureObj, abilityId, atkSpread, extr
     // roll) and immediately banks +5 Accuracy for Dregnar's next attempt.
     e.draPendingAcc = 5;
     e.draPendingAccTurnsLeft = 2;
+    // Flowing Discipline (First Sword's Regalia 6pc, exclusive): Barrier
+    // is Dregnar's only "no-damage defensive action" in Stage A, so this
+    // is the one real trigger — kept generic (hasSetTier on the wearer,
+    // not hardcoded to Dregnar) so a future defensive-action source on
+    // another wearer would grant it the same way.
+    if (hasSetTier(creatureObj, "First Sword's Regalia", 6)) {
+      creatureObj.flowingDisciplinePending = true;
+      creatureObj.flowingDisciplineTurnsLeft = 2;
+    }
     return { lines: [`${withThe(creatureObj.name, true)} raises a shifting water barrier, turning aside the next blow aimed at it.`], damage: null };
   }
   const abilityCtx = { id: abilityId, name: ability.name, dmgMult: ability.dmgMult, inflict: ability.inflict };
@@ -2235,10 +2302,44 @@ function resolveDregnarAction(state, creatureObj, atkSpread, extraDef) {
     e.draP03TurnsLeft = 3;
     lines.push(`${withThe(creatureObj.name, true)} grits its teeth, First Sword's Resolve steadying its grip.`);
   }
+  // First Sword's Legacy (First Sword's Regalia 10pc, exclusive): the
+  // same ≤40% HP breakpoint as DRA-P03 above, but its own independent
+  // once-per-combat gate and charge/turn fields (stored on the wearer,
+  // not the slot — see dregnarResolveDamagingAttempt) so the two can be
+  // simultaneously active without interfering with each other.
+  if (!creatureObj.legacyUsed && e.maxHp > 0 && e.hp / e.maxHp <= 0.4 && hasSetTier(creatureObj, "First Sword's Regalia", 10)) {
+    creatureObj.legacyUsed = true;
+    creatureObj.legacyCharges = 2;
+    creatureObj.legacyTurnsLeft = 3;
+    lines.push(`First Sword's Legacy answers in kind — the Regalia itself steadies ${withThe(creatureObj.name, false)}'s grip.`);
+  }
 
   // --- Normal action ---
+  // Stun (Stage B): consumed per ACTION SLOT, not per turn — e is the
+  // exact enemy slot combat.enemyStunCharges transparently proxies to
+  // (combat.activeIndex doesn't change mid-turn here), so this is the
+  // same counter resolveEnemyRetaliation reads. Checked BEFORE priority-
+  // list selection so it also covers Barrier's self-buff branch and
+  // Judgment's wind-up/resolution — neither ever calls
+  // resolveEnemyRetaliation, so that shared check alone would miss them.
+  // If this slot would have resolved a pending Judgment, that's an
+  // explicit cancellation (the doc's own rule), not left pending.
   let normalResult;
-  if (stateThisTurn === "ashquench_unbound" && e.draJudgmentPending) {
+  let normalStunned = false;
+  if ((e.enemyStunCharges || 0) > 0) {
+    e.enemyStunCharges -= 1;
+    normalStunned = true;
+    if (stateThisTurn === "ashquench_unbound" && e.draJudgmentPending) {
+      lines.push(`${withThe(creatureObj.name, true)} is still reeling — the overhead strike never comes. Ashquench Judgment is denied.`);
+      e.draJudgmentPending = false;
+      e.abilityCooldowns.dra_judgment = getEnemyAbility("dra_judgment").cooldown;
+    } else {
+      lines.push(`${withThe(creatureObj.name, true)} is still reeling and doesn't act.`);
+    }
+  }
+  if (normalStunned) {
+    normalResult = { lines: [], damage: null };
+  } else if (stateThisTurn === "ashquench_unbound" && e.draJudgmentPending) {
     // Resolution is checked before any priority-list selection — the very
     // next normal action after the wind-up always resolves it.
     lines.push(`Ashquench Judgment falls!`);
@@ -2266,17 +2367,25 @@ function resolveDregnarAction(state, creatureObj, atkSpread, extraDef) {
   // Bookkeeping that ticks once per NORMAL action only (never a bonus one).
   if (e.draPendingAccTurnsLeft > 0 && --e.draPendingAccTurnsLeft <= 0) e.draPendingAcc = 0;
   if (e.draP03Charges > 0 && e.draP03TurnsLeft > 0 && --e.draP03TurnsLeft <= 0) e.draP03Charges = 0;
+  if (creatureObj.legacyCharges > 0 && creatureObj.legacyTurnsLeft > 0 && --creatureObj.legacyTurnsLeft <= 0) creatureObj.legacyCharges = 0;
+  if (creatureObj.flowingDisciplinePending && creatureObj.flowingDisciplineTurnsLeft > 0 && --creatureObj.flowingDisciplineTurnsLeft <= 0) creatureObj.flowingDisciplinePending = false;
+  if (creatureObj.blackIceReservePending && creatureObj.blackIceReserveTurnsLeft > 0 && --creatureObj.blackIceReserveTurnsLeft <= 0) creatureObj.blackIceReservePending = false;
 
   let damage = normalResult.damage;
 
   // --- Bonus action (Ashquench Unbound only) ---
   if (stateThisTurn === "ashquench_unbound" && state.combat && state.health > 0) {
-    const bonusChosen = DRA_UNBOUND_BONUS_PRIORITY.find((id) => dregnarAbilityEligible(e, id));
-    const bonusResult = bonusChosen
-      ? resolveDregnarAttempt(state, e, creatureObj, bonusChosen, atkSpread, extraDef)
-      : dregnarResolveDamagingAttempt(state, e, creatureObj, null, atkSpread, extraDef);
-    lines.push(`${withThe(creatureObj.name, true)} moves again, fast as the ice-bound water itself!`, ...bonusResult.lines);
-    if (bonusResult.damage != null) damage = bonusResult.damage;
+    if ((e.enemyStunCharges || 0) > 0) {
+      e.enemyStunCharges -= 1;
+      lines.push(`${withThe(creatureObj.name, true)} tries to move again, but the stun holds it fast.`);
+    } else {
+      const bonusChosen = DRA_UNBOUND_BONUS_PRIORITY.find((id) => dregnarAbilityEligible(e, id));
+      const bonusResult = bonusChosen
+        ? resolveDregnarAttempt(state, e, creatureObj, bonusChosen, atkSpread, extraDef)
+        : dregnarResolveDamagingAttempt(state, e, creatureObj, null, atkSpread, extraDef);
+      lines.push(`${withThe(creatureObj.name, true)} moves again, fast as the ice-bound water itself!`, ...bonusResult.lines);
+      if (bonusResult.damage != null) damage = bonusResult.damage;
+    }
   }
 
   // --- End-of-turn state transition ---
@@ -2597,7 +2706,7 @@ function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature, arri
     corroded: false,
     enemyAtkPenalty: 0,
     enemyDefPenalty: 0,
-    enemyStunned: false,
+    enemyStunCharges: 0,
     burn: null,
     bleed: null,
     lastDamageType: null,
@@ -2875,9 +2984,19 @@ function allyAggressiveAction(state, ally) {
   // against its next incoming hit (see resolveEnemyAction/
   // resolveEnemyRetaliation) — an ally's attack counts just as much as the
   // player's own.
-  const bankedDef = (target.creatureObj.braceBonusDef || 0) + (target.creatureObj.guardedStrikeBonusDef || 0);
+  // Sure Foundation (DRA-E05) is physical-only but this whole function is
+  // already an ally's physical weapon attack, so it folds straight into
+  // bankedDef with no separate magic/physical split needed (contrast
+  // rollPlayerDamage, which has both branches and keeps it separate).
+  const bankedDef = (target.creatureObj.braceBonusDef || 0) + (target.creatureObj.guardedStrikeBonusDef || 0) + (target.creatureObj.sureFoundationBonusDef || 0);
   target.creatureObj.braceBonusDef = 0;
   target.creatureObj.guardedStrikeBonusDef = 0;
+  target.creatureObj.sureFoundationBonusDef = 0;
+  target.creatureObj.sureFoundationBonusDefTurnsLeft = 0;
+  if (hasEffect(target.creatureObj, "dra_e05_sure_foundation")) {
+    target.creatureObj.sureFoundationBonusDef = 2;
+    target.creatureObj.sureFoundationBonusDefTurnsLeft = 2;
+  }
   let dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), target.creatureObj.def + bankedDef) * reduction)); // v0.11 shared ratio mitigation
   // Opening Reach/Executioner, generalized — this ally's own first basic
   // physical attack this fight, and a finisher bonus vs a badly wounded
@@ -3017,6 +3136,11 @@ function beginTurn(state) {
     }
   }
   if (combat.avatarOfFreedomTurns > 0) combat.avatarOfFreedomTurns -= 1;
+  // Elemental Sovereignty (First Sword's Regalia 10pc, exclusive):
+  // refresh-only, no stack — granted/refreshed in useElementAbility's
+  // water case, decayed here at the same once-per-round cadence every
+  // other player-side "Turns" buff above already uses.
+  if (combat.sovereigntyTurnsLeft > 0) combat.sovereigntyTurnsLeft -= 1;
   // Avatar of Creation (Regalia of the Eternal Forge 6pc): the +40%
   // Attack/Magic buff (via the shared atk/magicBuffTurns fields) expires
   // normally above, but the PERMANENT +2-per-attack/+2-per-spell stacks
@@ -3088,9 +3212,13 @@ function beginTurn(state) {
     const e = combat.enemies[i];
     if (!e.alive) continue;
     if (e.burn && e.burn.turnsLeft > 0) {
-      e.hp -= e.burn.dmgPerTurn;
+      // Ashward (DRA-E08): every eligible Burning tick against the wearer
+      // deals 0.75x — Burning still applies/expires on its own schedule
+      // otherwise, only the per-tick damage is reduced.
+      const burnDmg = hasEffect(e.creatureObj, "dra_e08_ashward") ? Math.round(e.burn.dmgPerTurn * 0.75) : e.burn.dmgPerTurn;
+      e.hp -= burnDmg;
       e.lastDamageType = "fire";
-      lines.push(`The flames still burn ${withThe(e.creatureObj.name, false)} for ${e.burn.dmgPerTurn} damage.`);
+      lines.push(`The flames still burn ${withThe(e.creatureObj.name, false)} for ${burnDmg} damage.`);
       e.burn.turnsLeft -= 1;
       if (e.burn.turnsLeft <= 0) e.burn = null;
       if (e.hp <= 0 && e.alive) {
@@ -3481,6 +3609,37 @@ function scoutStealthOpeningBonus(state, combat) {
   return 8;
 }
 
+// A Stun application against an enemy either lands (incrementing the
+// shared per-enemy charge counter resolveEnemyRetaliation/
+// resolveDregnarAction consume from, one at a time, per eligible action)
+// or is negated by Unshaken Command (Dregnar Ashvein's First Sword's
+// Regalia, DRA-E02) — two charges per combat, reset at combat start (see
+// startCombat), stored on the CREATURE object itself (hasEffect's own
+// wearer-neutral convention — any future wearer, not just Dregnar, gets
+// this for free), not the enemy slot. Every Stun-inflicting source should
+// route through this instead of writing combat.enemyStunCharges directly
+// — today that's only the Force element ability, but a later source gets
+// the same negation check with no extra wiring.
+function tryApplyEnemyStun(state, creature) {
+  // Lazy 2-charge default (undefined/null == "fresh, hasn't used any
+  // charges this combat yet") rather than requiring an explicit reset
+  // everywhere a wearer could come from: a BESTIARY enemy's creatureObj
+  // is already rebuilt fresh every fight (so undefined correctly means
+  // "2 available" each new combat with no extra wiring); startCombat's
+  // existing per-combat ally/player reset block additionally clears this
+  // back to null for the one kind of wearer that DOES persist across
+  // fights, so a future ally/player wearer gets the same fresh-2 start.
+  if (hasEffect(creature, "dra_e02_unshaken_command")) {
+    const charges = creature.unshakenCommandCharges != null ? creature.unshakenCommandCharges : 2;
+    if (charges > 0) {
+      creature.unshakenCommandCharges = charges - 1;
+      return [`Unshaken Command turns the Stun aside.`];
+    }
+  }
+  state.combat.enemyStunCharges = (state.combat.enemyStunCharges || 0) + 1;
+  return [];
+}
+
 function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
@@ -3498,8 +3657,18 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   }
   // A stunned enemy simply doesn't act at all this turn — not a "miss," so
   // it's checked before the connects roll below, same as Reinforced above.
-  if (combat.enemyStunned) {
-    combat.enemyStunned = false;
+  // enemyStunCharges is a counter, not a bool (Dregnar Ashvein Stage B):
+  // each charge cancels exactly one action opportunity. Every ordinary
+  // creature only ever gets one resolveEnemyRetaliation call per turn, so
+  // this is behavior-identical to the old boolean for all of them — one
+  // charge skips this turn's one action; an extra charge (never granted
+  // today outside Dregnar's own bespoke stun handling) would simply carry
+  // to that creature's next turn, satisfying the source catalog's "carries
+  // to the next eligible action" rule for free. Dregnar's own bespoke
+  // resolver (resolveDregnarAction) consumes charges itself, once per
+  // action slot, before ever reaching here — see its own comments.
+  if ((combat.enemyStunCharges || 0) > 0) {
+    combat.enemyStunCharges -= 1;
     return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
   }
   // Accuracy vs Agility: does the attack even connect? Checked before every
@@ -3607,6 +3776,14 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     // v0.11: shared ratio mitigation against the player's full Defense
     // (was a flat -Defense/10, so armor did almost nothing against mages).
     let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
+    // Unquenched Focus (DRA-E07): the wearer's first successful elemental
+    // attack each combat deals 1.10x. Dormant for Dregnar himself (none of
+    // his Stage A actives are elemental — all five are physical), wired
+    // generically here for any future elemental wearer of this item.
+    if (edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
+      creature.unquenchedFocusUsed = true;
+      edmg = Math.round(edmg * 1.10);
+    }
     // Adaptive Ward (Mythic): the first elemental hit taken each fight
     // establishes resistance to that element for the rest of the fight;
     // this triggering hit isn't itself reduced, only subsequent hits of
@@ -3658,6 +3835,35 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // Active cast never qualifies, abilityCtx or not.
   if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
   edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
+  // First Sword's Regalia physical-weapon-hit multipliers (Dregnar
+  // Ashvein Stage B) — every one of Dregnar's own actives IS a weapon
+  // strike (Ashquench), so these apply uniformly whether abilityCtx is
+  // set or not, same scope as executionerMultiplierFor just above. Each
+  // once-per-combat consumption is gated on edmg > 0 — a miss never
+  // reaches this line (resolveEnemyRetaliation returns early on one), so
+  // "misses don't consume it" falls out for free, matching every effect's
+  // own stated rule except Black-Ice Reserve (consumed even on a miss —
+  // handled separately in dregnarResolveDamagingAttempt, the one place
+  // that wraps every damaging ATTEMPT regardless of hit result; only
+  // peeked, not consumed, here).
+  if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10); // Ice-Forged Edge: every hit, no stacking
+  if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
+    creature.unbrokenGripUsed = true;
+    edmg = Math.round(edmg * 1.10); // Unbroken Grip: first physical weapon attack each combat
+  }
+  // Executioner's Seal (DRA-E06): same 30%-max-HP threshold as the base
+  // Executioner effect, kept as its own id (DEP-07) rather than aliased.
+  if (hasEffect(creature, "dra_e06_executioners_seal") && state.health <= state.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
+  if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10); // Black-Ice Reserve: peeked only
+  if (edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
+    creature.flowingDisciplinePending = false;
+    creature.flowingDisciplineTurnsLeft = 0;
+    edmg = Math.round(edmg * 1.10); // Flowing Discipline (6pc, exclusive): consumes the pending charge from a no-damage defensive action
+  }
+  if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && combat.playerStatuses && combat.playerStatuses.chilled) {
+    creature.wintersVerdictUsed = true;
+    edmg = Math.round(edmg * 1.15); // Winter's Verdict (8pc, exclusive): first hit vs a Chilled target each combat
+  }
   if (edmg > 0 && !combat.firstHitTakenUsed) {
     combat.firstHitTakenUsed = true;
     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
@@ -3679,7 +3885,21 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // healSelfPct/packAuraBuff are all resolved once in resolveEnemyAction
   // instead, ahead of this hit/miss roll — see the comment there for why.
   if (abilityCtx) {
-    if (abilityCtx.inflict) lines.push(...applyAbilityInflict(state, abilityCtx.inflict, creature.name));
+    if (abilityCtx.inflict) {
+      const inflictLines = applyAbilityInflict(state, abilityCtx.inflict, creature.name);
+      // Black-Ice Reserve (DRA-E09): granted the moment the wearer
+      // successfully applies Chilled (a non-empty return means the
+      // chance roll succeeded and the status actually took, not just that
+      // one was attempted) — a fresh grant simply overwrites any unused
+      // prior charge rather than stacking, matching "one charge/combat"
+      // (the wearer can reapply Chilled several times a fight; only ever
+      // one live charge at once).
+      if (inflictLines.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
+        creature.blackIceReservePending = true;
+        creature.blackIceReserveTurnsLeft = 2;
+      }
+      lines.push(...inflictLines);
+    }
     if (abilityCtx.healOnHitPct && edmg > 0) {
       const heal = Math.round(edmg * abilityCtx.healOnHitPct);
       if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
@@ -3763,6 +3983,14 @@ function tickEnemyPassives(state, e) {
   // round here, the same cadence selfBuffs above already ticks at.
   for (const id of Object.keys(e.abilityCooldowns || {})) {
     if (e.abilityCooldowns[id] > 0) e.abilityCooldowns[id] -= 1;
+  }
+  // Sure Foundation (DRA-E05): "expires after one full global turn if
+  // unused" — ticked here, the same once-per-round cadence selfBuffs/
+  // abilityCooldowns above already use, since the charge is granted by
+  // whoever ATTACKS this creature (rollPlayerDamage), not by anything on
+  // this creature's own turn, so it has no other natural tick point.
+  if (creature.sureFoundationBonusDef && creature.sureFoundationBonusDefTurnsLeft > 0 && --creature.sureFoundationBonusDefTurnsLeft <= 0) {
+    creature.sureFoundationBonusDef = 0;
   }
   if (!e.alive || e.maxHp <= 0) return lines;
   for (const pid of creature.passives || []) {
@@ -4328,6 +4556,27 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
 function legacyScaledCreature(creature) {
   if (!creature || creature.statScaled) return creature;
   const out = Object.assign({}, creature, { statScaled: true });
+  // Equipment bonuses (Dregnar Ashvein Stage B): ordinary creatures get
+  // this through buildFightCreature's own resolveEnemyEquipment/
+  // enemyEquipmentBonus call below; this path (special:true/dynamic
+  // creatures) never has before, since no existing special:true creature
+  // carries an `equipment` field — gated purely on its presence, so every
+  // other creature through this path (Kabal Enforcer, Vaelorn, any
+  // dynamic creature) is unaffected. Resolved and folded in BEFORE the
+  // flat x2 scale below, same order buildFightCreature already uses, and
+  // extended to magic/accuracy/agility too — buildFightCreature only ever
+  // sums health/atk/def, since no ordinary creature's gear has ever
+  // carried a magic/accuracy/agility bonus; Dregnar's own items are the
+  // first to, so this is additive, not a behavior change for anyone else.
+  const equipment = creature.equipment || null;
+  if (equipment) {
+    out.hp = (out.hp || 0) + enemyEquipmentBonus(equipment, "health");
+    out.atk = (out.atk || 0) + enemyEquipmentBonus(equipment, "atk");
+    out.def = (out.def || 0) + enemyEquipmentBonus(equipment, "def");
+    out.magic = (out.magic || 0) + enemyEquipmentBonus(equipment, "magic");
+    out.acc = (out.acc || 0) + enemyEquipmentBonus(equipment, "accuracy");
+    out.agi = (out.agi || 0) + enemyEquipmentBonus(equipment, "agility");
+  }
   for (const key of ["hp", "atk", "def", "magic"]) {
     if (typeof out[key] === "number") out[key] = Math.round(out[key] * PLAYER_STAT_SCALE);
   }
@@ -4343,7 +4592,8 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // non-player trigger cap) are new; tacticalMemoryUsed (companion.js's
   // Hadrian-kit cooldown hook) already existed and had exactly this gap —
   // fixed here too, since it's the identical bug, not a separate one.
-  (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; });
+  (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; a.unshakenCommandCharges = null; });
+  state.unshakenCommandCharges = null; // Unshaken Command (DRA-E02): a future player wearer gets the same fresh-2-per-combat reset an enemy's freshly-built creatureObj gets implicitly
   const isDynamic = typeof creatureIdOrObject === "object";
   if (isDynamic) creatureIdOrObject = legacyScaledCreature(creatureIdOrObject);
   const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject].special ? legacyScaledCreature(BESTIARY[creatureIdOrObject]) : BESTIARY[creatureIdOrObject];
@@ -4383,7 +4633,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     corroded: false, // whether Corrode has already landed on this target
     enemyAtkPenalty: 0, // lasting attack reduction from Disarm
     enemyDefPenalty: 0, // lasting defense reduction from Corrode
-    enemyStunned: false, // set by Concuss, consumed by this enemy's next turn
+    enemyStunCharges: 0, // set (incremented) by Concuss, consumed one at a time per eligible action — see resolveEnemyRetaliation and resolveDregnarAction
     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
     bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
     lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit this creature, for resolveKill's damage-type-flavored death line
@@ -6215,6 +6465,12 @@ function useElementAbility(state, elementKey) {
       const heal = Math.round(dmg * waterHealPct(state));
       const { healed, lines: healLines } = applyHeal(state, heal);
       out.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${dmg} damage, and the backwash mends you for ${healed}.`, ...healLines);
+      // Elemental Sovereignty (First Sword's Regalia 10pc, exclusive):
+      // the catalog's "Aqua/Cryo" trigger mapped to this engine's real
+      // water element only — no ice/cryo element exists. A successful
+      // water-element ability (this one) refreshes the 2-turn window
+      // rather than stacking the percentage.
+      if (hasSetTier(state, "First Sword's Regalia", 10)) state.combat.sovereigntyTurnsLeft = 2;
       break;
     }
     case "earth": {
@@ -6261,8 +6517,7 @@ function useElementAbility(state, elementKey) {
       const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
       state.combat.hp -= dmg;
       castDamageDealt += dmg;
-      state.combat.enemyStunned = true;
-      out.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${dmg} damage — it reels, stunned.`);
+      out.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${dmg} damage — it reels, stunned.`, ...tryApplyEnemyStun(state, creature));
       break;
     }
     case "transportation": {

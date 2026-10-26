@@ -365,8 +365,7 @@ const BESTIARY = {
     combatNotes: "Winning doesn't clear your name. It just buys you time before the next patrol.",
     special: true,
   },
-  // Dregnar Ashvein — Step 4 v0.4, Stage A only (no Mythic items/set
-  // bonuses yet, Stage B). `special: true` per the owner's own
+  // Dregnar Ashvein — Step 4 v0.4. `special: true` per the owner's own
   // clarification: these stats are his FINAL base — already reflecting
   // Danger Class scaling conceptually — so he must skip
   // computeCreatureStats' own Danger Class multiplier entirely (which
@@ -381,6 +380,22 @@ const BESTIARY = {
   // His turn is NOT driven by the shared actives/passives dispatch at all
   // (no `actives`/`passives` array below) — see resolveDregnarAction in
   // engine/combat.js for his bespoke state machine.
+  //
+  // Stage B: equipped with his full 10-piece Mythic First Sword's
+  // Regalia (data/items.js, set: "First Sword's Regalia" in data/
+  // sets.js) — same flat `{slot: itemName}` shape every other equipped
+  // BESTIARY creature already uses (see the Sahrimor entries above).
+  // Ordinary `buildFightCreature` applies equipment bonuses for every
+  // non-special creature; legacyScaledCreature (his own special:true
+  // path) didn't before this stage — see startCombat's special-creature
+  // branch, generalized to also resolve+apply equipment bonuses (hp,
+  // atk, def, magic, accuracy, agility — ordinary enemies only ever use
+  // the first three, since no existing item carries magic/accuracy/
+  // agility bonuses; his own items are the first to). Verified result:
+  // 430/50/55/31/13/99/14 pre-scale (base + flat item totals, matching
+  // the catalog's own "with ten Mythic items, before runtime scaling"
+  // table exactly) -> 860/100/110/62/13/99/14 after the standard x2 on
+  // hp/atk/def/magic only.
   dregnar_ashvein: {
     name: "Dregnar Ashvein",
     native: "Gods' Hand Kabal / Veranthari — First Sword of the Tower",
@@ -390,6 +405,17 @@ const BESTIARY = {
     combatNotes: "He opens guarded, a shifting water barrier turning aside whatever he can't yet afford to answer. Give him an opening and he closes it; corner him and he stops holding back.",
     special: true,
     bossKit: "dregnar_ashvein",
+    equipment: {
+      mainhand: "Ashquench",
+      helmet: "First Sword's Crown",
+      chest: "Kar'Mhal's Silver Plate",
+      gloves: "Vosgard Oathgrips",
+      boots: "Stillwater Sabatons",
+      rings: "Seal of the First Sword",
+      necklace: "Pendant of the Unquenched",
+      cloak: "Mantle of the Tower",
+      trinkets: ["Black-Ice Reliquary", "Vowstone of Vosgard"],
+    },
   },
 
   // Urban threats — the "urban" habitat tag has existed since the

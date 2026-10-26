@@ -2059,6 +2059,25 @@ const ITEM_DEFS = {
   "Sardarr Signet": { slot: "rings", tier: 6, bonuses: { atk: 5, knowledge: 4 }, source: "monster" },
   "High Command Torc": { slot: "necklace", tier: 5, bonuses: { def: 4, knowledge: 3 }, source: "monster" },
   "Command Banner Fragment": { slot: "trinkets", tier: 5, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
+
+  // ---- Dregnar Ashvein's First Sword's Regalia (World Boss, Step 4
+  // Stage B) ---- Ten Mythic pieces, no level requirement (consistent
+  // with every other tier-6 entry above — this file has no level-gate
+  // field at all). No separate offhand piece: Ashquench is two-handed,
+  // per the doc's own "no separate offhand item" note — occupies
+  // mainhand only; offhand stays empty. Flat totals (Attack +12,
+  // Defense +17, Health +10, Magic +7, Accuracy +3, Agility +2) verified
+  // against the catalog's own stated sum.
+  Ashquench: { slot: "mainhand", tier: 6, bonuses: { atk: 6, accuracy: 2 }, effects: ["dra_e01_ice_forged_edge"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I01
+  "First Sword's Crown": { slot: "helmet", tier: 6, bonuses: { def: 3, magic: 2 }, effects: ["dra_e02_unshaken_command"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I02
+  "Kar'Mhal's Silver Plate": { slot: "chest", tier: 6, bonuses: { def: 7, health: 3 }, effects: ["dra_e03_flowing_guard"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I03
+  "Vosgard Oathgrips": { slot: "gloves", tier: 6, bonuses: { atk: 2, def: 1 }, effects: ["dra_e04_unbroken_grip"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I04
+  "Stillwater Sabatons": { slot: "boots", tier: 6, bonuses: { def: 2, agility: 2 }, effects: ["dra_e05_sure_foundation"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I05
+  "Seal of the First Sword": { slot: "rings", tier: 6, bonuses: { atk: 2, accuracy: 1 }, effects: ["dra_e06_executioners_seal"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I06
+  "Pendant of the Unquenched": { slot: "necklace", tier: 6, bonuses: { magic: 3, health: 2 }, effects: ["dra_e07_unquenched_focus"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I07
+  "Mantle of the Tower": { slot: "cloak", tier: 6, bonuses: { def: 2, health: 2 }, effects: ["dra_e08_ashward"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I08
+  "Black-Ice Reliquary": { slot: "trinkets", tier: 6, bonuses: { atk: 2, magic: 2 }, effects: ["dra_e09_black_ice_reserve"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I09
+  "Vowstone of Vosgard": { slot: "trinkets", tier: 6, bonuses: { def: 2, health: 3 }, effects: ["dra_e10_venom_tempering"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I10
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
