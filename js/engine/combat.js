@@ -3573,6 +3573,14 @@ function tickEnemyPassives(state, e) {
     creature[b.stat] = (creature[b.stat] || 0) - b.amount;
     return false;
   });
+  // abilityCooldowns was set (resolveEnemyActiveAbility) and read (its own
+  // eligibility filter) but never counted back down anywhere — an active
+  // ability, once used, stayed locked out for the rest of the fight
+  // instead of recovering after its own authored cooldown. One tick per
+  // round here, the same cadence selfBuffs above already ticks at.
+  for (const id of Object.keys(e.abilityCooldowns || {})) {
+    if (e.abilityCooldowns[id] > 0) e.abilityCooldowns[id] -= 1;
+  }
   if (!e.alive || e.maxHp <= 0) return lines;
   for (const pid of creature.passives || []) {
     const p = getEnemyAbility(pid);
