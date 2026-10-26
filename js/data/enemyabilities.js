@@ -732,6 +732,26 @@ const ENEMY_ABILITIES = {
   // matches that level, same as if it had spawned normally.
   call_the_crew: { name: "Call the Crew", type: "active", cooldown: 6, dmgMult: 0, oncePerCombat: true, summon: { creatureId: "bandit_cutthroat", count: 1, maxActive: 4, arrivalHpPct: 0.6, noArrivalAttack: true } }, // H22
   guard_reinforcements: { name: "Guard Reinforcements", type: "active", cooldown: 6, dmgMult: 0, oncePerCombat: true, summon: { creatureId: "veteran_merchant_guard", count: 1, maxActive: 4, arrivalHpPct: 0.6, noArrivalAttack: true } }, // H23
+
+  // ---- Dregnar Ashvein (World Boss, Step 4 Stage A) ----
+  // Data records only — WHICH of these fires each turn is a bespoke,
+  // priority-ordered/stateful selection (engine/combat.js's
+  // resolveDregnarAction), not the shared random-eligible-pick every
+  // other creature's `actives` array goes through, so Dregnar carries no
+  // `actives: [...]` array referencing these ids. Kept here anyway as the
+  // single source of truth for cooldown/dmgMult/inflict, exactly like
+  // every other creature's entries, rather than hardcoding the numbers a
+  // second time in the resolver.
+  dra_barrier: { name: "Shifting Water Barrier", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { dmgReduction: 0.25, turns: 1 } }, // DRA-A01
+  dra_hammerfall: { name: "Vosgard Hammerfall", type: "active", cooldown: 2, dmgMult: 1.15 }, // DRA-A02
+  dra_cleave: { name: "Black-Ice Cleave", type: "active", cooldown: 3, dmgMult: 1.35, inflict: { status: "chilled", chance: 0.25 } }, // DRA-A03
+  dra_judgment: { name: "Ashquench Judgment", type: "active", cooldown: 5, dmgMult: 1.75 }, // DRA-A04 — telegraphed two-phase ability, bespoke handling
+  // Numerically identical to the existing frost_bite (1.10x, cooldown 2,
+  // 30% Chilled) — the design doc's own "existing Frost Bite pattern
+  // adapted presentation" note — kept as its own entry rather than
+  // aliasing frost_bite so a later balance change to one never silently
+  // moves the other.
+  dra_frostbite_brand: { name: "Frostbite Brand", type: "active", cooldown: 2, dmgMult: 1.10, inflict: { status: "chilled", chance: 0.3 } }, // DRA-A05
 };
 
 function getEnemyAbility(id) {

@@ -2026,6 +2026,12 @@ function resolveOneAllyAction(state, ally) {
 // of it). Otherwise falls straight through to the existing single-target
 // player-or-ally roll, exactly as before this engine existed.
 function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
+  // Dregnar Ashvein (World Boss, Step 4 Stage A): a bespoke, stateful
+  // turn — two states, a conditional bonus action, a telegraphed two-phase
+  // ability — nothing the shared random-eligible-pick system below
+  // (resolveEnemyActiveAbility) can express. Dispatched here, first, so
+  // the other 40+ creatures' shared path is completely untouched.
+  if (creatureObj.bossKit === "dregnar_ashvein") return resolveDregnarAction(state, creatureObj, atkSpread, extraDef);
   const abilityCtx = resolveEnemyActiveAbility(state, creatureObj);
   // packAuraBuff/selfBuff/selfDebuff/healSelfPct (Guarded Stance, Committed
   // Assault, Heavy Commitment, Focused Rally, Defensive Command, Resolute
@@ -2120,6 +2126,183 @@ function resolveEnemyActionWithFlurry(state, creatureObj, atkSpread, extraDef) {
     lines: [...first.lines, `${withThe(creatureObj.name, true)} is fast enough to strike again!`, ...second.lines],
     damage: second.damage,
   };
+}
+
+// ---- Dregnar Ashvein (World Boss, Step 4 Stage A) ----
+// Bespoke state machine, dispatched from resolveEnemyAction above instead
+// of going through the shared actives/passives arrays (he carries neither).
+// All per-fight state lives on the enemy SLOT (e = combat.enemies[...]),
+// lazily initialized below, same convention as braceBonusDef/
+// riposteUsedThisRound elsewhere in this file — never added to the giant
+// enemies-array literal in startCombat since it's unique to one creature.
+//
+// Water Guard: 1 normal action/turn, 2-turn cadence. Ashquench Unbound: 1
+// normal + 1 genuine bonus action/turn, same 2-turn cadence, extended to a
+// 3rd (hard cap, never a 4th) only to let a pending Ashquench Judgment
+// resolve before the state flips back.
+const DRA_WATER_GUARD_PRIORITY = ["dra_barrier", "dra_hammerfall", "dra_frostbite_brand"];
+const DRA_UNBOUND_NORMAL_PRIORITY = ["dra_judgment", "dra_cleave", "dra_hammerfall", "dra_frostbite_brand"];
+const DRA_UNBOUND_BONUS_PRIORITY = ["dra_cleave", "dra_hammerfall", "dra_frostbite_brand"]; // Judgment never resolves/winds up from the bonus slot
+
+function dregnarAbilityEligible(e, id) {
+  if (((e.abilityCooldowns || {})[id] || 0) > 0) return false;
+  if (id === "dra_judgment" && e.draJudgmentPending) return false; // can't stack a second wind-up
+  return true;
+}
+
+// One damaging attempt (active or basic) against the player — brackets
+// DRA-P03's temporary +3 Attack (if charges remain) around the real
+// resolveEnemyRetaliation call, and applies/consumes the DRA-P01/P02
+// shared pending-Accuracy bonus. Barrier never reaches here (see
+// resolveDregnarAction's own branch for it) since it isn't a damaging
+// attempt at all.
+function dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpread, extraDef) {
+  const accBonus = e.draPendingAcc || 0;
+  e.draPendingAcc = 0;
+  e.draPendingAccTurnsLeft = 0;
+  let p03Active = false;
+  if ((e.draP03Charges || 0) > 0) {
+    creatureObj.atk += 3;
+    p03Active = true;
+    e.draP03Charges -= 1;
+  }
+  const ctx = abilityCtx ? { ...abilityCtx, accBonus: (abilityCtx.accBonus || 0) + accBonus } : null;
+  const basicFirstBonus = abilityCtx ? null : { accBonus, dmgMultBonus: 1 };
+  const result = resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
+  if (p03Active) creatureObj.atk -= 3;
+  // DRA-P02 Martial Precision: a landed plain basic attack (not an active)
+  // banks the same +5 Accuracy Guarded Concentration grants for Barrier —
+  // the two never stack, so this simply (re)sets the one shared slot.
+  if (!abilityCtx && result.damage > 0) {
+    e.draPendingAcc = 5;
+    e.draPendingAccTurnsLeft = 2;
+  }
+  return result;
+}
+
+// Resolves one named active by id — Barrier is a pure self-buff branch
+// (never calls resolveEnemyRetaliation at all, so it can't be a "damaging
+// attempt" for P03's purposes); every other active is a real attack.
+function resolveDregnarAttempt(state, e, creatureObj, abilityId, atkSpread, extraDef) {
+  const ability = getEnemyAbility(abilityId);
+  e.abilityCooldowns[abilityId] = ability.cooldown;
+  if (abilityId === "dra_barrier") {
+    applyEnemySelfModifier(state.combat, creatureObj, { dmgReduction: 0.25, turns: 1 });
+    // DRA-P01 Guarded Concentration: casting Barrier always "succeeds" (no
+    // roll) and immediately banks +5 Accuracy for Dregnar's next attempt.
+    e.draPendingAcc = 5;
+    e.draPendingAccTurnsLeft = 2;
+    return { lines: [`${withThe(creatureObj.name, true)} raises a shifting water barrier, turning aside the next blow aimed at it.`], damage: null };
+  }
+  const abilityCtx = { id: abilityId, name: ability.name, dmgMult: ability.dmgMult, inflict: ability.inflict };
+  return dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpread, extraDef);
+}
+
+function resolveDregnarAction(state, creatureObj, atkSpread, extraDef) {
+  const combat = state.combat;
+  const e = combat.enemies[combat.activeIndex];
+  if (e.draState == null) {
+    e.draState = "water_guard";
+    e.draStateTurns = 0;
+    e.draAnnouncePending = false;
+    e.draPendingAcc = 0;
+    e.draPendingAccTurnsLeft = 0;
+    e.draP03Used = false;
+    e.draP03Charges = 0;
+    e.draP03TurnsLeft = 0;
+    e.draJudgmentPending = false;
+  }
+  const lines = [];
+  // A transition decided at the END of the previous turn takes effect, and
+  // is announced, at the START of this one — never retroactively affecting
+  // the turn whose own end-of-turn bookkeeping decided it.
+  if (e.draAnnouncePending) {
+    e.draAnnouncePending = false;
+    lines.push(
+      e.draState === "ashquench_unbound"
+        ? `${withThe(creatureObj.name, true)}'s water barrier shatters — Ashquench flares black-ice cold as it closes the distance!`
+        : `${withThe(creatureObj.name, true)} falls back into a guarded stance, a shifting water barrier forming around it.`
+    );
+  }
+  const stateThisTurn = e.draState; // captured before any transition decided THIS turn can affect it
+  e.draStateTurns = (e.draStateTurns || 0) + 1;
+
+  // DRA-P03 First Sword's Resolve: once per combat, the first time HP is
+  // observed at or below 40% at the top of a normal action.
+  if (!e.draP03Used && e.maxHp > 0 && e.hp / e.maxHp <= 0.4) {
+    e.draP03Used = true;
+    e.draP03Charges = 2;
+    e.draP03TurnsLeft = 3;
+    lines.push(`${withThe(creatureObj.name, true)} grits its teeth, First Sword's Resolve steadying its grip.`);
+  }
+
+  // --- Normal action ---
+  let normalResult;
+  if (stateThisTurn === "ashquench_unbound" && e.draJudgmentPending) {
+    // Resolution is checked before any priority-list selection — the very
+    // next normal action after the wind-up always resolves it.
+    lines.push(`Ashquench Judgment falls!`);
+    normalResult = resolveDregnarAttempt(state, e, creatureObj, "dra_judgment", atkSpread, extraDef);
+    e.draJudgmentPending = false;
+    lines.push(...normalResult.lines);
+  } else {
+    const priority = stateThisTurn === "ashquench_unbound" ? DRA_UNBOUND_NORMAL_PRIORITY : DRA_WATER_GUARD_PRIORITY;
+    const chosen = priority.find((id) => dregnarAbilityEligible(e, id));
+    if (chosen === "dra_judgment") {
+      // Wind-up: consumes the normal action, deals no damage, and does NOT
+      // set its own cooldown yet — only resolution/force-cancellation does.
+      e.draJudgmentPending = true;
+      lines.push(`${withThe(creatureObj.name, true)} raises Ashquench overhead, black ice crawling up the haft — Ashquench Judgment, incoming!`);
+      normalResult = { lines: [], damage: null };
+    } else if (chosen) {
+      normalResult = resolveDregnarAttempt(state, e, creatureObj, chosen, atkSpread, extraDef);
+      lines.push(...normalResult.lines);
+    } else {
+      normalResult = dregnarResolveDamagingAttempt(state, e, creatureObj, null, atkSpread, extraDef);
+      lines.push(...normalResult.lines);
+    }
+  }
+
+  // Bookkeeping that ticks once per NORMAL action only (never a bonus one).
+  if (e.draPendingAccTurnsLeft > 0 && --e.draPendingAccTurnsLeft <= 0) e.draPendingAcc = 0;
+  if (e.draP03Charges > 0 && e.draP03TurnsLeft > 0 && --e.draP03TurnsLeft <= 0) e.draP03Charges = 0;
+
+  let damage = normalResult.damage;
+
+  // --- Bonus action (Ashquench Unbound only) ---
+  if (stateThisTurn === "ashquench_unbound" && state.combat && state.health > 0) {
+    const bonusChosen = DRA_UNBOUND_BONUS_PRIORITY.find((id) => dregnarAbilityEligible(e, id));
+    const bonusResult = bonusChosen
+      ? resolveDregnarAttempt(state, e, creatureObj, bonusChosen, atkSpread, extraDef)
+      : dregnarResolveDamagingAttempt(state, e, creatureObj, null, atkSpread, extraDef);
+    lines.push(`${withThe(creatureObj.name, true)} moves again, fast as the ice-bound water itself!`, ...bonusResult.lines);
+    if (bonusResult.damage != null) damage = bonusResult.damage;
+  }
+
+  // --- End-of-turn state transition ---
+  if (state.combat) {
+    if (e.draStateTurns >= 3) {
+      // Hard cap: never a 4th turn in one state. Judgment can only still be
+      // pending here if resolution was somehow skipped above, since the
+      // extension to a 3rd turn below only ever happens while it's
+      // pending, and the very next normal action always resolves it first
+      // — kept as a direct safety net for the doc's own explicit rule.
+      if (e.draJudgmentPending) {
+        e.draJudgmentPending = false;
+        e.abilityCooldowns.dra_judgment = getEnemyAbility("dra_judgment").cooldown;
+      }
+      e.draState = stateThisTurn === "water_guard" ? "ashquench_unbound" : "water_guard";
+      e.draStateTurns = 0;
+      e.draAnnouncePending = true;
+    } else if (e.draStateTurns >= 2 && !e.draJudgmentPending) {
+      e.draState = stateThisTurn === "water_guard" ? "ashquench_unbound" : "water_guard";
+      e.draStateTurns = 0;
+      e.draAnnouncePending = true;
+    }
+    // else: at the 2-turn mark with Judgment still pending, extend to a 3rd turn instead of transitioning.
+  }
+
+  return { lines, damage };
 }
 
 // Resolves this round's turn order for whoever's initiative slot comes

@@ -365,6 +365,32 @@ const BESTIARY = {
     combatNotes: "Winning doesn't clear your name. It just buys you time before the next patrol.",
     special: true,
   },
+  // Dregnar Ashvein — Step 4 v0.4, Stage A only (no Mythic items/set
+  // bonuses yet, Stage B). `special: true` per the owner's own
+  // clarification: these stats are his FINAL base — already reflecting
+  // Danger Class scaling conceptually — so he must skip
+  // computeCreatureStats' own Danger Class multiplier entirely (which
+  // would double-apply it) and take only the flat PLAYER_STAT_SCALE every
+  // special creature gets via legacyScaledCreature: hp 420->840,
+  // atk 38->76, def 38->76 (magic 24->48, unused by any Stage-A ability —
+  // all five are physical; kept for Stage B's Elemental Sovereignty).
+  // spd/acc/agi are never scaled by PLAYER_STAT_SCALE, authored as given.
+  // Scripted/quest-tied — never enters the random-encounter pool (no
+  // TERRAIN_TAGS tag), and has no quest/location hookup yet; spawn
+  // directly via startCombat(state, "dregnar_ashvein", 30) for testing.
+  // His turn is NOT driven by the shared actives/passives dispatch at all
+  // (no `actives`/`passives` array below) — see resolveDregnarAction in
+  // engine/combat.js for his bespoke state machine.
+  dregnar_ashvein: {
+    name: "Dregnar Ashvein",
+    native: "Gods' Hand Kabal / Veranthari — First Sword of the Tower",
+    tags: ["dregnar_scripted"],
+    hp: 420, atk: 38, def: 38, magic: 24, spd: 13, acc: 96, agi: 12,
+    description: "An Aqua/Cryo warrior-mage in distinctive silver Kar'Mhal plate, Ashquench — an unquenched dwarven maul completed by magically reinforced black ice — resting easy in one hand.",
+    combatNotes: "He opens guarded, a shifting water barrier turning aside whatever he can't yet afford to answer. Give him an opening and he closes it; corner him and he stops holding back.",
+    special: true,
+    bossKit: "dregnar_ashvein",
+  },
 
   // Urban threats — the "urban" habitat tag has existed since the
   // terrain-tag table was written, but nothing ever actually spawned from
