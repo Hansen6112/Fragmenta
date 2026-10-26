@@ -131,6 +131,18 @@ async function handleInput(rawInput, state) {
 
   // Combat takes priority for a small set of verbs
   if (state.combat) {
+    // Knocked down (state.playerDowned — combat.js's resolvePlayerDefeatOrDowned):
+    // no verb below is the player's to use anymore. Any attempted action
+    // just advances the round without them (resolveDownedRound) — the
+    // same info-only verbs the catch-all further down already exempts
+    // (status/look/inventory/...) still work as pure information, since
+    // they were never "a turn" to begin with.
+    if (
+      state.playerDowned &&
+      verb !== "status" && verb !== "look" && verb !== "inventory" && verb !== "equipment" && verb !== "skills" && verb !== "choose" && verb !== "party" && verb !== "stance"
+    ) {
+      return resolveDownedRound(state);
+    }
     if (apothecaryAbilityMatch) return useApothecaryAbility(state, apothecaryAbilityMatch.key, apothecaryAbilityMatch.rest);
     if (verb === "fight") return playerAttack(state);
     if (verb === "flee") return attemptFlee(state);

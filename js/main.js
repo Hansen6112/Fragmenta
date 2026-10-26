@@ -1762,7 +1762,13 @@ async function runCommand(commandText, echoText) {
       if ((verb === "board" || verb === "contracts") && !state.combat && buildJobsMenu(state)) {
         jobMode = true;
       }
-      if (state.health <= 0) {
+      // !state.playerDowned: a knocked-down (not dead) player — combat.js's
+      // resolvePlayerDefeatOrDowned — keeps the run going while allies
+      // fight on. This only fires the real, permanent game-over for a
+      // true defeat: either a solo player with no one left to fall back
+      // on (playerDowned never set), or the moment killAlly clears
+      // playerDowned back to false because the last ally also went down.
+      if (state.health <= 0 && !state.playerDowned) {
         recordPlayerDeath(state);
         print("");
         print("Your journey ends here. Refresh the page to begin again.", "danger");

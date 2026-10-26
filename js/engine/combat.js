@@ -92,6 +92,20 @@ function aliveEnemies(state) {
   return state.combat ? state.combat.enemies.filter((e) => e.alive) : [];
 }
 
+// Shared loop-continuation predicate for the initiative pipeline
+// (resolveSpeedInitiative/resolveRemainingInitiativeActions): a fight
+// keeps resolving allies' and enemies' turns as long as there's still a
+// fight (state.combat), someone left to fight it (aliveEnemies), and
+// either the player is still standing OR the player is merely downed
+// (state.playerDowned — see resolvePlayerDefeatOrDowned) rather than
+// truly defeated. A downed player persistently sits at <=0 Health for
+// the rest of the fight, so "state.health > 0" alone would stop these
+// loops dead the instant they go down; playerDowned is what tells them
+// to keep going without the player, exactly as if nothing happened.
+function combatOngoing(state) {
+  return !!state.combat && (state.health > 0 || state.playerDowned) && aliveEnemies(state).length > 0;
+}
+
 // Master of Arms (Artifact): whether the given effect id is specifically
 // on the equipped Main Hand item (not just equipped somewhere), so its
 // "doubles if applicable" clause can target only that source. hasEffect()
@@ -523,7 +537,8 @@ function tickPlayerStatuses(state) {
         applyPlayerDamage(state, dmg);
         lines.push(`${entry.name} saps ${dmg} health.`);
         if (state.health <= 0) {
-          lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+          const dotDefeatMsg = resolvePlayerDefeatOrDowned(state);
+          if (dotDefeatMsg) lines.push(dotDefeatMsg);
           // The dungeon rescue can fire here and end combat outright — if
           // it did, stop ticking the remaining statuses entirely rather
           // than let a second DOT in this same tick deal more damage the
@@ -2004,12 +2019,14 @@ function resolveSpeedInitiative(state, creature) {
   const order = buildInitiativeOrder(state);
   const playerPos = order.findIndex((entry) => entry.kind === "player");
   for (let pos = 0; pos < playerPos; pos++) {
-    // !state.combat/health: an early strike from an earlier entry in this
-    // same loop can be lethal, triggering the dungeon rescue (which heals
-    // the player back up and ends combat outright) or a kill that empties
-    // the enemy roster — without these checks, the loop would keep handing
-    // out free actions a resolved fight can't answer.
-    if (!state.combat || state.health <= 0 || !aliveEnemies(state).length) break;
+    // combatOngoing: an early strike from an earlier entry in this same
+    // loop can be lethal, triggering the dungeon rescue (which heals the
+    // player back up and ends combat outright) or a kill that empties the
+    // enemy roster — without this check, the loop would keep handing out
+    // free actions a resolved fight can't answer. A player knocked down
+    // (not dead — see resolvePlayerDefeatOrDowned) doesn't stop the loop;
+    // their allies and the enemy keep right on going without them.
+    if (!combatOngoing(state)) break;
     const entry = order[pos];
     if (entry.kind === "ally") {
       if (!entry.ref.alive) continue;
@@ -2150,7 +2167,7 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
 // it always gets its extra swing immediately after its first one.
 function resolveEnemyActionWithFlurry(state, creatureObj, atkSpread, extraDef) {
   const first = resolveEnemyAction(state, creatureObj, atkSpread, extraDef);
-  if (!creatureObj.flurry || !state.combat || state.health <= 0 || !aliveEnemies(state).length) return first;
+  if (!creatureObj.flurry || !combatOngoing(state)) return first;
   const second = resolveEnemyAction(state, creatureObj, atkSpread, extraDef);
   return {
     lines: [...first.lines, `${withThe(creatureObj.name, true)} is fast enough to strike again!`, ...second.lines],
@@ -2374,7 +2391,10 @@ function resolveDregnarAction(state, creatureObj, atkSpread, extraDef) {
   let damage = normalResult.damage;
 
   // --- Bonus action (Ashquench Unbound only) ---
-  if (stateThisTurn === "ashquench_unbound" && state.combat && state.health > 0) {
+  // state.playerDowned: a downed (not dead) player doesn't stop Dregnar's
+  // own two-action economy any more than it stops anyone else's turn —
+  // see combatOngoing's comment.
+  if (stateThisTurn === "ashquench_unbound" && state.combat && (state.health > 0 || state.playerDowned)) {
     if ((e.enemyStunCharges || 0) > 0) {
       e.enemyStunCharges -= 1;
       lines.push(`${withThe(creatureObj.name, true)} tries to move again, but the stun holds it fast.`);
@@ -2442,11 +2462,12 @@ function resolveRemainingInitiativeActions(state, creature, atkSpread, extraDef,
   let activeDamage = null;
   const order = buildInitiativeOrder(state);
   for (const entry of order) {
-    // !state.combat/health: the dungeon rescue, or a kill that empties the
-    // enemy roster, can fire mid-loop — without these checks, the next
-    // entry in this same loop would still get its own action, with no
-    // rescue left to answer it.
-    if (!state.combat || state.health <= 0 || !aliveEnemies(state).length) break;
+    // combatOngoing: the dungeon rescue, or a kill that empties the enemy
+    // roster, can fire mid-loop — without this check, the next entry in
+    // this same loop would still get its own action, with no rescue left
+    // to answer it. A knocked-down (not dead) player doesn't stop this
+    // either — see combatOngoing's own comment.
+    if (!combatOngoing(state)) break;
     if (entry.kind === "player") continue;
     if (entry.kind === "ally") {
       if (!entry.ref.alive || entry.ref.actedEarlyThisRound) continue;
@@ -2517,6 +2538,18 @@ function pickEnemyAttackTarget(state) {
   const forcedAlly = getForcedAllyTarget(state);
   if (forcedAlly) return { kind: "ally", ally: forcedAlly };
   const allies = aliveAllies(state);
+  // A downed player (state.playerDowned — resolvePlayerDefeatOrDowned) is
+  // out of the fight entirely, same as a dead ally: never a valid target.
+  // By construction this function is never reached with the player
+  // downed AND zero allies left (killAlly ends the fight the instant the
+  // last ally falls while the player is down) — but written defensively
+  // regardless, falling back to the player rather than crashing if that
+  // invariant is ever broken.
+  if (state.playerDowned) {
+    if (!allies.length) return { kind: "player" };
+    const idx = Math.floor(Math.random() * allies.length);
+    return { kind: "ally", ally: allies[idx] };
+  }
   if (!allies.length) return { kind: "player" };
   const roll = Math.random();
   const playerShare = playerTargetShare(allies.length);
@@ -2923,6 +2956,22 @@ function killAlly(state, ally) {
   ally.alive = false;
   ally.pendingBodyChoice = true;
   Events.emit("ally.died", { ally, state });
+  // The last ally falling while the player is downed (resolvePlayerDefeatOrDowned)
+  // is the true, final end of the fight — the player has no one left to
+  // carry them, and there's no one left standing to decide what becomes
+  // of the dead. Ends combat right here, with its own flavor line, and
+  // clears playerDowned so main.js's own end-of-command check (which now
+  // reads `state.health <= 0 && !state.playerDowned`) correctly fires the
+  // permanent game-over on this same command, same as it always has for
+  // a true solo defeat.
+  if (state.playerDowned && state.combat && aliveAllies(state).length === 0) {
+    state.playerDowned = false;
+    state.combat = null;
+    return [
+      `${ally.name} falls.`,
+      `Through the haze, you watch the last of them go down. There's no one left to carry you out of this, and nothing left in you to carry yourself.`,
+    ];
+  }
   return [
     `${ally.name} falls.`,
     `You'll need to decide what becomes of them — 'send ${ally.name.split(" ")[0]} home' to carry the body to the Sanctuary, or 'leave ${ally.name.split(" ")[0]}' to let them go. Revival won't be easy, but it isn't impossible ('sanctuary' explains how).`,
@@ -3265,7 +3314,12 @@ function beginTurn(state) {
   // own death-check per DOT tick internally (mirroring the enemy-side
   // burn/bleed loop above), so nothing further is needed here.
   lines.push(...tickPlayerStatuses(state));
-  if (!state.combat || state.health <= 0) return lines;
+  // combatOngoing, not a bare health check: a downed (not dead) player
+  // must not freeze everything below for the rest of the fight — ally
+  // buff/status ticks and combat.actionCounter (several cadence-based
+  // effects read it) need to keep advancing exactly as if the player
+  // were still standing, even though the player themselves isn't acting.
+  if (!combatOngoing(state)) return lines;
   // Crafted-potion buffs (playerBuffs) and any ally's own (companion.js's
   // tickAllyBuffs) age down the same way, once per round.
   tickPlayerBuffs(state);
@@ -3424,6 +3478,36 @@ function checkDeathPrevention(state) {
   return msg;
 }
 
+// The single entry point every lethal-hit-on-the-player call site uses in
+// place of the old `checkDeathPrevention(state) || "Everything goes
+// dark."` idiom. Gear-based cheat-death (checkDeathPrevention, above)
+// still gets first refusal, completely unchanged. Only once that's
+// exhausted does this decide between the two ways a lethal hit can
+// actually land: knocked down (if at least one ally is still standing to
+// carry the fight) or, for a solo player with no one left to lean on,
+// the original instant, permanent defeat.
+//
+// `state.playerDowned` itself is the single flag that keeps the fight
+// going without the player afterward (see combatOngoing, pickEnemyAttackTarget,
+// resolveDownedRound, killAlly, resolveKill, and main.js's own end-of-
+// command check) — set once here, the moment it happens, never touched
+// by this function again. A null return means "nothing new to print" —
+// either an already-downed player's Health sitting at <=0 is being
+// rechecked incidentally by some other code path (DOT ticks, a reflect
+// passive, ...) with no fresh thing to announce, or a true solo defeat
+// already got its one line from a different branch below.
+function resolvePlayerDefeatOrDowned(state) {
+  const saved = checkDeathPrevention(state);
+  if (saved) return saved;
+  if (state.health > 0) return null; // the gear check itself only ever acts on a lethal hit; nothing lethal happened here after all
+  if (state.playerDowned) return null; // already knocked down earlier this same fight — don't re-trigger or re-print
+  if (aliveAllies(state).length > 0) {
+    state.playerDowned = true;
+    return `The hit takes everything out of you — you go down hard, the world swimming, and there's nothing left in you to answer it with. Your allies close ranks and keep fighting; whatever happens next isn't yours to decide.`;
+  }
+  return `Everything goes dark.`;
+}
+
 // Counterpart to checkDeathPrevention, for a lethal Trap room failure —
 // traps resolve outside state.combat entirely (engine/dungeon.js), and
 // every branch above unconditionally reads combat.xxx for its own
@@ -3457,8 +3541,17 @@ function checkTrapDeathPrevention(state) {
 // wherever a hit is applied directly.
 function checkReflectDeath(state, out) {
   if (state.health > 0) return out;
-  const msg = state.combat ? checkDeathPrevention(state) : checkTrapDeathPrevention(state);
-  out.push(msg || `Everything goes dark.`);
+  // In combat, this now goes through resolvePlayerDefeatOrDowned (same as
+  // every other lethal-hit call site) rather than checkDeathPrevention
+  // directly, so a reflect/counter passive that lands the killing blow
+  // can also knock the player down instead of ending the run outright —
+  // and, if the player went down earlier THIS SAME action from a
+  // different hit, correctly prints nothing a second time rather than a
+  // redundant "Everything goes dark." Outside combat (a trap's own reflect-
+  // style failure), there are no allies to fall back on, so
+  // checkTrapDeathPrevention's plain solo handling is unchanged.
+  const msg = state.combat ? resolvePlayerDefeatOrDowned(state) : (checkTrapDeathPrevention(state) || `Everything goes dark.`);
+  if (msg) out.push(msg);
   return out;
 }
 
@@ -3813,7 +3906,10 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     const absorbLines1 = magicHit.absorbLines;
     const elName = ELEMENTS[creature.element].name.toLowerCase();
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`, ...absorbLines1];
-    if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+    if (state.health <= 0) {
+      const defeatMsg = resolvePlayerDefeatOrDowned(state);
+      if (defeatMsg) lines.push(defeatMsg);
+    }
     return { lines, damage: edmg };
   }
   const atk = effectiveEnemyAtk(state, creature);
@@ -3906,7 +4002,10 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     }
   }
   if (edmg > 0) lines.push(...checkMercyOfTheVeil(state));
-  if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+  if (state.health <= 0) {
+    const defeatMsg = resolvePlayerDefeatOrDowned(state);
+    if (defeatMsg) lines.push(defeatMsg);
+  }
   return { lines, damage: edmg };
 }
 
@@ -4121,7 +4220,10 @@ function riposteCounterOnPlayer(state, creature) {
   const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
   const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
   const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte for ${hit.edmg} damage.`, ...hit.absorbLines];
-  if (state.health <= 0) lines.push(checkDeathPrevention(state) || `Everything goes dark.`);
+  if (state.health <= 0) {
+    const defeatMsg = resolvePlayerDefeatOrDowned(state);
+    if (defeatMsg) lines.push(defeatMsg);
+  }
   return lines;
 }
 // Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
@@ -4594,6 +4696,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // fixed here too, since it's the identical bug, not a separate one.
   (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; a.unshakenCommandCharges = null; });
   state.unshakenCommandCharges = null; // Unshaken Command (DRA-E02): a future player wearer gets the same fresh-2-per-combat reset an enemy's freshly-built creatureObj gets implicitly
+  state.playerDowned = false; // resolvePlayerDefeatOrDowned's own flag — every new fight starts with the player able to act, same as every other per-combat flag here
   const isDynamic = typeof creatureIdOrObject === "object";
   if (isDynamic) creatureIdOrObject = legacyScaledCreature(creatureIdOrObject);
   const template = isDynamic ? creatureIdOrObject : BESTIARY[creatureIdOrObject].special ? legacyScaledCreature(BESTIARY[creatureIdOrObject]) : BESTIARY[creatureIdOrObject];
@@ -5522,6 +5625,16 @@ function resolveKill(state, creature) {
     // encounter's last-enemy-standing moment.
     if (state.combat.isHadrianQuestFinale) out.push(...concludeHadrianQuestFinale(state));
     if (state.combat === combatBeforeConclusion) state.combat = null;
+    // Allies carrying a downed player (resolvePlayerDefeatOrDowned) to an
+    // actual win: revive at a flat 25% max Health (owner's explicit
+    // figure — not 1 Health, not a full heal) and clear the flag, same
+    // "last thing before this fight's own bookkeeping wraps up" spot the
+    // other on-kill effects above use.
+    if (state.playerDowned) {
+      state.playerDowned = false;
+      state.health = Math.ceil(state.maxHealth * 0.25);
+      out.push(`You come to as the last of them falls — your allies carried this one. Bruised and unsteady, but back on your feet at ${state.health} Health.`);
+    }
     // The fight is genuinely over (last enemy down) — charge its time
     // cost once here, not per-kill within a pack.
     out.push(...advanceTime(state, randInt(10, 30), "combat"));
@@ -5707,6 +5820,35 @@ function playerAttack(state) {
   return checkReflectDeath(state, out);
 }
 
+// The player's own round when downed (resolvePlayerDefeatOrDowned) — no
+// player action at all, just the same beginTurn/resolveKill bookkeeping
+// every other action function runs, then the FULL initiative order for
+// allies and enemies: resolveSpeedInitiative followed immediately by
+// resolveRemainingInitiativeActions, with no player action resolved in
+// between. resolveRemainingInitiativeActions already explicitly skips
+// `entry.kind === "player"` entries, so together these two calls cover
+// every ally and enemy slot exactly once — the same guarantee any other
+// action function gets, just without a player turn splitting them.
+// Dispatched from parser.js's handleInput in place of whatever combat
+// verb was actually typed, for as long as state.playerDowned is true.
+function resolveDownedRound(state) {
+  if (!state.combat) return ["There's nothing here to fight."];
+  let creature = getCombatCreature(state);
+  const out = [`You can only watch — the fight isn't yours to finish anymore.`];
+  out.push(...beginTurn(state));
+  if (!state.combat) return out;
+  if (state.combat.hp <= 0) {
+    out.push(...resolveKill(state, creature));
+    if (!state.combat) return out;
+    creature = getCombatCreature(state);
+  }
+  out.push(...resolveSpeedInitiative(state, creature));
+  if (!state.combat) return out;
+  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0);
+  out.push(...retaliation.lines);
+  return out;
+}
+
 function attemptFlee(state) {
   if (!state.combat) return ["There's nothing to flee from."];
   let creature = getCombatCreature(state);
@@ -5778,7 +5920,8 @@ function attemptFlee(state) {
   const absorbLines = fleeHit.absorbLines;
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
-    out.push(checkDeathPrevention(state) || `Everything goes dark.`);
+    const defeatMsg = resolvePlayerDefeatOrDowned(state);
+    if (defeatMsg) out.push(defeatMsg);
   } else {
     out.push(...lowHealthTriggerChecks(state));
   }
