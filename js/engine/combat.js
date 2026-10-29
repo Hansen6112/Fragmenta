@@ -2845,6 +2845,56 @@ function applyPackAuraBuff(combat, creature, spec) {
 // the player-facing half already resolved the ability's own selection/
 // cooldown/name/self-buff bookkeeping, so this just needs the resolved
 // dmgMult to scale the hit the same way.
+// Ally Protection Reaction (Sanguivorum Gatekeeper's Stand / Protective
+// Intercession / Officer's Intercession — three flavor names across two
+// divisions for one mechanically identical effect, per the owner's own
+// "build once" decision): any OTHER living ally, or the player, wearing
+// one of these three carries a reaction that shaves 10% off final damage
+// the next time a DIFFERENT ally gets hit — CD5 wearer turns, max twice
+// per combat, no stacking. Entirely independent of (and checked
+// alongside, not instead of) maybeHadrianAllyProtection below — both can
+// fire on the same hit. Applied AFTER Hadrian's own redirect/discount
+// resolves, so this shaves 10% off whatever damage is actually left once
+// his own protection (if any) has already been taken into account —
+// an arbitrary but documented order, since the two mechanisms are
+// independent flat/ratio adjustments to the same number either way.
+//
+// Per-wearer state (allyProtectionCooldown/allyProtectionUsesThisCombat)
+// lives on the wearer object itself — state for the player, the ally
+// object for an ally — same convention as braceBonusDef/
+// riposteUsesThisCombat/unshakenCommandCharges elsewhere in this file.
+// Reset at combat start in startCombat.
+//
+// Only the FIRST eligible protector found applies — the source catalog's
+// own "one intercession per hit; no double mitigation" rule holds across
+// the whole party, not just within one wearer: even if two different
+// party members each wear a copy of one of these three items with a
+// charge available, only one fires, and only that one consumes a charge.
+const ALLY_PROTECTION_EFFECT_IDS = ["sang_sec_ie005_gatekeepers_stand", "sang_sec_ie010_protective_intercession", "sang_cu_ie010_officers_intercession"];
+function hasAllyProtectionEffect(carrier) {
+  return ALLY_PROTECTION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
+}
+function applyAllyProtectionReaction(state, targetAlly, dmg) {
+  // A downed (not dead) player has no agency left this fight (see
+  // resolvePlayerDefeatOrDowned) — excluded as a candidate protector, same
+  // as they're already excluded from enemy targeting.
+  const candidates = [];
+  if (!state.playerDowned) candidates.push(state);
+  candidates.push(...aliveAllies(state).filter((a) => a !== targetAlly));
+  for (const carrier of candidates) {
+    if (!hasAllyProtectionEffect(carrier)) continue;
+    const cooldown = carrier.allyProtectionCooldown || 0;
+    const uses = carrier.allyProtectionUsesThisCombat || 0;
+    if (cooldown > 0 || uses >= 2) continue;
+    carrier.allyProtectionCooldown = 5;
+    carrier.allyProtectionUsesThisCombat = uses + 1;
+    const reduced = Math.round(dmg * 0.9);
+    const protectorLine = carrier === state ? `You step in to take the edge off the blow aimed at ${targetAlly.name}.` : `${carrier.name} steps in to take the edge off the blow aimed at ${targetAlly.name}.`;
+    return { dmg: reduced, lines: [protectorLine] };
+  }
+  return { dmg, lines: [] };
+}
+
 function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstBonus) {
   // allyBuffStatTotal (companion.js): Steady Grip cast on this ally —
   // same crafted-potion-buff storage effectiveAllyDef already reads for
@@ -2901,6 +2951,11 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   // in the party, ascended/trinketed, and it's a DIFFERENT ally being hit.
   const protection = maybeHadrianAllyProtection(state, ally, dmg);
   dmg = protection.dmg;
+  // Ally Protection Reaction (Sanguivorum Gatekeeper's Stand/Protective
+  // Intercession/Officer's Intercession, generalized) — independent of,
+  // and checked after, Hadrian's own protection above.
+  const allyProtectionReaction = applyAllyProtectionReaction(state, ally, dmg);
+  dmg = allyProtectionReaction.dmg;
   // Companion Ability Engine (engine/companion.js): taunt/Unbroken Will
   // damage reduction, Honor Beyond Death's fatal-hit save, and Champion's
   // Resolve's non-fatal floor for a kit-bearing ally — a no-op for any
@@ -2914,7 +2969,7 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
   ally.health = Math.max(arenaFloor, ally.health - dmg);
   const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
-  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...protection.lines, ...mitigation.lines];
+  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...protection.lines, ...allyProtectionReaction.lines, ...mitigation.lines];
   // abilityCtx.healOnHitPct: same "heals for a fraction of the damage this
   // hit actually dealt" payout resolveEnemyRetaliation grants on a landed
   // player hit — an ally hit is just as much a landed hit.
@@ -3323,8 +3378,15 @@ function beginTurn(state) {
   // Crafted-potion buffs (playerBuffs) and any ally's own (companion.js's
   // tickAllyBuffs) age down the same way, once per round.
   tickPlayerBuffs(state);
+  // Ally Protection Reaction's own CD5 cooldown — ticks here, the one
+  // per-round point that runs unconditionally for the player and every
+  // living ally regardless of kit (tickCompanionCombatTimers below only
+  // ever runs for a kit-bearing ally, i.e. Hadrian, which this effect is
+  // explicitly NOT restricted to).
+  if ((state.allyProtectionCooldown || 0) > 0) state.allyProtectionCooldown -= 1;
   aliveAllies(state).forEach((ally) => {
     tickAllyBuffs(ally);
+    if ((ally.allyProtectionCooldown || 0) > 0) ally.allyProtectionCooldown -= 1;
     lines.push(...tickAllyStatuses(state, ally));
   });
   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
@@ -4694,8 +4756,10 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // non-player trigger cap) are new; tacticalMemoryUsed (companion.js's
   // Hadrian-kit cooldown hook) already existed and had exactly this gap —
   // fixed here too, since it's the identical bug, not a separate one.
-  (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; a.unshakenCommandCharges = null; });
+  (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; a.unshakenCommandCharges = null; a.allyProtectionCooldown = 0; a.allyProtectionUsesThisCombat = 0; });
   state.unshakenCommandCharges = null; // Unshaken Command (DRA-E02): a future player wearer gets the same fresh-2-per-combat reset an enemy's freshly-built creatureObj gets implicitly
+  state.allyProtectionCooldown = 0; // Ally Protection Reaction (Sanguivorum Gatekeeper's Stand/Protective Intercession/Officer's Intercession): same fresh-combat reset for a future player wearer
+  state.allyProtectionUsesThisCombat = 0;
   state.playerDowned = false; // resolvePlayerDefeatOrDowned's own flag — every new fight starts with the player able to act, same as every other per-combat flag here
   const isDynamic = typeof creatureIdOrObject === "object";
   if (isDynamic) creatureIdOrObject = legacyScaledCreature(creatureIdOrObject);

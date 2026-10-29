@@ -330,6 +330,23 @@ const EFFECT_DEFS = {
   winters_verdict: { name: "Winter's Verdict", category: "set", description: "First Sword's Regalia (8pc, exclusive). The first successful physical hit against a Chilled target each combat deals 1.15x damage." },
   first_swords_legacy: { name: "First Sword's Legacy", category: "set", description: "First Sword's Regalia (10pc, exclusive). Once per combat, the first time the wearer survives at or below 40% Health, grants +3 Attack for the next two damaging attempts, expiring after three global turns. A separate, independent source from any intrinsic +3 Attack effect the wearer also has — the two are meant to stack additively." },
   elemental_sovereignty: { name: "Elemental Sovereignty", category: "set", description: "First Sword's Regalia (10pc, exclusive). A successful water-element ability grants +15% Attack/Defense/Magic/Accuracy/Agility/Speed (not Health) for two complete global combat turns; a later qualifying cast refreshes the duration rather than stacking the percentage. Scoped to the water element only — this engine has no ice/cryo element to cover the source catalog's 'Aqua/Cryo' wording literally." },
+
+  // ---- Ally Protection Reaction (Sanguivorum codex review, decision #2)
+  // — three flavor names across two not-yet-implemented divisions
+  // (Security and Enforcement; Criminal Underworld) for one mechanically
+  // identical effect, built once as shared wearer-neutral infrastructure
+  // per the owner's own decision rather than three separate
+  // implementations. Per-wearer state (allyProtectionCooldown/
+  // allyProtectionUsesThisCombat) lives on the wearer object itself —
+  // state for the player, the ally object for an ally — same convention
+  // as braceBonusDef/riposteUsesThisCombat elsewhere in combat.js. Not
+  // yet attached to any real item — the named Sanguivorum equipment
+  // (Frontier Tower Shield, Captain's Command Shield, Highway Captain's
+  // Command Shield) and the rest of that roster remain future work
+  // pending their own separate implementation authorization. ----
+  sang_sec_ie005_gatekeepers_stand: { name: "Gatekeeper's Stand", category: "combat", description: "When another living ally takes a damaging hit, reduce that hit's final damage by 10%. Cooldown 5 wearer turns; max twice per combat; one intercession per hit, no stacking." },
+  sang_sec_ie010_protective_intercession: { name: "Protective Intercession", category: "combat", description: "When another living ally takes a damaging hit, reduce that hit's final damage by 10%. Cooldown 5 wearer turns; max twice per combat; one intercession per hit, no stacking. Mechanically identical to Gatekeeper's Stand, kept as its own id per the catalog's own naming (both from the Security and Enforcement division)." },
+  sang_cu_ie010_officers_intercession: { name: "Officer's Intercession", category: "combat", description: "When another living ally takes a damaging hit, reduce that hit's final damage by 10%. Cooldown 5 wearer turns; max twice per combat; one intercession per hit, no stacking. Mechanically identical to Gatekeeper's Stand/Protective Intercession, kept as its own id since it's a distinct Criminal Underworld item." },
 };
 
 // Whether any currently-equipped item carries the given effect id. Boolean
