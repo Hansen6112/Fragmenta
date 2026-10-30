@@ -752,6 +752,87 @@ const ENEMY_ABILITIES = {
   // aliasing frost_bite so a later balance change to one never silently
   // moves the other.
   dra_frostbite_brand: { name: "Frostbite Brand", type: "active", cooldown: 2, dmgMult: 1.10, inflict: { status: "chilled", chance: 0.3 } }, // DRA-A05
+
+  // ---- Sanguivorum Criminal Underworld Division (Codex v0.3, Step 4.A
+  // owner-approved) — 11 identities, IA-01..IA-34 register. Distinct from
+  // the unrelated "Criminal Underworld (Gate 5B.8 skills codex)" Sahrimor
+  // leadership block above (focused_rally/call_the_crew/...) — same label
+  // used for two different, unrelated codices; kept apart here by key name
+  // and this comment rather than relabeling the older section, which is
+  // out of this division's scope. Six of the 34 are reused verbatim at
+  // their existing ids rather than duplicated: ambush_bonus, patient_hunter,
+  // rend, disarm_swipe, shield_bash, reckless_charge (each individual
+  // record's own "(existing)" label matches those six only — the codex's
+  // Appendix A catalog mislabels four of those same six as "New approved
+  // design" against its own Section 08 "(existing)" tags; existing engine
+  // ids are reused regardless of that label mismatch, per Appendix A's own
+  // "no change to approved effect" dependency note on each one).
+  club_smash: { name: "Club Smash", type: "active", cooldown: 3, dmgMult: 1.5 }, // SANG-A001 / IA-01
+  quick_stab: { name: "Quick Stab", type: "active", cooldown: 3, dmgMult: 1.25, accBonus: 10 }, // IA-03
+  committed_slash: { name: "Committed Slash", type: "active", cooldown: 4, dmgMult: 1.6, selfDebuff: { def: -5, turns: 1 } }, // IA-04
+  spotters_signal: { name: "Spotter's Signal", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 8, turns: 2 } }, // IA-06
+  crossbow_volley: { name: "Crossbow Volley", type: "active", cooldown: 3, dmgMult: 1.3 }, // IA-07
+  dirty_cut: { name: "Dirty Cut", type: "active", cooldown: 3, dmgMult: 1.1, inflict: { status: "bleed", chance: 0.5 } }, // IA-09
+  ambush_blow: { name: "Ambush Blow", type: "active", cooldown: 4, dmgMult: 1.65 }, // IA-11
+  // Smuggler's Caution (IA-13): own trigger name, deliberately NOT the
+  // existing-but-unwired combatStartBuff (tunnel_fighter/draconic_presence
+  // use that one) — wiring that shared trigger would change those other,
+  // already-shipped creatures' behavior from inert to live, outside this
+  // division's scope. combatStartSelfBuff is new and only ever read for
+  // this ability.
+  smugglers_caution: { name: "Smuggler's Caution", type: "passive", trigger: "combatStartSelfBuff", selfBuff: { def: 5, turns: 2 } }, // IA-13
+  guarded_exchange: { name: "Guarded Exchange", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 8, turns: 2 } }, // IA-15
+  precision_riposte: { name: "Precision Riposte", type: "active", cooldown: 4, dmgMult: 1.45, accBonus: 10 }, // IA-16
+  // Arena Ferocity / Veteran's Guard (IA-17/IA-25): same healthBelowPct
+  // trigger Cornered/Apex Predator use, generalized below to call
+  // applyEnemySelfModifier (reversible) instead of applyPermanentSelfBuff
+  // whenever selfBuff carries its own `turns` — those other, pre-existing
+  // healthBelowPct entries have no `turns` field, so they still resolve
+  // through applyPermanentSelfBuff exactly as before; unaffected.
+  arena_ferocity: { name: "Arena Ferocity", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atkPct: 0.1, turns: 2 }, oncePerCombat: true }, // IA-17
+  twin_blade_rush: { name: "Twin-Blade Rush", type: "active", cooldown: 4, dmgMult: 1.65, selfDebuff: { def: -5, turns: 1 } }, // IA-18
+  feinting_slash: { name: "Feinting Slash", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } }, // IA-19
+  // Pack Discipline (IA-20): scope "summon" checks against a living
+  // creature whose summonSourceKey matches summonKey (default: this
+  // passive's own carrier's summon ability id) rather than any ally —
+  // Criminal Command/Ruthless Authority below use the default "any other
+  // living non-friendly enemy" scope instead, same precedent H11's own
+  // bonusVsAllyAlive already set (no species/group tag check either).
+  pack_discipline: { name: "Pack Discipline", type: "passive", trigger: "whileAllyAlive", scope: "summon", summonKey: "call_outlaw_hounds", selfBuff: { def: 5 } }, // IA-20
+  // Call Outlaw Hounds (IA-21/SANG-A015): maxLifetime is new (resolveEnemySummon)
+  // — every prior summon spec in this file only ever capped currently-ACTIVE
+  // summons (maxActive); this is the first one the codex also caps
+  // lifetime-total ("max 3 active and 6 lifetime summons per combat"), so
+  // resolveEnemySummon gained a second, independent room check for it
+  // rather than overloading maxActive to mean two different things.
+  call_outlaw_hounds: { name: "Call Outlaw Hounds", type: "active", cooldown: 6, dmgMult: 0, summon: { pool: ["timberWolf", "duskWolf"], countMin: 1, countMax: 3, maxActive: 3, maxLifetime: 6, noArrivalAttack: true, groupOverride: "sang_cu_outlaw_pack" } }, // SANG-A015 / IA-21
+  handlers_strike: { name: "Handler's Strike", type: "active", cooldown: 3, dmgMult: 1.2 }, // IA-22
+  // Pack Signal (IA-23): "all living summons owned by handler" — reuses
+  // applyPackAuraBuff's existing group-match (not species/ally-presence),
+  // which is why call_outlaw_hounds above retags its summons' own `group`
+  // to sang_cu_outlaw_pack via groupOverride, and Outlaw Packmaster itself
+  // carries that same group tag in its BESTIARY entry.
+  pack_signal: { name: "Pack Signal", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 8, turns: 2 } }, // IA-23
+  criminal_command: { name: "Criminal Command", type: "passive", trigger: "whileAllyAlive", selfBuff: { acc: 5 } }, // IA-24
+  veterans_guard: { name: "Veteran's Guard", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { def: 8, turns: 2 }, oncePerCombat: true }, // IA-25
+  raid_order: { name: "Raid Order", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 10, turns: 2 } }, // IA-26
+  officers_cut: { name: "Officer's Cut", type: "active", cooldown: 3, dmgMult: 1.5 }, // IA-27
+  // Press the Advantage (IA-28): new bonusVsAccOrSpdDebuff field, checked
+  // alongside bonusVsHealthBelowPct/AbovePct in resolveEnemyActiveAbility —
+  // "increases to 1.85x if target has an Accuracy or Speed debuff" reads
+  // the player's own combat.playerStatuses (custom inflicts included),
+  // same table bonusVsStatus already reads.
+  press_the_advantage: { name: "Press the Advantage", type: "active", cooldown: 5, dmgMult: 1.6, bonusVsAccOrSpdDebuff: { mult: 1.85 / 1.6 } }, // IA-28
+  ruthless_authority: { name: "Ruthless Authority", type: "passive", trigger: "whileAllyAlive", selfBuff: { def: 5 } }, // IA-29
+  // Roadlord's Momentum (IA-30): existing onKill trigger (Predator's
+  // Momentum's own), generalized to respect oncePerCombat — every other
+  // onKill entry in this file has no oncePerCombat flag and keeps
+  // retriggering on every kill exactly as before; unaffected.
+  roadlords_momentum: { name: "Roadlord's Momentum", type: "passive", trigger: "onKill", oncePerCombat: true, selfBuff: { atkPct: 0.15, turns: 2 } }, // IA-30
+  roadlords_assault: { name: "Roadlord's Assault", type: "active", cooldown: 5, dmgMult: 1.9, selfDebuff: { def: -8, turns: 3 } }, // SANG-A025 / IA-31
+  blood_price: { name: "Blood Price", type: "active", cooldown: 5, dmgMult: 1.5, inflict: { status: "bleed", chance: 1 } }, // IA-32
+  warband_fury: { name: "Warband Fury", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { atkPct: 0.12, turns: 2 } }, // IA-33
+  ruthless_execution: { name: "Ruthless Execution", type: "active", cooldown: 5, dmgMult: 1.7, bonusVsHealthBelowPct: { pct: 0.35, mult: 2.1 / 1.7 } }, // IA-34
 };
 
 function getEnemyAbility(id) {

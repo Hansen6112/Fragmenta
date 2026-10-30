@@ -1552,6 +1552,10 @@ function applyBeneficialEffectBonuses(state, duration) {
 
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
+  // Smuggler's Guard / Commander's Poise (Sanguivorum Criminal
+  // Underworld) — consumed once here regardless of which branch (spell
+  // or physical) below ends up computing this hit's damage.
+  const sangMit = sangCuDefenderMitigation(creature);
   // Brace/Guarded Strike, generalized: this creature may have banked a
   // Defense bonus against its next incoming hit (resolveEnemyAction's own
   // non-damaging-action branch, or its own landed basic attack — see
@@ -1628,7 +1632,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // percentage shave off whatever damage already made it through every
     // other multiplier and the Defense subtraction above — applied last,
     // same as a shield would be, not folded into the multiplier chain.
-    dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0))));
+    dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
     // cast during its 4-round window PERMANENTLY increases Magic by +2 —
     // unlike Avatar of Chaos/Endurance's own window-scoped bonus fields,
@@ -1665,7 +1669,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
     // dmgReduction: see the magic branch above for why this is
     // the last step, after every other multiplier.
-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0))));
+    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0)) * sangMit));
     // Sure Foundation (DRA-E05): this physical hit just landed (dmg is
     // always >= 1 by this point — a miss never reaches rollPlayerDamage
     // at all) — so any pending charge is now spent (whether or not this
@@ -2124,7 +2128,7 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
   // support action — nothing is attacked, so this returns before ever
   // reaching the aoe/single-target damage paths below.
   if (abilityCtx && abilityCtx.summon) {
-    const lines = resolveEnemySummon(state, creatureObj.level, abilityCtx.summon, abilityCtx.id, creatureObj.name);
+    const lines = resolveEnemySummon(state, creatureObj.level, abilityCtx.summon, abilityCtx.id, creatureObj.name, creatureObj);
     return { lines, damage: null };
   }
   if (abilityCtx && abilityCtx.aoe) {
@@ -2599,6 +2603,16 @@ function firstAttackPassiveBonus(state, creature) {
 // it did before this engine existed). resolveEnemyAction applies
 // firstAttackPassiveBonus itself when this returns null, so a plain
 // basic attack isn't left out of H08's own "whether basic or active" rule.
+// Press the Advantage (Sanguivorum Criminal Underworld, IA-28): true if
+// any currently-active combat.playerStatuses entry carries a negative
+// `acc` or `spd` debuff — covers both a named status (chilled's own agi
+// debuff doesn't count; this is scoped to acc/spd specifically, matching
+// the codex's own wording) and an ability's inline "custom:..." inflict
+// (feinting_slash's -8 Accuracy, shield_bash's -15 Speed, ...).
+function playerHasAccOrSpdDebuff(state) {
+  const statuses = (state.combat && state.combat.playerStatuses) || {};
+  return Object.values(statuses).some((entry) => entry.debuff && ((entry.debuff.acc || 0) < 0 || (entry.debuff.spd || 0) < 0));
+}
 function resolveEnemyActiveAbility(state, creature) {
   if (!creature.actives || !creature.actives.length) return null;
   const combat = state.combat;
@@ -2652,6 +2666,15 @@ function resolveEnemyActiveAbility(state, creature) {
   }
   if (ability.bonusVsHealthAbovePct && state.health >= state.maxHealth * ability.bonusVsHealthAbovePct.pct) {
     dmgMult *= ability.bonusVsHealthAbovePct.mult;
+  }
+  // Press the Advantage (Sanguivorum Criminal Underworld, IA-28): "1.6x,
+  // or 1.85x if the target currently carries an Accuracy or Speed debuff"
+  // — reads the player's own combat.playerStatuses (named AND custom
+  // inflicts both land there — see applyAbilityInflict), same table
+  // bonusVsStatus above already reads, just checking any entry's debuff
+  // shape instead of one specific status id.
+  if (ability.bonusVsAccOrSpdDebuff && playerHasAccOrSpdDebuff(state)) {
+    dmgMult *= ability.bonusVsAccOrSpdDebuff.mult;
   }
   // H11 Coordinated Assault ("increased to 145% when another human ally
   // is alive", Gate 5B.8 skills codex): any other alive, non-friendly
@@ -2769,7 +2792,7 @@ function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature, arri
 // scoped to this one ability even if several abilities summon in the
 // same fight. Caller decides the summoned creatures' level — always the
 // summoner's own level, same as ordinary pack members share the anchor's.
-function resolveEnemySummon(state, level, spec, sourceKey, summonerName) {
+function resolveEnemySummon(state, level, spec, sourceKey, summonerName, summonerCreature) {
   const combat = state.combat;
   // `capKey` lets two different summoning abilities on the SAME creature
   // (Dreadroot's Grave Bloom active and Corrupted Grove passive both cap
@@ -2780,23 +2803,51 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName) {
   const alreadyActive = maxActive != null
     ? combat.enemies.filter((e) => e.alive && e.summonSourceKey === key).length
     : 0;
-  const room = maxActive != null ? Math.max(0, maxActive - alreadyActive) : Infinity;
+  let room = maxActive != null ? Math.max(0, maxActive - alreadyActive) : Infinity;
+  // maxLifetime (Call Outlaw Hounds, Sanguivorum Criminal Underworld
+  // division): a SECOND, independent cap on top of maxActive — "max 3
+  // active AND 6 lifetime summons per combat" — every other summon spec
+  // in this file only ever caps currently-active count, so this is a
+  // separate running total per key, not a reinterpretation of maxActive.
+  if (spec.maxLifetime != null) {
+    combat.summonLifetimeCounts = combat.summonLifetimeCounts || {};
+    const usedLifetime = combat.summonLifetimeCounts[key] || 0;
+    room = Math.min(room, Math.max(0, spec.maxLifetime - usedLifetime));
+  }
   let count = spec.count != null ? spec.count : randInt(spec.countMin, spec.countMax);
   count = Math.min(count, room);
   if (count <= 0) {
     return [`${withThe(summonerName, true)} tries to call for reinforcements, but none answer.`];
   }
   const summoned = [];
+  const summonedRecords = [];
   for (let i = 0; i < count; i++) {
     const id = spec.creatureId || spec.pool[Math.floor(Math.random() * spec.pool.length)];
     const template = BESTIARY[id];
     if (!template) continue;
     const creature = buildFightCreature(template, level, template.dangerClass, id);
-    combat.enemies.push(buildSummonedEnemyRecord(id, creature, key, false, spec.arrivalHpPct, spec.noArrivalAttack));
+    // groupOverride (Call Outlaw Hounds): retags this specific summoned
+    // instance's `group` so applyPackAuraBuff's existing group-match (Pack
+    // Signal) treats it as the handler's own packmate — the summoned
+    // creature's BESTIARY template (timberWolf/duskWolf's own `group:
+    // "wolf"`) is never mutated, only this one fight-cloned copy.
+    if (spec.groupOverride) creature.group = spec.groupOverride;
+    const record = buildSummonedEnemyRecord(id, creature, key, false, spec.arrivalHpPct, spec.noArrivalAttack);
+    combat.enemies.push(record);
+    summonedRecords.push(record);
     summoned.push(creature.name);
   }
+  if (spec.maxLifetime != null) combat.summonLifetimeCounts[key] = (combat.summonLifetimeCounts[key] || 0) + summoned.length;
   if (!summoned.length) {
     return [`${withThe(summonerName, true)} tries to call for reinforcements, but none answer.`];
+  }
+  // Hunter's Call (SANG-CU-IE009, Packmaster's Whistle): the summoner's
+  // OWN first successful summon-creation each combat grants one randomly
+  // chosen NEW summon +5 Accuracy for 2 of its own turns.
+  if (summonerCreature && !summonerCreature.huntersCallUsed && hasEffect(summonerCreature, "sang_cu_ie009_hunters_call")) {
+    summonerCreature.huntersCallUsed = true;
+    const chosen = summonedRecords[Math.floor(Math.random() * summonedRecords.length)];
+    applyEnemySelfModifier(combat, chosen.creatureObj, { acc: 5, turns: 2 });
   }
   return [`${withThe(summonerName, true)} calls for reinforcements — ${summoned.join(", ")} ${summoned.length === 1 ? "joins" : "join"} the fight!`];
 }
@@ -2910,7 +2961,15 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   // its own roll, but this sibling function used to leave the ability's
   // whole accuracy bonus on the floor whenever the roll happened to pick
   // an ally instead of the player.
-  const accBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
+  const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
+  // Duelist's Measure (SANG-CU-IE007): mirrors resolveEnemyRetaliation's
+  // own copy — pending bonus only pays out against the SAME target by
+  // name; targeting a different ally (or the player) than last time
+  // resets it, which falls out for free since this is cleared below
+  // regardless of whether it matched.
+  const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
+  const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0);
+  creature.duelistMeasurePendingTarget = null;
   if (!attackConnects(creature.acc + accBonus, allyAgi)) {
     // Riposte, generalized: this creature's own attack just dealt the
     // ally zero damage (a miss) — if the ALLY wears Riposte, it counters
@@ -2942,9 +3001,31 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   // as resolveEnemyRetaliation's own copy of this pair.
   if (!abilityCtx) dmg = applyOpeningReachForActor(creature, dmg);
   dmg = Math.round(dmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
+  // Tyrant's Edge (SANG-CU-IE012): mirrors resolveEnemyRetaliation's own
+  // copy, against the ally's HP instead of the player's.
+  if (dmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && ally.health <= ally.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+    creature.tyrantsEdgeCooldown = 3;
+    creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
+    dmg = Math.round(dmg * 1.10);
+  }
   // Guarded Strike, generalized: bank +2 Defense for this creature against
   // whatever hits it next, same basic-attack-only scope.
   if (!abilityCtx && dmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
+  const sangAllyLines = [];
+  // Serrated Opening (SANG-CU-IE003): mirrors resolveEnemyRetaliation's
+  // own copy, against the ally's own status table.
+  if (dmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+    creature.serratedOpeningUsed = true;
+    if (!(ally.statuses && ally.statuses.bleed)) {
+      sangAllyLines.push(...applyAbilityInflictOnAlly(ally, { status: "bleed", chance: 1 }, creature.name));
+    }
+  }
+  // Duelist's Measure (SANG-CU-IE007): mirrors resolveEnemyRetaliation's
+  // own copy, banking the pending bonus against this specific ally by name.
+  if (dmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
+    creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
+    creature.duelistMeasurePendingTarget = ally.name;
+  }
   // Legion's Memory / Brothers in Arms (engine/companion.js): Hadrian may
   // redirect part of this hit onto himself, or buff himself reactively,
   // BEFORE the target's own mitigation runs — a no-op unless Hadrian is
@@ -2969,7 +3050,7 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
   ally.health = Math.max(arenaFloor, ally.health - dmg);
   const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
-  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...protection.lines, ...allyProtectionReaction.lines, ...mitigation.lines];
+  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...protection.lines, ...allyProtectionReaction.lines, ...mitigation.lines, ...sangAllyLines];
   // abilityCtx.healOnHitPct: same "heals for a fraction of the damage this
   // hit actually dealt" payout resolveEnemyRetaliation grants on a landed
   // player hit — an ally hit is just as much a landed hit.
@@ -2995,7 +3076,21 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
     // death simply ends the game rather than continuing the encounter.
     for (const pid of creature.passives || []) {
       const p = getEnemyAbility(pid);
-      if (p && p.trigger === "onKill") applyEnemySelfModifier(state.combat, creature, p.selfBuff);
+      if (!p || p.trigger !== "onKill") continue;
+      // Roadlord's Momentum (Sanguivorum Criminal Underworld, IA-30):
+      // "once per combat; does not retrigger on further kills" — every
+      // other onKill entry (Predator's Momentum, ...) has no
+      // oncePerCombat flag and keeps retriggering on every kill exactly
+      // as before this generalization; unaffected. onKillUsed lives on
+      // `creature` itself (not an enemy-slot passiveOnceFlags lookup) —
+      // simpler here since `creature` is the one stable object this
+      // whole fight, and this function has no enemy-slot reference handy.
+      if (p.oncePerCombat) {
+        creature.onKillUsed = creature.onKillUsed || {};
+        if (creature.onKillUsed[pid]) continue;
+        creature.onKillUsed[pid] = true;
+      }
+      applyEnemySelfModifier(state.combat, creature, p.selfBuff);
     }
   }
   return { lines, damage: null };
@@ -3062,6 +3157,27 @@ Events.on("ally.died", ({ ally, state }) => {
 // routed through rollPlayerDamage, since that formula is threaded through
 // with player-only Divine Regalia/Legendary/Mythic bonuses that have
 // nothing to do with an ally's own gear.
+// Smuggler's Guard (SANG-CU-IE006, Smuggler's Guard Buckler) / Commander's
+// Poise (SANG-CU-IE011, Commander's Insignia): both react to a damaging
+// hit landing on the WEARER by shaving 10% off that same hit's final
+// damage — Smuggler's Guard is a repeatable cooldown-gated reaction (CD4
+// wearer turns, ticked in tickEnemyPassives); Commander's Poise is a
+// single once-per-combat consumption. Multiplicative with each other on
+// the rare creature wearing both (not a codex-stated interaction either
+// way). Shared by rollPlayerDamage and allyAggressiveAction — the two
+// places something else's damage against an enemy creature is computed.
+function sangCuDefenderMitigation(creature) {
+  let mult = 1;
+  if (hasEffect(creature, "sang_cu_ie006_smugglers_guard") && !(creature.smugglersGuardCooldown > 0)) {
+    creature.smugglersGuardCooldown = 4;
+    mult *= 0.9;
+  }
+  if (hasEffect(creature, "sang_cu_ie011_commanders_poise") && !creature.commandersPoiseUsed) {
+    creature.commandersPoiseUsed = true;
+    mult *= 0.9;
+  }
+  return mult;
+}
 function allyAggressiveAction(state, ally) {
   const combat = state.combat;
   const target = combat.enemies[combat.activeIndex];
@@ -3101,7 +3217,8 @@ function allyAggressiveAction(state, ally) {
     target.creatureObj.sureFoundationBonusDef = 2;
     target.creatureObj.sureFoundationBonusDefTurnsLeft = 2;
   }
-  let dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), target.creatureObj.def + bankedDef) * reduction)); // v0.11 shared ratio mitigation
+  const sangMit = sangCuDefenderMitigation(target.creatureObj);
+  let dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), target.creatureObj.def + bankedDef) * reduction * sangMit)); // v0.11 shared ratio mitigation
   // Opening Reach/Executioner, generalized — this ally's own first basic
   // physical attack this fight, and a finisher bonus vs a badly wounded
   // target, same as the player's and an enemy's own versions above.
@@ -3841,7 +3958,25 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // one roll only — added directly to creature.acc rather than threaded as
   // hitChance's extraChance, since the codex phrases it as a stat bonus
   // ("+10 Accuracy"), not a direct hit-percentage bonus.
-  const accBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
+  const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
+  // Marked Target (SANG-CU-IE002, Spotter's Lens): consumed by the next
+  // attack ATTEMPT (hit or miss) against the exposed player, as long as
+  // it's a DIFFERENT enemy than whoever applied Exposed — consumption
+  // happens here, on the attempt, not gated on this attempt landing.
+  let markedTargetBonus = 0;
+  if (combat.exposedTarget && combat.exposedTarget.by !== creature) {
+    markedTargetBonus = 8;
+    combat.exposedTarget = null;
+  }
+  // Duelist's Measure (SANG-CU-IE007, Ovum Outcast Primary Blade): this
+  // creature's own pending +10 Accuracy from its last successful hit on
+  // this same target (the player) — a target change (tracked via the
+  // string this field holds) resets it instead of granting the bonus; see
+  // resolveEnemyAttackOnAlly's own entry for the player->ally reset.
+  const duelistPending = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === "player";
+  const duelistBonus = duelistPending ? 10 : 0;
+  creature.duelistMeasurePendingTarget = null; // consumed on the attempt regardless of hit/miss, same as Marked Target above
+  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus;
   if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
     return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
   }
@@ -4013,6 +4148,15 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // Executioner effect, kept as its own id (DEP-07) rather than aliased.
   if (hasEffect(creature, "dra_e06_executioners_seal") && state.health <= state.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
   if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10); // Black-Ice Reserve: peeked only
+  // Tyrant's Edge (SANG-CU-IE012, Roadlord's Veteran Blade): same
+  // target-HP-threshold shape as Executioner's Seal just above, but with
+  // its own cooldown (ticked in tickEnemyPassives) and max-twice-per-combat
+  // cap instead of Executioner's Seal's unlimited once-per-hit reuse.
+  if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && state.health <= state.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+    creature.tyrantsEdgeCooldown = 3;
+    creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
+    edmg = Math.round(edmg * 1.10);
+  }
   if (edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
     creature.flowingDisciplinePending = false;
     creature.flowingDisciplineTurnsLeft = 0;
@@ -4035,8 +4179,38 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   // next — consumed in rollPlayerDamage/allyAggressiveAction, the two
   // places something else's damage against this creature is computed.
   if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
+  const sangLines = [];
+  // Serrated Opening (SANG-CU-IE003, Cutthroat Blade V2/V3): first
+  // successful damaging hit each combat applies 1 Bleeding stack, only if
+  // the player isn't already Bleeding.
+  if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+    creature.serratedOpeningUsed = true;
+    if (!(combat.playerStatuses && combat.playerStatuses.bleed)) {
+      sangLines.push(...applyAbilityInflict(state, { status: "bleed", chance: 1 }, creature.name));
+    }
+  }
+  // Marked Target (SANG-CU-IE002, Spotter's Lens): the wearer's own first
+  // successful damaging hit each combat exposes the player — consumed by
+  // the NEXT different enemy's attack attempt (see the accBonus block
+  // above), or it simply expires unconsumed; no explicit turn-expiry
+  // countdown is ticked (approximated as "until consumed or until this
+  // same combat's remaining enemy actions run out," close enough to the
+  // codex's own "2 target turns" for a short-lived once-per-combat tag).
+  if (edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.exposedTarget) {
+    creature.markedTargetUsed = true;
+    combat.exposedTarget = { by: creature };
+  }
+  // Duelist's Measure (SANG-CU-IE007, Ovum Outcast Primary Blade): a
+  // successful hit on the player banks +10 Accuracy for this creature's
+  // NEXT attack attempt against the player specifically (consumed, or
+  // reset by a target change, at the top of this function / the ally
+  // sibling below) — max twice per combat.
+  if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
+    creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
+    creature.duelistMeasurePendingTarget = "player";
+  }
   const verb = abilityCtx ? `uses ${abilityCtx.name} on you` : "hits back";
-  const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2];
+  const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2, ...sangLines];
   // Enemy Ability Engine: the ability's one genuinely on-hit consequence —
   // a status it inflicts on the PLAYER specifically, only once its damage
   // has actually landed and been applied above. selfBuff/selfDebuff/
@@ -4164,8 +4338,39 @@ function tickEnemyPassives(state, e) {
       if (e.hp > before) lines.push(`${withThe(creature.name, true)} recovers ${e.hp - before} health.`);
     } else if (p.trigger === "healthBelowPct" && !e.passiveOnceFlags[pid] && e.hp / e.maxHp <= p.threshold) {
       e.passiveOnceFlags[pid] = true;
-      applyPermanentSelfBuff(creature, p.selfBuff);
+      // Arena Ferocity/Veteran's Guard (Sanguivorum Criminal Underworld):
+      // phrase their selfBuff as "for 2 turns" rather than the permanent
+      // "for the encounter" every PRE-EXISTING healthBelowPct entry
+      // (Cornered, Apex Predator, ...) uses — those omit `turns` entirely,
+      // so they still resolve through applyPermanentSelfBuff exactly as
+      // before; only a selfBuff carrying its own `turns` routes through
+      // the reversible bookkeeping instead.
+      if (p.selfBuff && p.selfBuff.turns) applyEnemySelfModifier(state.combat, creature, p.selfBuff);
+      else applyPermanentSelfBuff(creature, p.selfBuff);
       lines.push(`${withThe(creature.name, true)} is hurt, and hits back harder for it.`);
+    } else if (p.trigger === "whileAllyAlive") {
+      // Pack Discipline/Criminal Command/Ruthless Authority (Sanguivorum
+      // Criminal Underworld): a continuous, reversible conditional self-buff
+      // — "while a summon/ally lives" toggles cleanly on and off as that
+      // condition changes, unlike every other once-per-combat trigger
+      // above. scope "summon" checks a specific summonKey (Pack
+      // Discipline's own handler-summon-only condition); the default scope
+      // reuses H11's bonusVsAllyAlive precedent — "any other alive,
+      // non-friendly enemy counts as an ally," no species/group tag check.
+      const flagKey = pid + ":active";
+      const matches = p.scope === "summon"
+        ? state.combat.enemies.some((x) => x.alive && x !== e && x.summonSourceKey === (p.summonKey || pid))
+        : state.combat.enemies.some((x) => x.alive && x !== e && !x.creatureObj.friendly);
+      const wasActive = !!e.passiveOnceFlags[flagKey];
+      if (matches && !wasActive) {
+        e.passiveOnceFlags[flagKey] = true;
+        applyPermanentSelfBuff(creature, p.selfBuff);
+      } else if (!matches && wasActive) {
+        e.passiveOnceFlags[flagKey] = false;
+        const negated = {};
+        for (const [stat, amount] of Object.entries(p.selfBuff)) negated[stat] = -amount;
+        applyPermanentSelfBuff(creature, negated);
+      }
     } else if (p.trigger === "healthStagedBuff") {
       const flagKey = pid + ":stage";
       const reached = (p.stages || []).filter((s) => e.hp / e.maxHp <= s).length;
@@ -4202,10 +4407,27 @@ function tickEnemyPassives(state, e) {
             if (e.hp > before) lines.push(`${withThe(creature.name, true)} recovers ${e.hp - before} health, its grove already at full strength.`);
           }
         } else {
-          lines.push(...resolveEnemySummon(state, creature.level, p, pid, creature.name));
+          lines.push(...resolveEnemySummon(state, creature.level, p, pid, creature.name, creature));
         }
       }
     }
+  }
+  // ---- Sanguivorum Criminal Underworld item effects: per-round cooldown
+  // ticks and HP-threshold reactions. Unlike the passives loop above,
+  // these key off hasEffect(creature, ...) directly (an equipped item, not
+  // a creature.passives entry) — same wearer-neutral convention as
+  // guarded_strike/brace already use elsewhere in this file.
+  if (creature.smugglersGuardCooldown > 0) creature.smugglersGuardCooldown -= 1;
+  if (creature.tyrantsEdgeCooldown > 0) creature.tyrantsEdgeCooldown -= 1;
+  if (hasEffect(creature, "sang_cu_ie008_handlers_resilience") && !creature.handlersResilienceUsed && e.hp / e.maxHp <= 0.5) {
+    creature.handlersResilienceUsed = true;
+    applyEnemySelfModifier(state.combat, creature, { def: 5, turns: 2 });
+    lines.push(`${withThe(creature.name, true)} grits through the pain, armor tightening.`);
+  }
+  if (hasEffect(creature, "sang_cu_ie013_conquerors_resolve") && !creature.conquerorsResolveUsed && e.hp / e.maxHp <= 0.35) {
+    creature.conquerorsResolveUsed = true;
+    applyEnemySelfModifier(state.combat, creature, { atkPct: 0.10, turns: 2 });
+    lines.push(`${withThe(creature.name, true)} fights on, all the harder for the wound.`);
   }
   return lines;
 }
@@ -4701,6 +4923,21 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
     scaled.hp += scaledStat("health", enemyEquipmentBonus(equipment, "health"));
     scaled.atk += scaledStat("atk", enemyEquipmentBonus(equipment, "atk"));
     scaled.def += scaledStat("def", enemyEquipmentBonus(equipment, "def"));
+    // Sanguivorum Criminal Underworld: the first enemy-equipment batch to
+    // actually carry Accuracy/Agility bonuses (Softstep Boots +2 AGI,
+    // Spotter's Lens +2 ACC, ...) — every prior division's enemy gear only
+    // ever granted health/atk/def (+ the always-inert knowledge below), so
+    // this was never wired. Bonus KEY is "accuracy"/"agility" (full word)
+    // — the same key items.js's equipmentBonus() reads for the player's
+    // and allies' own accuracy/agility (state.js) — even though the
+    // computed creature stat it feeds lands in the abbreviated scaled.acc/
+    // scaled.agi fields below, matching computeCreatureStats' own naming.
+    // scaledStat leaves both unscaled (SCALED_COMBAT_STATS doesn't list
+    // them), so this is a pure additive extension — any existing
+    // creature's equipment with no accuracy/agility bonus field
+    // contributes 0 here, unchanged.
+    scaled.acc += scaledStat("acc", enemyEquipmentBonus(equipment, "accuracy"));
+    scaled.agi += scaledStat("agi", enemyEquipmentBonus(equipment, "agility"));
   }
   const creature = Object.assign({}, effectiveTemplate, scaled, { level: clampedLevel, bestiaryKey: bestiaryId });
   if (equipment) {
@@ -4997,6 +5234,17 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
       const p = getEnemyAbility(pid);
       if (p && p.trigger === "combatStartDebuff" && p.debuff) {
         lines.push(...applyPlayerStatus(state, pid, { debuff: p.debuff, turns: p.turns || 2 }, e.creatureObj.name));
+      }
+      // Smuggler's Caution (Sanguivorum Criminal Underworld, IA-13): the
+      // self-buff sibling of Draconic Presence's own self-debuff-on-player
+      // shape above — "own" trigger name (combatStartSelfBuff), not the
+      // existing-but-never-wired combatStartBuff (tunnel_fighter/
+      // draconic_presence's unrelated pair), so no other creature's
+      // behavior changes. state.combat already exists by this point in
+      // startCombat (assigned above), so applyEnemySelfModifier's own
+      // combat.enemies lookup resolves correctly.
+      if (p && p.trigger === "combatStartSelfBuff" && p.selfBuff) {
+        applyEnemySelfModifier(state.combat, e.creatureObj, p.selfBuff);
       }
     }
   }

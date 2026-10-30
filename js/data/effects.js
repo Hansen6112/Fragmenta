@@ -347,6 +347,27 @@ const EFFECT_DEFS = {
   sang_sec_ie005_gatekeepers_stand: { name: "Gatekeeper's Stand", category: "combat", description: "When another living ally takes a damaging hit, reduce that hit's final damage by 10%. Cooldown 5 wearer turns; max twice per combat; one intercession per hit, no stacking." },
   sang_sec_ie010_protective_intercession: { name: "Protective Intercession", category: "combat", description: "When another living ally takes a damaging hit, reduce that hit's final damage by 10%. Cooldown 5 wearer turns; max twice per combat; one intercession per hit, no stacking. Mechanically identical to Gatekeeper's Stand, kept as its own id per the catalog's own naming (both from the Security and Enforcement division)." },
   sang_cu_ie010_officers_intercession: { name: "Officer's Intercession", category: "combat", description: "When another living ally takes a damaging hit, reduce that hit's final damage by 10%. Cooldown 5 wearer turns; max twice per combat; one intercession per hit, no stacking. Mechanically identical to Gatekeeper's Stand/Protective Intercession, kept as its own id since it's a distinct Criminal Underworld item." },
+
+  // ---- Sanguivorum Criminal Underworld Division (Codex v0.3 Appendix B,
+  // SANG-IE001-013) — remaining 12 item effects (IE010 above). Three of
+  // the 13 (IE001 Light Fingers, IE004 Spoils of the Road, IE005 Hidden
+  // Compartments) are the codex's own "noncombat" loot/currency bonuses —
+  // declared and left inert pending a loot-table/trade-goods-sale system
+  // that doesn't exist in this engine yet, consistent with heatproof's own
+  // "currently inert" convention above, and with this division's own
+  // scope (direct-spawn-testable combat content only, no loot-table hookup).
+  sang_cu_ie001_light_fingers: { name: "Light Fingers", category: "utility", description: "Post-victory: 10% chance of one extra common coin pouch. Currently inert — this engine has no post-victory loot-table/reward hook for an equipped item to tie into yet." },
+  sang_cu_ie002_marked_target: { name: "Marked Target", category: "combat", description: "The wearer's first successful damaging attack each combat applies Exposed to its target. The next damaging attack by a DIFFERENT ally against that same target (before Exposed expires or is consumed) gains +8 Accuracy; no bonus damage. Once per wearer per combat. Implemented for attacks against the player as the exposed target only — an ally exposed by an enemy's attack is not covered (no engine hook tracks a per-ally Exposed flag)." },
+  sang_cu_ie003_serrated_opening: { name: "Serrated Opening", category: "combat", description: "The wearer's first successful damaging attack each combat applies 1 Bleeding stack, only if the target isn't already Bleeding. Once per combat; no extra stack on an already-Bleeding target." },
+  sang_cu_ie004_spoils_of_the_road: { name: "Spoils of the Road", category: "utility", description: "On victory in an eligible caravan/merchant-guard encounter, 10% chance of one extra common trade-goods roll. Currently inert — this engine has no trade-goods loot table or encounter-eligibility hook for an equipped item to tie into yet." },
+  sang_cu_ie005_hidden_compartments: { name: "Hidden Compartments", category: "utility", description: "+5% currency on eligible sale of ordinary trade goods. Currently inert — this engine has no trade-goods sale/classification system for an equipped item to tie into yet." },
+  sang_cu_ie006_smugglers_guard: { name: "Smuggler's Guard", category: "combat", description: "On a damaging hit against the wearer, reduce that hit's final damage by 10%. Cooldown 4 wearer turns; max once per hit; no stacking." },
+  sang_cu_ie007_duelists_measure: { name: "Duelist's Measure", category: "combat", description: "After the wearer's successful damaging hit, its next attack against the same target gains +10 Accuracy before the hit roll. A miss, a target change, or a non-damaging action resets the bonus unused. Once per target; max twice per combat." },
+  sang_cu_ie008_handlers_resilience: { name: "Handler's Resilience", category: "combat", description: "The first time the wearer reaches at or below 50% max Health, gain +5 Defense for 2 wearer turns. Once per combat." },
+  sang_cu_ie009_hunters_call: { name: "Hunter's Call", category: "combat", description: "The first time the wearer successfully creates a summon each combat, grant that new summon +5 Accuracy for 2 of its own turns. Once per combat; no increase to the summoner's own active/lifetime summon caps." },
+  sang_cu_ie011_commanders_poise: { name: "Commander's Poise", category: "combat", description: "The first successful damaging attack against the wearer each combat deals 10% less final damage. Once per combat, consumed on the first qualifying hit." },
+  sang_cu_ie012_tyrants_edge: { name: "Tyrant's Edge", category: "combat", description: "If the target is already below 35% max Health immediately before the wearer's hit resolves, that hit deals 10% more final damage. Cooldown 3 wearer turns; max twice per combat." },
+  sang_cu_ie013_conquerors_resolve: { name: "Conqueror's Resolve", category: "combat", description: "The first time the wearer reaches at or below 35% max Health, gain +10% Attack for 2 wearer turns. Once per combat." },
 };
 
 // Whether any currently-equipped item carries the given effect id. Boolean

@@ -2078,6 +2078,101 @@ const ITEM_DEFS = {
   "Mantle of the Tower": { slot: "cloak", tier: 6, bonuses: { def: 2, health: 2 }, effects: ["dra_e08_ashward"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I08
   "Black-Ice Reliquary": { slot: "trinkets", tier: 6, bonuses: { atk: 2, magic: 2 }, effects: ["dra_e09_black_ice_reserve"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I09
   "Vowstone of Vosgard": { slot: "trinkets", tier: 6, bonuses: { def: 2, health: 3 }, effects: ["dra_e10_venom_tempering"], source: "world_boss", set: "First Sword's Regalia" }, // DRA-I10
+
+  // ---- Sanguivorum Criminal Underworld Division (Codex v0.3, Step 4.B
+  // v0.4 owner-approved) — 13 equipment profiles across 11 identities
+  // (Highway Cutthroat carries three: V1/V2/V3). Five items are the
+  // codex's own cited EXISTING catalog gear (Section 07/Appendix C) and
+  // are reused at their real, already-defined keys above rather than
+  // duplicated here: "a sanguivorum legionary's side sword", "a
+  // sanguivorum infantry shield", "highland march boots", "Sanguivorum
+  // courier boots", "Thraekor ash-strider greaves". Bonus keys use
+  // "accuracy"/"agility" (full word, not "acc"/"agi") to match
+  // equipmentBonus()'s own convention (state.js) — see buildFightCreature
+  // (engine/combat.js) for the matching enemy-side read.
+  // Street Thug
+  "Worn Leather Vest": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Scuffed Work Boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Streetbreaker Club": { slot: "mainhand", tier: 1, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  // Market Cutpurse
+  "Concealed Street Vest": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Pickpocket's Gloves": { slot: "gloves", tier: 1, bonuses: { agility: 1 }, effects: ["sang_cu_ie001_light_fingers"], source: "monster", region: "sanguivorum" },
+  "Softstep Boots": { slot: "boots", tier: 1, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Cutpurse's Dagger": { slot: "mainhand", tier: 2, bonuses: { atk: 2, agility: 1 }, source: "monster", region: "sanguivorum" },
+  "Street Shiv": { slot: "offhand", tier: 1, bonuses: { atk: 1 }, source: "monster", region: "sanguivorum" },
+  // Imperial Road Bandit
+  "Road Bandit's Cap": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Travel Leather": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  // Roadside Lookout
+  "Lookout's Hood": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Light Travel Coat": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Crossbowman's Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Roadside Spotter's Crossbow": { slot: "mainhand", tier: 3, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Spotter's Lens": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_cu_ie002_marked_target"], source: "monster", region: "sanguivorum" },
+  // Highway Cutthroat V1/V2/V3 (one shared base identity; three loadouts)
+  "Cutthroat's Leather Coat": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Knife-Fighter's Gloves": { slot: "gloves", tier: 1, bonuses: { agility: 1 }, source: "monster", region: "sanguivorum" },
+  "Silent Road Boots": { slot: "boots", tier: 1, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Highway Cutthroat's Blade V1": { slot: "mainhand", tier: 2, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Highway Cutthroat's Shiv V1": { slot: "offhand", tier: 1, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Cutthroat Coat": { slot: "chest", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Veteran Knife-Fighter's Gloves": { slot: "gloves", tier: 2, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Highway Cutthroat's Blade V2": { slot: "mainhand", tier: 4, bonuses: { atk: 7 }, effects: ["sang_cu_ie003_serrated_opening"], source: "monster", region: "sanguivorum" },
+  "Highway Cutthroat's Shiv V2": { slot: "offhand", tier: 3, bonuses: { atk: 5 }, source: "monster", region: "sanguivorum" },
+  "Dark Travel Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Master Cutthroat Coat": { slot: "chest", tier: 4, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Master Knife-Fighter's Gloves": { slot: "gloves", tier: 3, bonuses: { agility: 3 }, source: "monster", region: "sanguivorum" },
+  "Highway Cutthroat's Blade V3": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, effects: ["sang_cu_ie003_serrated_opening"], source: "monster", region: "sanguivorum" },
+  "Highway Cutthroat's Shiv V3": { slot: "offhand", tier: 4, bonuses: { atk: 8 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Dark Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  // Caravan Ambusher
+  "Iron-Banded Hood": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Ambusher's Leather": { slot: "chest", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Heavy Grip Gloves": { slot: "gloves", tier: 1, bonuses: { atk: 1 }, source: "monster", region: "sanguivorum" },
+  "Caravan Breaker Maul": { slot: "mainhand", tier: 3, bonuses: { atk: 6 }, effects: ["sang_cu_ie004_spoils_of_the_road"], source: "monster", region: "sanguivorum" },
+  "Dustworn Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  // Border Smuggler
+  "Concealed Leather Hood": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Smuggler's Reinforced Coat": { slot: "chest", tier: 3, bonuses: { def: 5 }, effects: ["sang_cu_ie005_hidden_compartments"], source: "monster", region: "sanguivorum" },
+  "Fine Sword Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Border Travel Boots": { slot: "boots", tier: 2, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Border Smuggler's Sword": { slot: "mainhand", tier: 3, bonuses: { atk: 6 }, source: "monster", region: "sanguivorum" },
+  "Smuggler's Guard Buckler": { slot: "offhand", tier: 3, bonuses: { def: 5 }, effects: ["sang_cu_ie006_smugglers_guard"], source: "monster", region: "sanguivorum" },
+  "Concealment Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  // Disgraced Ovum Fighter
+  "Worn Arena Harness": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Arena Fighting Wraps": { slot: "gloves", tier: 2, bonuses: { atk: 2, agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Arena Sandals": { slot: "boots", tier: 2, bonuses: { agility: 3 }, source: "monster", region: "sanguivorum" },
+  "Ovum Outcast Primary Blade": { slot: "mainhand", tier: 3, bonuses: { atk: 5 }, effects: ["sang_cu_ie007_duelists_measure"], source: "monster", region: "sanguivorum" },
+  "Ovum Outcast Secondary Blade": { slot: "offhand", tier: 2, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
+  "Arena Veteran's Token": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  // Outlaw Packmaster
+  "Handler's Leather Cap": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Packmaster's Leather Vest": { slot: "chest", tier: 3, bonuses: { def: 5, health: 5 }, effects: ["sang_cu_ie008_handlers_resilience"], source: "monster", region: "sanguivorum" },
+  "Reinforced Handler Gloves": { slot: "gloves", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Outlaw Hunting Boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, effects: ["trailwise"], source: "monster", region: "sanguivorum" },
+  "Outlaw Handler's Spear": { slot: "mainhand", tier: 3, bonuses: { atk: 5, def: 3 }, source: "monster", region: "sanguivorum" },
+  "Weathered Hunting Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Packmaster's Whistle": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_cu_ie009_hunters_call"], source: "monster", region: "sanguivorum" },
+  // Highway Captain
+  "Highway Officer's Helm": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Captain's Reinforced Armor": { slot: "chest", tier: 5, bonuses: { def: 10, health: 8 }, source: "monster", region: "sanguivorum" },
+  "Veteran Officer's Gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Captain's Riding Boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Highway Captain's Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Highway Captain's Command Shield": { slot: "offhand", tier: 4, bonuses: { def: 8, health: 3 }, effects: ["sang_cu_ie010_officers_intercession"], source: "monster", region: "sanguivorum" },
+  "Officer's Signet": { slot: "rings", tier: 3, bonuses: { accuracy: 3 }, effects: ["merchants_eye"], source: "monster", region: "sanguivorum" },
+  "Captain's Command Cloak": { slot: "cloak", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Commander's Insignia": { slot: "trinkets", tier: 3, bonuses: { accuracy: 2 }, effects: ["sang_cu_ie011_commanders_poise"], source: "monster", region: "sanguivorum" },
+  // Roadlord
+  "Roadlord's War Helm": { slot: "helmet", tier: 5, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Roadlord's Reinforced Cuirass": { slot: "chest", tier: 6, bonuses: { def: 12, health: 10 }, source: "monster", region: "sanguivorum" },
+  "Veteran War Gauntlets": { slot: "gloves", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Warlord Boots": { slot: "boots", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Roadlord's Veteran Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 12 }, effects: ["sang_cu_ie012_tyrants_edge"], source: "monster", region: "sanguivorum" },
+  "Ruthless Lord's Signet": { slot: "rings", tier: 4, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
+  "Roadlord's Battle Cloak": { slot: "cloak", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Conqueror's Trophy": { slot: "trinkets", tier: 4, bonuses: { health: 5 }, effects: ["sang_cu_ie013_conquerors_resolve"], source: "monster", region: "sanguivorum" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for
