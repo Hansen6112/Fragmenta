@@ -2441,6 +2441,152 @@ const ITEM_DEFS = {
   "Veteran Ovum Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
   "Ovum Veteran Mantle": { slot: "cloak", tier: 1, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
   "Arena Service Token": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, source: "monster", region: "sanguivorum" },
+
+  // ---- Sanguivorum Independent Armed Groups Division (Codex, Step
+  // 4.A/4.B owner-approved in full) — 15 itemized loadouts across 12
+  // identities (Rural Militia Fighter carries 2 equipment bands, Road
+  // Convoy Guard carries 3, each one shared base identity). Four of the
+  // codex's own cited "existing verified catalog" items are reused at
+  // their real, already-defined (lowercase) keys rather than re-declared:
+  // "worn traveler's boots" (Militia Volunteer/Rural Militia Fighter
+  // V1/Road Convoy Guard V1's Boots), "highland march boots" (Rural
+  // Militia Fighter V2/Road Convoy Guard V2's Boots), "Sanguivorum
+  // courier boots" (Independent Scout's Boots), "border patrol greaves"
+  // (Road Convoy Guard V3's Boots) — all case-insensitively verified
+  // against the full ITEM_DEFS table before writing anything here. Three
+  // MORE exact or near-exact duplicates turned up independently during
+  // that same full-table check and are reused instead of re-declared:
+  // "a highland hunter's mantle" (Independent Scout's Cloak — identical
+  // bonuses {def:2, knowledge:1} and identical "trailwise" effect to what
+  // the codex's own "Highland Hunter's Mantle" calls for, just this
+  // file's own lowercase "a "-prefixed naming convention for this item),
+  // "Veteran Knife-Fighter's Gloves" (Contract Blade's Gloves — the
+  // codex's own plain "Knife-Fighter's Gloves +2 AGI" collides
+  // case-insensitively, exact name, with an existing tier-1 Highway
+  // Cutthroat item at +1 AGI; its own tier-2 sibling already carries the
+  // +2 AGI the codex actually wants, reused at that key instead of
+  // re-declaring a near-duplicate at either tier) and "Reinforced Handler
+  // Gloves" (Arena Beastmaster's Gloves — the codex's own "Reinforced
+  // Handling Gloves +2 DEF" is a one-word-different near-miss of this
+  // already-existing Imperial Military item, itself already +2 DEF).
+  // "Archer's Gloves" (Independent Scout's Gloves) is a case-insensitive
+  // name collision with an UNRELATED existing "archer's gloves" (Scout
+  // Corps set, +2 ATK/patient_aim, no Sanguivorum region tag) — kept as
+  // its own distinct new entry per the codex's exact wording and bonus
+  // (+2 ACC), the same "near-miss, not a duplicate" call Security and
+  // Enforcement's own "Veteran Officer Gauntlets" made, flagged here for
+  // the owner's awareness.
+  // Militia Volunteer (Boots reuses "worn traveler's boots" above)
+  "Rough Militia Tunic": { slot: "chest", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Village Militia Spear": { slot: "mainhand", tier: 1, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Militia Wooden Shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  // Rural Militia Fighter V1 (Boots reuses "worn traveler's boots" above)
+  "Padded Militia Cap": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Work Vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Rough Fighting Gloves": { slot: "gloves", tier: 1, bonuses: { atk: 1 }, source: "monster", region: "sanguivorum" },
+  "Militia Woodcutter Axe": { slot: "mainhand", tier: 2, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
+  "Iron-Banded Militia Shield": { slot: "offhand", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  // Rural Militia Fighter V2 (Boots reuses "highland march boots" above)
+  "Reinforced Militia Helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Hardened Militia Coat": { slot: "chest", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Veteran Militia Gloves": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Veteran Militia War Axe": { slot: "mainhand", tier: 3, bonuses: { atk: 6 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Militia Shield": { slot: "offhand", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Weathered Local Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  // Independent Scout (Boots reuses "Sanguivorum courier boots" above;
+  // Cloak reuses "a highland hunter's mantle" above)
+  "Scout's Hood": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Hunting Leather": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Archer's Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Independent Hunting Bow": { slot: "mainhand", tier: 2, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Pathfinder's Compass": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, effects: ["sang_iag_ie001_pathfinders_eye"], source: "monster", region: "sanguivorum" },
+  // Road Convoy Guard V1 (Boots reuses "worn traveler's boots" above)
+  "Sellsword Iron Cap": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Contract Leather Armor": { slot: "chest", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Leather Sword Gloves": { slot: "gloves", tier: 1, bonuses: { accuracy: 1 }, source: "monster", region: "sanguivorum" },
+  "Contract Sellsword Blade": { slot: "mainhand", tier: 2, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Contract Guard Shield": { slot: "offhand", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  // Road Convoy Guard V2 (Boots reuses "highland march boots" above)
+  "Reinforced Sellsword Helm": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Professional Mail Coat": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Veteran Sword Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Veteran Contract Sword": { slot: "mainhand", tier: 3, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Contract Shield": { slot: "offhand", tier: 3, bonuses: { def: 5 }, effects: ["sang_iag_ie002_contractors_endurance"], source: "monster", region: "sanguivorum" },
+  "Travel-Worn Mercenary Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  // Road Convoy Guard V3 (Boots reuses "border patrol greaves" above)
+  "Veteran Mercenary War Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Master Sellsword Mail": { slot: "chest", tier: 4, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Master Sword Gloves": { slot: "gloves", tier: 3, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Master Contract Blade": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Master Contract Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, effects: ["sang_iag_ie002_contractors_endurance"], source: "monster", region: "sanguivorum" },
+  "Mercenary Oath Ring": { slot: "rings", tier: 1, bonuses: { health: 2 }, source: "monster", region: "sanguivorum" },
+  "Veteran Travel Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  // Contract Marksman
+  "Marksman's Hood": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Contract Archer's Leather": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Precision Crossbow Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Light Traveler Boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Contract Heavy Crossbow": { slot: "mainhand", tier: 3, bonuses: { atk: 6 }, effects: ["sang_iag_ie003_measured_aim"], source: "monster", region: "sanguivorum" },
+  "Dark Marksman's Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Sight Adjustment Kit": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  // Free Company Captain
+  "Free Company Captain's Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Captain's Mercenary Armor": { slot: "chest", tier: 4, bonuses: { def: 9, health: 5 }, source: "monster", region: "sanguivorum" },
+  "Officer's Sword Gauntlets": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Officer Boots": { slot: "boots", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Free Company Command Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Mercenary Captain's Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
+  "Mercenary Officer Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Captain's Travel Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Free Company Standard": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_iag_ie004_company_standard"], source: "monster", region: "sanguivorum" },
+  // Ovum Prizefighter
+  "Prizefighter's Arena Harness": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Arena Grip Wraps": { slot: "gloves", tier: 2, bonuses: { atk: 2, agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Arena Fighting Sandals": { slot: "boots", tier: 2, bonuses: { agility: 3 }, source: "monster", region: "sanguivorum" },
+  "Ovum Prizefighter Trident": { slot: "mainhand", tier: 3, bonuses: { atk: 6 }, source: "monster", region: "sanguivorum" },
+  "Weighted Arena Net": { slot: "offhand", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Prizefighter's Token": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["sang_iag_ie005_arena_recognition"], source: "monster", region: "sanguivorum" },
+  // Ovum Champion
+  "Champion's Arena Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Ovum Champion Cuirass": { slot: "chest", tier: 4, bonuses: { def: 10, health: 8 }, source: "monster", region: "sanguivorum" },
+  "Champion's Fighting Gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3, agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Champion's Arena Greaves": { slot: "boots", tier: 3, bonuses: { def: 3, agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Ovum Champion Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 11 }, source: "monster", region: "sanguivorum" },
+  "Champion's Arena Shield": { slot: "offhand", tier: 4, bonuses: { def: 8 }, effects: ["sang_iag_ie006_champions_poise"], source: "monster", region: "sanguivorum" },
+  "Champion's Victory Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Champion's Victory Mantle": { slot: "cloak", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Ovum Championship Medal": { slot: "trinkets", tier: 2, bonuses: { health: 5 }, source: "monster", region: "sanguivorum" },
+  // Contract Blade (Gloves reuses "Veteran Knife-Fighter's Gloves" above)
+  "Concealed Assassin Leather": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Quiet Travel Boots": { slot: "boots", tier: 2, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Contract Killer's Short Sword": { slot: "mainhand", tier: 2, bonuses: { atk: 5 }, source: "monster", region: "sanguivorum" },
+  "Concealed Contract Dagger": { slot: "offhand", tier: 2, bonuses: { atk: 3 }, effects: ["sang_iag_ie007_concealed_edge"], source: "monster", region: "sanguivorum" },
+  "Dark Contract Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  // Veiled Executor
+  "Executor's Concealed Hood": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Veiled Armor": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Precision Assassin Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Silent Executor Boots": { slot: "boots", tier: 2, bonuses: { agility: 3 }, source: "monster", region: "sanguivorum" },
+  "Veiled Precision Blade": { slot: "mainhand", tier: 3, bonuses: { atk: 8 }, source: "monster", region: "sanguivorum" },
+  "Executor's Poisoned Dagger": { slot: "offhand", tier: 3, bonuses: { atk: 5 }, effects: ["sang_iag_ie008_toxic_preparation"], source: "monster", region: "sanguivorum" },
+  "Veiled Contract Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Executor's Concealment Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  // Arena Beastmaster (Gloves reuses "Reinforced Handler Gloves" above)
+  "Arena Handler's Cap": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Beastmaster's Protective Leather": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Beastkeeper's Boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Arena Handler's Spear": { slot: "mainhand", tier: 3, bonuses: { atk: 5 }, source: "monster", region: "sanguivorum" },
+  "Weathered Arena Handler Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Beastmaster's Whistle": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_iag_ie009_beastkeepers_instinct"], source: "monster", region: "sanguivorum" },
+  // Militia Warleader
+  "Warleader's Iron Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Militia War Armor": { slot: "chest", tier: 4, bonuses: { def: 9, health: 5 }, source: "monster", region: "sanguivorum" },
+  "Warleader's Heavy Gauntlets": { slot: "gloves", tier: 2, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
+  "Warleader's Reinforced Boots": { slot: "boots", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Militia Warleader's Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Warleader's Heavy Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
+  "Militia Warleader Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Militia Rallying Standard": { slot: "trinkets", tier: 2, bonuses: { accuracy: 3 }, effects: ["sang_iag_ie010_rallying_standard"], source: "monster", region: "sanguivorum" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

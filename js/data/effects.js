@@ -418,6 +418,33 @@ const EFFECT_DEFS = {
   sang_sec_ie006_evidence_assessment: { name: "Evidence Assessment", category: "utility", description: "On an eligible ordinary investigation/evidence common-material reward, 10% chance of one extra common-table roll. Once per event; nonstacking; restricted evidence excluded. Currently inert — this engine has no investigation-reward loot-table hook for an equipped item to tie into yet." },
   sang_sec_ie007_duelists_bulwark: { name: "Duelist's Bulwark", category: "combat", description: "On a successful damaging hit received, multiply that hit's final damage by 0.90. Cooldown 4 wearer turns; max twice per combat; no retaliation or reaction chain." },
   sang_sec_ie008_civic_credentials: { name: "Civic Credentials", category: "utility", description: "On an eligible ordinary civic-security currency reward, +5% base currency (rounded down). Once per payout, highest applicable modifier only; unique/special/quest excluded. Currently inert — this engine has no civic-currency-reward system for an equipped item to tie into yet." },
+
+  // ---- Sanguivorum Independent Armed Groups Division (Codex, Step 4.A/4.B
+  // owner-approved in full, SANG-IAG-IE001-010) — the fourth and final
+  // Sanguivorum division's 10 item effects. IE001 Pathfinder's Eye, IE005
+  // Arena Recognition and IE009 Beastkeeper's Instinct are the codex's own
+  // "noncombat" loot-table/exploration/arena-economy bonuses — declared
+  // and left inert pending systems that don't exist in this engine, the
+  // same "currently inert" convention as every prior division's own
+  // loot/trade/currency effects. IE002 Contractor's Endurance and IE006
+  // Champion's Poise resolve through the SAME shared, generalized
+  // mitigation mechanisms as their Imperial Military/Security and
+  // Enforcement precedents (ONE_HIT_MITIGATION_EFFECT_IDS/
+  // REPEATABLE_MITIGATION_EFFECT_IDS, engine/combat.js) rather than a
+  // second mechanism each. IE007 Concealed Edge resolves through the same
+  // first-attack-Accuracy mechanism as Calculated Aim (Sanguivorum
+  // Imperial Military) — the codex's own wording for this one explicitly
+  // calls it "reuse first-attack Accuracy pattern where identical."
+  sang_iag_ie001_pathfinders_eye: { name: "Pathfinder's Eye", category: "utility", description: "On an eligible ordinary exploration/reconnaissance discovery, 10% chance of one extra common exploration-material reward roll. Once per eligible discovery event; duplicates don't stack; quest/unique/boss/restricted rewards excluded. Currently inert — this engine has no exploration discovery/reward-table hook for an equipped item to tie into yet." },
+  sang_iag_ie002_contractors_endurance: { name: "Contractor's Endurance", category: "combat", description: "The wearer's first successful damaging hit taken each combat deals 10% less final damage. Once per combat, no stacking. Same mechanical pattern as Hardened Formation/Officer's Bearing/Watchman's Resilience (Sanguivorum Imperial Military / Security and Enforcement) — a separate presentation name over one shared mechanism." },
+  sang_iag_ie003_measured_aim: { name: "Measured Aim", category: "combat", description: "If the wearer currently has an accuracy-preparation buff banked (Take Aim or an equivalent), the next damaging attack attempted with the crossbow gains +8 Accuracy before the hit roll, additive on top of whatever that preparation buff already grants. Once per combat; expended on the first eligible attack attempt, hit or miss." },
+  sang_iag_ie004_company_standard: { name: "Company Standard", category: "combat", description: "The first successful wearer-originated Attack buff to allies each combat grants an additional +5 Defense for 2 recipient turns to the eligible buffed recipient at lowest current HP%. Once per combat; needs at least one recipient of that buff." },
+  sang_iag_ie005_arena_recognition: { name: "Arena Recognition", category: "utility", description: "On an eligible ordinary arena-related payout, +5% base currency (rounded down). Once per payout; only the highest applicable modifier applies; quest-specific/unique/championship/restricted rewards excluded. Currently inert — this engine has no arena-payout/currency-reward hook for an equipped item to tie into yet." },
+  sang_iag_ie006_champions_poise: { name: "Champion's Poise", category: "combat", description: "On a successful damaging hit received, reduce that hit's final damage by 10%. Cooldown 4 wearer turns; max twice per combat; no retaliation or reaction chain. Same mechanical pattern as Duelist's Bulwark (Sanguivorum Security and Enforcement) — a separate presentation name over one shared, repeatable mitigation mechanism." },
+  sang_iag_ie007_concealed_edge: { name: "Concealed Edge", category: "combat", description: "The wearer's first damaging attack attempted each combat gains +8 Accuracy for that attack roll only. Consumed on the attempt, whether it hits or misses. Once per combat. Same mechanical pattern as Calculated Aim (Sanguivorum Imperial Military) — a separate presentation name over one shared mechanism." },
+  sang_iag_ie008_toxic_preparation: { name: "Toxic Preparation", category: "combat", description: "The first time each combat the wearer damages an already-Poisoned player, deal additional floor(5% of that hit's own final direct damage), minimum 1. Once per combat; does not apply, stack, extend or refresh Poison itself." },
+  sang_iag_ie009_beastkeepers_instinct: { name: "Beastkeeper's Instinct", category: "utility", description: "On an eligible ordinary animal-handling/beast-related common-material reward, 10% chance of one extra common-material table roll. Once per reward event; duplicates don't stack; rare/unique creature rewards and restricted trophies excluded. Currently inert — this engine has no animal-handling reward-table hook for an equipped item to tie into yet." },
+  sang_iag_ie010_rallying_standard: { name: "Rallying Standard", category: "combat", description: "The first successful wearer-originated Attack buff to allies each combat grants an additional +5 Attack for 2 recipient turns to the eligible buffed recipient at lowest current Attack. Once per combat; needs at least one recipient of that buff. Same selection-rule pattern as Company Standard above, but by lowest current Attack instead of lowest HP%, and granting Attack instead of Defense." },
 };
 
 // Whether any currently-equipped item carries the given effect id. Boolean

@@ -76,6 +76,16 @@ const STATUS_EFFECTS = {
   // collision in a different namespace) to avoid any confusion between
   // the two.
   sang_sec_exposed_weakness: { name: "Exposed Weakness", debuff: { def: -10 }, stackable: false, turns: 2 },
+  // Poison (Veiled Executor's own Poisoned Edge, Sanguivorum Independent
+  // Armed Groups): "3% target maximum HP at end of each affected turn for
+  // 2 turns, cleanseable, nonstacking refresh." Not new engine code — the
+  // exact same generic, status-id-agnostic percent-max-HP DOT system
+  // Bleeding's own dot.pctMaxHp already runs on, just a different id,
+  // magnitude and `stackable: false` (a reapplication simply refreshes
+  // this status's own turnsLeft/stacks:1, per applyPlayerStatus's existing
+  // non-stackable branch — Bleeding's own up-to-3-stacks behavior comes
+  // from ITS `stackable: true` flag, not from anything this entry inherits).
+  sang_iag_poison: { name: "Poison", dot: { pctMaxHp: 0.03 }, stackable: false, turns: 2 },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -1106,6 +1116,223 @@ const ENEMY_ABILITIES = {
   // function via its own arenaRiposteCooldown/arenaRiposteUsesThisCombat
   // fields, not here.
   sang_sec_arena_riposte: { name: "Arena Riposte", type: "passive", trigger: "counterOnSuccessfulHit", mult: 0.8 },
+
+  // ---- Sanguivorum Independent Armed Groups Division (Codex, Step
+  // 4.A/4.B owner-approved in full) — 12 identities' intrinsic kits, the
+  // fourth and final Sanguivorum division. Two existing-pattern ids are
+  // reused VERBATIM rather than near-duplicated, per the mandatory
+  // case-insensitive check against this whole table: ambush_bonus
+  // (Contract Blade's own "Ambush" — byte-for-byte identical to the
+  // codex's own "existing pattern" description) and handlers_spear
+  // (Legion Houndmaster's own "Handler's Spear," Sanguivorum Imperial
+  // Military — identical name AND identical numbers, 1.2x ATK/CD3, reused
+  // on Arena Beastmaster below). Two more collide by NAME ONLY with
+  // existing, mechanically different entries elsewhere in this file
+  // (opportunistic_strike/H01, sang_sec_captains_sword) and are kept as
+  // distinct `sang_iag_`-prefixed ids showing the identical display name,
+  // the same mil_/sang_sec_ precedent every prior division used for its
+  // own name-only collisions.
+  //
+  // New, additive engine support in engine/combat.js beyond what the
+  // other three divisions needed (all genuinely new mechanics this
+  // division's own brief called out; everything else below is pure data
+  // reuse of an already-supported shape):
+  // - REPEATABLE_MITIGATION_EFFECT_IDS generalizes Duelist's Bulwark's own
+  //   single-id mechanism (Sanguivorum Security and Enforcement) into a
+  //   shared list so Champion's Poise (SANG-IAG-IE006) resolves through
+  //   the exact same CD4/max-2 reaction, renaming the shared per-wearer
+  //   fields from duelistBulwark* to repeatableMitigation* for clarity.
+  // - banksNextAttackAccBonus gained an optional `dmgMultBonus` sibling to
+  //   its existing `amount`/`turns` (Silent Preparation) — carried on and
+  //   consumed with the SAME banked charge, in the SAME place, as the ACC
+  //   bonus; `bonusIfPreparedState` (Contract Bolt) and
+  //   `inflictRequiresPreparedState` (Veiled Precision) are two small,
+  //   read-only conditional checks against that same banked state, in
+  //   resolveEnemyActiveAbility, that never themselves touch or clear it.
+  // - `priorAbilityUseFlags`, a small generic per-ability-id bookkeeping
+  //   object on the enemy record, plus `requiresPriorAbilityUse`/
+  //   `consumesPriorAbilityUse` ability-data fields (Final Exchange's own
+  //   "requires Champion's Guard used since previous Final Exchange"
+  //   gate) — the third sibling of selfHealthBelowPct/requiresPreparedState
+  //   in resolveEnemyActiveAbility's own eligible filter.
+  // - playerHasAccOrAtkDebuff/playerHasAnyNegativeStatus (Trident
+  //   Combination/Opportunistic Strike), modeled exactly on
+  //   playerHasAccOrSpdDebuff (Sanguivorum Criminal Underworld), plus the
+  //   `bonusVsAccOrAtkDebuff`/`bonusVsAnyNegativeStatus` ability-data
+  //   fields that read them.
+  // - Company Standard/Rallying Standard (SANG-IAG-IE004/IE010): two new,
+  //   independent if-blocks in applyPackAuraBuff, reusing Imperial
+  //   Authority's own once-per-combat shape but picking the buffed
+  //   recipient at lowest current HP%/ATK (pickLowestHpRecipient/
+  //   pickLowestAtkRecipient) instead of Imperial Authority's own
+  //   recipients[0].
+  // - Toxic Preparation (SANG-IAG-IE008): checked and applied in
+  //   resolveEnemyRetaliation, directly against the PLAYER's own poison
+  //   status — the one mechanic in this division that checks the
+  //   opposite side's status from everything else here (Poisoned Edge
+  //   inflicts Poison ON the player; Toxic Preparation triggers off
+  //   hitting an ALREADY-poisoned player).
+  // Arena Counter (Ovum Champion) and the shared militia reinforcement
+  // pool (Militia Volunteer/Rural Militia Fighter/Militia Warleader) are
+  // explicitly ZERO new engine code — see each ability's own comment
+  // below for the exact existing mechanism each reuses.
+  //
+  // Militia Volunteer (Generalist -> skirmisher, family "militia", group
+  // "sang_iag_militia"):
+  sang_iag_militia_thrust: { name: "Militia Thrust", type: "active", cooldown: 3, dmgMult: 1.2 },
+  sang_iag_desperate_guard: { name: "Desperate Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 5, turns: 2 } },
+  // Call for Help / Rally the Locals / Raise the Militia (below): the
+  // codex's own explicit division-wide shared reinforcement pool
+  // ("Militia active cap 6 and lifetime cap 10 encounter-wide"), NOT the
+  // usual per-handler cap — all three summon specs share the exact same
+  // literal capKey, read by resolveEnemySummon's existing
+  // `const key = spec.capKey || sourceKey;` line (the exact mechanism
+  // that already supports several different abilities on different
+  // creatures sharing one pool — precedent: Criminal Underworld's
+  // Dreadroot note in that same function). Zero new engine code.
+  sang_iag_call_for_help: { name: "Call for Help", type: "active", cooldown: 5, dmgMult: 0, summon: { creatureId: "militia_volunteer", count: 1, capKey: "sang_iag_militia_reinforcements", maxActive: 6, maxLifetime: 10, noArrivalAttack: true } },
+  // Rural Militia Fighter (Bruiser -> bruiser, family "militia", group
+  // "sang_iag_militia"):
+  sang_iag_rough_fighter: { name: "Rough Fighter", type: "passive", trigger: "flatStatBonus", stat: "atk", amount: 5 },
+  sang_iag_heavy_axe_swing: { name: "Heavy Axe Swing", type: "active", cooldown: 3, dmgMult: 1.55 },
+  sang_iag_reckless_blow: { name: "Reckless Blow", type: "active", cooldown: 4, dmgMult: 1.75, selfDebuff: { def: -8, turns: 2 } },
+  sang_iag_rally_the_locals: { name: "Rally the Locals", type: "active", cooldown: 5, dmgMult: 0, summon: { creatureId: "militia_volunteer", countMin: 1, countMax: 2, capKey: "sang_iag_militia_reinforcements", maxActive: 6, maxLifetime: 10, noArrivalAttack: true } },
+  // Independent Scout (Skirmisher -> skirmisher; no family tag — the
+  // codex's own family groupings don't include this identity):
+  // Watchful Approach: the exact existing combatStartSelfBuff trigger
+  // (Smuggler's Caution/Rapid Reconnaissance precedent).
+  sang_iag_watchful_approach: { name: "Watchful Approach", type: "passive", trigger: "combatStartSelfBuff", selfBuff: { spd: 8, turns: 1 } },
+  sang_iag_disrupting_arrow: { name: "Disrupting Arrow", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
+  sang_iag_hunters_shot: { name: "Hunter's Shot", type: "active", cooldown: 3, dmgMult: 1.5 },
+  // Road Convoy Guard (Defensive generalist -> tank, family "mercenary",
+  // group "sang_iag_mercenary"):
+  sang_iag_professional_guard: { name: "Professional Guard", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
+  sang_iag_measured_sword_strike: { name: "Measured Sword Strike", type: "active", cooldown: 3, dmgMult: 1.4 },
+  sang_iag_contractors_guard: { name: "Contractor's Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 8, turns: 2 } },
+  // Contract Marksman (Precision attacker -> artillery, family
+  // "mercenary", group "sang_iag_mercenary"):
+  // Take Aim / Contract Bolt: Take Aim banks the existing
+  // banksNextAttackAccBonus shape (Calculated Preparation precedent, no
+  // damage component); Contract Bolt's own +10% is the new
+  // bonusIfPreparedState conditional (resolveEnemyActiveAbility), gated on
+  // that same banked state WITHOUT consuming it itself — this attack's
+  // own normal attempt-consumption (resolveEnemyRetaliation) does that
+  // regardless, whether or not bonusIfPreparedState happened to fire.
+  sang_iag_take_aim: { name: "Take Aim", type: "active", cooldown: 4, dmgMult: 0, banksNextAttackAccBonus: { amount: 12, turns: 2 } },
+  sang_iag_contract_bolt: { name: "Contract Bolt", type: "active", cooldown: 4, dmgMult: 1.7, bonusIfPreparedState: { mult: 1.10 } },
+  // Free Company Captain (Tactical leader -> leader, family "mercenary",
+  // group "sang_iag_mercenary"):
+  // Mercenary Authority: whileAllyAlive's existing "family" scope
+  // (Marine Discipline precedent, Sanguivorum Imperial Military) — zero
+  // new engine code.
+  sang_iag_mercenary_authority: { name: "Mercenary Authority", type: "passive", trigger: "whileAllyAlive", scope: "family", selfBuff: { acc: 5 } },
+  // Battle-Tested: the exact existing healthBelowPct trigger shape as
+  // Imperial Military's own Battle-Hardened.
+  sang_iag_battle_tested: { name: "Battle-Tested", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { def: 8, turns: 2 }, oncePerCombat: true },
+  sang_iag_company_assault_order: { name: "Company Assault Order", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { atk: 10, turns: 2, maxTargets: 3, groupKey: "sang_iag_mercenary" } },
+  // Captain's Sword: collides by NAME ONLY with sang_sec_captains_sword
+  // (Watch Captain's own, 1.55x) — kept distinct, same display name.
+  sang_iag_captains_sword: { name: "Captain's Sword", type: "active", cooldown: 3, dmgMult: 1.6 },
+  // Defensive Contract: "Captain AND up to 2 other mercenary allies +8 DEF
+  // for 2 turns" needs BOTH selfBuff (the caster itself) AND packAuraBuff
+  // (the up-to-2 other allies) on the SAME entry — resolveEnemyAction
+  // already applies both unconditionally from one abilityCtx (Steady the
+  // Line precedent, Sanguivorum Imperial Military); zero new engine code.
+  sang_iag_defensive_contract: { name: "Defensive Contract", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 8, turns: 2 }, packAuraBuff: { def: 8, turns: 2, maxTargets: 2, groupKey: "sang_iag_mercenary" } },
+  // Call Company Reinforcements: scoped PER-HANDLER as usual (no capKey
+  // override) — explicitly NOT part of the shared militia pool above.
+  sang_iag_call_company_reinforcements: { name: "Call Company Reinforcements", type: "active", cooldown: 6, dmgMult: 0, summon: { pool: ["road_convoy_guard", "contract_marksman"], countMin: 1, countMax: 3, maxActive: 3, maxLifetime: 6, noArrivalAttack: true } },
+  // Ovum Prizefighter (Technical duelist -> assassin, family "arena"):
+  sang_iag_arena_training: { name: "Arena Training", type: "passive", trigger: "flatStatBonus", stat: "acc", amount: 5 },
+  // Trident Combination: "1.5x, or 1.7x if target has reduced ACC OR ATK"
+  // — the new, narrower bonusVsAccOrAtkDebuff field (playerHasAccOrAtkDebuff).
+  sang_iag_trident_combination: { name: "Trident Combination", type: "active", cooldown: 3, dmgMult: 1.5, bonusVsAccOrAtkDebuff: { mult: 1.7 / 1.5 } },
+  // Entangling Net's dual -10 ACC/-5 ATK debuff from one hit: the same
+  // multi-key `custom` debuff object applyAbilityInflict already supports
+  // (Grasping Dead/Checkpoint Suppression precedent) — zero new engine
+  // code.
+  sang_iag_entangling_net: { name: "Entangling Net", type: "active", cooldown: 4, dmgMult: 0.8, inflict: { custom: { acc: -10, atk: -5, turns: 2 }, chance: 1 } },
+  sang_iag_duelists_guard: { name: "Duelist's Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
+  // Ovum Champion (Master duelist -> bruiser, family "arena"):
+  sang_iag_champions_discipline: { name: "Champion's Discipline", type: "passive", trigger: "flatStatBonus", stat: "acc", amount: 8 },
+  // Arena Resolve: the exact existing healthBelowPct trigger with no
+  // `turns` field -> permanent-for-the-fight (Commander's Resolve
+  // precedent, Sanguivorum Imperial Military).
+  sang_iag_arena_resolve: { name: "Arena Resolve", type: "passive", trigger: "healthBelowPct", threshold: 0.4, selfBuff: { atkPct: 0.10 }, oncePerCombat: true },
+  sang_iag_champions_guard: { name: "Champion's Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 12, turns: 2 } },
+  sang_iag_masterful_cut: { name: "Masterful Cut", type: "active", cooldown: 3, dmgMult: 1.65 },
+  // Final Exchange: the new requiresPriorAbilityUse/consumesPriorAbilityUse
+  // gate, referencing Champion's Guard's own ability id directly — see
+  // priorAbilityUseFlags in engine/combat.js.
+  sang_iag_final_exchange: { name: "Final Exchange", type: "active", cooldown: 5, dmgMult: 2.0, requiresPriorAbilityUse: "sang_iag_champions_guard", consumesPriorAbilityUse: "sang_iag_champions_guard" },
+  // Arena Counter: the EXACT existing counterOnSuccessfulHit trigger built
+  // for Security and Enforcement's own Arena Riposte — arenaRiposte
+  // CounterOnPlayer already reads `passive.mult || 0.8` generically, so
+  // this is zero new engine code, just a new ability entry with its own
+  // mult. Shares the mechanism's own arenaRiposteCooldown/
+  // arenaRiposteUsesThisCombat fields, which live on this creature's own
+  // object instance — never cross-contaminating Ovum Veteran Guard's
+  // unrelated Arena Riposte on a different creature.
+  sang_iag_arena_counter: { name: "Arena Counter", type: "passive", trigger: "counterOnSuccessfulHit", mult: 0.7 },
+  // Contract Blade (Assassin -> assassin, family "assassin"):
+  // Ambush: reuses ambush_bonus VERBATIM (see the division header comment
+  // above) rather than a near-duplicate — the codex's own source material
+  // describes this as "existing pattern," and it matches byte-for-byte.
+  sang_iag_assassins_cut: { name: "Assassin's Cut", type: "active", cooldown: 3, dmgMult: 1.4, accBonus: 10 },
+  // Opportunistic Strike: collides by NAME ONLY with opportunistic_strike
+  // (H01, Gate 5B.8 skills codex, a 1.3x-base/HP-threshold ability) — kept
+  // distinct. "1.6x, or 1.8x vs target with negative combat status" is the
+  // new, broadest bonusVsAnyNegativeStatus field (playerHasAnyNegativeStatus).
+  sang_iag_opportunistic_strike: { name: "Opportunistic Strike", type: "active", cooldown: 4, dmgMult: 1.6, bonusVsAnyNegativeStatus: { mult: 1.8 / 1.6 } },
+  // Bleeding Cut: reuses the ALREADY-EXISTING "bleed" status directly, not
+  // the new Poison status below (Veiled Executor's own Poisoned Edge).
+  sang_iag_bleeding_cut: { name: "Bleeding Cut", type: "active", cooldown: 4, dmgMult: 1.15, inflict: { status: "bleed", chance: 1 } },
+  // Veiled Executor (Assassin/controller -> assassin, family "assassin"):
+  // Executioner's Patience: the existing `firstAttack` trigger family,
+  // bare accBonus field (Silent Hunter/Range Calculation precedent).
+  sang_iag_executioners_patience: { name: "Executioner's Patience", type: "passive", trigger: "firstAttack", accBonus: 10 },
+  // Silent Preparation: banksNextAttackAccBonus's new optional
+  // dmgMultBonus field — the ACC bump and the damage bump are carried on
+  // and expire with the SAME banked charge (see engine/combat.js).
+  sang_iag_silent_preparation: { name: "Silent Preparation", type: "active", cooldown: 5, dmgMult: 0, banksNextAttackAccBonus: { amount: 15, turns: 2, dmgMultBonus: 1.10 } },
+  // Veiled Precision: "if prepared, on hit -10 target ACC" — a plain
+  // existing-pattern conditional inflict, gated by the new
+  // inflictRequiresPreparedState flag (reads, but does not itself clear,
+  // the same banked state Silent Preparation set).
+  sang_iag_veiled_precision: { name: "Veiled Precision", type: "active", cooldown: 4, dmgMult: 1.65, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 }, inflictRequiresPreparedState: true },
+  sang_iag_disabling_slice: { name: "Disabling Slice", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
+  // Poisoned Edge: inflicts the new sang_iag_poison status (above) exactly
+  // the way any existing ability inflicts bleed.
+  sang_iag_poisoned_edge: { name: "Poisoned Edge", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { status: "sang_iag_poison", chance: 1 } },
+  // Arena Beastmaster (Summoner/support -> summoner, family "beastmaster"):
+  // Arena Handler: the EXACT existing whileAllyAlive "summon" scope
+  // (Handler's Discipline precedent, Legion Houndmaster, Sanguivorum
+  // Imperial Military) — summonKey matches Release the Beasts' own
+  // ability id below (no capKey override on that spec, so
+  // summonSourceKey defaults to the ability id itself).
+  sang_iag_arena_handler: { name: "Arena Handler", type: "passive", trigger: "whileAllyAlive", scope: "summon", summonKey: "sang_iag_release_the_beasts", selfBuff: { def: 5 } },
+  // Release the Beasts: draws from the same wolf pool Criminal
+  // Underworld's own Call Outlaw Hounds already uses, with its own
+  // groupOverride retagging summoned instances for Arena Pack Command's
+  // own packAuraBuff groupKey match below, without mutating the wolf
+  // templates themselves.
+  sang_iag_release_the_beasts: { name: "Release the Beasts", type: "active", cooldown: 5, dmgMult: 0, summon: { pool: ["timberWolf", "duskWolf"], countMin: 1, countMax: 3, maxActive: 3, maxLifetime: 6, noArrivalAttack: true, groupOverride: "sang_iag_arena_pack" } },
+  // Handler's Spear: reuses the existing handlers_spear id VERBATIM (see
+  // the division header comment above) — identical name AND identical
+  // numbers (1.2x ATK, CD3) to Legion Houndmaster's own active.
+  sang_iag_arena_pack_command: { name: "Arena Pack Command", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 8, turns: 2, groupKey: "sang_iag_arena_pack" } },
+  // Militia Warleader (Aggressive leader -> berserker, family "militia",
+  // group "sang_iag_militia"):
+  // Militia Authority: whileAllyAlive's existing "family" scope, zero new
+  // engine code.
+  sang_iag_militia_authority: { name: "Militia Authority", type: "passive", trigger: "whileAllyAlive", scope: "family", selfBuff: { atk: 5 } },
+  sang_iag_warleaders_resolve: { name: "Warleader's Resolve", type: "passive", trigger: "healthBelowPct", threshold: 0.4, selfBuff: { atkPct: 0.10 }, oncePerCombat: true },
+  sang_iag_rally_the_fighters: { name: "Rally the Fighters", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { atk: 10, turns: 3, maxTargets: 3, groupKey: "sang_iag_militia" } },
+  sang_iag_warleaders_cleave: { name: "Warleader's Cleave", type: "active", cooldown: 4, dmgMult: 1.75 },
+  sang_iag_all_out_assault: { name: "All-Out Assault", type: "active", cooldown: 5, dmgMult: 1.9, selfDebuff: { def: -8, turns: 2 } },
+  // Raise the Militia: the shared militia reinforcement pool's third and
+  // final member — see Call for Help's own comment above.
+  sang_iag_raise_the_militia: { name: "Raise the Militia", type: "active", cooldown: 6, dmgMult: 0, summon: { creatureId: "rural_militia_fighter", countMin: 1, countMax: 3, capKey: "sang_iag_militia_reinforcements", maxActive: 6, maxLifetime: 10, noArrivalAttack: true } },
 };
 
 function getEnemyAbility(id) {
