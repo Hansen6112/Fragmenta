@@ -1,0 +1,177 @@
+range: 920af80bc45e5174acce4d251093b01e10ab17a7..0a16460ab7b4774e883964a0237f11a71c6e82cd
+=== 0a16460ab7b4774e883964a0237f11a71c6e82cd 2026-11-03 22:43:36 +0000
+Add Sanguivorum Independent Armed Groups Division (12 enemy identities, Step 4.A/4.B)
+All 12 owner-approved Independent Armed Groups identities as real,
+shipped roster content — the fourth and final Sanguivorum division:
+Militia Volunteer, Rural Militia Fighter (2 equipment bands), Independent
+Scout, Road Convoy Guard (3 equipment bands), Contract Marksman, Free
+Company Captain, Ovum Prizefighter, Ovum Champion, Contract Blade,
+Veiled Executor, Arena Beastmaster, Militia Warleader.
+
+Base stats are the owner's own Step-5 cross-division-audit-reconciled
+table (combined base+gear x2 minus the codex's own itemized gear deltas)
+— taken as final and approved, not re-derived, including Independent
+Scout's own Step-5-flagged DEF discrepancy, resolved per the owner's
+standing decision to trust the codex's own itemized equipment total
+(+5 DEF) over its separate narrative +3 DEF claim. Run through the
+STANDARD computeCreatureStats pipeline like every other ordinary
+creature, spawnRarity "common" + levelBandExempt + explicit levelRange
+for all 12, matching this file's established house style.
+
+`division` ("independent_armed_groups", shared by all 12, future-proofed
+for a cross-division check even though nothing reads it yet) and
+`family` (militia/mercenary/arena/assassin/beastmaster — Independent
+Scout carries no family tag, since the codex's own groupings don't
+include it). The militia trio (Militia Volunteer/Rural Militia
+Fighter/Militia Warleader) shares `group: "sang_iag_militia"` and the
+mercenary trio (Road Convoy Guard/Contract Marksman/Free Company
+Captain) shares `group: "sang_iag_mercenary"` for applyPackAuraBuff's
+existing groupKey match; no other identity carries a `group` tag.
+
+Archetype mapping (owner's own judgment calls, used exactly as given):
+skirmisher (Militia Volunteer, Independent Scout), bruiser (Rural
+Militia Fighter, Ovum Champion), tank (Road Convoy Guard), artillery
+(Contract Marksman), leader (Free Company Captain), assassin (Ovum
+Prizefighter, Contract Blade, Veiled Executor), summoner (Arena
+Beastmaster), berserker (Militia Warleader).
+
+Equipment: all 15 itemized loadouts from the codex, 101 new items added
+to ITEM_DEFS. Four items are the codex's own cited "existing verified
+catalog" reuses: "worn traveler's boots", "highland march boots",
+"Sanguivorum courier boots", "border patrol greaves". Three MORE
+case-insensitive duplicates turned up independently during the full
+mandatory table check and are reused instead of re-declared: "a
+highland hunter's mantle" (Independent Scout's Cloak — identical
+bonuses/effect to the codex's own "Highland Hunter's Mantle"), "Veteran
+Knife-Fighter's Gloves" (Contract Blade's Gloves — the codex's plain
+"Knife-Fighter's Gloves +2 AGI" collides case-insensitively with an
+existing tier-1 Criminal Underworld item at +1 AGI; its own tier-2
+sibling already carries the +2 AGI the codex wants), and "Reinforced
+Handler Gloves" (Arena Beastmaster's Gloves — a one-word-different
+near-miss of this already-existing Imperial Military item, itself
+already +2 DEF). "Archer's Gloves" (Independent Scout's Gloves) is a
+case-insensitive name collision with an UNRELATED existing "archer's
+gloves" (Scout Corps set) — kept as its own distinct entry, flagged.
+
+49 intrinsic abilities (enemyabilities.js) plus one new named status
+(sang_iag_poison, a sibling of the existing Bleeding DOT shape).
+Two existing-pattern ids are reused VERBATIM per the mandatory
+case-insensitive check: ambush_bonus (Contract Blade's "Ambush" —
+byte-for-byte identical to the codex's own "existing pattern"
+description) and handlers_spear (Legion Houndmaster's own "Handler's
+Spear," Sanguivorum Imperial Military — identical name AND identical
+numbers, reused on Arena Beastmaster). Two more collide by NAME ONLY
+with existing, mechanically different entries (opportunistic_strike/H01,
+sang_sec_captains_sword) and are kept as distinct sang_iag_-prefixed ids
+showing the identical display name.
+
+Nearly all remaining abilities map onto already-supported shapes (plain
+dmgMult/selfBuff/selfDebuff/inflict/packAuraBuff/flatStatBonus/
+whileAllyAlive "family" scope/healthBelowPct/combatStartSelfBuff/
+counterOnSuccessfulHit) — pure data, zero new engine code, including:
+the shared, division-wide militia reinforcement pool (Call for
+Help/Rally the Locals/Raise the Militia all share the literal capKey
+"sang_iag_militia_reinforcements" with maxActive:6/maxLifetime:10,
+resolveEnemySummon's existing capKey mechanism); Arena Counter (Ovum
+Champion) reusing the exact counterOnSuccessfulHit trigger built for
+Security and Enforcement's own Arena Riposte; Defensive Contract's
+combined selfBuff+packAuraBuff on one entry (Steady the Line
+precedent); Release the Beasts drawing from the same timberWolf/
+duskWolf pool as Call Outlaw Hounds, with its own groupOverride; Arena
+Handler's whileAllyAlive "summon" scope; Militia/Mercenary Authority's
+whileAllyAlive "family" scope.
+
+Six genuinely new, additive engine mechanisms in engine/combat.js:
+- REPEATABLE_MITIGATION_EFFECT_IDS generalizes Duelist's Bulwark's own
+  single-id mechanism (Sanguivorum Security and Enforcement) into a
+  shared list so Champion's Poise (SANG-IAG-IE006) resolves through the
+  same CD4/max-2 reaction; the shared per-wearer fields are renamed from
+  duelistBulwark* to repeatableMitigation* for clarity now that two
+  unrelated items share them. ONE_HIT_MITIGATION_EFFECT_IDS gains a
+  fourth id (Contractor's Endurance, SANG-IAG-IE002) with no further
+  changes.
+- banksNextAttackAccBonus gained an optional `dmgMultBonus` field
+  alongside its existing amount/turns (Silent Preparation) — carried on
+  and consumed with the SAME banked charge, at the SAME point, as the
+  ACC bonus (resolveEnemyAction's banking step; resolveEnemyRetaliation/
+  resolveEnemyAttackOnAlly's consumption and edmg multiplication;
+  tickEnemyPassives' natural-expiry decay). `bonusIfPreparedState`
+  (Contract Bolt) and `inflictRequiresPreparedState` (Veiled Precision)
+  are two small, read-only conditional checks against that same banked
+  state in resolveEnemyActiveAbility, never themselves consuming it.
+  Measured Aim (SANG-IAG-IE003) reads the identical banked-state flag
+  from the equipment side, additively.
+- `priorAbilityUseFlags`, a small generic per-ability-id bookkeeping
+  object on the enemy record (set whenever ANY active is selected),
+  plus `requiresPriorAbilityUse`/`consumesPriorAbilityUse` ability-data
+  fields (Final Exchange's "requires Champion's Guard used since
+  previous Final Exchange" gate) — a third sibling of
+  selfHealthBelowPct/requiresPreparedState in resolveEnemyActiveAbility's
+  eligible filter.
+- playerHasAccOrAtkDebuff/playerHasAnyNegativeStatus (Trident
+  Combination/Opportunistic Strike), modeled on the existing
+  playerHasAccOrSpdDebuff, plus the bonusVsAccOrAtkDebuff/
+  bonusVsAnyNegativeStatus fields that read them.
+- Company Standard/Rallying Standard (SANG-IAG-IE004/IE010): two new,
+  independent if-blocks in applyPackAuraBuff (pickLowestHpRecipient/
+  pickLowestAtkRecipient), reusing Imperial Authority's own
+  once-per-combat shape but picking the lowest-HP%/lowest-ATK recipient
+  instead of recipients[0].
+- Toxic Preparation (SANG-IAG-IE008): checked/applied in
+  resolveEnemyRetaliation directly against the PLAYER's own poison
+  status — the one mechanic in this division that checks the opposite
+  side's status from everything else here.
+- Concealed Edge (SANG-IAG-IE007) generalizes Calculated Aim's own
+  single-id first-attack-ACC mechanism (Sanguivorum Imperial Military)
+  into a shared check, per the codex's own "reuse first-attack Accuracy
+  pattern where identical" instruction — zero new mechanism.
+
+SANG-IAG-IE001/005/009 (Pathfinder's Eye, Arena Recognition,
+Beastkeeper's Instinct) are declared-but-inert effects.js entries,
+matching the established convention for loot-table/exploration/
+arena-economy systems that don't exist in this engine.
+
+Tested: full existing regression suite confirmed identical to its
+stored baseline, zero new failures — pass3_h_ledger.js 9/10 (H16,
+pre-existing), pass6_h_ledger.js 6/6, design_team_h_ledger.js 23/23,
+gate5b8_wearer_neutral/wearer_neutral_tests.js 15/16 real assertions
+(player-opening-reach-unchanged pre-existing RNG flake), downed_system_
+test/downed_ledger.js 17/17, ally_protection_test/ally_protection_
+ledger.js 9/9, Dregnar Stage A 29/30 (its own stale pre-Stage-B stat
+assertion, pre-existing) and Stage B 36/36. tools/audit.js: 0 errors,
+same 73 pre-existing warnings, none touching this division's new ids.
+
+New direct spot-check script (not checked in) covering: all 12
+identities' exact base stats/division/family/group/archetype; the
+shared militia reinforcement pool genuinely capping at 6 active/10
+lifetime ACROSS three different handlers/abilities (not per-handler),
+for both the maxActive and the separate maxLifetime limit; Take Aim/
+Contract Bolt's banked ACC+conditional-damage pair firing together
+(including Measured Aim's own additive +8 ACC from the same banked
+flag) and expiring together on consumption; Silent Preparation's
+dmgMultBonus multiplying the next hit by exactly 1.10x via an isolated,
+deterministic comparison against an unbanked control; Company
+Standard/Rallying Standard correctly picking the lowest-HP%/lowest-ATK
+recipient (not recipients[0]) among three differently-valued buffed
+allies, once per combat; Final Exchange's requires/consumes gate
+blocking a second use until Champion's Guard fires again, and
+re-enabling correctly after it does; Poison ticking for exactly 3% max
+HP and refreshing (not stacking) on reapplication; Toxic Preparation's
+bonus firing exactly once, only against an already-poisoned player, and
+not at all against an unpoisoned one; Arena Counter firing on forced
+successful hits and respecting its own independent CD4/max-2 cap;
+Champion's Poise and Contractor's Endurance both routing through their
+generalized/shared mitigation mechanisms correctly, plus a regression
+check that the Duelist's Bulwark rename didn't break the pre-existing
+Security and Enforcement item sharing that same mechanism.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/bestiary.js       | 301 ++++++++++++++++++++++++++++++++++++++++++++++
+ js/data/effects.js        |  27 +++++
+ js/data/enemyabilities.js | 227 ++++++++++++++++++++++++++++++++++
+ js/data/items.js          | 146 ++++++++++++++++++++++
+ js/engine/combat.js       | 258 +++++++++++++++++++++++++++++++++------
+ 5 files changed, 921 insertions(+), 38 deletions(-)

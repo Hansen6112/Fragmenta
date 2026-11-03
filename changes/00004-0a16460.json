@@ -1,0 +1,1932 @@
+[
+ {
+  "reg": "BESTIARY",
+  "id": "militia_volunteer",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rural_militia_fighter",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "independent_scout",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "road_convoy_guard",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "contract_marksman",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "free_company_captain",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ovum_prizefighter",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ovum_champion",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "contract_blade",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "veiled_executor",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "arena_beastmaster",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "militia_warleader",
+  "type": "added"
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "sang_iag_poison",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_militia_thrust",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_desperate_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_call_for_help",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_rough_fighter",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_heavy_axe_swing",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_reckless_blow",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_rally_the_locals",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_watchful_approach",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_disrupting_arrow",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_hunters_shot",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_professional_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_measured_sword_strike",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_contractors_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_take_aim",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_contract_bolt",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_mercenary_authority",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_battle_tested",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_company_assault_order",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_captains_sword",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_defensive_contract",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_call_company_reinforcements",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_arena_training",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_trident_combination",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_entangling_net",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_duelists_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_champions_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_arena_resolve",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_champions_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_masterful_cut",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_final_exchange",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_arena_counter",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_assassins_cut",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_opportunistic_strike",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_bleeding_cut",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_executioners_patience",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_silent_preparation",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_veiled_precision",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_disabling_slice",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_poisoned_edge",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_arena_handler",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_release_the_beasts",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_arena_pack_command",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_militia_authority",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_warleaders_resolve",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_rally_the_fighters",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_warleaders_cleave",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_all_out_assault",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_raise_the_militia",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Rough Militia Tunic",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Village Militia Spear",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Wooden Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Padded Militia Cap",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Work Vest",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Rough Fighting Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Woodcutter Axe",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Iron-Banded Militia Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Militia Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Hardened Militia Coat",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Militia Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Militia War Axe",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Militia Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Weathered Local Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scout's Hood",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Hunting Leather",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Archer's Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Independent Hunting Bow",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Pathfinder's Compass",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sellsword Iron Cap",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Leather Armor",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Leather Sword Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Sellsword Blade",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Guard Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Sellsword Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Professional Mail Coat",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Sword Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Contract Sword",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Contract Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Travel-Worn Mercenary Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Mercenary War Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master Sellsword Mail",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master Sword Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master Contract Blade",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master Contract Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Mercenary Oath Ring",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Travel Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marksman's Hood",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Archer's Leather",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Precision Crossbow Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Light Traveler Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Heavy Crossbow",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Dark Marksman's Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sight Adjustment Kit",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Free Company Captain's Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Captain's Mercenary Armor",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer's Sword Gauntlets",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Officer Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Free Company Command Sword",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Mercenary Captain's Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Mercenary Officer Signet",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Captain's Travel Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Free Company Standard",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Prizefighter's Arena Harness",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arena Grip Wraps",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arena Fighting Sandals",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Prizefighter Trident",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Weighted Arena Net",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Prizefighter's Token",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Champion's Arena Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Champion Cuirass",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Champion's Fighting Gauntlets",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Champion's Arena Greaves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Champion Sword",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Champion's Arena Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Champion's Victory Signet",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Champion's Victory Mantle",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Championship Medal",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Concealed Assassin Leather",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Quiet Travel Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Killer's Short Sword",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Concealed Contract Dagger",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Dark Contract Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Executor's Concealed Hood",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Veiled Armor",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Precision Assassin Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Silent Executor Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veiled Precision Blade",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Executor's Poisoned Dagger",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veiled Contract Signet",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Executor's Concealment Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arena Handler's Cap",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Beastmaster's Protective Leather",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Beastkeeper's Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arena Handler's Spear",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Weathered Arena Handler Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Beastmaster's Whistle",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Warleader's Iron Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Militia War Armor",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Warleader's Heavy Gauntlets",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Warleader's Reinforced Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Warleader's Sword",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Warleader's Heavy Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Warleader Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Rallying Standard",
+  "type": "added"
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "92",
+    "new": "Rough Militia Tunic"
+   },
+   {
+    "f": "93",
+    "new": "Village Militia Spear"
+   },
+   {
+    "f": "94",
+    "new": "Militia Wooden Shield"
+   },
+   {
+    "f": "95",
+    "new": "Padded Militia Cap"
+   },
+   {
+    "f": "96",
+    "new": "Rough Fighting Gloves"
+   },
+   {
+    "f": "97",
+    "new": "Weathered Local Cloak"
+   },
+   {
+    "f": "98",
+    "new": "Scout's Hood"
+   },
+   {
+    "f": "99",
+    "new": "Pathfinder's Compass"
+   },
+   {
+    "f": "100",
+    "new": "Leather Sword Gloves"
+   },
+   {
+    "f": "101",
+    "new": "Mercenary Oath Ring"
+   },
+   {
+    "f": "102",
+    "new": "Marksman's Hood"
+   },
+   {
+    "f": "103",
+    "new": "Light Traveler Boots"
+   },
+   {
+    "f": "104",
+    "new": "Dark Marksman's Cloak"
+   },
+   {
+    "f": "105",
+    "new": "Dark Contract Cloak"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "168",
+    "new": "Reinforced Work Vest"
+   },
+   {
+    "f": "169",
+    "new": "Militia Woodcutter Axe"
+   },
+   {
+    "f": "170",
+    "new": "Iron-Banded Militia Shield"
+   },
+   {
+    "f": "171",
+    "new": "Reinforced Militia Helm"
+   },
+   {
+    "f": "172",
+    "new": "Veteran Militia Gloves"
+   },
+   {
+    "f": "173",
+    "new": "Reinforced Hunting Leather"
+   },
+   {
+    "f": "174",
+    "new": "Archer's Gloves"
+   },
+   {
+    "f": "175",
+    "new": "Independent Hunting Bow"
+   },
+   {
+    "f": "176",
+    "new": "Sellsword Iron Cap"
+   },
+   {
+    "f": "177",
+    "new": "Contract Leather Armor"
+   },
+   {
+    "f": "178",
+    "new": "Contract Sellsword Blade"
+   },
+   {
+    "f": "179",
+    "new": "Contract Guard Shield"
+   },
+   {
+    "f": "180",
+    "new": "Reinforced Sellsword Helm"
+   },
+   {
+    "f": "181",
+    "new": "Veteran Sword Gloves"
+   },
+   {
+    "f": "182",
+    "new": "Travel-Worn Mercenary Cloak"
+   },
+   {
+    "f": "183",
+    "new": "Veteran Travel Cloak"
+   },
+   {
+    "f": "184",
+    "new": "Contract Archer's Leather"
+   },
+   {
+    "f": "185",
+    "new": "Precision Crossbow Gloves"
+   },
+   {
+    "f": "186",
+    "new": "Sight Adjustment Kit"
+   },
+   {
+    "f": "187",
+    "new": "Officer's Sword Gauntlets"
+   },
+   {
+    "f": "188",
+    "new": "Reinforced Officer Boots"
+   },
+   {
+    "f": "189",
+    "new": "Mercenary Officer Signet"
+   },
+   {
+    "f": "190",
+    "new": "Captain's Travel Cloak"
+   },
+   {
+    "f": "191",
+    "new": "Free Company Standard"
+   },
+   {
+    "f": "192",
+    "new": "Arena Grip Wraps"
+   },
+   {
+    "f": "193",
+    "new": "Arena Fighting Sandals"
+   },
+   {
+    "f": "194",
+    "new": "Weighted Arena Net"
+   },
+   {
+    "f": "195",
+    "new": "Prizefighter's Token"
+   },
+   {
+    "f": "196",
+    "new": "Champion's Victory Signet"
+   },
+   {
+    "f": "197",
+    "new": "Ovum Championship Medal"
+   },
+   {
+    "f": "198",
+    "new": "Concealed Assassin Leather"
+   },
+   {
+    "f": "199",
+    "new": "Quiet Travel Boots"
+   },
+   {
+    "f": "200",
+    "new": "Contract Killer's Short Sword"
+   },
+   {
+    "f": "201",
+    "new": "Concealed Contract Dagger"
+   },
+   {
+    "f": "202",
+    "new": "Executor's Concealed Hood"
+   },
+   {
+    "f": "203",
+    "new": "Precision Assassin Gloves"
+   },
+   {
+    "f": "204",
+    "new": "Silent Executor Boots"
+   },
+   {
+    "f": "205",
+    "new": "Veiled Contract Signet"
+   },
+   {
+    "f": "206",
+    "new": "Executor's Concealment Cloak"
+   },
+   {
+    "f": "207",
+    "new": "Arena Handler's Cap"
+   },
+   {
+    "f": "208",
+    "new": "Beastkeeper's Boots"
+   },
+   {
+    "f": "209",
+    "new": "Weathered Arena Handler Cloak"
+   },
+   {
+    "f": "210",
+    "new": "Beastmaster's Whistle"
+   },
+   {
+    "f": "211",
+    "new": "Warleader's Heavy Gauntlets"
+   },
+   {
+    "f": "212",
+    "new": "Warleader's Reinforced Boots"
+   },
+   {
+    "f": "213",
+    "new": "Militia Warleader Cloak"
+   },
+   {
+    "f": "214",
+    "new": "Militia Rallying Standard"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "258",
+    "new": "Hardened Militia Coat"
+   },
+   {
+    "f": "259",
+    "new": "Veteran Militia War Axe"
+   },
+   {
+    "f": "260",
+    "new": "Reinforced Militia Shield"
+   },
+   {
+    "f": "261",
+    "new": "Professional Mail Coat"
+   },
+   {
+    "f": "262",
+    "new": "Veteran Contract Sword"
+   },
+   {
+    "f": "263",
+    "new": "Reinforced Contract Shield"
+   },
+   {
+    "f": "264",
+    "new": "Veteran Mercenary War Helm"
+   },
+   {
+    "f": "265",
+    "new": "Master Sword Gloves"
+   },
+   {
+    "f": "266",
+    "new": "Contract Heavy Crossbow"
+   },
+   {
+    "f": "267",
+    "new": "Free Company Captain's Helm"
+   },
+   {
+    "f": "268",
+    "new": "Prizefighter's Arena Harness"
+   },
+   {
+    "f": "269",
+    "new": "Ovum Prizefighter Trident"
+   },
+   {
+    "f": "270",
+    "new": "Champion's Arena Helm"
+   },
+   {
+    "f": "271",
+    "new": "Champion's Fighting Gauntlets"
+   },
+   {
+    "f": "272",
+    "new": "Champion's Arena Greaves"
+   },
+   {
+    "f": "273",
+    "new": "Champion's Victory Mantle"
+   },
+   {
+    "f": "274",
+    "new": "Reinforced Veiled Armor"
+   },
+   {
+    "f": "275",
+    "new": "Veiled Precision Blade"
+   },
+   {
+    "f": "276",
+    "new": "Executor's Poisoned Dagger"
+   },
+   {
+    "f": "277",
+    "new": "Beastmaster's Protective Leather"
+   },
+   {
+    "f": "278",
+    "new": "Arena Handler's Spear"
+   },
+   {
+    "f": "279",
+    "new": "Warleader's Iron Helm"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "164",
+    "new": "Master Sellsword Mail"
+   },
+   {
+    "f": "165",
+    "new": "Master Contract Shield"
+   },
+   {
+    "f": "166",
+    "new": "Captain's Mercenary Armor"
+   },
+   {
+    "f": "167",
+    "new": "Mercenary Captain's Shield"
+   },
+   {
+    "f": "168",
+    "new": "Ovum Champion Cuirass"
+   },
+   {
+    "f": "169",
+    "new": "Champion's Arena Shield"
+   },
+   {
+    "f": "170",
+    "new": "Reinforced Militia War Armor"
+   },
+   {
+    "f": "171",
+    "new": "Warleader's Heavy Shield"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "5",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "45",
+    "new": "Master Contract Blade"
+   },
+   {
+    "f": "46",
+    "new": "Free Company Command Sword"
+   },
+   {
+    "f": "47",
+    "new": "Ovum Champion Sword"
+   },
+   {
+    "f": "48",
+    "new": "Militia Warleader's Sword"
+   }
+  ]
+ },
+ {
+  "reg": "REGIONAL_LOOT_POOL",
+  "id": "sanguivorum",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "1",
+    "old": [
+     "Worn Leather Vest",
+     "Scuffed Work Boots",
+     "Streetbreaker Club",
+     "Concealed Street Vest",
+     "Pickpocket's Gloves",
+     "Softstep Boots",
+     "Street Shiv",
+     "Road Bandit's Cap",
+     "Lookout's Hood",
+     "Light Travel Coat",
+     "Knife-Fighter's Gloves",
+     "Silent Road Boots",
+     "Highway Cutthroat's Shiv V1",
+     "Dark Travel Cloak",
+     "Heavy Grip Gloves",
+     "Dustworn Cloak",
+     "Legion Training Helm",
+     "Basic Legion Vest",
+     "Marching Boots",
+     "Training Gladius",
+     "Training Shield",
+     "Veteran Gauntlets V1",
+     "Veteran Gauntlets V2",
+     "Utility Boots",
+     "Engineer Sidearm",
+     "Light Scout Buckler",
+     "Weather Cloak",
+     "Boarding Gauntlets V1",
+     "Deck Combat Boots V1",
+     "Officer Gauntlets V1",
+     "Watchman's Iron Cap",
+     "Civic Watch Sword",
+     "Market Watch Cap",
+     "Civic Patrol Boots",
+     "Merchant Inspection Seal",
+     "Road Patrol Cloak",
+     "Route Inspection Ledger",
+     "Harbor Watch Cap",
+     "Boarding Grip Gloves",
+     "Weatherproof Harbor Cloak",
+     "Customs Officer's Token",
+     "Guardman's Gauntlets",
+     "Reinforced Guard Gauntlets",
+     "Reinforced Gate Gauntlets",
+     "Frontier Guard Mantle",
+     "Ovum Veteran Mantle"
+    ],
+    "new": [
+     "Worn Leather Vest",
+     "Scuffed Work Boots",
+     "Streetbreaker Club",
+     "Concealed Street Vest",
+     "Pickpocket's Gloves",
+     "Softstep Boots",
+     "Street Shiv",
+     "Road Bandit's Cap",
+     "Lookout's Hood",
+     "Light Travel Coat",
+     "Knife-Fighter's Gloves",
+     "Silent Road Boots",
+     "Highway Cutthroat's Shiv V1",
+     "Dark Travel Cloak",
+     "Heavy Grip Gloves",
+     "Dustworn Cloak",
+     "Legion Training Helm",
+     "Basic Legion Vest",
+     "Marching Boots",
+     "Training Gladius",
+     "Training Shield",
+     "Veteran Gauntlets V1",
+     "Veteran Gauntlets V2",
+     "Utility Boots",
+     "Engineer Sidearm",
+     "Light Scout Buckler",
+     "Weather Cloak",
+     "Boarding Gauntlets V1",
+     "Deck Combat Boots V1",
+     "Officer Gauntlets V1",
+     "Watchman's Iron Cap",
+     "Civic Watch Sword",
+     "Market Watch Cap",
+     "Civic Patrol Boots",
+     "Merchant Inspection Seal",
+     "Road Patrol Cloak",
+     "Route Inspection Ledger",
+     "Harbor Watch Cap",
+     "Boarding Grip Gloves",
+     "Weatherproof Harbor Cloak",
+     "Customs Officer's Token",
+     "Guardman's Gauntlets",
+     "Reinforced Guard Gauntlets",
+     "Reinforced Gate Gauntlets",
+     "Frontier Guard Mantle",
+     "Ovum Veteran Mantle",
+     "Rough Militia Tunic",
+     "Village Militia Spear",
+     "Militia Wooden Shield",
+     "Padded Militia Cap",
+     "Rough Fighting Gloves",
+     "Weathered Local Cloak",
+     "Scout's Hood",
+     "Pathfinder's Compass",
+     "Leather Sword Gloves",
+     "Mercenary Oath Ring",
+     "Marksman's Hood",
+     "Light Traveler Boots",
+     "Dark Marksman's Cloak",
+     "Dark Contract Cloak"
+    ]
+   },
+   {
+    "f": "2",
+    "old": [
+     "legion march boots",
+     "a blood oak charm",
+     "Cutpurse's Dagger",
+     "Reinforced Travel Leather",
+     "Crossbowman's Gloves",
+     "Spotter's Lens",
+     "Cutthroat's Leather Coat",
+     "Highway Cutthroat's Blade V1",
+     "Veteran Knife-Fighter's Gloves",
+     "Reinforced Dark Cloak",
+     "Iron-Banded Hood",
+     "Reinforced Ambusher's Leather",
+     "Concealed Leather Hood",
+     "Fine Sword Gloves",
+     "Border Travel Boots",
+     "Concealment Cloak",
+     "Arena Fighting Wraps",
+     "Arena Sandals",
+     "Ovum Outcast Secondary Blade",
+     "Arena Veteran's Token",
+     "Handler's Leather Cap",
+     "Reinforced Handler Gloves",
+     "Outlaw Hunting Boots",
+     "Weathered Hunting Cloak",
+     "Packmaster's Whistle",
+     "Ferratum Iron Helm",
+     "March Greaves",
+     "Veteran Ferratum Helm V1",
+     "Reinforced Greaves V1",
+     "Veteran Gauntlets V3",
+     "Engineer's Leather Coat",
+     "Engineer's Toolkit",
+     "Ballistarius Headguard",
+     "Stabilizer Boots",
+     "Ingenum Sidearm",
+     "Ballistarius Tool Case",
+     "Agilum Scout Vest",
+     "Light Rider Gloves",
+     "Reconnaissance Cloak",
+     "Lance Grip Gauntlets",
+     "Naval Leather Vest",
+     "Deck Boots",
+     "Sailor's Hook",
+     "Aqualis War Helm V1",
+     "Boarding Command Whistle V1",
+     "Boarding Gauntlets V2",
+     "Deck Combat Boots V2",
+     "Boarding Command Whistle V2",
+     "Gradus Veteran Helm V1",
+     "Veteran March Boots V1",
+     "Ductus Officer Helm V1",
+     "Officer Riding Boots V1",
+     "Officer Signet V1",
+     "Officer Gauntlets V2",
+     "Officer Signet V2",
+     "Handler's Military Helm",
+     "Kennelmaster's Boots",
+     "Military Handler Sidearm",
+     "Handler's Whistle",
+     "City Watch Leather Vest",
+     "Reinforced Watch Tunic",
+     "Restraint Gloves",
+     "Market Enforcement Baton",
+     "Watchman's Guard Buckler",
+     "Road Warden's Helm",
+     "Warden's Reinforced Leather",
+     "Road Warden's Shield",
+     "Reinforced Dockside Leather",
+     "Deck-Grip Boots",
+     "Harbor Watch Buckler",
+     "Veteran Watch Helm",
+     "Reinforced City Guard Armor",
+     "Veteran Watch Sword",
+     "Veteran Watch Shield",
+     "Hardened Veteran Helm",
+     "Veteran Patrol Cloak",
+     "Master Guard Gauntlets",
+     "Senior Guard Signet",
+     "Senior Watch Cloak",
+     "Frontier Inspection Seal",
+     "Investigator's Hood",
+     "Investigator's Fine Gloves",
+     "Quiet Inspection Boots",
+     "Concealed Investigator Shiv",
+     "Investigator's Signet",
+     "Investigator's Concealment Cloak",
+     "Analytical Evidence Lens",
+     "Veteran Officer Gauntlets",
+     "Captain's Patrol Boots",
+     "Watch Captain's Signet",
+     "Civic Command Insignia",
+     "Veteran Arena Gauntlets",
+     "Reinforced Arena Greaves",
+     "Veteran Ovum Signet",
+     "Arena Service Token"
+    ],
+    "new": [
+     "legion march boots",
+     "a blood oak charm",
+     "Cutpurse's Dagger",
+     "Reinforced Travel Leather",
+     "Crossbowman's Gloves",
+     "Spotter's Lens",
+     "Cutthroat's Leather Coat",
+     "Highway Cutthroat's Blade V1",
+     "Veteran Knife-Fighter's Gloves",
+     "Reinforced Dark Cloak",
+     "Iron-Banded Hood",
+     "Reinforced Ambusher's Leather",
+     "Concealed Leather Hood",
+     "Fine Sword Gloves",
+     "Border Travel Boots",
+     "Concealment Cloak",
+     "Arena Fighting Wraps",
+     "Arena Sandals",
+     "Ovum Outcast Secondary Blade",
+     "Arena Veteran's Token",
+     "Handler's Leather Cap",
+     "Reinforced Handler Gloves",
+     "Outlaw Hunting Boots",
+     "Weathered Hunting Cloak",
+     "Packmaster's Whistle",
+     "Ferratum Iron Helm",
+     "March Greaves",
+     "Veteran Ferratum Helm V1",
+     "Reinforced Greaves V1",
+     "Veteran Gauntlets V3",
+     "Engineer's Leather Coat",
+     "Engineer's Toolkit",
+     "Ballistarius Headguard",
+     "Stabilizer Boots",
+     "Ingenum Sidearm",
+     "Ballistarius Tool Case",
+     "Agilum Scout Vest",
+     "Light Rider Gloves",
+     "Reconnaissance Cloak",
+     "Lance Grip Gauntlets",
+     "Naval Leather Vest",
+     "Deck Boots",
+     "Sailor's Hook",
+     "Aqualis War Helm V1",
+     "Boarding Command Whistle V1",
+     "Boarding Gauntlets V2",
+     "Deck Combat Boots V2",
+     "Boarding Command Whistle V2",
+     "Gradus Veteran Helm V1",
+     "Veteran March Boots V1",
+     "Ductus Officer Helm V1",
+     "Officer Riding Boots V1",
+     "Officer Signet V1",
+     "Officer Gauntlets V2",
+     "Officer Signet V2",
+     "Handler's Military Helm",
+     "Kennelmaster's Boots",
+     "Military Handler Sidearm",
+     "Handler's Whistle",
+     "City Watch Leather Vest",
+     "Reinforced Watch Tunic",
+     "Restraint Gloves",
+     "Market Enforcement Baton",
+     "Watchman's Guard Buckler",
+     "Road Warden's Helm",
+     "Warden's Reinforced Leather",
+     "Road Warden's Shield",
+     "Reinforced Dockside Leather",
+     "Deck-Grip Boots",
+     "Harbor Watch Buckler",
+     "Veteran Watch Helm",
+     "Reinforced City Guard Armor",
+     "Veteran Watch Sword",
+     "Veteran Watch Shield",
+     "Hardened Veteran Helm",
+     "Veteran Patrol Cloak",
+     "Master Guard Gauntlets",
+     "Senior Guard Signet",
+     "Senior Watch Cloak",
+     "Frontier Inspection Seal",
+     "Investigator's Hood",
+     "Investigator's Fine Gloves",
+     "Quiet Inspection Boots",
+     "Concealed Investigator Shiv",
+     "Investigator's Signet",
+     "Investigator's Concealment Cloak",
+     "Analytical Evidence Lens",
+     "Veteran Officer Gauntlets",
+     "Captain's Patrol Boots",
+     "Watch Captain's Signet",
+     "Civic Command Insignia",
+     "Veteran Arena Gauntlets",
+     "Reinforced Arena Greaves",
+     "Veteran Ovum Signet",
+     "Arena Service Token",
+     "Reinforced Work Vest",
+     "Militia Woodcutter Axe",
+     "Iron-Banded Militia Shield",
+     "Reinforced Militia Helm",
+     "Veteran Militia Gloves",
+     "Reinforced Hunting Leather",
+     "Archer's Gloves",
+     "Independent Hunting Bow",
+     "Sellsword Iron Cap",
+     "Contract Leather Armor",
+     "Contract Sellsword Blade",
+     "Contract Guard Shield",
+     "Reinforced Sellsword Helm",
+     "Veteran Sword Gloves",
+     "Travel-Worn Mercenary Cloak",
+     "Veteran Travel Cloak",
+     "Contract Archer's Leather",
+     "Precision Crossbow Gloves",
+     "Sight Adjustment Kit",
+     "Officer's Sword Gauntlets",
+     "Reinforced Officer Boots",
+     "Mercenary Officer Signet",
+     "Captain's Travel Cloak",
+     "Free Company Standard",
+     "Arena Grip Wraps",
+     "Arena Fighting Sandals",
+     "Weighted Arena Net",
+     "Prizefighter's Token",
+     "Champion's Victory Signet",
+     "Ovum Championship Medal",
+     "Concealed Assassin Leather",
+     "Quiet Travel Boots",
+     "Contract Killer's Short Sword",
+     "Concealed Contract Dagger",
+     "Executor's Concealed Hood",
+     "Precision Assassin Gloves",
+     "Silent Executor Boots",
+     "Veiled Contract Signet",
+     "Executor's Concealment Cloak",
+     "Arena Handler's Cap",
+     "Beastkeeper's Boots",
+     "Weathered Arena Handler Cloak",
+     "Beastmaster's Whistle",
+     "Warleader's Heavy Gauntlets",
+     "Warleader's Reinforced Boots",
+     "Militia Warleader Cloak",
+     "Militia Rallying Standard"
+    ]
+   },
+   {
+    "f": "3",
+    "old": [
+     "a highland war axe",
+     "an iron-rim kite shield",
+     "a highland breastplate",
+     "border rider gauntlets",
+     "border patrol greaves",
+     "a blood oak pendant",
+     "a highland hunter's mantle",
+     "Roadside Spotter's Crossbow",
+     "Reinforced Cutthroat Coat",
+     "Highway Cutthroat's Shiv V2",
+     "Master Knife-Fighter's Gloves",
+     "Caravan Breaker Maul",
+     "Smuggler's Reinforced Coat",
+     "Border Smuggler's Sword",
+     "Smuggler's Guard Buckler",
+     "Worn Arena Harness",
+     "Ovum Outcast Primary Blade",
+     "Packmaster's Leather Vest",
+     "Outlaw Handler's Spear",
+     "Veteran Officer's Gauntlets",
+     "Captain's Riding Boots",
+     "Officer's Signet",
+     "Captain's Command Cloak",
+     "Commander's Insignia",
+     "Ferratum Cuirass",
+     "Formation Spear",
+     "Veteran Cuirass V1",
+     "Veteran Legion Blade V1",
+     "Veteran Tower Shield V1",
+     "Veteran Ferratum Helm V2",
+     "Reinforced Greaves V2",
+     "Calculated Crossbow",
+     "Reinforced Engineer Harness",
+     "Ballistarius Gloves",
+     "Calculation Lens",
+     "Scout's Javelin",
+     "Impetum War Helm",
+     "War Rider Greaves",
+     "Reinforced Cavalry Shield",
+     "Boarding Cutlass",
+     "Marine Cuirass V1",
+     "Marine Boarding Sword V1",
+     "Marine Shield V1",
+     "Aqualis War Helm V2",
+     "Veteran Legion Armor V1",
+     "Veteran Gladius V1",
+     "Veteran Shield V1",
+     "Gradus Veteran Helm V2",
+     "Veteran March Boots V2",
+     "Officer Cuirass V1",
+     "Section Command Shield V1",
+     "Ductus Officer Helm V2",
+     "Officer Riding Boots V2",
+     "Command Gauntlets",
+     "Commander Boots",
+     "Vigilis Command Cloak",
+     "Unit Command Insignia",
+     "Senior Officer Gauntlets",
+     "Commander Signet",
+     "Legion Handler Vest",
+     "Legion Handler Spear",
+     "Warden's Patrol Spear",
+     "Harbor Boarding Blade",
+     "Veteran Guard Cuirass",
+     "Veteran City Sword",
+     "Reinforced Watch Shield",
+     "Master Watch Helm",
+     "Frontier Gate Helm",
+     "Frontier Gate Spear",
+     "Concealed Investigator Coat",
+     "Investigator's Precision Sword",
+     "Watch Captain's War Helm",
+     "Ovum Veteran Guard Helm",
+     "Ovum Veteran Cuirass",
+     "Ovum Veteran Guard Sword",
+     "Ovum Veteran Tower Shield"
+    ],
+    "new": [
+     "a highland war axe",
+     "an iron-rim kite shield",
+     "a highland breastplate",
+     "border rider gauntlets",
+     "border patrol greaves",
+     "a blood oak pendant",
+     "a highland hunter's mantle",
+     "Roadside Spotter's Crossbow",
+     "Reinforced Cutthroat Coat",
+     "Highway Cutthroat's Shiv V2",
+     "Master Knife-Fighter's Gloves",
+     "Caravan Breaker Maul",
+     "Smuggler's Reinforced Coat",
+     "Border Smuggler's Sword",
+     "Smuggler's Guard Buckler",
+     "Worn Arena Harness",
+     "Ovum Outcast Primary Blade",
+     "Packmaster's Leather Vest",
+     "Outlaw Handler's Spear",
+     "Veteran Officer's Gauntlets",
+     "Captain's Riding Boots",
+     "Officer's Signet",
+     "Captain's Command Cloak",
+     "Commander's Insignia",
+     "Ferratum Cuirass",
+     "Formation Spear",
+     "Veteran Cuirass V1",
+     "Veteran Legion Blade V1",
+     "Veteran Tower Shield V1",
+     "Veteran Ferratum Helm V2",
+     "Reinforced Greaves V2",
+     "Calculated Crossbow",
+     "Reinforced Engineer Harness",
+     "Ballistarius Gloves",
+     "Calculation Lens",
+     "Scout's Javelin",
+     "Impetum War Helm",
+     "War Rider Greaves",
+     "Reinforced Cavalry Shield",
+     "Boarding Cutlass",
+     "Marine Cuirass V1",
+     "Marine Boarding Sword V1",
+     "Marine Shield V1",
+     "Aqualis War Helm V2",
+     "Veteran Legion Armor V1",
+     "Veteran Gladius V1",
+     "Veteran Shield V1",
+     "Gradus Veteran Helm V2",
+     "Veteran March Boots V2",
+     "Officer Cuirass V1",
+     "Section Command Shield V1",
+     "Ductus Officer Helm V2",
+     "Officer Riding Boots V2",
+     "Command Gauntlets",
+     "Commander Boots",
+     "Vigilis Command Cloak",
+     "Unit Command Insignia",
+     "Senior Officer Gauntlets",
+     "Commander Signet",
+     "Legion Handler Vest",
+     "Legion Handler Spear",
+     "Warden's Patrol Spear",
+     "Harbor Boarding Blade",
+     "Veteran Guard Cuirass",
+     "Veteran City Sword",
+     "Reinforced Watch Shield",
+     "Master Watch Helm",
+     "Frontier Gate Helm",
+     "Frontier Gate Spear",
+     "Concealed Investigator Coat",
+     "Investigator's Precision Sword",
+     "Watch Captain's War Helm",
+     "Ovum Veteran Guard Helm",
+     "Ovum Veteran Cuirass",
+     "Ovum Veteran Guard Sword",
+     "Ovum Veteran Tower Shield",
+     "Hardened Militia Coat",
+     "Veteran Militia War Axe",
+     "Reinforced Militia Shield",
+     "Professional Mail Coat",
+     "Veteran Contract Sword",
+     "Reinforced Contract Shield",
+     "Veteran Mercenary War Helm",
+     "Master Sword Gloves",
+     "Contract Heavy Crossbow",
+     "Free Company Captain's Helm",
+     "Prizefighter's Arena Harness",
+     "Ovum Prizefighter Trident",
+     "Champion's Arena Helm",
+     "Champion's Fighting Gauntlets",
+     "Champion's Arena Greaves",
+     "Champion's Victory Mantle",
+     "Reinforced Veiled Armor",
+     "Veiled Precision Blade",
+     "Executor's Poisoned Dagger",
+     "Beastmaster's Protective Leather",
+     "Arena Handler's Spear",
+     "Warleader's Iron Helm"
+    ]
+   },
+   {
+    "f": "4",
+    "old": [
+     "Highway Cutthroat's Blade V2",
+     "Master Cutthroat Coat",
+     "Highway Cutthroat's Shiv V3",
+     "Highway Officer's Helm",
+     "Highway Captain's Command Shield",
+     "Veteran War Gauntlets",
+     "Reinforced Warlord Boots",
+     "Ruthless Lord's Signet",
+     "Roadlord's Battle Cloak",
+     "Conqueror's Trophy",
+     "Veteran Cuirass V2",
+     "Veteran Legion Blade V2",
+     "Veteran Tower Shield V2",
+     "Veteran Ferratum Helm V3",
+     "Reinforced Greaves V3",
+     "Ballistarius Crankbow",
+     "Heavy Rider Armor",
+     "Heavy War Lance",
+     "Marine Cuirass V2",
+     "Marine Boarding Sword V2",
+     "Marine Shield V2",
+     "Veteran Legion Armor V2",
+     "Veteran Gladius V2",
+     "Veteran Shield V2",
+     "Gradus Veteran Helm V3",
+     "Veteran March Boots V3",
+     "Ductus Command Sword V1",
+     "Officer Cuirass V2",
+     "Section Command Shield V2",
+     "Vigilis War Helm",
+     "Reinforced Command Shield",
+     "Arbitarius March Boots",
+     "Arbitarius Command Cloak",
+     "Arbitarius Insignia",
+     "Master City Guard Armor",
+     "Master Watch Shield",
+     "Fortified Gatekeeper Armor",
+     "Frontier Tower Shield",
+     "Captain's Enforcement Armor",
+     "Watch Captain's Sword",
+     "Captain's Command Shield"
+    ],
+    "new": [
+     "Highway Cutthroat's Blade V2",
+     "Master Cutthroat Coat",
+     "Highway Cutthroat's Shiv V3",
+     "Highway Officer's Helm",
+     "Highway Captain's Command Shield",
+     "Veteran War Gauntlets",
+     "Reinforced Warlord Boots",
+     "Ruthless Lord's Signet",
+     "Roadlord's Battle Cloak",
+     "Conqueror's Trophy",
+     "Veteran Cuirass V2",
+     "Veteran Legion Blade V2",
+     "Veteran Tower Shield V2",
+     "Veteran Ferratum Helm V3",
+     "Reinforced Greaves V3",
+     "Ballistarius Crankbow",
+     "Heavy Rider Armor",
+     "Heavy War Lance",
+     "Marine Cuirass V2",
+     "Marine Boarding Sword V2",
+     "Marine Shield V2",
+     "Veteran Legion Armor V2",
+     "Veteran Gladius V2",
+     "Veteran Shield V2",
+     "Gradus Veteran Helm V3",
+     "Veteran March Boots V3",
+     "Ductus Command Sword V1",
+     "Officer Cuirass V2",
+     "Section Command Shield V2",
+     "Vigilis War Helm",
+     "Reinforced Command Shield",
+     "Arbitarius March Boots",
+     "Arbitarius Command Cloak",
+     "Arbitarius Insignia",
+     "Master City Guard Armor",
+     "Master Watch Shield",
+     "Fortified Gatekeeper Armor",
+     "Frontier Tower Shield",
+     "Captain's Enforcement Armor",
+     "Watch Captain's Sword",
+     "Captain's Command Shield",
+     "Master Sellsword Mail",
+     "Master Contract Shield",
+     "Captain's Mercenary Armor",
+     "Mercenary Captain's Shield",
+     "Ovum Champion Cuirass",
+     "Champion's Arena Shield",
+     "Reinforced Militia War Armor",
+     "Warleader's Heavy Shield"
+    ]
+   },
+   {
+    "f": "5",
+    "old": [
+     "Highway Cutthroat's Blade V3",
+     "Captain's Reinforced Armor",
+     "Highway Captain's Sword",
+     "Roadlord's War Helm",
+     "Veteran Cuirass V3",
+     "Veteran Legion Blade V3",
+     "Veteran Tower Shield V3",
+     "Veteran Legion Armor V3",
+     "Veteran Gladius V3",
+     "Veteran Shield V3",
+     "Ductus Command Sword V2",
+     "Commander Armor",
+     "Vigilis Command Sword",
+     "Arbitarius War Helm",
+     "Imperial Command Shield",
+     "Master City Guard Sword"
+    ],
+    "new": [
+     "Highway Cutthroat's Blade V3",
+     "Captain's Reinforced Armor",
+     "Highway Captain's Sword",
+     "Roadlord's War Helm",
+     "Veteran Cuirass V3",
+     "Veteran Legion Blade V3",
+     "Veteran Tower Shield V3",
+     "Veteran Legion Armor V3",
+     "Veteran Gladius V3",
+     "Veteran Shield V3",
+     "Ductus Command Sword V2",
+     "Commander Armor",
+     "Vigilis Command Sword",
+     "Arbitarius War Helm",
+     "Imperial Command Shield",
+     "Master City Guard Sword",
+     "Master Contract Blade",
+     "Free Company Command Sword",
+     "Ovum Champion Sword",
+     "Militia Warleader's Sword"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie001_pathfinders_eye",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie002_contractors_endurance",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie003_measured_aim",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie004_company_standard",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie005_arena_recognition",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie006_champions_poise",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie007_concealed_edge",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie008_toxic_preparation",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie009_beastkeepers_instinct",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_iag_ie010_rallying_standard",
+  "type": "added"
+ }
+]

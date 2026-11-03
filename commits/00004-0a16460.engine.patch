@@ -1,0 +1,437 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 03e2d76..3f7765d 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -1572,8 +1572,11 @@ function applyBeneficialEffectBonuses(state, duration) {
+ // damaging attack received each combat, final damage x0.90, once/combat"
+ // — EXACTLY the Hardened Formation/Officer's Bearing mechanism above, a
+ // third effect id resolving through the same shared, wearer-neutral
+-// mechanism rather than a second one.
+-const ONE_HIT_MITIGATION_EFFECT_IDS = ["sang_mil_ie001_hardened_formation", "sang_mil_ie007_officers_bearing", "sang_sec_ie004_watchmans_resilience"];
++// mechanism rather than a second one. Contractor's Endurance (SANG-IAG-IE002,
++// Reinforced/Master Contract Shield, Sanguivorum Independent Armed Groups):
++// identical wording ("first successful damaging hit taken each combat,
++// final damage x0.90, once/combat") — a fourth id on the same mechanism.
++const ONE_HIT_MITIGATION_EFFECT_IDS = ["sang_mil_ie001_hardened_formation", "sang_mil_ie007_officers_bearing", "sang_sec_ie004_watchmans_resilience", "sang_iag_ie002_contractors_endurance"];
+ function hasOneHitMitigationEffect(carrier) {
+   return ONE_HIT_MITIGATION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
+ }
+@@ -1586,30 +1589,37 @@ function enemyOneHitMitigationMultiplier(creature) {
+ }
+ 
+ // Duelist's Bulwark (SANG-SEC-IE007, Ovum Veteran Tower Shield,
+-// Sanguivorum Security and Enforcement): "on successful damaging hit
+-// received, final damage x0.90; CD4 wearer turns; max twice/combat; no
+-// retaliation or reaction chain." Unlike Watchman's Resilience/Hardened
+-// Formation/Officer's Bearing above (a flat once-per-combat flag), this
+-// is REPEATABLE — gated by a cooldown and a 2-use cap instead, the same
+-// cooldown/cap bookkeeping shape as applyAllyProtectionReaction's own
+-// allyProtectionCooldown/allyProtectionUsesThisCombat (per-wearer fields
+-// living on the creature object itself, ticked once per round in
+-// tickEnemyPassives below alongside smugglersGuardCooldown/
+-// tyrantsEdgeCooldown). "No retaliation or reaction chain" holds for
+-// free: this only ever scales the damage number rollPlayerDamage is
+-// already computing, the same as enemyOneHitMitigationMultiplier above —
+-// it never itself triggers any further action.
+-const DUELIST_BULWARK_EFFECT_ID = "sang_sec_ie007_duelists_bulwark";
+-function hasDuelistBulwarkEffect(carrier) {
+-  return hasEffect(carrier, DUELIST_BULWARK_EFFECT_ID);
+-}
+-function enemyDuelistBulwarkMultiplier(creature) {
+-  if (!hasDuelistBulwarkEffect(creature)) return 1;
+-  const cooldown = creature.duelistBulwarkCooldown || 0;
+-  const uses = creature.duelistBulwarkUsesThisCombat || 0;
++// Sanguivorum Security and Enforcement) / Champion's Poise (SANG-IAG-IE006,
++// Champion's Arena Shield, Sanguivorum Independent Armed Groups): "on
++// successful damaging hit received, final damage x0.90; CD4 wearer turns;
++// max twice/combat; no retaliation or reaction chain" — identical wording,
++// two effect ids (so each item declares its own) resolving through ONE
++// shared, repeatable mitigation mechanism, generalized the same way
++// ONE_HIT_MITIGATION_EFFECT_IDS/hasOneHitMitigationEffect above share one
++// mechanism across several once-per-combat ids. Unlike that flat
++// once-per-combat flag, this one is REPEATABLE — gated by a cooldown and a
++// 2-use cap instead, the same cooldown/cap bookkeeping shape as
++// applyAllyProtectionReaction's own allyProtectionCooldown/
++// allyProtectionUsesThisCombat (per-wearer fields living on the creature
++// object itself, renamed from this mechanism's original duelistBulwark*
++// naming to repeatableMitigation* now that a second, unrelated item shares
++// them, ticked once per round in tickEnemyPassives below alongside
++// smugglersGuardCooldown/tyrantsEdgeCooldown). "No retaliation or reaction
++// chain" holds for free: this only ever scales the damage number
++// rollPlayerDamage is already computing, the same as
++// enemyOneHitMitigationMultiplier above — it never itself triggers any
++// further action.
++const REPEATABLE_MITIGATION_EFFECT_IDS = ["sang_sec_ie007_duelists_bulwark", "sang_iag_ie006_champions_poise"];
++function hasRepeatableMitigationEffect(carrier) {
++  return REPEATABLE_MITIGATION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
++}
++function enemyRepeatableMitigationMultiplier(creature) {
++  if (!hasRepeatableMitigationEffect(creature)) return 1;
++  const cooldown = creature.repeatableMitigationCooldown || 0;
++  const uses = creature.repeatableMitigationUsesThisCombat || 0;
+   if (cooldown > 0 || uses >= 2) return 1;
+-  creature.duelistBulwarkCooldown = 4;
+-  creature.duelistBulwarkUsesThisCombat = uses + 1;
++  creature.repeatableMitigationCooldown = 4;
++  creature.repeatableMitigationUsesThisCombat = uses + 1;
+   return 0.9;
+ }
+ 
+@@ -1620,7 +1630,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+   // Imperial Military, above) — all consumed once here regardless of
+   // which branch (spell or physical) below ends up computing this hit's
+   // damage.
+-  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyDuelistBulwarkMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
++  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
+   // Brace/Guarded Strike, generalized: this creature may have banked a
+   // Defense bonus against its next incoming hit (resolveEnemyAction's own
+   // non-damaging-action branch, or its own landed basic attack — see
+@@ -2186,6 +2196,14 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
+     if (abilityCtx.banksNextAttackAccBonus) {
+       creatureObj.bankedAttackAccBonus = abilityCtx.banksNextAttackAccBonus.amount;
+       creatureObj.bankedAttackAccBonusTurnsLeft = abilityCtx.banksNextAttackAccBonus.turns;
++      // Silent Preparation (Veiled Executor, Sanguivorum Independent Armed
++      // Groups): banksNextAttackAccBonus's new optional dmgMultBonus field
++      // — carried on the SAME banked charge as the ACC bonus above (not a
++      // separate turns-countdown or consumption hook), so both the ACC
++      // bump and the damage bump land on the same next attack and expire
++      // together. 0 (not undefined) when the ability carries no damage
++      // component (Take Aim), so this field always reads as a safe no-op.
++      creatureObj.bankedAttackDmgMultBonus = abilityCtx.banksNextAttackAccBonus.dmgMultBonus || 0;
+     }
+   }
+   // Brace, generalized: the player's own version fires on a specific
+@@ -2696,6 +2714,24 @@ function playerHasAccOrSpdDebuff(state) {
+   const statuses = (state.combat && state.combat.playerStatuses) || {};
+   return Object.values(statuses).some((entry) => entry.debuff && ((entry.debuff.acc || 0) < 0 || (entry.debuff.spd || 0) < 0));
+ }
++// Trident Combination (Ovum Prizefighter, Sanguivorum Independent Armed
++// Groups): "1.5x, or 1.7x if target has reduced ACC OR ATK" — the same
++// playerHasAccOrSpdDebuff shape just above, but checking acc/atk instead
++// of acc/spd (its own narrower pair, per the codex's own wording).
++function playerHasAccOrAtkDebuff(state) {
++  const statuses = (state.combat && state.combat.playerStatuses) || {};
++  return Object.values(statuses).some((entry) => entry.debuff && ((entry.debuff.acc || 0) < 0 || (entry.debuff.atk || 0) < 0));
++}
++// Opportunistic Strike (Contract Blade, Sanguivorum Independent Armed
++// Groups): "1.6x, or 1.8x vs a target with ANY negative combat status" —
++// broader than playerHasAccOrSpdDebuff/playerHasAccOrAtkDebuff above (not
++// scoped to any particular stat pair): true iff any currently-active
++// combat.playerStatuses entry's debuff object has ANY negative-value stat
++// field at all.
++function playerHasAnyNegativeStatus(state) {
++  const statuses = (state.combat && state.combat.playerStatuses) || {};
++  return Object.values(statuses).some((entry) => entry.debuff && Object.values(entry.debuff).some((v) => typeof v === "number" && v < 0));
++}
+ // Disciplined Riposte/Measured Counteroffensive (Sanguivorum Imperial
+ // Military): "has an active defensive effect" = this creature's own
+ // enemy record carries a live (turnsLeft > 0) selfBuffs entry with
+@@ -2711,6 +2747,15 @@ function resolveEnemyActiveAbility(state, creature) {
+   const combat = state.combat;
+   const enemy = combat.enemies[combat.activeIndex];
+   const cooldowns = enemy.abilityCooldowns || (enemy.abilityCooldowns = {});
++  // Final Exchange (Ovum Champion, Sanguivorum Independent Armed Groups):
++  // "requires Champion's Guard used since previous Final Exchange" — a
++  // new, generically-reusable eligibility gate. priorAbilityUseFlags is a
++  // small, generic bookkeeping object keyed by ability id, set to true
++  // below whenever ANY active is successfully selected (not specific to
++  // Champion's Guard), and cleared by consumesPriorAbilityUse (below) —
++  // the same lazy-init-on-the-enemy-record shape as abilityCooldowns just
++  // above.
++  const priorFlags = enemy.priorAbilityUseFlags || (enemy.priorAbilityUseFlags = {});
+   const eligible = creature.actives.filter((id) => {
+     const a = getEnemyAbility(id);
+     if (!a || cooldowns[id] > 0) return false;
+@@ -2740,6 +2785,8 @@ function resolveEnemyActiveAbility(state, creature) {
+     // generalized to a SEPARATE ability consuming a DIFFERENT ability's
+     // charge instead of the same one that granted it.
+     if (a.requiresPreparedState && !(enemy.ballistaPreparedTurnsLeft > 0)) return false;
++    // Final Exchange's own gate — see priorFlags comment above.
++    if (a.requiresPriorAbilityUse && !priorFlags[a.requiresPriorAbilityUse]) return false;
+     return true;
+   });
+   if (!eligible.length) return null;
+@@ -2760,11 +2807,20 @@ function resolveEnemyActiveAbility(state, creature) {
+     setCooldown = Math.max(1, setCooldown - 1);
+   }
+   cooldowns[abilityId] = setCooldown;
++  // Final Exchange's own generic bookkeeping half — see priorFlags comment
++  // above the eligible filter. Set for EVERY ability selected here (not
++  // just Champion's Guard), so any future requiresPriorAbilityUse gate can
++  // read it.
++  priorFlags[abilityId] = true;
+   // Ballista Discharge/Scattershot: "requires AND consumes" Prepare
+   // Ballista's prepared state — consumed here, on selection, the same
+   // instant-on-activation timing Duelist's Measure's own pending-target
+   // field is cleared at.
+   if (ability.consumesPreparedState) enemy.ballistaPreparedTurnsLeft = 0;
++  // Final Exchange's own consuming half: clears Champion's Guard's own
++  // flag so the NEXT Final Exchange again requires a fresh Champion's
++  // Guard use in between — mirrors consumesPreparedState's exact shape.
++  if (ability.consumesPriorAbilityUse) priorFlags[ability.consumesPriorAbilityUse] = false;
+   let dmgMult = ability.dmgMult;
+   // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
+   // Predator, Prepared Opening/H08) — see firstAttackPassiveBonus above.
+@@ -2789,6 +2845,18 @@ function resolveEnemyActiveAbility(state, creature) {
+   if (ability.bonusVsAccOrSpdDebuff && playerHasAccOrSpdDebuff(state)) {
+     dmgMult *= ability.bonusVsAccOrSpdDebuff.mult;
+   }
++  // Trident Combination (Ovum Prizefighter, Sanguivorum Independent Armed
++  // Groups): the narrower acc/atk sibling of bonusVsAccOrSpdDebuff above.
++  if (ability.bonusVsAccOrAtkDebuff && playerHasAccOrAtkDebuff(state)) {
++    dmgMult *= ability.bonusVsAccOrAtkDebuff.mult;
++  }
++  // Opportunistic Strike (Contract Blade, Sanguivorum Independent Armed
++  // Groups): "1.6x, or 1.8x vs a target with ANY negative combat status" —
++  // the broadest of the three, checking playerHasAnyNegativeStatus instead
++  // of one specific stat pair.
++  if (ability.bonusVsAnyNegativeStatus && playerHasAnyNegativeStatus(state)) {
++    dmgMult *= ability.bonusVsAnyNegativeStatus.mult;
++  }
+   // H11 Coordinated Assault ("increased to 145% when another human ally
+   // is alive", Gate 5B.8 skills codex): any other alive, non-friendly
+   // packmate in this same fight counts — these creatures are always
+@@ -2812,6 +2880,16 @@ function resolveEnemyActiveAbility(state, creature) {
+   if (ability.bonusIfOwnDefBuffActive && hasActiveDefBuff(combat, creature)) {
+     dmgMult *= ability.bonusIfOwnDefBuffActive.mult;
+   }
++  // Contract Bolt (Contract Marksman, Sanguivorum Independent Armed
++  // Groups): "+10% final damage if Take Aim active, consuming it" — Take
++  // Aim's own banksNextAttackAccBonus already banked the state on
++  // creature.bankedAttackAccBonusTurnsLeft; checked here (read-only) and
++  // consumed, as always, by this very attack's own normal
++  // resolveEnemyRetaliation/resolveEnemyAttackOnAlly consumption below —
++  // this check never itself touches/clears the banked state.
++  if (ability.bonusIfPreparedState && creature.bankedAttackAccBonusTurnsLeft > 0) {
++    dmgMult *= ability.bonusIfPreparedState.mult;
++  }
+   // Apex Instinct (Rau-Thauln): unlike the ability-specific bonuses above,
+   // this applies to EVERY active the creature has, so it lives on the
+   // passive itself rather than needing to be copy-pasted onto each one.
+@@ -2843,6 +2921,13 @@ function resolveEnemyActiveAbility(state, creature) {
+   // check as Measured Counteroffensive's conditional dmgMult above, folded
+   // as an additive ACC bonus instead.
+   const condAccBonus = ability.accBonusIfOwnDefBuffActive && hasActiveDefBuff(combat, creature) ? ability.accBonusIfOwnDefBuffActive : 0;
++  // Veiled Precision (Veiled Executor, Sanguivorum Independent Armed
++  // Groups): "1.65x ATK; IF prepared, on hit -10 target ACC" — a plain
++  // existing-pattern conditional inflict, not a new mechanism: just read
++  // the same banked-state flag Contract Bolt's bonusIfPreparedState above
++  // reads, BEFORE this attack's own normal consumption clears it, and omit
++  // the inflict entirely when it isn't set.
++  const inflict = ability.inflictRequiresPreparedState && !(creature.bankedAttackAccBonusTurnsLeft > 0) ? undefined : ability.inflict;
+   return {
+     id: abilityId,
+     name: ability.name,
+@@ -2850,7 +2935,7 @@ function resolveEnemyActiveAbility(state, creature) {
+     accBonus: (ability.accBonus || 0) + firstAttackAccBonus + condAccBonus || undefined,
+     aoe: !!ability.aoe,
+     aoeMaxTargets: ability.aoeMaxTargets,
+-    inflict: ability.inflict,
++    inflict,
+     selfDebuff: ability.selfDebuff,
+     selfBuff: ability.selfBuff,
+     healOnHitPct: ability.healOnHitPct,
+@@ -3017,6 +3102,21 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName, summone
+ // groupKey reaches here without touching the caster's own `group` tag).
+ // Every pre-existing call omits groupKey, so `creature.group` remains the
+ // default, unchanged.
++// Company Standard/Rallying Standard (Sanguivorum Independent Armed
++// Groups, below): pick the recipient at lowest current HP%/ATK among the
++// `recipients` array applyPackAuraBuff just buffed — the opposite of
++// Imperial Authority's own `recipients[0]` ("first in resolution order")
++// rule. `other` is an enemy record (combat.enemies entry): HP lives on
++// the record itself (other.hp/other.maxHp, same field pair
++// resolveEnemyActiveAbility's own e.hp/e.maxHp eligibility checks read),
++// while ATK lives on other.creatureObj (the live, equipment-and-buff-
++// inclusive stat every other read in this file uses).
++function pickLowestHpRecipient(recipients) {
++  return recipients.reduce((lowest, r) => (lowest == null || r.hp / r.maxHp < lowest.hp / lowest.maxHp ? r : lowest), null);
++}
++function pickLowestAtkRecipient(recipients) {
++  return recipients.reduce((lowest, r) => (lowest == null || r.creatureObj.atk < lowest.creatureObj.atk ? r : lowest), null);
++}
+ function applyPackAuraBuff(combat, creature, spec) {
+   const groupKey = spec.groupKey || creature.group;
+   if (!groupKey) return;
+@@ -3051,6 +3151,27 @@ function applyPackAuraBuff(combat, creature, spec) {
+     creature.imperialAuthorityUsed = true;
+     applyEnemySelfModifier(combat, recipients[0].creatureObj, { def: 5, turns: 2 });
+   }
++  // Company Standard (SANG-IAG-IE004, Free Company Standard, Sanguivorum
++  // Independent Armed Groups): the first successful wearer-originated
++  // Attack buff to allies each combat grants the recipient at LOWEST
++  // current HP% an additional +5 Defense for 2 of its own turns — same
++  // once-per-combat shape as Imperial Authority above, just a different
++  // recipient-selection rule (pickLowestHpRecipient instead of
++  // recipients[0]). Kept as its own independent if-block (not a shared
++  // dispatcher), so a creature carrying more than one of these three
++  // effects could fire all of them off the same call.
++  if (recipients.length && !creature.companyStandardUsed && hasEffect(creature, "sang_iag_ie004_company_standard")) {
++    creature.companyStandardUsed = true;
++    applyEnemySelfModifier(combat, pickLowestHpRecipient(recipients).creatureObj, { def: 5, turns: 2 });
++  }
++  // Rallying Standard (SANG-IAG-IE010, Militia Rallying Standard,
++  // Sanguivorum Independent Armed Groups): same shape as Company Standard
++  // just above, but selects the recipient at LOWEST current ATK and grants
++  // +5 ATK for 2 turns instead.
++  if (recipients.length && !creature.rallyingStandardUsed && hasEffect(creature, "sang_iag_ie010_rallying_standard")) {
++    creature.rallyingStandardUsed = true;
++    applyEnemySelfModifier(combat, pickLowestAtkRecipient(recipients).creatureObj, { atk: 5, turns: 2 });
++  }
+ }
+ 
+ // An enemy attacking an ally instead of the player — its own smaller,
+@@ -3109,9 +3230,9 @@ function hasAllyProtectionEffect(carrier) {
+ // free each combat since every enemy creature object is rebuilt fresh by
+ // buildFightCreature). Folded silently into rollPlayerDamage's sangMit
+ // chain, consistent with every other mitigation multiplier already
+-// composed there (enemyOneHitMitigationMultiplier, enemyDuelistBulwark
+-// Multiplier) — none of them emit a line; the player just sees the
+-// smaller final number.
++// composed there (enemyOneHitMitigationMultiplier, enemyRepeatable
++// MitigationMultiplier) — none of them emit a line; the player just sees
++// the smaller final number.
+ function enemyAllyProtectionMultiplier(state, targetCreature) {
+   if (!state.combat) return 1;
+   for (const other of state.combat.enemies) {
+@@ -3174,14 +3295,26 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
+   // Imperial Military): mirror resolveEnemyRetaliation's own copies —
+   // both consumed on this attempt regardless of hit/miss.
+   let calculatedAimBonusAlly = 0;
+-  if (!creature.calculatedAimUsed && hasEffect(creature, "sang_mil_ie003_calculated_aim")) {
++  // Concealed Edge (SANG-IAG-IE007, Concealed Contract Dagger, Sanguivorum
++  // Independent Armed Groups): "first damaging attack attempted in combat
++  // gains +8 ACC, consumed on the attempt whether it hits or misses" —
++  // the codex's own wording calls this "reuse first-attack Accuracy
++  // pattern where identical," and Calculated Aim's existing mechanism just
++  // above is that identical pattern — a second effect id sharing the SAME
++  // once-per-combat flag/bonus, not a second mechanism.
++  if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
+     creature.calculatedAimUsed = true;
+     calculatedAimBonusAlly = 8;
+   }
+   const bankedPrepBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
++  // Silent Preparation/Measured Aim: mirror resolveEnemyRetaliation's own
++  // copies of these two reads, against the ally instead.
++  const bankedPrepDmgMultBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
++  const measuredAimAccBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
+   creature.bankedAttackAccBonus = 0;
+   creature.bankedAttackAccBonusTurnsLeft = 0;
+-  const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly;
++  creature.bankedAttackDmgMultBonus = 0;
++  const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
+   creature.duelistMeasurePendingTarget = null;
+   if (!attackConnects(creature.acc + accBonus, allyAgi)) {
+     // Riposte, generalized: this creature's own attack just dealt the
+@@ -3214,6 +3347,9 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
+   // as resolveEnemyRetaliation's own copy of this pair.
+   if (!abilityCtx) dmg = applyOpeningReachForActor(creature, dmg);
+   dmg = Math.round(dmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
++  // Silent Preparation's banked dmgMultBonus: mirrors resolveEnemyRetaliation's
++  // own copy, against the ally instead.
++  if (bankedPrepDmgMultBonusAlly > 0) dmg = Math.round(dmg * bankedPrepDmgMultBonusAlly);
+   // Tyrant's Edge (SANG-CU-IE012): mirrors resolveEnemyRetaliation's own
+   // copy, against the ally's HP instead of the player's.
+   if (dmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && ally.health <= ally.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+@@ -4200,7 +4336,10 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
+   // combat, consumed whether it hits or misses — same unconditional-on-
+   // attempt consumption shape as Marked Target/Duelist's Measure above.
+   let calculatedAimBonus = 0;
+-  if (!creature.calculatedAimUsed && hasEffect(creature, "sang_mil_ie003_calculated_aim")) {
++  // Concealed Edge (SANG-IAG-IE007): see resolveEnemyAttackOnAlly's own
++  // copy of this comment earlier in this file — same shared mechanism,
++  // not new.
++  if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
+     creature.calculatedAimUsed = true;
+     calculatedAimBonus = 8;
+   }
+@@ -4211,9 +4350,22 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
+   // hit/miss, same as Calculated Aim just above; tickEnemyPassives below
+   // decays it if 2 of the wearer's own turns pass unused.
+   const bankedPrepBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
++  // Silent Preparation's own dmgMultBonus (Veiled Executor, Sanguivorum
++  // Independent Armed Groups): read at the SAME point bankedPrepBonus just
++  // above is, before either is cleared below — applied to edmg further
++  // down, in the physical branch, so the ACC bump and the damage bump land
++  // on the same next attack and expire together.
++  const bankedPrepDmgMultBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
++  // Measured Aim (SANG-IAG-IE003, Contract Heavy Crossbow): "if an
++  // accuracy-preparation buff is active, +8 ACC pre-hit" — the equipment
++  // side of the same banked-state read, additive on top of whatever the
++  // ability-granted banked ACC already provides above, same read-before-
++  // clear timing.
++  const measuredAimAccBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
+   creature.bankedAttackAccBonus = 0;
+   creature.bankedAttackAccBonusTurnsLeft = 0;
+-  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus;
++  creature.bankedAttackDmgMultBonus = 0;
++  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus + measuredAimAccBonus;
+   if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
+     return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
+   }
+@@ -4365,6 +4517,11 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
+   // Active cast never qualifies, abilityCtx or not.
+   if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+   edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
++  // Silent Preparation's banked dmgMultBonus (see bankedPrepDmgMultBonus
++  // above) — applied to the next qualifying attack regardless of whether
++  // it's an active cast or a plain basic attack, same scope as the ACC
++  // bump it travels with.
++  if (bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * bankedPrepDmgMultBonus);
+   // First Sword's Regalia physical-weapon-hit multipliers (Dregnar
+   // Ashvein Stage B) — every one of Dregnar's own actives IS a weapon
+   // strike (Ashquench), so these apply uniformly whether abilityCtx is
+@@ -4415,6 +4572,21 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
+     combat.firstHitTakenUsed = true;
+     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+   }
++  // Toxic Preparation (SANG-IAG-IE008, Executor's Poisoned Dagger,
++  // Sanguivorum Independent Armed Groups): "first time each combat the
++  // wearer damages an already-Poisoned enemy, deal additional floor(5% of
++  // triggering final direct damage), minimum 1" — this fires FROM the
++  // wearer's own attack against the PLAYER, so it checks the PLAYER's own
++  // poison status (combat.playerStatuses["sang_iag_poison"]) — Poisoned
++  // Edge is something THIS creature inflicts ON the player; this triggers
++  // off hitting an already-poisoned player, the reverse direction from
++  // most of this division's other mechanics. Added onto edmg here, before
++  // mitigateAndApplyHitOnPlayer finalizes the hit, so the bonus is part of
++  // this same landed hit rather than a separate damage event.
++  if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.playerStatuses && combat.playerStatuses["sang_iag_poison"]) {
++    creature.toxicPreparationUsed = true;
++    edmg += Math.max(1, Math.floor(edmg * 0.05));
++  }
+   const physicalHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
+   edmg = physicalHit.edmg;
+   const absorbLines2 = physicalHit.absorbLines;
+@@ -4699,10 +4871,16 @@ function tickEnemyPassives(state, e) {
+   // guarded_strike/brace already use elsewhere in this file.
+   if (creature.smugglersGuardCooldown > 0) creature.smugglersGuardCooldown -= 1;
+   if (creature.tyrantsEdgeCooldown > 0) creature.tyrantsEdgeCooldown -= 1;
+-  // Duelist's Bulwark (SANG-SEC-IE007, Sanguivorum Security and
+-  // Enforcement) / Arena Riposte (intrinsic, same division) — both their
+-  // own CD4 cooldowns, same once-per-round tick as the two lines above.
+-  if (creature.duelistBulwarkCooldown > 0) creature.duelistBulwarkCooldown -= 1;
++  // Duelist's Bulwark/Champion's Poise (shared repeatableMitigation*
++  // fields, Sanguivorum Security and Enforcement / Independent Armed
++  // Groups) / Arena Riposte (intrinsic, Security and Enforcement) / Arena
++  // Counter (intrinsic, Independent Armed Groups — shares Arena Riposte's
++  // own arenaRiposteCooldown/arenaRiposteUsesThisCombat field pair, a
++  // per-creature-instance mechanism, never cross-contaminating a
++  // DIFFERENT creature that also happens to carry a counterOnSuccessfulHit
++  // passive) — all their own CD4 cooldowns, same once-per-round tick as
++  // the two lines above.
++  if (creature.repeatableMitigationCooldown > 0) creature.repeatableMitigationCooldown -= 1;
+   if (creature.arenaRiposteCooldown > 0) creature.arenaRiposteCooldown -= 1;
+   // Enemy-side Ally Protection Reaction mirror (enemyAllyProtectionMultiplier
+   // above) — same CD5 tick cadence as the player-side version's own
+@@ -4717,6 +4895,10 @@ function tickEnemyPassives(state, e) {
+   if (e.ballistaPreparedTurnsLeft > 0) e.ballistaPreparedTurnsLeft -= 1;
+   if (creature.bankedAttackAccBonusTurnsLeft > 0 && --creature.bankedAttackAccBonusTurnsLeft <= 0) {
+     creature.bankedAttackAccBonus = 0;
++    // Silent Preparation's dmgMultBonus (Sanguivorum Independent Armed
++    // Groups) decays alongside the ACC bonus it was banked with — same
++    // single countdown, not a separate one.
++    creature.bankedAttackDmgMultBonus = 0;
+   }
+   if (hasEffect(creature, "sang_cu_ie008_handlers_resilience") && !creature.handlersResilienceUsed && e.hp / e.maxHp <= 0.5) {
+     creature.handlersResilienceUsed = true;
