@@ -1,0 +1,155 @@
+range: 7e0aebe08931a1192682cca538014e846222fe17..1a56971158bc85e85b448c07bbb172a30f12427a
+=== 1a56971158bc85e85b448c07bbb172a30f12427a 2026-11-03 18:16:56 +0000
+Add Sanguivorum Imperial Military Division (14 enemy identities, Step 4.A/4.B v0.3)
+All 14 owner-approved Imperial Military identities as real, shipped
+roster content: Legion Recruit, Ferratum Infantryman, Ferratum Veteran
+(3 equipment bands), Ingenum Field Engineer, Ingenum Ballistarius,
+Agilum Scout, Impetum War Rider, Aqualis Sailor, Aqualis Marine (2
+bands), Gradus Veteran (3 bands), Ductus Section Commander (2 bands),
+Vigilis Unit Commander, Arbitarius Commander, Legion Houndmaster — plus
+a new "Legion Hound" summon-only creature (no separate owner stat
+block in the codex; sized against this codex's own low-tier identities
+the same way Call Outlaw Hounds reuses existing wolves instead of a
+dedicated new species).
+
+Base stats are the owner's own Step-5 cross-division-audit-reconciled
+table (combined base+gear x2 minus the codex's own itemized gear
+deltas; every V-tier variant of a multi-loadout identity reconciled to
+the same base; 3 independently cross-matched against the Step-5 doc's
+own Base/Gear/Raw breakdown for Ferratum Veteran V3, Vigilis Unit
+Commander and Arbitarius Commander) — taken as final and approved, not
+re-derived. Run through the STANDARD computeCreatureStats pipeline
+like every other ordinary creature, spawnRarity "common" +
+levelBandExempt + explicit levelRange for all 14, matching this file's
+established house style.
+
+Two new BESTIARY fields, introduced here and safe to add: `division`
+("imperial_military", shared by all 14 plus the Houndmaster's own
+summoned hounds) and `family` (legion/ferratum/ingenum/agilum/impetum/
+aqualis/gradus/ductus/vigilis/arbitarius). All 14 also share `group:
+"sang_mil_imperial_military"` for applyPackAuraBuff's pack-buff actives;
+the Houndmaster's own hounds get a separate narrower group instead, via
+applyPackAuraBuff's new `groupKey` override.
+
+Archetype mapping (owner's own judgment calls, used exactly as given):
+skirmisher (Legion Recruit, Agilum Scout), tank (Ferratum Infantryman/
+Veteran, Gradus Veteran), controller (Ingenum Field Engineer), artillery
+(Ingenum Ballistarius), berserker (Impetum War Rider), bruiser (Aqualis
+Sailor/Marine), leader (Ductus Section Commander, Vigilis Unit
+Commander, Arbitarius Commander), summoner (Legion Houndmaster).
+
+Equipment: all 20 itemized loadouts from the codex, ~85 new items added
+to ITEM_DEFS. Four items are case-insensitive EXACT duplicates of
+already-defined gear and are reused at their existing keys rather than
+re-declared: "Crossbowman's Gloves" and "Reinforced Handler Gloves"
+(both already existed from Criminal Underworld, same slot/bonus as this
+codex's own Ingenum Field Engineer/Legion Houndmaster gloves), plus the
+codex's own cited catalog precedents "a sanguivorum infantry shield"
+(Ferratum Infantryman) and "Sanguivorum courier boots" (Agilum Scout).
+
+49 intrinsic abilities (enemyabilities.js) plus one for the new Legion
+Hound. Three collide by NAME ONLY with existing, mechanically different
+entries elsewhere in this file (Veteran Discipline/H07, Veteran's
+Guard/IA-25 Criminal Underworld, a placeholder Coordinated Strike) and
+are kept as distinct `mil_`-prefixed ids showing the identical display
+name. New, additive engine support in engine/combat.js beyond what
+Criminal Underworld needed:
+
+- Wearer-neutral one-hit mitigation (Hardened Formation/MIL-IE001,
+  Officer's Bearing/MIL-IE007 — two effect ids, one shared mechanism):
+  generalizes the player-only Stonewarden 6pc precedent to the other
+  side of the exchange — an ENEMY wearer's first hit taken from the
+  PLAYER's own damage, x0.90 once per combat. New
+  ONE_HIT_MITIGATION_EFFECT_IDS/hasOneHitMitigationEffect/
+  enemyOneHitMitigationMultiplier, wired into rollPlayerDamage.
+- whileAllyAlive gains two new scope values ("division", "family"),
+  and a new sibling trigger whileAlliesDiverse (Combined-Arms
+  Authority's "2+ distinct specializations alive"), both in
+  tickEnemyPassives, same reversible toggle-via-applyPermanentSelfBuff/
+  negation shape as the existing "summon"/default scopes.
+- hasActiveDefBuff(combat, creature) + two new conditional ability
+  fields (bonusIfOwnDefBuffActive for Measured Counteroffensive,
+  accBonusIfOwnDefBuffActive for Disciplined Riposte/Shielded Thrust),
+  checked in resolveEnemyActiveAbility alongside the existing
+  bonusVsHealthBelowPct/bonusVsAllyAlive conditionals.
+- selfHealthBelowPct eligibility gate (Final Directive), checked in
+  resolveEnemyActiveAbility's eligible filter next to
+  summon.onlyIfAlliesBelow.
+- Prepared Warhound: new combatStartSummon passive trigger, resolved
+  once in startCombat via the same resolveEnemySummon() path Deploy
+  Legion Hounds' own active uses, sharing its capKey so the starting
+  hound counts against the same maxActive(3)/maxLifetime(5) pool from
+  turn zero (verified: starting hound + a full Deploy Legion Hounds cast
+  hits the cap exactly, a second cast summons nothing).
+- flatStatBonus trigger (Veteran Discipline's untriggered "constant +5
+  Defense while alive"), applied once in buildFightCreature.
+- requiresPreparedState/consumesPreparedState/grantsPreparedState for
+  Prepare Ballista -> Ballista Discharge/Scattershot's two-step channel
+  (banked on the enemy record, ticked in tickEnemyPassives).
+- banksNextAttackAccBonus (Calculated Preparation's "+10 ACC on next
+  attack within 2 turns"), consumed in resolveEnemyRetaliation/
+  resolveEnemyAttackOnAlly's accBonus computation, same placement as
+  Marked Target/Duelist's Measure.
+- bonusVsFamilyAllyAlive (Coordinated Strike, scoped to family:
+  "aqualis" — the scoped variant was easy to add, taken over H11's
+  looser unscoped precedent).
+- applyPackAuraBuff gains a `groupKey` override param (Pack
+  Coordination's "this handler's own hounds" vs the shared division
+  group) and now also drives Imperial Authority (MIL-IE008): the first
+  successful ally-targeted buff each combat grants its first recipient
+  +5 Defense for 2 turns, naturally excluded from pure self-only buffs
+  since those never route through this function.
+- Boarding Discipline (MIL-IE006) generalizes resolveEnemySummon's
+  existing Hunter's Call check into a small list of effect ids sharing
+  one code path, confirmed independent per creature (one creature's use
+  does not block or consume another's).
+- Calculated Aim (MIL-IE003) and Decisive Impact (MIL-IE005) follow the
+  established per-attempt/per-first-hit consumption shapes already used
+  by Marked Target/Duelist's Measure and Unbroken Grip respectively.
+
+Two item effects (Field Salvage/MIL-IE002, Reconnaissance Insight/
+MIL-IE004) are declared-but-inert, matching this file's existing
+convention, pending loot-table/exploration-currency systems that don't
+exist in this engine. Combined-Arms Order's "+5 ATK only if recipients
+are specialization-diverse" is implemented as an unconditional +10
+ACC/+5 ATK (a documented simplification — no budgeted mechanism checks
+post-hoc recipient diversity). Sabotaging Bolt/Weapon Hook's "-8 ATK"
+inflict on the player follows disarm_swipe's own pre-existing pattern,
+which this engine's effectivePlayerAtk never actually reads (a
+pre-existing gap, not introduced here, out of scope to fix).
+
+Tested: full existing regression suite confirmed identical to its
+stored baseline, zero new failures — pass3_h_ledger.js 9/10 (H16,
+pre-existing), pass6_h_ledger.js 6/6, design_team_h_ledger.js 23/23,
+gate5b8_wearer_neutral/wearer_neutral_tests.js 15/16 real assertions
+(player-opening-reach-unchanged pre-existing RNG flake; the remaining
+entry is a rate-only record, not a pass/fail assertion, at 19/200 vs a
+20% target), downed_system_test/downed_ledger.js 17/17, ally_
+protection_test/ally_protection_ledger.js 9/9, Dregnar Stage A 29/30
+(its own stale pre-Stage-B stat assertion, pre-existing) and Stage B
+36/36. New direct spot-checks (not checked in) covering all 14
+identities' exact base stats/division/family tags; the "division"/
+"family" whileAllyAlive scopes toggling on and reverting off; "while
+AlliesDiverse" requiring 2 distinct families and reverting when
+diversity drops to 1; the one-hit-mitigation mechanism firing exactly
+once at x0.90 for an ENEMY wearer via both the isolated multiplier
+function and a deterministic end-to-end rollPlayerDamage comparison;
+Boarding Discipline and Hunter's Call firing independently on separate
+creatures without interfering; Imperial Authority granting the +5 DEF
+follow-up off a real ally-targeted packAuraBuff call and NOT off a
+self-only applyEnemySelfModifier buff; Prepare Ballista gating and
+consuming Ballista Discharge's prepared state; Final Directive's HP
+eligibility gate; Measured Counteroffensive's 1.65x/1.85x conditional;
+all 4 reused-catalog items resolving to their real existing keys; every
+equipment band resolving at its exact level boundary.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/bestiary.js       | 389 ++++++++++++++++++++++++++++++++++++++++++++++
+ js/data/effects.js        |  22 +++
+ js/data/enemyabilities.js | 152 ++++++++++++++++++
+ js/data/items.js          | 156 +++++++++++++++++++
+ js/engine/combat.js       | 278 +++++++++++++++++++++++++++++++--
+ 5 files changed, 984 insertions(+), 13 deletions(-)

@@ -1,0 +1,1840 @@
+[
+ {
+  "reg": "BESTIARY",
+  "id": "legion_recruit",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ferratum_infantryman",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ferratum_veteran",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ingenum_field_engineer",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ingenum_ballistarius",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "agilum_scout",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "impetum_war_rider",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "aqualis_sailor",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "aqualis_marine",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "gradus_veteran",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ductus_section_commander",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "vigilis_unit_commander",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "arbitarius_commander",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "legion_houndmaster",
+  "type": "added"
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "legion_hound",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "measured_strike",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "readied_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ferratum_brace",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "shielded_thrust",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mil_veteran_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mil_veterans_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "disciplined_riposte",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "calculated_preparation",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sabotaging_bolt",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "range_calculation",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "prepare_ballista",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ballista_discharge",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ballista_scattershot",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rapid_reconnaissance",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "disrupting_javelin",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "scouts_strike",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "impact_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "impetum_lance_strike",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "recovery_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "boarding_slash",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "weapon_hook",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "marine_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "boarding_assault",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mil_coordinated_strike",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "naval_guard",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "call_boarding_party",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "field_experience",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "veterans_cut",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "steady_the_line",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "section_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "coordinated_order",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "officers_strike",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "defensive_instruction",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "command_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "battle_hardened",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "hold_the_line",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "commanders_sword",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "measured_counteroffensive",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "combined_arms_authority",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "commanders_resolve",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "combined_arms_order",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "arbitarius_assault",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "tactical_suppression",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "final_directive",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "prepared_warhound",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "handlers_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "deploy_legion_hounds",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "handlers_spear",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "pack_coordination",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "hound_bite",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Legion Training Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Basic Legion Vest",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marching Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Training Gladius",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Training Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ferratum Iron Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ferratum Cuirass",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "March Greaves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Formation Spear",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Ferratum Helm V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Cuirass V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gauntlets V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Greaves V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Blade V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Tower Shield V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Ferratum Helm V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Cuirass V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gauntlets V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Greaves V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Blade V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Tower Shield V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Ferratum Helm V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Cuirass V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gauntlets V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Greaves V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Blade V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Tower Shield V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Engineer's Leather Coat",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Utility Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Calculated Crossbow",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Engineer Sidearm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Engineer's Toolkit",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ballistarius Headguard",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Engineer Harness",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ballistarius Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Stabilizer Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ballistarius Crankbow",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ingenum Sidearm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Calculation Lens",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ballistarius Tool Case",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Agilum Scout Vest",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Light Rider Gloves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scout's Javelin",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Light Scout Buckler",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reconnaissance Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Impetum War Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Heavy Rider Armor",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Lance Grip Gauntlets",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "War Rider Greaves",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Heavy War Lance",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Cavalry Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Naval Leather Vest",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Deck Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boarding Cutlass",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sailor's Hook",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Weather Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Aqualis War Helm V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Cuirass V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boarding Gauntlets V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Deck Combat Boots V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Boarding Sword V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Shield V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boarding Command Whistle V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Aqualis War Helm V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Cuirass V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boarding Gauntlets V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Deck Combat Boots V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Boarding Sword V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Shield V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boarding Command Whistle V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Gradus Veteran Helm V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Armor V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran March Boots V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gladius V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Shield V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Gradus Veteran Helm V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Armor V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran March Boots V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gladius V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Shield V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Gradus Veteran Helm V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Armor V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran March Boots V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gladius V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Shield V3",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ductus Officer Helm V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Cuirass V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Gauntlets V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Riding Boots V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ductus Command Sword V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Section Command Shield V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Signet V1",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ductus Officer Helm V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Cuirass V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Gauntlets V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Riding Boots V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ductus Command Sword V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Section Command Shield V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Officer Signet V2",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vigilis War Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Commander Armor",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Command Gauntlets",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Commander Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vigilis Command Sword",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Command Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vigilis Command Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Unit Command Insignia",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius War Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Senior Commander Cuirass",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Senior Officer Gauntlets",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius March Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius Command Blade",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Imperial Command Shield",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Commander Signet",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius Command Cloak",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius Insignia",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Handler's Military Helm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Legion Handler Vest",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Kennelmaster's Boots",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Legion Handler Spear",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Military Handler Sidearm",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Handler's Whistle",
+  "type": "added"
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "62",
+    "new": "Legion Training Helm"
+   },
+   {
+    "f": "63",
+    "new": "Basic Legion Vest"
+   },
+   {
+    "f": "64",
+    "new": "Marching Boots"
+   },
+   {
+    "f": "65",
+    "new": "Training Gladius"
+   },
+   {
+    "f": "66",
+    "new": "Training Shield"
+   },
+   {
+    "f": "67",
+    "new": "Veteran Gauntlets V1"
+   },
+   {
+    "f": "68",
+    "new": "Veteran Gauntlets V2"
+   },
+   {
+    "f": "69",
+    "new": "Utility Boots"
+   },
+   {
+    "f": "70",
+    "new": "Engineer Sidearm"
+   },
+   {
+    "f": "71",
+    "new": "Light Scout Buckler"
+   },
+   {
+    "f": "72",
+    "new": "Weather Cloak"
+   },
+   {
+    "f": "73",
+    "new": "Boarding Gauntlets V1"
+   },
+   {
+    "f": "74",
+    "new": "Deck Combat Boots V1"
+   },
+   {
+    "f": "75",
+    "new": "Officer Gauntlets V1"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "98",
+    "new": "Ferratum Iron Helm"
+   },
+   {
+    "f": "99",
+    "new": "March Greaves"
+   },
+   {
+    "f": "100",
+    "new": "Veteran Ferratum Helm V1"
+   },
+   {
+    "f": "101",
+    "new": "Reinforced Greaves V1"
+   },
+   {
+    "f": "102",
+    "new": "Veteran Gauntlets V3"
+   },
+   {
+    "f": "103",
+    "new": "Engineer's Leather Coat"
+   },
+   {
+    "f": "104",
+    "new": "Engineer's Toolkit"
+   },
+   {
+    "f": "105",
+    "new": "Ballistarius Headguard"
+   },
+   {
+    "f": "106",
+    "new": "Stabilizer Boots"
+   },
+   {
+    "f": "107",
+    "new": "Ingenum Sidearm"
+   },
+   {
+    "f": "108",
+    "new": "Ballistarius Tool Case"
+   },
+   {
+    "f": "109",
+    "new": "Agilum Scout Vest"
+   },
+   {
+    "f": "110",
+    "new": "Light Rider Gloves"
+   },
+   {
+    "f": "111",
+    "new": "Reconnaissance Cloak"
+   },
+   {
+    "f": "112",
+    "new": "Lance Grip Gauntlets"
+   },
+   {
+    "f": "113",
+    "new": "Naval Leather Vest"
+   },
+   {
+    "f": "114",
+    "new": "Deck Boots"
+   },
+   {
+    "f": "115",
+    "new": "Sailor's Hook"
+   },
+   {
+    "f": "116",
+    "new": "Aqualis War Helm V1"
+   },
+   {
+    "f": "117",
+    "new": "Boarding Command Whistle V1"
+   },
+   {
+    "f": "118",
+    "new": "Boarding Gauntlets V2"
+   },
+   {
+    "f": "119",
+    "new": "Deck Combat Boots V2"
+   },
+   {
+    "f": "120",
+    "new": "Boarding Command Whistle V2"
+   },
+   {
+    "f": "121",
+    "new": "Gradus Veteran Helm V1"
+   },
+   {
+    "f": "122",
+    "new": "Veteran March Boots V1"
+   },
+   {
+    "f": "123",
+    "new": "Ductus Officer Helm V1"
+   },
+   {
+    "f": "124",
+    "new": "Officer Riding Boots V1"
+   },
+   {
+    "f": "125",
+    "new": "Officer Signet V1"
+   },
+   {
+    "f": "126",
+    "new": "Officer Gauntlets V2"
+   },
+   {
+    "f": "127",
+    "new": "Officer Signet V2"
+   },
+   {
+    "f": "128",
+    "new": "Handler's Military Helm"
+   },
+   {
+    "f": "129",
+    "new": "Kennelmaster's Boots"
+   },
+   {
+    "f": "130",
+    "new": "Military Handler Sidearm"
+   },
+   {
+    "f": "131",
+    "new": "Handler's Whistle"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "206",
+    "new": "Ferratum Cuirass"
+   },
+   {
+    "f": "207",
+    "new": "Formation Spear"
+   },
+   {
+    "f": "208",
+    "new": "Veteran Cuirass V1"
+   },
+   {
+    "f": "209",
+    "new": "Veteran Legion Blade V1"
+   },
+   {
+    "f": "210",
+    "new": "Veteran Tower Shield V1"
+   },
+   {
+    "f": "211",
+    "new": "Veteran Ferratum Helm V2"
+   },
+   {
+    "f": "212",
+    "new": "Reinforced Greaves V2"
+   },
+   {
+    "f": "213",
+    "new": "Calculated Crossbow"
+   },
+   {
+    "f": "214",
+    "new": "Reinforced Engineer Harness"
+   },
+   {
+    "f": "215",
+    "new": "Ballistarius Gloves"
+   },
+   {
+    "f": "216",
+    "new": "Calculation Lens"
+   },
+   {
+    "f": "217",
+    "new": "Scout's Javelin"
+   },
+   {
+    "f": "218",
+    "new": "Impetum War Helm"
+   },
+   {
+    "f": "219",
+    "new": "War Rider Greaves"
+   },
+   {
+    "f": "220",
+    "new": "Reinforced Cavalry Shield"
+   },
+   {
+    "f": "221",
+    "new": "Boarding Cutlass"
+   },
+   {
+    "f": "222",
+    "new": "Marine Cuirass V1"
+   },
+   {
+    "f": "223",
+    "new": "Marine Boarding Sword V1"
+   },
+   {
+    "f": "224",
+    "new": "Marine Shield V1"
+   },
+   {
+    "f": "225",
+    "new": "Aqualis War Helm V2"
+   },
+   {
+    "f": "226",
+    "new": "Veteran Legion Armor V1"
+   },
+   {
+    "f": "227",
+    "new": "Veteran Gladius V1"
+   },
+   {
+    "f": "228",
+    "new": "Veteran Shield V1"
+   },
+   {
+    "f": "229",
+    "new": "Gradus Veteran Helm V2"
+   },
+   {
+    "f": "230",
+    "new": "Veteran March Boots V2"
+   },
+   {
+    "f": "231",
+    "new": "Officer Cuirass V1"
+   },
+   {
+    "f": "232",
+    "new": "Section Command Shield V1"
+   },
+   {
+    "f": "233",
+    "new": "Ductus Officer Helm V2"
+   },
+   {
+    "f": "234",
+    "new": "Officer Riding Boots V2"
+   },
+   {
+    "f": "235",
+    "new": "Command Gauntlets"
+   },
+   {
+    "f": "236",
+    "new": "Commander Boots"
+   },
+   {
+    "f": "237",
+    "new": "Vigilis Command Cloak"
+   },
+   {
+    "f": "238",
+    "new": "Unit Command Insignia"
+   },
+   {
+    "f": "239",
+    "new": "Senior Officer Gauntlets"
+   },
+   {
+    "f": "240",
+    "new": "Commander Signet"
+   },
+   {
+    "f": "241",
+    "new": "Legion Handler Vest"
+   },
+   {
+    "f": "242",
+    "new": "Legion Handler Spear"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "133",
+    "new": "Veteran Cuirass V2"
+   },
+   {
+    "f": "134",
+    "new": "Veteran Legion Blade V2"
+   },
+   {
+    "f": "135",
+    "new": "Veteran Tower Shield V2"
+   },
+   {
+    "f": "136",
+    "new": "Veteran Ferratum Helm V3"
+   },
+   {
+    "f": "137",
+    "new": "Reinforced Greaves V3"
+   },
+   {
+    "f": "138",
+    "new": "Ballistarius Crankbow"
+   },
+   {
+    "f": "139",
+    "new": "Heavy Rider Armor"
+   },
+   {
+    "f": "140",
+    "new": "Heavy War Lance"
+   },
+   {
+    "f": "141",
+    "new": "Marine Cuirass V2"
+   },
+   {
+    "f": "142",
+    "new": "Marine Boarding Sword V2"
+   },
+   {
+    "f": "143",
+    "new": "Marine Shield V2"
+   },
+   {
+    "f": "144",
+    "new": "Veteran Legion Armor V2"
+   },
+   {
+    "f": "145",
+    "new": "Veteran Gladius V2"
+   },
+   {
+    "f": "146",
+    "new": "Veteran Shield V2"
+   },
+   {
+    "f": "147",
+    "new": "Gradus Veteran Helm V3"
+   },
+   {
+    "f": "148",
+    "new": "Veteran March Boots V3"
+   },
+   {
+    "f": "149",
+    "new": "Ductus Command Sword V1"
+   },
+   {
+    "f": "150",
+    "new": "Officer Cuirass V2"
+   },
+   {
+    "f": "151",
+    "new": "Section Command Shield V2"
+   },
+   {
+    "f": "152",
+    "new": "Vigilis War Helm"
+   },
+   {
+    "f": "153",
+    "new": "Reinforced Command Shield"
+   },
+   {
+    "f": "154",
+    "new": "Arbitarius March Boots"
+   },
+   {
+    "f": "155",
+    "new": "Arbitarius Command Cloak"
+   },
+   {
+    "f": "156",
+    "new": "Arbitarius Insignia"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "5",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "33",
+    "new": "Veteran Cuirass V3"
+   },
+   {
+    "f": "34",
+    "new": "Veteran Legion Blade V3"
+   },
+   {
+    "f": "35",
+    "new": "Veteran Tower Shield V3"
+   },
+   {
+    "f": "36",
+    "new": "Veteran Legion Armor V3"
+   },
+   {
+    "f": "37",
+    "new": "Veteran Gladius V3"
+   },
+   {
+    "f": "38",
+    "new": "Veteran Shield V3"
+   },
+   {
+    "f": "39",
+    "new": "Ductus Command Sword V2"
+   },
+   {
+    "f": "40",
+    "new": "Commander Armor"
+   },
+   {
+    "f": "41",
+    "new": "Vigilis Command Sword"
+   },
+   {
+    "f": "42",
+    "new": "Arbitarius War Helm"
+   },
+   {
+    "f": "43",
+    "new": "Imperial Command Shield"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "49",
+    "new": "Senior Commander Cuirass"
+   },
+   {
+    "f": "50",
+    "new": "Arbitarius Command Blade"
+   }
+  ]
+ },
+ {
+  "reg": "REGIONAL_LOOT_POOL",
+  "id": "sanguivorum",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "1",
+    "old": [
+     "Worn Leather Vest",
+     "Scuffed Work Boots",
+     "Streetbreaker Club",
+     "Concealed Street Vest",
+     "Pickpocket's Gloves",
+     "Softstep Boots",
+     "Street Shiv",
+     "Road Bandit's Cap",
+     "Lookout's Hood",
+     "Light Travel Coat",
+     "Knife-Fighter's Gloves",
+     "Silent Road Boots",
+     "Highway Cutthroat's Shiv V1",
+     "Dark Travel Cloak",
+     "Heavy Grip Gloves",
+     "Dustworn Cloak"
+    ],
+    "new": [
+     "Worn Leather Vest",
+     "Scuffed Work Boots",
+     "Streetbreaker Club",
+     "Concealed Street Vest",
+     "Pickpocket's Gloves",
+     "Softstep Boots",
+     "Street Shiv",
+     "Road Bandit's Cap",
+     "Lookout's Hood",
+     "Light Travel Coat",
+     "Knife-Fighter's Gloves",
+     "Silent Road Boots",
+     "Highway Cutthroat's Shiv V1",
+     "Dark Travel Cloak",
+     "Heavy Grip Gloves",
+     "Dustworn Cloak",
+     "Legion Training Helm",
+     "Basic Legion Vest",
+     "Marching Boots",
+     "Training Gladius",
+     "Training Shield",
+     "Veteran Gauntlets V1",
+     "Veteran Gauntlets V2",
+     "Utility Boots",
+     "Engineer Sidearm",
+     "Light Scout Buckler",
+     "Weather Cloak",
+     "Boarding Gauntlets V1",
+     "Deck Combat Boots V1",
+     "Officer Gauntlets V1"
+    ]
+   },
+   {
+    "f": "2",
+    "old": [
+     "legion march boots",
+     "a blood oak charm",
+     "Cutpurse's Dagger",
+     "Reinforced Travel Leather",
+     "Crossbowman's Gloves",
+     "Spotter's Lens",
+     "Cutthroat's Leather Coat",
+     "Highway Cutthroat's Blade V1",
+     "Veteran Knife-Fighter's Gloves",
+     "Reinforced Dark Cloak",
+     "Iron-Banded Hood",
+     "Reinforced Ambusher's Leather",
+     "Concealed Leather Hood",
+     "Fine Sword Gloves",
+     "Border Travel Boots",
+     "Concealment Cloak",
+     "Arena Fighting Wraps",
+     "Arena Sandals",
+     "Ovum Outcast Secondary Blade",
+     "Arena Veteran's Token",
+     "Handler's Leather Cap",
+     "Reinforced Handler Gloves",
+     "Outlaw Hunting Boots",
+     "Weathered Hunting Cloak",
+     "Packmaster's Whistle"
+    ],
+    "new": [
+     "legion march boots",
+     "a blood oak charm",
+     "Cutpurse's Dagger",
+     "Reinforced Travel Leather",
+     "Crossbowman's Gloves",
+     "Spotter's Lens",
+     "Cutthroat's Leather Coat",
+     "Highway Cutthroat's Blade V1",
+     "Veteran Knife-Fighter's Gloves",
+     "Reinforced Dark Cloak",
+     "Iron-Banded Hood",
+     "Reinforced Ambusher's Leather",
+     "Concealed Leather Hood",
+     "Fine Sword Gloves",
+     "Border Travel Boots",
+     "Concealment Cloak",
+     "Arena Fighting Wraps",
+     "Arena Sandals",
+     "Ovum Outcast Secondary Blade",
+     "Arena Veteran's Token",
+     "Handler's Leather Cap",
+     "Reinforced Handler Gloves",
+     "Outlaw Hunting Boots",
+     "Weathered Hunting Cloak",
+     "Packmaster's Whistle",
+     "Ferratum Iron Helm",
+     "March Greaves",
+     "Veteran Ferratum Helm V1",
+     "Reinforced Greaves V1",
+     "Veteran Gauntlets V3",
+     "Engineer's Leather Coat",
+     "Engineer's Toolkit",
+     "Ballistarius Headguard",
+     "Stabilizer Boots",
+     "Ingenum Sidearm",
+     "Ballistarius Tool Case",
+     "Agilum Scout Vest",
+     "Light Rider Gloves",
+     "Reconnaissance Cloak",
+     "Lance Grip Gauntlets",
+     "Naval Leather Vest",
+     "Deck Boots",
+     "Sailor's Hook",
+     "Aqualis War Helm V1",
+     "Boarding Command Whistle V1",
+     "Boarding Gauntlets V2",
+     "Deck Combat Boots V2",
+     "Boarding Command Whistle V2",
+     "Gradus Veteran Helm V1",
+     "Veteran March Boots V1",
+     "Ductus Officer Helm V1",
+     "Officer Riding Boots V1",
+     "Officer Signet V1",
+     "Officer Gauntlets V2",
+     "Officer Signet V2",
+     "Handler's Military Helm",
+     "Kennelmaster's Boots",
+     "Military Handler Sidearm",
+     "Handler's Whistle"
+    ]
+   },
+   {
+    "f": "3",
+    "old": [
+     "a highland war axe",
+     "an iron-rim kite shield",
+     "a highland breastplate",
+     "border rider gauntlets",
+     "border patrol greaves",
+     "a blood oak pendant",
+     "a highland hunter's mantle",
+     "Roadside Spotter's Crossbow",
+     "Reinforced Cutthroat Coat",
+     "Highway Cutthroat's Shiv V2",
+     "Master Knife-Fighter's Gloves",
+     "Caravan Breaker Maul",
+     "Smuggler's Reinforced Coat",
+     "Border Smuggler's Sword",
+     "Smuggler's Guard Buckler",
+     "Worn Arena Harness",
+     "Ovum Outcast Primary Blade",
+     "Packmaster's Leather Vest",
+     "Outlaw Handler's Spear",
+     "Veteran Officer's Gauntlets",
+     "Captain's Riding Boots",
+     "Officer's Signet",
+     "Captain's Command Cloak",
+     "Commander's Insignia"
+    ],
+    "new": [
+     "a highland war axe",
+     "an iron-rim kite shield",
+     "a highland breastplate",
+     "border rider gauntlets",
+     "border patrol greaves",
+     "a blood oak pendant",
+     "a highland hunter's mantle",
+     "Roadside Spotter's Crossbow",
+     "Reinforced Cutthroat Coat",
+     "Highway Cutthroat's Shiv V2",
+     "Master Knife-Fighter's Gloves",
+     "Caravan Breaker Maul",
+     "Smuggler's Reinforced Coat",
+     "Border Smuggler's Sword",
+     "Smuggler's Guard Buckler",
+     "Worn Arena Harness",
+     "Ovum Outcast Primary Blade",
+     "Packmaster's Leather Vest",
+     "Outlaw Handler's Spear",
+     "Veteran Officer's Gauntlets",
+     "Captain's Riding Boots",
+     "Officer's Signet",
+     "Captain's Command Cloak",
+     "Commander's Insignia",
+     "Ferratum Cuirass",
+     "Formation Spear",
+     "Veteran Cuirass V1",
+     "Veteran Legion Blade V1",
+     "Veteran Tower Shield V1",
+     "Veteran Ferratum Helm V2",
+     "Reinforced Greaves V2",
+     "Calculated Crossbow",
+     "Reinforced Engineer Harness",
+     "Ballistarius Gloves",
+     "Calculation Lens",
+     "Scout's Javelin",
+     "Impetum War Helm",
+     "War Rider Greaves",
+     "Reinforced Cavalry Shield",
+     "Boarding Cutlass",
+     "Marine Cuirass V1",
+     "Marine Boarding Sword V1",
+     "Marine Shield V1",
+     "Aqualis War Helm V2",
+     "Veteran Legion Armor V1",
+     "Veteran Gladius V1",
+     "Veteran Shield V1",
+     "Gradus Veteran Helm V2",
+     "Veteran March Boots V2",
+     "Officer Cuirass V1",
+     "Section Command Shield V1",
+     "Ductus Officer Helm V2",
+     "Officer Riding Boots V2",
+     "Command Gauntlets",
+     "Commander Boots",
+     "Vigilis Command Cloak",
+     "Unit Command Insignia",
+     "Senior Officer Gauntlets",
+     "Commander Signet",
+     "Legion Handler Vest",
+     "Legion Handler Spear"
+    ]
+   },
+   {
+    "f": "4",
+    "old": [
+     "Highway Cutthroat's Blade V2",
+     "Master Cutthroat Coat",
+     "Highway Cutthroat's Shiv V3",
+     "Highway Officer's Helm",
+     "Highway Captain's Command Shield",
+     "Veteran War Gauntlets",
+     "Reinforced Warlord Boots",
+     "Ruthless Lord's Signet",
+     "Roadlord's Battle Cloak",
+     "Conqueror's Trophy"
+    ],
+    "new": [
+     "Highway Cutthroat's Blade V2",
+     "Master Cutthroat Coat",
+     "Highway Cutthroat's Shiv V3",
+     "Highway Officer's Helm",
+     "Highway Captain's Command Shield",
+     "Veteran War Gauntlets",
+     "Reinforced Warlord Boots",
+     "Ruthless Lord's Signet",
+     "Roadlord's Battle Cloak",
+     "Conqueror's Trophy",
+     "Veteran Cuirass V2",
+     "Veteran Legion Blade V2",
+     "Veteran Tower Shield V2",
+     "Veteran Ferratum Helm V3",
+     "Reinforced Greaves V3",
+     "Ballistarius Crankbow",
+     "Heavy Rider Armor",
+     "Heavy War Lance",
+     "Marine Cuirass V2",
+     "Marine Boarding Sword V2",
+     "Marine Shield V2",
+     "Veteran Legion Armor V2",
+     "Veteran Gladius V2",
+     "Veteran Shield V2",
+     "Gradus Veteran Helm V3",
+     "Veteran March Boots V3",
+     "Ductus Command Sword V1",
+     "Officer Cuirass V2",
+     "Section Command Shield V2",
+     "Vigilis War Helm",
+     "Reinforced Command Shield",
+     "Arbitarius March Boots",
+     "Arbitarius Command Cloak",
+     "Arbitarius Insignia"
+    ]
+   },
+   {
+    "f": "5",
+    "old": [
+     "Highway Cutthroat's Blade V3",
+     "Captain's Reinforced Armor",
+     "Highway Captain's Sword",
+     "Roadlord's War Helm"
+    ],
+    "new": [
+     "Highway Cutthroat's Blade V3",
+     "Captain's Reinforced Armor",
+     "Highway Captain's Sword",
+     "Roadlord's War Helm",
+     "Veteran Cuirass V3",
+     "Veteran Legion Blade V3",
+     "Veteran Tower Shield V3",
+     "Veteran Legion Armor V3",
+     "Veteran Gladius V3",
+     "Veteran Shield V3",
+     "Ductus Command Sword V2",
+     "Commander Armor",
+     "Vigilis Command Sword",
+     "Arbitarius War Helm",
+     "Imperial Command Shield"
+    ]
+   },
+   {
+    "f": "6",
+    "old": [
+     "Roadlord's Reinforced Cuirass",
+     "Roadlord's Veteran Blade"
+    ],
+    "new": [
+     "Roadlord's Reinforced Cuirass",
+     "Roadlord's Veteran Blade",
+     "Senior Commander Cuirass",
+     "Arbitarius Command Blade"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie001_hardened_formation",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie002_field_salvage",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie003_calculated_aim",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie004_reconnaissance_insight",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie005_decisive_impact",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie006_boarding_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie007_officers_bearing",
+  "type": "added"
+ },
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "sang_mil_ie008_imperial_authority",
+  "type": "added"
+ }
+]
