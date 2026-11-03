@@ -1620,7 +1620,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   // Imperial Military, above) — all consumed once here regardless of
   // which branch (spell or physical) below ends up computing this hit's
   // damage.
-  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyDuelistBulwarkMultiplier(creature);
+  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyDuelistBulwarkMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
   // Brace/Guarded Strike, generalized: this creature may have banked a
   // Defense bonus against its next incoming hit (resolveEnemyAction's own
   // non-damaging-action branch, or its own landed basic attack — see
@@ -3094,6 +3094,38 @@ function applyPackAuraBuff(combat, creature, spec) {
 const ALLY_PROTECTION_EFFECT_IDS = ["sang_sec_ie005_gatekeepers_stand", "sang_sec_ie010_protective_intercession", "sang_cu_ie010_officers_intercession"];
 function hasAllyProtectionEffect(carrier) {
   return ALLY_PROTECTION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
+}
+// Enemy-side mirror of the reaction above: the player-side version only
+// ever fires from resolveEnemyAttackOnAlly (an ENEMY hitting a PLAYER
+// ally) — there was no symmetric path for an enemy protecting a FELLOW
+// enemy from the PLAYER's own attack, which is exactly how Frontier
+// Gatekeeper/Watch Captain are meant to use Gatekeeper's Stand/Protective
+// Intercession when fighting alongside squadmates (Sanguivorum Security
+// and Enforcement). Reuses the same ALLY_PROTECTION_EFFECT_IDS/
+// hasAllyProtectionEffect check and the same allyProtectionCooldown/
+// allyProtectionUsesThisCombat field convention — just scoped to
+// state.combat.enemies instead of aliveAllies(state), and living on the
+// enemy's own creatureObj (ticked in tickEnemyPassives below, reset for
+// free each combat since every enemy creature object is rebuilt fresh by
+// buildFightCreature). Folded silently into rollPlayerDamage's sangMit
+// chain, consistent with every other mitigation multiplier already
+// composed there (enemyOneHitMitigationMultiplier, enemyDuelistBulwark
+// Multiplier) — none of them emit a line; the player just sees the
+// smaller final number.
+function enemyAllyProtectionMultiplier(state, targetCreature) {
+  if (!state.combat) return 1;
+  for (const other of state.combat.enemies) {
+    if (!other.alive || other.creatureObj === targetCreature) continue;
+    const carrier = other.creatureObj;
+    if (!hasAllyProtectionEffect(carrier)) continue;
+    const cooldown = carrier.allyProtectionCooldown || 0;
+    const uses = carrier.allyProtectionUsesThisCombat || 0;
+    if (cooldown > 0 || uses >= 2) continue;
+    carrier.allyProtectionCooldown = 5;
+    carrier.allyProtectionUsesThisCombat = uses + 1;
+    return 0.9;
+  }
+  return 1;
 }
 function applyAllyProtectionReaction(state, targetAlly, dmg) {
   // A downed (not dead) player has no agency left this fight (see
@@ -4672,6 +4704,10 @@ function tickEnemyPassives(state, e) {
   // own CD4 cooldowns, same once-per-round tick as the two lines above.
   if (creature.duelistBulwarkCooldown > 0) creature.duelistBulwarkCooldown -= 1;
   if (creature.arenaRiposteCooldown > 0) creature.arenaRiposteCooldown -= 1;
+  // Enemy-side Ally Protection Reaction mirror (enemyAllyProtectionMultiplier
+  // above) — same CD5 tick cadence as the player-side version's own
+  // allyProtectionCooldown decrement (resolveSpeedInitiative/beginTurn).
+  if (creature.allyProtectionCooldown > 0) creature.allyProtectionCooldown -= 1;
   // Prepare Ballista's banked state (lives on the enemy RECORD, `e` —
   // see resolveEnemyAction/resolveEnemyActiveAbility) and Calculated
   // Preparation's banked ACC bonus (lives on `creature`, same convention
