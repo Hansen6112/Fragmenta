@@ -390,6 +390,34 @@ const EFFECT_DEFS = {
   sang_mil_ie006_boarding_discipline: { name: "Boarding Discipline", category: "combat", description: "After the wearer successfully summons allies, the first newly summoned ally gains +5 Accuracy for its next 2 turns. Once per combat; does not raise summon caps or lift the summon-round attack ban. Mechanically the same reaction as Hunter's Call (Sanguivorum Criminal Underworld), generalized onto one shared code path with its own effect id." },
   sang_mil_ie007_officers_bearing: { name: "Officer's Bearing", category: "combat", description: "Against the first incoming damaging hit each combat, multiply final damage against the wearer by 0.90. Once per combat, no stacking. Same mechanical pattern as Hardened Formation — a separate presentation name over one shared mechanism." },
   sang_mil_ie008_imperial_authority: { name: "Imperial Authority", category: "combat", description: "The first time each combat the wearer successfully grants an active beneficial buff to one or more allies, the first recipient (in resolution order) additionally gains +5 Defense for 2 of that recipient's own turns. Once per combat; not triggered by a self-only buff." },
+
+  // ---- Sanguivorum Security and Enforcement Division (Codex v0.1
+  // Step4AB, SANG-SEC-IE001-008 + the shared SANG-IE010 presentation) —
+  // the remaining 6 item effects this division adds (IE005 Gatekeeper's
+  // Stand and IE010 Protective Intercession, both above, were already
+  // declared when the generalized Ally Protection Reaction mechanic was
+  // built, commit 8eca16d, before either item existed). Four (IE001
+  // Merchant's Inspection, IE002 Roadwise Records, IE003 Customs
+  // Appraisal, IE006 Evidence Assessment) plus IE008 Civic Credentials
+  // are the codex's own "noncombat" loot/trade-goods/currency-reward
+  // bonuses — declared and left inert pending a loot-table/trade-goods-
+  // sale/currency-reward system that doesn't exist in this engine, the
+  // same "currently inert" convention as heatproof/Light Fingers/Field
+  // Salvage above. IE004 Watchman's Resilience resolves through the SAME
+  // wearer-neutral one-hit-mitigation mechanism as Hardened Formation/
+  // Officer's Bearing (Sanguivorum Imperial Military) — added to
+  // ONE_HIT_MITIGATION_EFFECT_IDS in engine/combat.js rather than a
+  // second mechanism. IE007 Duelist's Bulwark is a genuinely new,
+  // REPEATABLE (not once-per-combat) reaction — see
+  // hasDuelistBulwarkEffect/enemyDuelistBulwarkMultiplier in
+  // engine/combat.js.
+  sang_sec_ie001_merchants_inspection: { name: "Merchant's Inspection", category: "utility", description: "On an eligible ordinary trade-goods sale, +3% base currency (rounded down). Once per transaction, highest applicable sale modifier only; restricted/unique/quest sales excluded. Currently inert — this engine has no trade-goods sale/classification system for an equipped item to tie into yet." },
+  sang_sec_ie002_roadwise_records: { name: "Roadwise Records", category: "utility", description: "On an eligible ordinary road/route/caravan activity, 10% chance of one extra common road-supply material roll. Once per activity; duplicate rolls don't stack; quest/rare/restricted excluded. Currently inert — this engine has no road-activity loot-table hook for an equipped item to tie into yet." },
+  sang_sec_ie003_customs_appraisal: { name: "Customs Appraisal", category: "utility", description: "On an eligible port/maritime trade reward, 10% chance of one additional common trade-material roll. Once per event; duplicates don't stack; unique/quest/restricted excluded. Currently inert — this engine has no maritime-reward loot-table hook for an equipped item to tie into yet." },
+  sang_sec_ie004_watchmans_resilience: { name: "Watchman's Resilience", category: "combat", description: "On the wearer's first incoming damaging hit each combat, multiply that hit's final damage by 0.90. Once per combat, no stacking, no lasting buff. Same mechanical pattern as Hardened Formation/Officer's Bearing (Sanguivorum Imperial Military) — a separate presentation name over one shared mechanism." },
+  sang_sec_ie006_evidence_assessment: { name: "Evidence Assessment", category: "utility", description: "On an eligible ordinary investigation/evidence common-material reward, 10% chance of one extra common-table roll. Once per event; nonstacking; restricted evidence excluded. Currently inert — this engine has no investigation-reward loot-table hook for an equipped item to tie into yet." },
+  sang_sec_ie007_duelists_bulwark: { name: "Duelist's Bulwark", category: "combat", description: "On a successful damaging hit received, multiply that hit's final damage by 0.90. Cooldown 4 wearer turns; max twice per combat; no retaliation or reaction chain." },
+  sang_sec_ie008_civic_credentials: { name: "Civic Credentials", category: "utility", description: "On an eligible ordinary civic-security currency reward, +5% base currency (rounded down). Once per payout, highest applicable modifier only; unique/special/quest excluded. Currently inert — this engine has no civic-currency-reward system for an equipped item to tie into yet." },
 };
 
 // Whether any currently-equipped item carries the given effect id. Boolean

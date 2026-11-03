@@ -2329,6 +2329,118 @@ const ITEM_DEFS = {
   "Legion Handler Spear": { slot: "mainhand", tier: 3, bonuses: { atk: 5 }, source: "monster", region: "sanguivorum" },
   "Military Handler Sidearm": { slot: "offhand", tier: 2, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
   "Handler's Whistle": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+
+  // ---- Sanguivorum Security and Enforcement Division (Codex v0.1
+  // Step4AB owner-approved) — 11 itemized loadouts across 9 identities
+  // (Veteran City Guard carries 3 equipment bands, one shared base
+  // identity). Four of the codex's own cited "existing verified catalog"
+  // items are reused at their real, already-defined (lowercase) keys
+  // rather than re-declared: "worn traveler's boots" (Junior City
+  // Watchman's Boots), "a sanguivorum infantry shield" (Junior City
+  // Watchman's Off Hand), "highland march boots" (Road Warden's Boots,
+  // Veteran City Guard V1's Boots) and "border patrol greaves" (Veteran
+  // City Guard V2/V3's Boots, Frontier Gatekeeper's Boots) — all
+  // case-insensitively verified against the full ITEM_DEFS table before
+  // writing anything here. One more exact, case-insensitive duplicate
+  // turned up independently during that same check: "Captain's Command
+  // Cloak" (+4 DEF, cloak, region sanguivorum) already exists above,
+  // originally Highway Captain's own cloak (Criminal Underworld) — reused
+  // at its existing key for Watch Captain's identical cloak rather than
+  // re-declared. "Veteran Officer Gauntlets" (Watch Captain's Gloves, no
+  // possessive) is a near-miss but NOT a duplicate of the existing
+  // "Veteran Officer's Gauntlets" (Highway Captain's own gloves,
+  // possessive) — a different string, kept as its own new entry per the
+  // codex's own exact wording; flagged here for the owner's awareness.
+  // Bonus keys use "accuracy"/"agility" (full word), matching
+  // equipmentBonus()'s own convention and buildFightCreature's matching
+  // enemy-side read (engine/combat.js).
+  // Junior City Watchman (Boots reuses "worn traveler's boots"; Off Hand
+  // reuses "a sanguivorum infantry shield", both above)
+  "Watchman's Iron Cap": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "City Watch Leather Vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Civic Watch Sword": { slot: "mainhand", tier: 1, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  // Market Watchman
+  "Market Watch Cap": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Watch Tunic": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Restraint Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Civic Patrol Boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Market Enforcement Baton": { slot: "mainhand", tier: 2, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
+  "Watchman's Guard Buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Merchant Inspection Seal": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, effects: ["sang_sec_ie001_merchants_inspection"], source: "monster", region: "sanguivorum" },
+  // Road Warden (Boots reuses "highland march boots" above)
+  "Road Warden's Helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Warden's Reinforced Leather": { slot: "chest", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Warden's Patrol Spear": { slot: "mainhand", tier: 3, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Road Warden's Shield": { slot: "offhand", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Road Patrol Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Route Inspection Ledger": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, effects: ["sang_sec_ie002_roadwise_records"], source: "monster", region: "sanguivorum" },
+  // Harbor Watchman
+  "Harbor Watch Cap": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Dockside Leather": { slot: "chest", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Boarding Grip Gloves": { slot: "gloves", tier: 1, bonuses: { atk: 1 }, source: "monster", region: "sanguivorum" },
+  "Deck-Grip Boots": { slot: "boots", tier: 2, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Harbor Boarding Blade": { slot: "mainhand", tier: 3, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Harbor Watch Buckler": { slot: "offhand", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Weatherproof Harbor Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Customs Officer's Token": { slot: "trinkets", tier: 1, bonuses: { knowledge: 1 }, effects: ["sang_sec_ie003_customs_appraisal"], source: "monster", region: "sanguivorum" },
+  // Veteran City Guard V1 (Boots reuses "highland march boots" above)
+  "Veteran Watch Helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced City Guard Armor": { slot: "chest", tier: 2, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Guardman's Gauntlets": { slot: "gloves", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Veteran Watch Sword": { slot: "mainhand", tier: 2, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Veteran Watch Shield": { slot: "offhand", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  // Veteran City Guard V2 (Boots reuses "border patrol greaves" above)
+  "Hardened Veteran Helm": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Veteran Guard Cuirass": { slot: "chest", tier: 3, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Guard Gauntlets": { slot: "gloves", tier: 1, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Veteran City Sword": { slot: "mainhand", tier: 3, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Watch Shield": { slot: "offhand", tier: 3, bonuses: { def: 5 }, effects: ["sang_sec_ie004_watchmans_resilience"], source: "monster", region: "sanguivorum" },
+  "Veteran Patrol Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  // Veteran City Guard V3 (Boots reuses "border patrol greaves" above)
+  "Master Watch Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Master City Guard Armor": { slot: "chest", tier: 4, bonuses: { def: 9 }, source: "monster", region: "sanguivorum" },
+  "Master Guard Gauntlets": { slot: "gloves", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Master City Guard Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Master Watch Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, effects: ["sang_sec_ie004_watchmans_resilience"], source: "monster", region: "sanguivorum" },
+  "Senior Guard Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Senior Watch Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  // Frontier Gatekeeper (Boots reuses "border patrol greaves" above)
+  "Frontier Gate Helm": { slot: "helmet", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Fortified Gatekeeper Armor": { slot: "chest", tier: 4, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Gate Gauntlets": { slot: "gloves", tier: 1, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Frontier Gate Spear": { slot: "mainhand", tier: 3, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
+  "Frontier Tower Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, effects: ["sang_sec_ie005_gatekeepers_stand"], source: "monster", region: "sanguivorum" },
+  "Frontier Guard Mantle": { slot: "cloak", tier: 1, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Frontier Inspection Seal": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  // Imperial Investigator
+  "Investigator's Hood": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Concealed Investigator Coat": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Investigator's Fine Gloves": { slot: "gloves", tier: 2, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Quiet Inspection Boots": { slot: "boots", tier: 2, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Investigator's Precision Sword": { slot: "mainhand", tier: 3, bonuses: { atk: 6 }, source: "monster", region: "sanguivorum" },
+  "Concealed Investigator Shiv": { slot: "offhand", tier: 2, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
+  "Investigator's Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Investigator's Concealment Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Analytical Evidence Lens": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, effects: ["sang_sec_ie006_evidence_assessment"], source: "monster", region: "sanguivorum" },
+  // Watch Captain (Cloak reuses "Captain's Command Cloak" above)
+  "Watch Captain's War Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Captain's Enforcement Armor": { slot: "chest", tier: 4, bonuses: { def: 10, health: 8 }, source: "monster", region: "sanguivorum" },
+  "Veteran Officer Gauntlets": { slot: "gloves", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Captain's Patrol Boots": { slot: "boots", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Watch Captain's Sword": { slot: "mainhand", tier: 4, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Captain's Command Shield": { slot: "offhand", tier: 4, bonuses: { def: 8 }, effects: ["sang_sec_ie010_protective_intercession"], source: "monster", region: "sanguivorum" },
+  "Watch Captain's Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 3 }, effects: ["sang_sec_ie008_civic_credentials"], source: "monster", region: "sanguivorum" },
+  "Civic Command Insignia": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  // Ovum Veteran Guard
+  "Ovum Veteran Guard Helm": { slot: "helmet", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Ovum Veteran Cuirass": { slot: "chest", tier: 3, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
+  "Veteran Arena Gauntlets": { slot: "gloves", tier: 2, bonuses: { atk: 2, agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Arena Greaves": { slot: "boots", tier: 2, bonuses: { def: 3, agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Ovum Veteran Guard Sword": { slot: "mainhand", tier: 3, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
+  "Ovum Veteran Tower Shield": { slot: "offhand", tier: 3, bonuses: { def: 6 }, effects: ["sang_sec_ie007_duelists_bulwark"], source: "monster", region: "sanguivorum" },
+  "Veteran Ovum Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Ovum Veteran Mantle": { slot: "cloak", tier: 1, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Arena Service Token": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, source: "monster", region: "sanguivorum" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

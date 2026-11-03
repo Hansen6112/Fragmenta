@@ -62,6 +62,20 @@ const STATUS_EFFECTS = {
   // flat -8, since effectivePlayerDef only ever reads a flat "def" delta
   // (see playerStatusStatTotal), not a percentage one.
   stagger: { name: "Stagger", debuff: { def: -8, spd: -15 }, stackable: false, turns: 2 },
+  // Exposed Weakness (Sanguivorum Security and Enforcement, Imperial
+  // Investigator's own Identify Weakness): "-10 Defense for 2 turns,
+  // nonstacking." Given its own named STATUS_EFFECTS entry (rather than
+  // an ability's inline `custom:...` debuff) specifically so Precision
+  // Interrogation's own bonusVsStatus can reference it directly by id,
+  // the same way every other bonusVsStatus entry in this file (rend vs
+  // "bleed", crushing_coil vs "restrained", ...) checks a named status —
+  // a `custom:<sourceName>:<stat>` key would work too (applyAbilityInflict
+  // below) but isn't how any existing bonusVsStatus entry is written.
+  // Keyed as its own id (not reusing the existing "exposed_weakness"
+  // ENEMY_ABILITIES *ability* id, H14, a same-name-different-shape
+  // collision in a different namespace) to avoid any confusion between
+  // the two.
+  sang_sec_exposed_weakness: { name: "Exposed Weakness", debuff: { def: -10 }, stackable: false, turns: 2 },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -985,6 +999,113 @@ const ENEMY_ABILITIES = {
   // creature exists in BESTIARY to reuse instead, so this adds one
   // minimal low-tier entry sized similarly to the existing wolves).
   hound_bite: { name: "Hound Bite", type: "active", cooldown: 2, dmgMult: 1.2 },
+
+  // ---- Sanguivorum Security and Enforcement Division (Codex v0.1
+  // Step4AB, owner-approved in full) — 9 identities' intrinsic kits.
+  // Every ability below maps onto an already-supported field shape
+  // (dmgMult/selfBuff/selfDebuff/inflict/packAuraBuff/flatStatBonus/
+  // whileAllyAlive/healthBelowPct/accBonusIfOwnDefBuffActive/
+  // bonusVsStatus) except Arena Riposte, which needs one genuinely new
+  // trigger ("counterOnSuccessfulHit" — see checkArenaRiposte/
+  // hasArenaRiposteAbility in engine/combat.js, modeled on Countering
+  // Guard's own "counterOnHit" passive lookup just above/H06, but firing
+  // on the OPPOSITE condition — a hit the wearer survives, not a hit the
+  // wearer lands).
+  // Watchman's Strike / Readied Watch (Junior City Watchman):
+  sang_sec_watchmans_strike: { name: "Watchman's Strike", type: "active", cooldown: 3, dmgMult: 1.25 },
+  sang_sec_readied_watch: { name: "Readied Watch", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 6, turns: 2 } },
+  // Enforcement Baton / Crowd Control (Market Watchman):
+  sang_sec_enforcement_baton: { name: "Enforcement Baton", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
+  sang_sec_crowd_control: { name: "Crowd Control", type: "active", cooldown: 4, dmgMult: 0, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
+  // Warden's Thrust / Roadside Brace (Road Warden):
+  sang_sec_wardens_thrust: { name: "Warden's Thrust", type: "active", cooldown: 3, dmgMult: 1.4 },
+  sang_sec_roadside_brace: { name: "Roadside Brace", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 8, turns: 2 } },
+  // Boarding Hook / Harbor Cut (Harbor Watchman):
+  sang_sec_boarding_hook: { name: "Boarding Hook", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { atk: -10, turns: 2 }, chance: 1 } },
+  sang_sec_harbor_cut: { name: "Harbor Cut", type: "active", cooldown: 3, dmgMult: 1.5 },
+  // Veteran Watch Discipline (passive) / Veteran Guard / Disciplined
+  // Counterstrike (Veteran City Guard V1/V2/V3, one shared kit):
+  sang_sec_veteran_watch_discipline: { name: "Veteran Watch Discipline", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
+  sang_sec_veteran_guard: { name: "Veteran Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
+  // accBonusIfOwnDefBuffActive: the exact field Imperial Military's
+  // Disciplined Riposte/Measured Counteroffensive already use
+  // (resolveEnemyActiveAbility's own hasActiveDefBuff check) — reused
+  // verbatim here, zero new engine code.
+  sang_sec_disciplined_counterstrike: { name: "Disciplined Counterstrike", type: "active", cooldown: 4, dmgMult: 1.45, accBonusIfOwnDefBuffActive: 8 },
+  // Gatekeeper's Discipline (passive) / Fortified Guard / Gatekeeper's
+  // Spear / Checkpoint Suppression (Frontier Gatekeeper):
+  sang_sec_gatekeepers_discipline: { name: "Gatekeeper's Discipline", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
+  sang_sec_fortified_guard: { name: "Fortified Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 12, turns: 2 } },
+  sang_sec_gatekeepers_spear: { name: "Gatekeeper's Spear", type: "active", cooldown: 3, dmgMult: 1.55 },
+  // Checkpoint Suppression's dual debuff (-10 ATK AND -5 ACC) is the same
+  // multi-key `custom` debuff object applyAbilityInflict's own
+  // `const { turns, ...debuff } = inflict.custom` already supports —
+  // Grasping Dead (above, `{ spd: -15, agi: -10, turns: 2 }`) is the
+  // existing two-stat precedent; no new engine code. The ATK half is
+  // declared faithfully to the codex but, like disarm_swipe's own -ATK
+  // inflict and Imperial Military's Sabotaging Bolt/Weapon Hook, lands on
+  // a stat effectivePlayerAtk never actually reads — a pre-existing
+  // engine gap, not introduced here. The ACC half works normally.
+  sang_sec_checkpoint_suppression: { name: "Checkpoint Suppression", type: "active", cooldown: 5, dmgMult: 1.1, inflict: { custom: { atk: -10, acc: -5, turns: 2 }, chance: 1 } },
+  // Analytical Discipline (passive) / Identify Weakness / Precision
+  // Interrogation / Restraining Strike (Imperial Investigator):
+  sang_sec_analytical_discipline: { name: "Analytical Discipline", type: "passive", trigger: "flatStatBonus", stat: "acc", amount: 5 },
+  // Identify Weakness: a plain accuracy-checked, damage-free (dmgMult 0)
+  // inflict — same shape as Screech/H-series dmgMult:0 debuff actives
+  // above — applying the new named "sang_sec_exposed_weakness" status
+  // (STATUS_EFFECTS above) rather than an inline `custom` debuff,
+  // specifically so Precision Interrogation's own bonusVsStatus below can
+  // reference it by id the same way every other bonusVsStatus entry in
+  // this file checks a named status.
+  sang_sec_identify_weakness: { name: "Identify Weakness", type: "active", cooldown: 5, dmgMult: 0, inflict: { status: "sang_sec_exposed_weakness", chance: 1 } },
+  // bonusVsStatus.mult is a multiplier of the ability's OWN dmgMult (the
+  // same convention every existing bonusVsStatus entry above uses, e.g.
+  // rend's 1.4 base x1.3 vs Bleed) — 1.4 (base) x (1.65/1.4) = 1.65
+  // exactly, matching the codex's "1.4x, or 1.65x against Exposed
+  // Weakness" wording without introducing a flat-override convention this
+  // file doesn't otherwise use.
+  sang_sec_precision_interrogation: { name: "Precision Interrogation", type: "active", cooldown: 4, dmgMult: 1.4, bonusVsStatus: { status: "sang_sec_exposed_weakness", mult: 1.65 / 1.4 } },
+  sang_sec_restraining_strike: { name: "Restraining Strike", type: "active", cooldown: 4, dmgMult: 1.15, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
+  // Captain's Authority (passive) / Veteran Enforcement (passive) /
+  // Protective Orders / Captain's Sword / Coordinated Detainment / Stand
+  // Firm (Watch Captain):
+  // whileAllyAlive scope "division": the exact scope Imperial Military's
+  // Section/Command Discipline already added to tickEnemyPassives — reads
+  // this creature's own `division: "security_enforcement"` BESTIARY tag
+  // (set on all 9 identities) against every other alive enemy's division
+  // tag. Zero new engine code.
+  sang_sec_captains_authority: { name: "Captain's Authority", type: "passive", trigger: "whileAllyAlive", scope: "division", selfBuff: { def: 5 } },
+  sang_sec_veteran_enforcement: { name: "Veteran Enforcement", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { def: 8, turns: 2 }, oncePerCombat: true },
+  // Protective Orders: groupKey explicitly set to this division's own
+  // shared group (every one of the 9 identities already carries
+  // `group: "sang_sec_security_enforcement"` on its BESTIARY entry, so
+  // this groupKey is the same value applyPackAuraBuff would default to
+  // anyway — set explicitly here for clarity/parity with Pack
+  // Coordination's own narrower override elsewhere in this file).
+  sang_sec_protective_orders: { name: "Protective Orders", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 8, turns: 2, maxTargets: 3, groupKey: "sang_sec_security_enforcement" } },
+  sang_sec_captains_sword: { name: "Captain's Sword", type: "active", cooldown: 3, dmgMult: 1.55 },
+  sang_sec_coordinated_detainment: { name: "Coordinated Detainment", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 } },
+  sang_sec_stand_firm: { name: "Stand Firm", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
+  // Arena Veteran's Discipline (passive, BOTH +5 ACC and +5 DEF) / Ovum
+  // Shield Guard / Veteran Duelist's Strike / Arena Riposte (reaction)
+  // (Ovum Veteran Guard):
+  // Simpler option taken (see combat.js/report): two separate single-stat
+  // flatStatBonus passives rather than extending flatStatBonus to accept
+  // a multi-stat `stats: {...}` object — buildFightCreature's existing
+  // flatStatBonus loop already iterates every passive in `creature.passives`,
+  // so two ids with the same display name apply both bonuses for free,
+  // with zero changes to the existing single-stat flatStatBonus handler.
+  sang_sec_arena_veterans_discipline_acc: { name: "Arena Veteran's Discipline", type: "passive", trigger: "flatStatBonus", stat: "acc", amount: 5 },
+  sang_sec_arena_veterans_discipline_def: { name: "Arena Veteran's Discipline", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
+  sang_sec_ovum_shield_guard: { name: "Ovum Shield Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
+  sang_sec_veteran_duelists_strike: { name: "Veteran Duelist's Strike", type: "active", cooldown: 3, dmgMult: 1.6, accBonusIfOwnDefBuffActive: 8 },
+  // Arena Riposte: a genuinely new trigger — see checkArenaRiposte/
+  // hasArenaRiposteAbility in engine/combat.js. `mult` is read there
+  // (0.8x the wearer's own Attack); the CD4/max-2-per-combat cap and the
+  // "no recursive reactions" guarantee are enforced entirely in that
+  // function via its own arenaRiposteCooldown/arenaRiposteUsesThisCombat
+  // fields, not here.
+  sang_sec_arena_riposte: { name: "Arena Riposte", type: "passive", trigger: "counterOnSuccessfulHit", mult: 0.8 },
 };
 
 function getEnemyAbility(id) {

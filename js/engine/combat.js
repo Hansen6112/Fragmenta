@@ -1567,7 +1567,13 @@ function applyBeneficialEffectBonuses(state, duration) {
 // buildFightCreature at the start of each fight (same reasoning as
 // commandersPoiseUsed/serratedOpeningUsed/huntersCallUsed elsewhere in
 // this file), so the flag simply starts undefined each time.
-const ONE_HIT_MITIGATION_EFFECT_IDS = ["sang_mil_ie001_hardened_formation", "sang_mil_ie007_officers_bearing"];
+// Watchman's Resilience (SANG-SEC-IE004, Reinforced Watch Shield/Master
+// Watch Shield, Sanguivorum Security and Enforcement): "first successful
+// damaging attack received each combat, final damage x0.90, once/combat"
+// — EXACTLY the Hardened Formation/Officer's Bearing mechanism above, a
+// third effect id resolving through the same shared, wearer-neutral
+// mechanism rather than a second one.
+const ONE_HIT_MITIGATION_EFFECT_IDS = ["sang_mil_ie001_hardened_formation", "sang_mil_ie007_officers_bearing", "sang_sec_ie004_watchmans_resilience"];
 function hasOneHitMitigationEffect(carrier) {
   return ONE_HIT_MITIGATION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
 }
@@ -1579,6 +1585,34 @@ function enemyOneHitMitigationMultiplier(creature) {
   return 1;
 }
 
+// Duelist's Bulwark (SANG-SEC-IE007, Ovum Veteran Tower Shield,
+// Sanguivorum Security and Enforcement): "on successful damaging hit
+// received, final damage x0.90; CD4 wearer turns; max twice/combat; no
+// retaliation or reaction chain." Unlike Watchman's Resilience/Hardened
+// Formation/Officer's Bearing above (a flat once-per-combat flag), this
+// is REPEATABLE — gated by a cooldown and a 2-use cap instead, the same
+// cooldown/cap bookkeeping shape as applyAllyProtectionReaction's own
+// allyProtectionCooldown/allyProtectionUsesThisCombat (per-wearer fields
+// living on the creature object itself, ticked once per round in
+// tickEnemyPassives below alongside smugglersGuardCooldown/
+// tyrantsEdgeCooldown). "No retaliation or reaction chain" holds for
+// free: this only ever scales the damage number rollPlayerDamage is
+// already computing, the same as enemyOneHitMitigationMultiplier above —
+// it never itself triggers any further action.
+const DUELIST_BULWARK_EFFECT_ID = "sang_sec_ie007_duelists_bulwark";
+function hasDuelistBulwarkEffect(carrier) {
+  return hasEffect(carrier, DUELIST_BULWARK_EFFECT_ID);
+}
+function enemyDuelistBulwarkMultiplier(creature) {
+  if (!hasDuelistBulwarkEffect(creature)) return 1;
+  const cooldown = creature.duelistBulwarkCooldown || 0;
+  const uses = creature.duelistBulwarkUsesThisCombat || 0;
+  if (cooldown > 0 || uses >= 2) return 1;
+  creature.duelistBulwarkCooldown = 4;
+  creature.duelistBulwarkUsesThisCombat = uses + 1;
+  return 0.9;
+}
+
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
   // Smuggler's Guard / Commander's Poise (Sanguivorum Criminal
@@ -1586,7 +1620,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   // Imperial Military, above) — all consumed once here regardless of
   // which branch (spell or physical) below ends up computing this hit's
   // damage.
-  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature);
+  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyDuelistBulwarkMultiplier(creature);
   // Brace/Guarded Strike, generalized: this creature may have banked a
   // Defense bonus against its next incoming hit (resolveEnemyAction's own
   // non-damaging-action branch, or its own landed basic attack — see
@@ -4633,6 +4667,11 @@ function tickEnemyPassives(state, e) {
   // guarded_strike/brace already use elsewhere in this file.
   if (creature.smugglersGuardCooldown > 0) creature.smugglersGuardCooldown -= 1;
   if (creature.tyrantsEdgeCooldown > 0) creature.tyrantsEdgeCooldown -= 1;
+  // Duelist's Bulwark (SANG-SEC-IE007, Sanguivorum Security and
+  // Enforcement) / Arena Riposte (intrinsic, same division) — both their
+  // own CD4 cooldowns, same once-per-round tick as the two lines above.
+  if (creature.duelistBulwarkCooldown > 0) creature.duelistBulwarkCooldown -= 1;
+  if (creature.arenaRiposteCooldown > 0) creature.arenaRiposteCooldown -= 1;
   // Prepare Ballista's banked state (lives on the enemy RECORD, `e` —
   // see resolveEnemyAction/resolveEnemyActiveAbility) and Calculated
   // Preparation's banked ACC bonus (lives on `creature`, same convention
@@ -4728,6 +4767,57 @@ function riposteCounterOnPlayer(state, creature) {
   const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
   const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
   const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte for ${hit.edmg} damage.`, ...hit.absorbLines];
+  if (state.health <= 0) {
+    const defeatMsg = resolvePlayerDefeatOrDowned(state);
+    if (defeatMsg) lines.push(defeatMsg);
+  }
+  return lines;
+}
+// Arena Riposte (Ovum Veteran Guard, Sanguivorum Security and
+// Enforcement) — a genuinely new mechanism, the OPPOSITE trigger
+// condition of riposteCounterOnPlayer just above (which fires on a MISS):
+// "on a damaging hit landed against the wearer BY THE PLAYER, 0.8x the
+// wearer's own Attack as a counter-strike back at the player; CD4 wearer
+// turns, max twice per combat; no recursive reactions." Modeled closely
+// on riposteCounterOnPlayer — same effectiveEnemyAtk/effectivePlayerDef/
+// mitigate/mitigateAndApplyHitOnPlayer/resolvePlayerDefeatOrDowned helper
+// calls, and the same randInt(atk-1, atk+2) damage-roll shape — but
+// hooked into playerAttack's SUCCESSFUL-hit branch instead of the miss
+// branch, and gated by its OWN independent cooldown/cap pair
+// (arenaRiposteCooldown/arenaRiposteUsesThisCombat) rather than
+// riposteUsedThisRound/riposteUsesThisCombat, which belong to the
+// unrelated miss-triggered Riposte mechanic above — reusing those would
+// double-gate (or cross-contaminate caps) for a creature that somehow had
+// both. Arena Riposte is an INTRINSIC ability (creature.passives), not an
+// item effect, so it's gated the same way checkCounteringGuard's own
+// "counterOnHit" passive lookup is (creature.passives.map(getEnemyAbility)
+// .find(...)), NOT via hasEffect() (which only ever reads *equipped item*
+// effects — see hasEffect's own definition in data/effects.js). "No
+// recursive reactions" holds for free from where this is called
+// (playerAttack's own successful-hit branch, never re-entered by anything
+// this function itself does): the counter-strike below only ever calls
+// mitigateAndApplyHitOnPlayer/resolvePlayerDefeatOrDowned against the
+// PLAYER, nothing that could trigger Arena Riposte again.
+function hasArenaRiposteAbility(creature) {
+  return (creature.passives || []).some((pid) => {
+    const p = getEnemyAbility(pid);
+    return p && p.trigger === "counterOnSuccessfulHit";
+  });
+}
+function arenaRiposteCounterOnPlayer(state, creature) {
+  if (!hasArenaRiposteAbility(creature)) return [];
+  if (!state.combat || state.combat.hp <= 0) return [];
+  const cooldown = creature.arenaRiposteCooldown || 0;
+  const uses = creature.arenaRiposteUsesThisCombat || 0;
+  if (cooldown > 0 || uses >= 2) return [];
+  creature.arenaRiposteCooldown = 4;
+  creature.arenaRiposteUsesThisCombat = uses + 1;
+  const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnSuccessfulHit");
+  const atk = effectiveEnemyAtk(state, creature);
+  const playerDef = effectivePlayerDef(state);
+  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (passive.mult || 0.8)));
+  const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
+  const lines = [`${withThe(creature.name, true)} turns the blow aside and answers with a counter for ${hit.edmg} damage.`, ...hit.absorbLines];
   if (state.health <= 0) {
     const defeatMsg = resolvePlayerDefeatOrDowned(state);
     if (defeatMsg) lines.push(defeatMsg);
@@ -6368,8 +6458,18 @@ function playerAttack(state) {
       out.push(...resolveKill(state, creature));
       if (!state.combat || state.health <= 0) return out;
       creature = getCombatCreature(state);
-    } else if (isPhysical) {
-      out.push(...applyPhysicalOnHitEffects(state, creature));
+    } else {
+      if (isPhysical) out.push(...applyPhysicalOnHitEffects(state, creature));
+      // Arena Riposte (Ovum Veteran Guard, Sanguivorum Security and
+      // Enforcement): the wearer's own reaction to a damaging hit it just
+      // survived — placed in THIS branch (not just a bare "state.combat.hp
+      // > 0" check after the if/else above) so a creature this same
+      // attack just killed never retaliates: the kill branch above
+      // returns or re-targets to the survivor and never reaches here, so
+      // only the creature that actually took (and survived) this hit can
+      // ever counter it. Gated additionally on dmg > 0 — a fully
+      // mitigated zero-damage hit isn't "a damaging hit landed."
+      if (dmg > 0) out.push(...arenaRiposteCounterOnPlayer(state, creature));
     }
   }
 

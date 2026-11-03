@@ -3965,6 +3965,229 @@ const BESTIARY = {
     levelRange: [10, 30],
     actives: ["hound_bite"],
   },
+
+  // ---- Sanguivorum Security and Enforcement Division (Codex v0.1
+  // Step4AB, owner-approved in full) — 9 identities, same standard
+  // computeCreatureStats pipeline every other ordinary creature in this
+  // file uses — not special:true/legacyScaledCreature. spawnRarity
+  // "common" + levelBandExempt + explicit levelRange for all 9, matching
+  // this file's established house style; Elite/Boss identities (Frontier
+  // Gatekeeper, Imperial Investigator, Watch Captain, Ovum Veteran Guard)
+  // still carry explicit levelRange the same way, their Danger Class
+  // doing the stat-multiplier work rather than the level band. Base stats
+  // are the owner's own Step-5 cross-division-audit-reconciled table
+  // (combined base+gear x2 minus the codex's own itemized gear deltas;
+  // every V-tier variant of Veteran City Guard reconciled to the same
+  // base, each loadout's own itemized delta independently cross-checked
+  // against the codex's own stated "Approved equipment delta" line) —
+  // final and approved, not re-derived here. Watch Captain's own base HP
+  // below already uses the codex's itemized +8 HP (Captain's Enforcement
+  // Armor), not its narratively-stated "+11 HP" — the owner's own
+  // resolution of that flagged discrepancy (codex Appendix B).
+  // New `division` tag ("security_enforcement", shared by all 9 — the
+  // "another living Security ally" check Watch Captain's own Captain's
+  // Authority reads, engine/combat.js's existing whileAllyAlive
+  // "division" scope, added for Imperial Military and reused here
+  // verbatim). All 9 also share `group: "sang_sec_security_enforcement"`
+  // for applyPackAuraBuff's existing group-match (Protective Orders).
+  // Archetype mapping (judgment calls, as directed): tank (Junior City
+  // Watchman, Road Warden, Veteran City Guard, Frontier Gatekeeper),
+  // controller (Market Watchman, Imperial Investigator), skirmisher
+  // (Harbor Watchman), leader (Watch Captain), bruiser (Ovum Veteran
+  // Guard).
+  junior_city_watchman: {
+    name: "Junior City Watchman",
+    native: "Sanguivorum city watch garrisons",
+    tags: ["urban"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 25, atk: 4, def: 5, spd: 9, acc: 8, agi: 7,
+    description: "A green city watchman, still more comfortable braced behind a shield than throwing the first blow.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB).",
+    archetype: "tank",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [1, 6],
+    equipment: { helmet: "Watchman's Iron Cap", chest: "City Watch Leather Vest", boots: "worn traveler's boots", mainhand: "Civic Watch Sword", offhand: "a sanguivorum infantry shield" },
+    actives: ["sang_sec_watchmans_strike", "sang_sec_readied_watch"],
+  },
+  market_watchman: {
+    name: "Market Watchman",
+    native: "Sanguivorum market districts",
+    tags: ["urban"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 30, atk: 7, def: 6, spd: 10, acc: 13, agi: 9,
+    description: "A crowd-control specialist who batons down an unruly stall-side dispute before it spreads.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB).",
+    archetype: "controller",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [4, 11],
+    equipment: { helmet: "Market Watch Cap", chest: "Reinforced Watch Tunic", gloves: "Restraint Gloves", boots: "Civic Patrol Boots", mainhand: "Market Enforcement Baton", offhand: "Watchman's Guard Buckler", trinkets: ["Merchant Inspection Seal"] },
+    actives: ["sang_sec_enforcement_baton", "sang_sec_crowd_control"],
+  },
+  road_warden: {
+    name: "Road Warden",
+    native: "Sanguivorum trade roads",
+    tags: ["plains"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 34, atk: 8, def: 7, spd: 10, acc: 10, agi: 9,
+    description: "A steady road patroller, shield braced and ledger in hand for whatever the route brings.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB).",
+    archetype: "tank",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [5, 13],
+    equipment: { helmet: "Road Warden's Helm", chest: "Warden's Reinforced Leather", boots: "highland march boots", mainhand: "Warden's Patrol Spear", offhand: "Road Warden's Shield", cloak: "Road Patrol Cloak", trinkets: ["Route Inspection Ledger"] },
+    actives: ["sang_sec_wardens_thrust", "sang_sec_roadside_brace"],
+  },
+  harbor_watchman: {
+    name: "Harbor Watchman",
+    native: "Sanguivorum port districts",
+    tags: ["coast"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 36, atk: 9, def: 7, spd: 10, acc: 11, agi: 9,
+    description: "A dockside enforcer, boarding hook ready to drag a fleeing smuggler back onto the pier.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB).",
+    archetype: "skirmisher",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [6, 14],
+    equipment: { helmet: "Harbor Watch Cap", chest: "Reinforced Dockside Leather", gloves: "Boarding Grip Gloves", boots: "Deck-Grip Boots", mainhand: "Harbor Boarding Blade", offhand: "Harbor Watch Buckler", cloak: "Weatherproof Harbor Cloak", trinkets: ["Customs Officer's Token"] },
+    actives: ["sang_sec_boarding_hook", "sang_sec_harbor_cut"],
+  },
+  // Veteran City Guard V1/V2/V3 — one shared base identity, three
+  // equipment bands. [10,30] split into an even 3-way maxLevel progression
+  // (17/24/30), the same approach as Ferratum Veteran/Gradus Veteran
+  // (Sanguivorum Imperial Military).
+  veteran_city_guard: {
+    name: "Veteran City Guard",
+    native: "Sanguivorum city watch garrisons",
+    tags: ["urban"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 57, atk: 11, def: 12, spd: 11, acc: 12, agi: 11,
+    description: "A hardened watch veteran, steadier behind a raised shield and quick to punish anyone who presses in while it's up.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB). Three equipment bands (V1/V2/V3), one shared base identity.",
+    archetype: "tank",
+    dangerClass: "normal",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [10, 30],
+    equipmentBands: [
+      { maxLevel: 17, equipment: { helmet: "Veteran Watch Helm", chest: "Reinforced City Guard Armor", gloves: "Guardman's Gauntlets", boots: "highland march boots", mainhand: "Veteran Watch Sword", offhand: "Veteran Watch Shield" } },
+      { maxLevel: 24, equipment: { helmet: "Hardened Veteran Helm", chest: "Veteran Guard Cuirass", gloves: "Reinforced Guard Gauntlets", boots: "border patrol greaves", mainhand: "Veteran City Sword", offhand: "Reinforced Watch Shield", cloak: "Veteran Patrol Cloak" } },
+      { maxLevel: 30, equipment: { helmet: "Master Watch Helm", chest: "Master City Guard Armor", gloves: "Master Guard Gauntlets", boots: "border patrol greaves", mainhand: "Master City Guard Sword", offhand: "Master Watch Shield", rings: "Senior Guard Signet", cloak: "Senior Watch Cloak" } },
+    ],
+    passives: ["sang_sec_veteran_watch_discipline"],
+    actives: ["sang_sec_veteran_guard", "sang_sec_disciplined_counterstrike"],
+  },
+  frontier_gatekeeper: {
+    name: "Frontier Gatekeeper",
+    native: "Sanguivorum frontier checkpoints",
+    tags: ["plains", "urban"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 82, atk: 17, def: 19, spd: 13, acc: 16, agi: 13,
+    description: "A checkpoint tank, spear levelled and tower shield braced across the one road anyone's getting through.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB).",
+    archetype: "tank",
+    dangerClass: "elite",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [17, 28],
+    equipment: { helmet: "Frontier Gate Helm", chest: "Fortified Gatekeeper Armor", gloves: "Reinforced Gate Gauntlets", boots: "border patrol greaves", mainhand: "Frontier Gate Spear", offhand: "Frontier Tower Shield", cloak: "Frontier Guard Mantle", trinkets: ["Frontier Inspection Seal"] },
+    passives: ["sang_sec_gatekeepers_discipline"],
+    actives: ["sang_sec_fortified_guard", "sang_sec_gatekeepers_spear", "sang_sec_checkpoint_suppression"],
+  },
+  imperial_investigator: {
+    name: "Imperial Investigator",
+    native: "Sanguivorum civic investigation bureaus",
+    tags: ["urban"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 69, atk: 17, def: 15, spd: 13, acc: 19, agi: 13,
+    description: "A precision interrogator who reads a stance for its weak point before ever drawing a blade.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB).",
+    archetype: "controller",
+    dangerClass: "elite",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [17, 27],
+    equipment: { helmet: "Investigator's Hood", chest: "Concealed Investigator Coat", gloves: "Investigator's Fine Gloves", boots: "Quiet Inspection Boots", mainhand: "Investigator's Precision Sword", offhand: "Concealed Investigator Shiv", rings: "Investigator's Signet", cloak: "Investigator's Concealment Cloak", trinkets: ["Analytical Evidence Lens"] },
+    passives: ["sang_sec_analytical_discipline"],
+    actives: ["sang_sec_identify_weakness", "sang_sec_precision_interrogation", "sang_sec_restraining_strike"],
+  },
+  watch_captain: {
+    name: "Watch Captain",
+    native: "Sanguivorum city watch garrisons",
+    tags: ["urban"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 106, atk: 24, def: 23, spd: 14, acc: 19, agi: 16,
+    description: "A defensive leader who steadies every watch guard still standing beside it, and only hits harder once it's hurt.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB). Base HP uses the codex's own itemized Captain's Enforcement Armor total (+8 HP); the codex's separate narrative '+11 HP' claim for this same chest piece doesn't reconcile with its own itemized breakdown and was NOT used — see Appendix B of the codex and this division's implementation report.",
+    archetype: "leader",
+    dangerClass: "boss",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [24, 34],
+    equipment: { helmet: "Watch Captain's War Helm", chest: "Captain's Enforcement Armor", gloves: "Veteran Officer Gauntlets", boots: "Captain's Patrol Boots", mainhand: "Watch Captain's Sword", offhand: "Captain's Command Shield", rings: "Watch Captain's Signet", cloak: "Captain's Command Cloak", trinkets: ["Civic Command Insignia"] },
+    passives: ["sang_sec_captains_authority", "sang_sec_veteran_enforcement"],
+    actives: ["sang_sec_protective_orders", "sang_sec_captains_sword", "sang_sec_coordinated_detainment", "sang_sec_stand_firm"],
+  },
+  ovum_veteran_guard: {
+    name: "Ovum Veteran Guard",
+    native: "Sanguivorum ovum fighting arenas",
+    tags: ["urban"],
+    nations: ["sanguivorum"],
+    faction: "sanguivorum",
+    division: "security_enforcement",
+    group: "sang_sec_security_enforcement",
+    spawnGroup: "squad",
+    hp: 80, atk: 22, def: 18, spd: 13, acc: 20, agi: 18,
+    description: "An arena-seasoned defensive duelist, shield raised and ready to answer any hit that actually lands.",
+    combatNotes: "From the Sanguivorum Security and Enforcement Division Codex (v0.1, Step4AB). Preserved as the approved arena-derived protective specialist (codex Section 02).",
+    archetype: "bruiser",
+    dangerClass: "elite",
+    spawnRarity: "common",
+    levelBandExempt: true,
+    levelRange: [19, 30],
+    equipment: { helmet: "Ovum Veteran Guard Helm", chest: "Ovum Veteran Cuirass", gloves: "Veteran Arena Gauntlets", boots: "Reinforced Arena Greaves", mainhand: "Ovum Veteran Guard Sword", offhand: "Ovum Veteran Tower Shield", rings: "Veteran Ovum Signet", cloak: "Ovum Veteran Mantle", trinkets: ["Arena Service Token"] },
+    passives: ["sang_sec_arena_veterans_discipline_acc", "sang_sec_arena_veterans_discipline_def", "sang_sec_arena_riposte"],
+    actives: ["sang_sec_ovum_shield_guard", "sang_sec_veteran_duelists_strike"],
+  },
 };
 
 // Creature `tags` were authored against data/creaturetags.js's
