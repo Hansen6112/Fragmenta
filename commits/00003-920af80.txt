@@ -1,0 +1,206 @@
+range: 1a56971158bc85e85b448c07bbb172a30f12427a..920af80bc45e5174acce4d251093b01e10ab17a7
+=== 920af80bc45e5174acce4d251093b01e10ab17a7 2026-11-03 19:24:15 +0000
+Make Ally Protection Reaction symmetric for enemy-side wearers
+Gatekeeper's Stand and Protective Intercession (Sanguivorum Security
+and Enforcement) were only ever checked from resolveEnemyAttackOnAlly
+(an enemy hitting a player ally), so Frontier Gatekeeper and Watch
+Captain never actually protected a squadmate from the player's own
+attack -- their intended use case. Adds enemyAllyProtectionMultiplier,
+a symmetric check over state.combat.enemies, folded into
+rollPlayerDamage's existing mitigation chain and ticked in
+tickEnemyPassives, reusing the same ALLY_PROTECTION_EFFECT_IDS list and
+cooldown/cap fields as the player-side mechanism.
+
+
+ js/engine/combat.js | 38 +++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 37 insertions(+), 1 deletion(-)
+=== 3f723458c62f501ca9340ab5a24cc29fb2998884 2026-11-03 18:50:15 +0000
+Add Sanguivorum Security and Enforcement Division (9 enemy identities, Step4AB v0.1)
+All 9 owner-approved Security and Enforcement identities as real, shipped
+roster content: Junior City Watchman, Market Watchman, Road Warden,
+Harbor Watchman, Veteran City Guard (3 equipment bands), Frontier
+Gatekeeper, Imperial Investigator, Watch Captain, Ovum Veteran Guard.
+
+Base stats are the owner's own Step-5 cross-division-audit-reconciled
+table (combined base+gear x2 minus the codex's own itemized gear
+deltas; every independently reconciled against the codex's own stated
+"Approved equipment delta" line, exact match on all 11 loadouts) —
+taken as final and approved, not re-derived. Watch Captain's base HP
+uses the codex's own itemized +8 HP (Captain's Enforcement Armor), not
+the codex's separate narrative "+11 HP" claim, which doesn't reconcile
+with its own itemized breakdown (owner's explicit resolution, codex
+Appendix B). Run through the STANDARD computeCreatureStats pipeline
+like every other ordinary creature, spawnRarity "common" +
+levelBandExempt + explicit levelRange for all 9, matching this file's
+established house style — not Dregnar's special:true bypass.
+
+New `division` tag ("security_enforcement", shared by all 9 — the
+"another living Security ally" check Watch Captain's own Captain's
+Authority reads, via engine/combat.js's existing whileAllyAlive
+"division" scope added for Imperial Military and reused here verbatim,
+zero new engine code). All 9 also share `group:
+"sang_sec_security_enforcement"` for applyPackAuraBuff's existing
+group-match (Protective Orders).
+
+Archetype mapping (owner's own judgment calls, used exactly as given):
+tank (Junior City Watchman, Road Warden, Veteran City Guard, Frontier
+Gatekeeper), controller (Market Watchman, Imperial Investigator),
+skirmisher (Harbor Watchman), leader (Watch Captain), bruiser (Ovum
+Veteran Guard).
+
+Equipment: all 11 itemized loadouts from the codex, 76 new items added
+to ITEM_DEFS. Four of the codex's own cited "existing verified catalog"
+items are reused at their real, already-defined lowercase keys rather
+than re-declared: "worn traveler's boots", "a sanguivorum infantry
+shield", "highland march boots", "border patrol greaves". One more
+exact, case-insensitive duplicate turned up independently during that
+same full-table check and was reused instead of re-declared: "Captain's
+Command Cloak" (+4 DEF, originally Highway Captain's own cloak,
+Criminal Underworld). "Veteran Officer Gauntlets" (Watch Captain's
+Gloves, no possessive) is a near-miss, NOT a duplicate, of the existing
+"Veteran Officer's Gauntlets" (Highway Captain's gloves, possessive) —
+kept as its own entry per the codex's exact wording, flagged for the
+owner.
+
+22 new intrinsic abilities (enemyabilities.js) plus one new named
+status (STATUS_EFFECTS' sang_sec_exposed_weakness, given its own entry
+rather than an inline custom debuff specifically so Precision
+Interrogation's bonusVsStatus can reference it by id, the same
+convention every other bonusVsStatus entry in this file already uses).
+Nearly all map onto already-supported dmgMult/selfBuff/selfDebuff/
+inflict/packAuraBuff/flatStatBonus/whileAllyAlive/healthBelowPct/
+accBonusIfOwnDefBuffActive/bonusVsStatus fields built during the
+Imperial Military commit — pure data, zero new engine code:
+
+- Veteran Watch Discipline / Gatekeeper's Discipline / Analytical
+  Discipline: the exact flatStatBonus trigger, single stat/amount pair.
+- Arena Veteran's Discipline (+5 ACC AND +5 DEF together): implemented
+  as two separate single-stat flatStatBonus passive ids sharing one
+  display name, rather than extending flatStatBonus to accept a multi-
+  stat object — the simpler of the two options the brief offered, and
+  the existing passives-array loop in buildFightCreature already applies
+  both for free.
+- Captain's Authority: whileAllyAlive scope "division", identical to
+  Ductus Section Commander/Vigilis Unit Commander.
+- Veteran Enforcement: the plain, already-supported healthBelowPct
+  trigger (0.5 threshold, +8 DEF/2 turns, once/combat).
+- Disciplined Counterstrike / Veteran Duelist's Strike: the exact
+  accBonusIfOwnDefBuffActive field Disciplined Riposte/Measured
+  Counteroffensive already use.
+- Precision Interrogation: bonusVsStatus against a NEW named status
+  (sang_sec_exposed_weakness) — mult set to 1.65/1.4 so the ability's own
+  base dmgMult (1.4) times that mult lands on exactly 1.65 against the
+  status, matching every existing bonusVsStatus entry's "multiplier of
+  the ability's own base dmgMult" convention rather than inventing a
+  flat-override one.
+- Identify Weakness: a plain accuracy-checked, damage-free (dmgMult 0)
+  inflict of that same named status — the same shape Screech/other
+  dmgMult:0 debuff actives in this file already use.
+- Checkpoint Suppression's dual -10 ATK/-5 ACC debuff from one hit: the
+  same multi-key `custom` debuff object applyAbilityInflict already
+  supports (Grasping Dead's existing `{ spd, agi, turns }` is the
+  precedent) — zero new engine code. The ATK half is declared faithfully
+  but, like disarm_swipe's own -ATK inflict and Imperial Military's
+  Sabotaging Bolt/Weapon Hook, lands on a stat effectivePlayerAtk never
+  actually reads — a pre-existing engine gap, not introduced here.
+- Protective Orders: the existing packAuraBuff shape, groupKey set
+  explicitly to this division's own shared group.
+- All remaining actives (Watchman's Strike, Readied Watch, Enforcement
+  Baton, Crowd Control, Warden's Thrust, Roadside Brace, Boarding Hook,
+  Harbor Cut, Veteran Guard, Fortified Guard, Gatekeeper's Spear,
+  Restraining Strike, Ovum Shield Guard, Captain's Sword, Coordinated
+  Detainment, Stand Firm) are plain dmgMult/selfBuff/inflict entries.
+
+Three genuinely new engine mechanisms in engine/combat.js:
+
+- Watchman's Resilience (SANG-SEC-IE004): added as a third effect id to
+  the EXISTING ONE_HIT_MITIGATION_EFFECT_IDS array (Hardened Formation/
+  Officer's Bearing, Imperial Military) — zero new mechanism, one line.
+- Gatekeeper's Stand (SANG-SEC-IE005) / Protective Intercession
+  (SANG-IE010): zero new engine code at all — both effect ids already
+  lived in ALLY_PROTECTION_EFFECT_IDS (added proactively when the
+  generalized Ally Protection Reaction mechanic was built, commit
+  8eca16d, before either item existed). Only effects.js entries and the
+  items declaring these ids were needed here.
+- Duelist's Bulwark (SANG-SEC-IE007): a new, REPEATABLE (not once-per-
+  combat) wearer-neutral mitigation reaction — hasDuelistBulwarkEffect/
+  enemyDuelistBulwarkMultiplier, modeled on applyAllyProtectionReaction's
+  own cooldown/cap bookkeeping shape (CD4, max twice/combat, per-wearer
+  duelistBulwarkCooldown/duelistBulwarkUsesThisCombat fields), wired into
+  rollPlayerDamage's existing sangMit multiplier chain and ticked in
+  tickEnemyPassives alongside smugglersGuardCooldown/tyrantsEdgeCooldown.
+- Arena Riposte (intrinsic, Ovum Veteran Guard): a genuinely new
+  trigger ("counterOnSuccessfulHit") — the opposite condition of the
+  existing miss-triggered riposteCounterOnPlayer. hasArenaRiposteAbility
+  reads creature.passives the same way checkCounteringGuard's own
+  "counterOnHit" lookup does (NOT hasEffect, which only reads equipped-
+  item effects — this is an intrinsic ability). arenaRiposteCounterOnPlayer
+  reuses riposteCounterOnPlayer's exact helper calls (effectiveEnemyAtk/
+  effectivePlayerDef/mitigate/mitigateAndApplyHitOnPlayer/
+  resolvePlayerDefeatOrDowned) at 0.8x instead of 0.5x, gated by its OWN
+  independent arenaRiposteCooldown/arenaRiposteUsesThisCombat pair (CD4,
+  max twice/combat) rather than riposteUsedThisRound/riposteUsesThisCombat,
+  so it never cross-contaminates with the unrelated miss-triggered
+  Riposte. Hooked into playerAttack's SUCCESSFUL-hit branch (restructured
+  the existing "else if (isPhysical)" into an "else" so the check runs
+  for both physical and magic hits, gated on dmg > 0, and placed so a
+  creature the SAME hit just killed can never reach it — the kill branch
+  returns or re-targets before this runs).
+
+SANG-SEC-IE001/002/003/006/008 (Merchant's Inspection, Roadwise Records,
+Customs Appraisal, Evidence Assessment, Civic Credentials) are all
+declared-but-inert effects.js entries, matching the established
+convention for loot-table/trade/currency-reward systems that don't
+exist in this engine (same as Criminal Underworld's Light Fingers and
+Imperial Military's Field Salvage).
+
+Tested: full existing regression suite confirmed identical to its
+stored baseline, zero new failures — pass3_h_ledger.js 9/10 (H16,
+pre-existing), pass6_h_ledger.js 6/6, design_team_h_ledger.js 23/23,
+gate5b8_wearer_neutral/wearer_neutral_tests.js 15/16 real assertions
+(player-opening-reach-unchanged pre-existing RNG flake), downed_system_
+test/downed_ledger.js 17/17, ally_protection_test/ally_protection_
+ledger.js 9/9, Dregnar Stage A 29/30 (its own stale pre-Stage-B stat
+assertion, pre-existing) and Stage B 36/36. tools/audit.js: 0 errors,
+same 73 pre-existing warnings, none touching this division's new ids.
+
+New direct spot-check script (not checked in) covering: all 9
+identities' exact base stats/division/group/archetype; Watchman's
+Resilience firing through the shared one-hit-mitigation mechanism
+(isolated multiplier + deterministic end-to-end rollPlayerDamage
+comparison) on both the V2 and V3 equipment bands; Gatekeeper's Stand
+and Protective Intercession actually firing through the pre-existing,
+wearer-neutral applyAllyProtectionReaction (not just declared), each
+independently, with the 10% reduction/cooldown/one-shot-per-hit
+behavior confirmed; Duelist's Bulwark's repeatable CD4/max-2 reaction
+firing on two separate hits within its cap and correctly refusing a
+third/on-cooldown hit; Arena Riposte counter-attacking on a forced
+successful player hit end-to-end (confirmed via playerAttack, with
+resolveSpeedInitiative stubbed out so Ovum Veteran Guard's own Speed
+can't out-order the test's player build), never firing on a forced
+miss, respecting its own independent CD4/max-2 cap, and remaining
+unaffected by the unrelated miss-triggered Riposte mechanic already
+being maxed out; Captain's Authority's division-scoped whileAllyAlive
+toggling on and reverting off; Disciplined Counterstrike/Veteran
+Duelist's Strike's conditional +8 ACC applying only while their own
+Defense buff is active (isolated via resolveEnemyActiveAbility with
+competing actives forced onto cooldown); Precision Interrogation's
+1.4/1.65 conditional dmgMult; Identify Weakness's damage-free inflict of
+the new status; Checkpoint Suppression's dual-stat custom debuff; all 5
+flatStatBonus passives' exact +5 delta (with-passive vs without-passive
+buildFightCreature comparison); Veteran City Guard's 3 equipment bands
+resolving at their exact level boundaries (17/18, 24/25); Protective
+Orders' packAuraBuff reaching exactly 3 of 4 eligible Security allies
+(maxTargets); and all 5 reused-catalog items resolving to their real
+existing keys.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/bestiary.js       | 223 ++++++++++++++++++++++++++++++++++++++++++++++
+ js/data/effects.js        |  28 ++++++
+ js/data/enemyabilities.js | 121 +++++++++++++++++++++++++
+ js/data/items.js          | 112 +++++++++++++++++++++++
+ js/engine/combat.js       | 108 +++++++++++++++++++++-
+ 5 files changed, 588 insertions(+), 4 deletions(-)

@@ -72,6 +72,6 @@ WARNINGS (73)
   [ability] passive artificial_construct (trigger "elementalResist") is on 1 creature(s) but no engine code handles that trigger — inert
   [ability] passive guardian_directive (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
   [ability] passive arcane_reflection (trigger "firstMagicalHitPerRoundReduction") is on 1 creature(s) but no engine code handles that trigger — inert
-  [items] 622/1693 items have no acquisition path — by source: {"contract":245,"faction":70,"job":145,"world_boss":20,"hidden_dungeon":3,"quest":10,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"monster":71}
+  [items] 622/1768 items have no acquisition path — by source: {"contract":245,"faction":70,"job":145,"world_boss":20,"hidden_dungeon":3,"quest":10,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"monster":71}
 
 0 error(s), 73 warning(s) across 47 scripts.
