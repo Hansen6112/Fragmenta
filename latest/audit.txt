@@ -1,0 +1,77 @@
+
+WARNINGS (73)
+  [race] human stat mods sum to 11, RACE_BUDGET says 9
+  [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
+  [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
+  [race] dwarf stat mods sum to 12, RACE_BUDGET says 9
+  [bestiary] sabertooth.passives has non-passive "crushing_bite"
+  [bestiary] riverCrocodile.passives has non-passive "death_roll"
+  [ability] passive iron_tusks (trigger "critAlwaysBleeds") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive keen_senses (trigger "ignoresAmbush") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive pack_hunter (trigger "packCount") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive crushing_jaws (trigger "bonusVsStatus") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive winter_coat (trigger "elementalResist") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive ash_hide (trigger "elementalResist") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive relentless_pursuit (trigger "consecutiveSameTarget") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive blood_frenzy (trigger "onOpponentStatusStart") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive alphas_command (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive lord_of_the_pack (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive swarm (trigger "packCount") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive tunnel_fighter (trigger "combatStartBuff") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive powerful_bite (trigger "critInflictsCustom") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive endless_swarm (trigger "onAllyDeath") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive opportunist (trigger "bonusVsAnyStatus") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive killer_instinct (trigger "bonusVsHealthAbovePct") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive pride_leader (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive mob_confidence (trigger "packCount") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive intimidating_presence (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive adaptive_fighter (trigger "afterNHitsFromSameTarget") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive tool_mastery (trigger "flatDamageBonus") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive relentless_chase (trigger "onHitLanded") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive butchers_instinct (trigger "bonusVsStatus") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive primal_adaptation (trigger "periodicRandomBuff") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive defensive_formation (trigger "packCount") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive royal_pheromones (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive reinforced_bones (trigger "healthAboveBuff") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive reassemble (trigger "reformOnDeath") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive runic_bones (trigger "defensePenetration") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive ossified_commander (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive titanic_momentum (trigger "bonusVsStatus") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive ancient_instinct (trigger "onAllyPassiveStack") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive draconic_insight (trigger "adaptToRepeatedAbility") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive ancient_draconic_insight (trigger "adaptToRepeatedAbility") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive sovereign_territory (trigger "onPlayerElementalStatusInflicted") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive diamond_shell (trigger "periodicTemporaryShield") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive mirror_scales (trigger "independentMissChance") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive distorted_reality (trigger "onMirrorScalesProc") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive crystal_momentum (trigger "onActiveUse") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive sovereign_predator (trigger "onPlayerIntimidated") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive blink_predator (trigger "onActiveUse") is on 3 creature(s) but no engine code handles that trigger — inert
+  [ability] passive master_blink_predator (trigger "onActiveUse") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive perfect_blink (trigger "onActiveUse") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive tunnel_hunter (trigger "onActiveUse") is on 3 creature(s) but no engine code handles that trigger — inert
+  [ability] passive master_tunnel_hunter (trigger "onActiveUse") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive living_tunnel_network (trigger "onActiveUse") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive master_canopy_hunter (trigger "onCrit") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive illusory_form (trigger "independentMissChance") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive perfect_illusion (trigger "onMirrorScalesProc") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive elemental_form (trigger "periodicFormToggle") is on 4 creature(s) but no engine code handles that trigger — inert
+  [ability] passive arcane_core (trigger "onFormToggle") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive volatile_corpse (trigger "castActiveOnDeath") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive unending_horde (trigger "onAlliedSulDaunDeath") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive unfinished_vengeance (trigger "markedQuarrySelect") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive living_memory (trigger "accuracyReductionImmune") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive four_living_hearts (trigger "heartCheatDeath") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive unstoppable_momentum (trigger "stunKnockbackImmune") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive ethereal_form (trigger "etherealToggle") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive refusal_of_the_river (trigger "etherealCheatDeath") is on 2 creature(s) but no engine code handles that trigger — inert
+  [ability] passive veil_of_agony (trigger "accuracyReductionImmune") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive endless_torment (trigger "etherealRegen") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive lingering_regret (trigger "debuffOnHitDealt") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive echoes_of_death (trigger "onAnyDeath") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive artificial_construct (trigger "elementalResist") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive guardian_directive (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
+  [ability] passive arcane_reflection (trigger "firstMagicalHitPerRoundReduction") is on 1 creature(s) but no engine code handles that trigger — inert
+  [items] 622/1571 items have no acquisition path — by source: {"contract":245,"faction":70,"job":145,"world_boss":20,"hidden_dungeon":3,"quest":10,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"monster":71}
+
+0 error(s), 73 warning(s) across 47 scripts.

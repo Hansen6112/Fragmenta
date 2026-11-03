@@ -1,0 +1,19 @@
+range: start..7e0aebe08931a1192682cca538014e846222fe17
+=== 7e0aebe08931a1192682cca538014e846222fe17 2026-11-02 22:39:09 -0500
+Add codex snapshot workflow for the nightly Codex Tracker
+On each push to the default branch, GitHub Actions runs tools/codex/build.sh:
+it snapshots the js/data registries, diffs them against the previous build,
+renders the item and enemy codex text, runs tools/audit.js, and commits the
+output to the codex-data branch. The game itself never loads these files.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Qa3eCqwpXp6Jq4qRVWS7FE
+
+
+ .github/workflows/codex-snapshot.yml | 44 ++++++++++++++++++++++++++++++
+ tools/codex/README.md                |  8 ++++++
+ tools/codex/build.sh                 | 30 ++++++++++++++++++++
+ tools/codex/diff.js                  | 21 ++++++++++++++
+ tools/codex/render.js                | 53 ++++++++++++++++++++++++++++++++++++
+ tools/codex/snapshot.js              | 13 +++++++++
+ 6 files changed, 169 insertions(+)
