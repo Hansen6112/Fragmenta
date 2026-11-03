@@ -2173,6 +2173,162 @@ const ITEM_DEFS = {
   "Ruthless Lord's Signet": { slot: "rings", tier: 4, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
   "Roadlord's Battle Cloak": { slot: "cloak", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
   "Conqueror's Trophy": { slot: "trinkets", tier: 4, bonuses: { health: 5 }, effects: ["sang_cu_ie013_conquerors_resolve"], source: "monster", region: "sanguivorum" },
+
+  // ---- Sanguivorum Imperial Military Division (Codex v0.3, Step 4.B
+  // owner-approved) — 20 equipment profiles across 14 identities (Ferratum
+  // Veteran V1-V3, Aqualis Marine V1-V2, Gradus Veteran V1-V3, Ductus
+  // Section Commander V1-V2 each carry more than one band). Two of the
+  // codex's own named items are case-insensitive EXACT duplicates of gear
+  // this same engine already added for the Criminal Underworld division
+  // (same name, same slot, same bonus) and are reused at their existing
+  // keys below rather than re-declared: "Crossbowman's Gloves" (Ingenum
+  // Field Engineer) and "Reinforced Handler Gloves" (Legion Houndmaster) —
+  // both already exist above. Two of the codex's own cited "existing
+  // catalog" items are also reused at their real keys: "a sanguivorum
+  // infantry shield" (Ferratum Infantryman's Off Hand) and "Sanguivorum
+  // courier boots" (Agilum Scout's Boots); the other two catalog
+  // precedents the codex names in Section 01 (a sanguivorum legionary's
+  // side sword, highland march boots) aren't actually assigned to any of
+  // the 20 individual loadouts below, so nothing forces them in here.
+  // Bonus keys use "accuracy"/"agility" (full word), matching
+  // equipmentBonus()'s own convention and buildFightCreature's matching
+  // enemy-side read (engine/combat.js).
+  // Legion Recruit
+  "Legion Training Helm": { slot: "helmet", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Basic Legion Vest": { slot: "chest", tier: 1, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Marching Boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Training Gladius": { slot: "mainhand", tier: 1, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Training Shield": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  // Ferratum Infantryman (Off Hand reuses "a sanguivorum infantry shield" above)
+  "Ferratum Iron Helm": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Ferratum Cuirass": { slot: "chest", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "March Greaves": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Formation Spear": { slot: "mainhand", tier: 3, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  // Ferratum Veteran V1/V2/V3 (one shared base identity; three loadouts)
+  "Veteran Ferratum Helm V1": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Veteran Cuirass V1": { slot: "chest", tier: 3, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Veteran Gauntlets V1": { slot: "gloves", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Greaves V1": { slot: "boots", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Veteran Legion Blade V1": { slot: "mainhand", tier: 3, bonuses: { atk: 5 }, source: "monster", region: "sanguivorum" },
+  "Veteran Tower Shield V1": { slot: "offhand", tier: 3, bonuses: { def: 5 }, effects: ["sang_mil_ie001_hardened_formation"], source: "monster", region: "sanguivorum" },
+  "Veteran Ferratum Helm V2": { slot: "helmet", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Veteran Cuirass V2": { slot: "chest", tier: 4, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Veteran Gauntlets V2": { slot: "gloves", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Greaves V2": { slot: "boots", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Veteran Legion Blade V2": { slot: "mainhand", tier: 4, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
+  "Veteran Tower Shield V2": { slot: "offhand", tier: 4, bonuses: { def: 7 }, effects: ["sang_mil_ie001_hardened_formation"], source: "monster", region: "sanguivorum" },
+  "Veteran Ferratum Helm V3": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Veteran Cuirass V3": { slot: "chest", tier: 5, bonuses: { def: 10 }, source: "monster", region: "sanguivorum" },
+  "Veteran Gauntlets V3": { slot: "gloves", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Greaves V3": { slot: "boots", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Veteran Legion Blade V3": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "monster", region: "sanguivorum" },
+  "Veteran Tower Shield V3": { slot: "offhand", tier: 5, bonuses: { def: 9 }, effects: ["sang_mil_ie001_hardened_formation"], source: "monster", region: "sanguivorum" },
+  // Ingenum Field Engineer (Gloves reuses "Crossbowman's Gloves" above)
+  "Engineer's Leather Coat": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Utility Boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Calculated Crossbow": { slot: "mainhand", tier: 3, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Engineer Sidearm": { slot: "offhand", tier: 1, bonuses: { atk: 1 }, source: "monster", region: "sanguivorum" },
+  "Engineer's Toolkit": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_mil_ie002_field_salvage"], source: "monster", region: "sanguivorum" },
+  // Ingenum Ballistarius
+  "Ballistarius Headguard": { slot: "helmet", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Engineer Harness": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Ballistarius Gloves": { slot: "gloves", tier: 3, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Stabilizer Boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Ballistarius Crankbow": { slot: "mainhand", tier: 4, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
+  "Ingenum Sidearm": { slot: "offhand", tier: 2, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Calculation Lens": { slot: "trinkets", tier: 3, bonuses: { accuracy: 3 }, effects: ["sang_mil_ie003_calculated_aim"], source: "monster", region: "sanguivorum" },
+  "Ballistarius Tool Case": { slot: "trinkets", tier: 2, bonuses: { knowledge: 2 }, source: "monster", region: "sanguivorum" },
+  // Agilum Scout (Boots reuses "Sanguivorum courier boots" above)
+  "Agilum Scout Vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Light Rider Gloves": { slot: "gloves", tier: 2, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Scout's Javelin": { slot: "mainhand", tier: 3, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Light Scout Buckler": { slot: "offhand", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Reconnaissance Cloak": { slot: "cloak", tier: 2, bonuses: { spd: 2 }, effects: ["sang_mil_ie004_reconnaissance_insight"], source: "monster", region: "sanguivorum" },
+  // Impetum War Rider
+  "Impetum War Helm": { slot: "helmet", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Heavy Rider Armor": { slot: "chest", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
+  "Lance Grip Gauntlets": { slot: "gloves", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "War Rider Greaves": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Heavy War Lance": { slot: "mainhand", tier: 4, bonuses: { atk: 8 }, effects: ["sang_mil_ie005_decisive_impact"], source: "monster", region: "sanguivorum" },
+  "Reinforced Cavalry Shield": { slot: "offhand", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  // Aqualis Sailor
+  "Naval Leather Vest": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Deck Boots": { slot: "boots", tier: 2, bonuses: { agility: 2 }, source: "monster", region: "sanguivorum" },
+  "Boarding Cutlass": { slot: "mainhand", tier: 3, bonuses: { atk: 4 }, source: "monster", region: "sanguivorum" },
+  "Sailor's Hook": { slot: "offhand", tier: 2, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Weather Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  // Aqualis Marine V1/V2
+  "Aqualis War Helm V1": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Marine Cuirass V1": { slot: "chest", tier: 3, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Boarding Gauntlets V1": { slot: "gloves", tier: 1, bonuses: { accuracy: 1 }, source: "monster", region: "sanguivorum" },
+  "Deck Combat Boots V1": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Marine Boarding Sword V1": { slot: "mainhand", tier: 3, bonuses: { atk: 6 }, source: "monster", region: "sanguivorum" },
+  "Marine Shield V1": { slot: "offhand", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Boarding Command Whistle V1": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_mil_ie006_boarding_discipline"], source: "monster", region: "sanguivorum" },
+  "Aqualis War Helm V2": { slot: "helmet", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Marine Cuirass V2": { slot: "chest", tier: 4, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Boarding Gauntlets V2": { slot: "gloves", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
+  "Deck Combat Boots V2": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Marine Boarding Sword V2": { slot: "mainhand", tier: 4, bonuses: { atk: 8 }, source: "monster", region: "sanguivorum" },
+  "Marine Shield V2": { slot: "offhand", tier: 4, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Boarding Command Whistle V2": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_mil_ie006_boarding_discipline"], source: "monster", region: "sanguivorum" },
+  // Gradus Veteran V1/V2/V3
+  "Gradus Veteran Helm V1": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Veteran Legion Armor V1": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Veteran March Boots V1": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Veteran Gladius V1": { slot: "mainhand", tier: 3, bonuses: { atk: 5 }, source: "monster", region: "sanguivorum" },
+  "Veteran Shield V1": { slot: "offhand", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Gradus Veteran Helm V2": { slot: "helmet", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Veteran Legion Armor V2": { slot: "chest", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
+  "Veteran March Boots V2": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Veteran Gladius V2": { slot: "mainhand", tier: 4, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
+  "Veteran Shield V2": { slot: "offhand", tier: 4, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Gradus Veteran Helm V3": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Veteran Legion Armor V3": { slot: "chest", tier: 5, bonuses: { def: 9 }, source: "monster", region: "sanguivorum" },
+  "Veteran March Boots V3": { slot: "boots", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Veteran Gladius V3": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "monster", region: "sanguivorum" },
+  "Veteran Shield V3": { slot: "offhand", tier: 5, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  // Ductus Section Commander V1/V2
+  "Ductus Officer Helm V1": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Officer Cuirass V1": { slot: "chest", tier: 3, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Officer Gauntlets V1": { slot: "gloves", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
+  "Officer Riding Boots V1": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Ductus Command Sword V1": { slot: "mainhand", tier: 4, bonuses: { atk: 6 }, source: "monster", region: "sanguivorum" },
+  "Section Command Shield V1": { slot: "offhand", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Officer Signet V1": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_mil_ie007_officers_bearing"], source: "monster", region: "sanguivorum" },
+  "Ductus Officer Helm V2": { slot: "helmet", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Officer Cuirass V2": { slot: "chest", tier: 4, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Officer Gauntlets V2": { slot: "gloves", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Officer Riding Boots V2": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Ductus Command Sword V2": { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, source: "monster", region: "sanguivorum" },
+  "Section Command Shield V2": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
+  "Officer Signet V2": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_mil_ie007_officers_bearing"], source: "monster", region: "sanguivorum" },
+  // Vigilis Unit Commander
+  "Vigilis War Helm": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Commander Armor": { slot: "chest", tier: 5, bonuses: { def: 9 }, source: "monster", region: "sanguivorum" },
+  "Command Gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Commander Boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Vigilis Command Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "monster", region: "sanguivorum" },
+  "Reinforced Command Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
+  "Vigilis Command Cloak": { slot: "cloak", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Unit Command Insignia": { slot: "trinkets", tier: 3, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  // Arbitarius Commander
+  "Arbitarius War Helm": { slot: "helmet", tier: 5, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
+  "Senior Commander Cuirass": { slot: "chest", tier: 6, bonuses: { def: 11 }, source: "monster", region: "sanguivorum" },
+  "Senior Officer Gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Arbitarius March Boots": { slot: "boots", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Arbitarius Command Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 11 }, source: "monster", region: "sanguivorum" },
+  "Imperial Command Shield": { slot: "offhand", tier: 5, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Commander Signet": { slot: "rings", tier: 3, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
+  "Arbitarius Command Cloak": { slot: "cloak", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
+  "Arbitarius Insignia": { slot: "trinkets", tier: 4, bonuses: { accuracy: 3 }, effects: ["sang_mil_ie008_imperial_authority"], source: "monster", region: "sanguivorum" },
+  // Legion Houndmaster (Gloves reuses "Reinforced Handler Gloves" above)
+  "Handler's Military Helm": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
+  "Legion Handler Vest": { slot: "chest", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
+  "Kennelmaster's Boots": { slot: "boots", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
+  "Legion Handler Spear": { slot: "mainhand", tier: 3, bonuses: { atk: 5 }, source: "monster", region: "sanguivorum" },
+  "Military Handler Sidearm": { slot: "offhand", tier: 2, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
+  "Handler's Whistle": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
 };
 
 // Derived at load time: every "monster"-sourced item, grouped by tier, for

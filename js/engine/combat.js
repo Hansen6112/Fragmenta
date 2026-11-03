@@ -1550,12 +1550,43 @@ function applyBeneficialEffectBonuses(state, duration) {
   return d;
 }
 
+// Hardened Formation (MIL-IE001, Veteran Tower Shield V1-V3) / Officer's
+// Bearing (MIL-IE007, Officer Signet V1-V2) — the codex's own "same
+// mechanical pattern...not a second mechanical effect" merge note: two
+// distinct effect ids (so each item declares its own) resolving through
+// ONE shared, wearer-neutral mechanism. This generalizes the player-only
+// Stonewarden 6pc precedent (combat.firstHitTakenUsed/hasSetTier(state,
+// "Stonewarden", 6), resolveEnemyRetaliation/attemptFlee below) the same
+// way Ally Protection Reaction was generalized from its own
+// Hadrian-specific precedent — but mirrored to the other side of the
+// exchange: this fires on the WEARER's first incoming hit from the
+// PLAYER's own damage, not the player's first hit taken from any enemy,
+// so the flag lives on the creature object itself
+// (enemyFirstHitTakenUsed) rather than on combat. No explicit per-combat
+// reset is needed: every enemy creature object is rebuilt fresh by
+// buildFightCreature at the start of each fight (same reasoning as
+// commandersPoiseUsed/serratedOpeningUsed/huntersCallUsed elsewhere in
+// this file), so the flag simply starts undefined each time.
+const ONE_HIT_MITIGATION_EFFECT_IDS = ["sang_mil_ie001_hardened_formation", "sang_mil_ie007_officers_bearing"];
+function hasOneHitMitigationEffect(carrier) {
+  return ONE_HIT_MITIGATION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
+}
+function enemyOneHitMitigationMultiplier(creature) {
+  if (!creature.enemyFirstHitTakenUsed && hasOneHitMitigationEffect(creature)) {
+    creature.enemyFirstHitTakenUsed = true;
+    return 0.9;
+  }
+  return 1;
+}
+
 function rollPlayerDamage(state, creature, activeElement) {
   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
   // Smuggler's Guard / Commander's Poise (Sanguivorum Criminal
-  // Underworld) — consumed once here regardless of which branch (spell
-  // or physical) below ends up computing this hit's damage.
-  const sangMit = sangCuDefenderMitigation(creature);
+  // Underworld) and Hardened Formation / Officer's Bearing (Sanguivorum
+  // Imperial Military, above) — all consumed once here regardless of
+  // which branch (spell or physical) below ends up computing this hit's
+  // damage.
+  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature);
   // Brace/Guarded Strike, generalized: this creature may have banked a
   // Defense bonus against its next incoming hit (resolveEnemyAction's own
   // non-damaging-action branch, or its own landed basic attack — see
@@ -2104,6 +2135,24 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
       const heal = Math.round(state.combat.maxHp * abilityCtx.healSelfPct);
       if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
     }
+    // Prepare Ballista (Ingenum Ballistarius, Sanguivorum Imperial
+    // Military): banks the prepared state on the enemy RECORD (this
+    // function already has it at hand via combat.activeIndex), consumed
+    // by Ballista Discharge/Scattershot's own requiresPreparedState gate
+    // above, ticked down in tickEnemyPassives.
+    if (abilityCtx.grantsPreparedState) {
+      const enemySlot = state.combat.enemies[state.combat.activeIndex];
+      enemySlot.ballistaPreparedTurnsLeft = abilityCtx.grantsPreparedState.turns || 2;
+    }
+    // Calculated Preparation (Ingenum Field Engineer, Sanguivorum Imperial
+    // Military): banks a flat ACC bonus for the wearer's own next damaging
+    // attack attempt (resolveEnemyRetaliation/resolveEnemyAttackOnAlly
+    // consume it), unlike grantsPreparedState above this lives on the
+    // creature object itself (same convention as sureFoundationBonusDef).
+    if (abilityCtx.banksNextAttackAccBonus) {
+      creatureObj.bankedAttackAccBonus = abilityCtx.banksNextAttackAccBonus.amount;
+      creatureObj.bankedAttackAccBonusTurnsLeft = abilityCtx.banksNextAttackAccBonus.turns;
+    }
   }
   // Brace, generalized: the player's own version fires on a specific
   // no-damage Tactic/spell (Feint, Stoneskin, the Earth no-damage cast —
@@ -2613,6 +2662,16 @@ function playerHasAccOrSpdDebuff(state) {
   const statuses = (state.combat && state.combat.playerStatuses) || {};
   return Object.values(statuses).some((entry) => entry.debuff && ((entry.debuff.acc || 0) < 0 || (entry.debuff.spd || 0) < 0));
 }
+// Disciplined Riposte/Measured Counteroffensive (Sanguivorum Imperial
+// Military): "has an active defensive effect" = this creature's own
+// enemy record carries a live (turnsLeft > 0) selfBuffs entry with
+// stat === "def" — the same bookkeeping applyEnemySelfModifier (below)
+// pushes an entry onto and tickEnemyPassives counts down. Finds the
+// enemy record the same way applyEnemySelfModifier does.
+function hasActiveDefBuff(combat, creature) {
+  const enemy = combat.enemies.find((e) => e.creatureObj === creature);
+  return !!(enemy && (enemy.selfBuffs || []).some((b) => b.stat === "def" && b.turnsLeft > 0));
+}
 function resolveEnemyActiveAbility(state, creature) {
   if (!creature.actives || !creature.actives.length) return null;
   const combat = state.combat;
@@ -2632,6 +2691,21 @@ function resolveEnemyActiveAbility(state, creature) {
       const allyCount = combat.enemies.filter((e) => e.alive).length;
       if (allyCount >= a.summon.onlyIfAlliesBelow) return false;
     }
+    // Final Directive (Arbitarius Commander, Sanguivorum Imperial
+    // Military): a new eligibility gate — "only usable at wearer HP<=40%"
+    // — checked here against the enemy record's own e.hp/e.maxHp, same
+    // placement as onlyIfAlliesBelow just above; the creature simply never
+    // picks this active above the threshold rather than picking it and
+    // no-oping.
+    if (a.selfHealthBelowPct != null && enemy.hp / enemy.maxHp > a.selfHealthBelowPct) return false;
+    // Ballista Discharge/Scattershot (Ingenum Ballistarius, Sanguivorum
+    // Imperial Military): require Prepare Ballista's own banked state
+    // (enemy.ballistaPreparedTurnsLeft, set in resolveEnemyAction below,
+    // ticked down in tickEnemyPassives) — the same banked-charge shape as
+    // Brace/Guarded Strike/Sure Foundation elsewhere in this file,
+    // generalized to a SEPARATE ability consuming a DIFFERENT ability's
+    // charge instead of the same one that granted it.
+    if (a.requiresPreparedState && !(enemy.ballistaPreparedTurnsLeft > 0)) return false;
     return true;
   });
   if (!eligible.length) return null;
@@ -2652,6 +2726,11 @@ function resolveEnemyActiveAbility(state, creature) {
     setCooldown = Math.max(1, setCooldown - 1);
   }
   cooldowns[abilityId] = setCooldown;
+  // Ballista Discharge/Scattershot: "requires AND consumes" Prepare
+  // Ballista's prepared state — consumed here, on selection, the same
+  // instant-on-activation timing Duelist's Measure's own pending-target
+  // field is cleared at.
+  if (ability.consumesPreparedState) enemy.ballistaPreparedTurnsLeft = 0;
   let dmgMult = ability.dmgMult;
   // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
   // Predator, Prepared Opening/H08) — see firstAttackPassiveBonus above.
@@ -2685,6 +2764,20 @@ function resolveEnemyActiveAbility(state, creature) {
   if (ability.bonusVsAllyAlive && combat.enemies.some((e) => e.alive && e.creatureObj !== creature && !e.creatureObj.friendly)) {
     dmgMult *= ability.bonusVsAllyAlive.mult;
   }
+  // Coordinated Strike (Aqualis Marine, Sanguivorum Imperial Military):
+  // the same bonusVsAllyAlive shape just above, but scoped to a specific
+  // `family` instead of "any other non-friendly enemy" — "1.4x, or 1.65x
+  // if another allied Aqualis unit alive."
+  if (ability.bonusVsFamilyAllyAlive && combat.enemies.some((e) => e.alive && e.creatureObj !== creature && e.creatureObj.family === ability.bonusVsFamilyAllyAlive.family)) {
+    dmgMult *= ability.bonusVsFamilyAllyAlive.mult;
+  }
+  // Measured Counteroffensive (Vigilis Unit Commander, Sanguivorum
+  // Imperial Military): 1.65x, or 1.85x "when wearer has an active
+  // defensive buff" — hasActiveDefBuff (below) looks up this creature's
+  // own enemy record's selfBuffs for a live stat:"def" entry.
+  if (ability.bonusIfOwnDefBuffActive && hasActiveDefBuff(combat, creature)) {
+    dmgMult *= ability.bonusIfOwnDefBuffActive.mult;
+  }
   // Apex Instinct (Rau-Thauln): unlike the ability-specific bonuses above,
   // this applies to EVERY active the creature has, so it lives on the
   // passive itself rather than needing to be copy-pasted onto each one.
@@ -2711,11 +2804,16 @@ function resolveEnemyActiveAbility(state, creature) {
     // which is this same casting creature, not the player.
     packAuraBuff = combat.hp > combat.maxHp * c.pct ? c.abovePct : c.atOrBelowPct;
   }
+  // Disciplined Riposte/Shielded Thrust (Sanguivorum Imperial Military):
+  // "+5 ACC when a defensive effect is active" — same hasActiveDefBuff
+  // check as Measured Counteroffensive's conditional dmgMult above, folded
+  // as an additive ACC bonus instead.
+  const condAccBonus = ability.accBonusIfOwnDefBuffActive && hasActiveDefBuff(combat, creature) ? ability.accBonusIfOwnDefBuffActive : 0;
   return {
     id: abilityId,
     name: ability.name,
     dmgMult,
-    accBonus: (ability.accBonus || 0) + firstAttackAccBonus || undefined,
+    accBonus: (ability.accBonus || 0) + firstAttackAccBonus + condAccBonus || undefined,
     aoe: !!ability.aoe,
     aoeMaxTargets: ability.aoeMaxTargets,
     inflict: ability.inflict,
@@ -2725,6 +2823,11 @@ function resolveEnemyActiveAbility(state, creature) {
     healSelfPct: ability.healSelfPct,
     packAuraBuff,
     summon: ability.summon,
+    // Prepare Ballista / Calculated Preparation (Sanguivorum Imperial
+    // Military): dispatched in resolveEnemyAction alongside selfBuff/
+    // packAuraBuff — see the comments there.
+    grantsPreparedState: ability.grantsPreparedState,
+    banksNextAttackAccBonus: ability.banksNextAttackAccBonus,
   };
 }
 
@@ -2841,10 +2944,19 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName, summone
   if (!summoned.length) {
     return [`${withThe(summonerName, true)} tries to call for reinforcements, but none answer.`];
   }
-  // Hunter's Call (SANG-CU-IE009, Packmaster's Whistle): the summoner's
-  // OWN first successful summon-creation each combat grants one randomly
-  // chosen NEW summon +5 Accuracy for 2 of its own turns.
-  if (summonerCreature && !summonerCreature.huntersCallUsed && hasEffect(summonerCreature, "sang_cu_ie009_hunters_call")) {
+  // Hunter's Call (SANG-CU-IE009, Packmaster's Whistle, Criminal
+  // Underworld) / Boarding Discipline (MIL-IE006, Boarding Command
+  // Whistle V1-V2, Sanguivorum Imperial Military): the summoner's OWN
+  // first successful summon-creation each combat grants one NEW summon
+  // +5 Accuracy for 2 of its own turns — generalized onto this one shared
+  // code path per this division's own explicit instruction, rather than
+  // duplicating it under a second id. Boarding Discipline's own wording
+  // asks for the first-spawned summon deterministically rather than
+  // Hunter's Call's random pick; reusing the identical path (including
+  // the random pick) was the explicit ask, so both resolve the same way —
+  // a documented, intentional simplification for Boarding Discipline.
+  const BOARDING_SUMMON_BUFF_EFFECT_IDS = ["sang_cu_ie009_hunters_call", "sang_mil_ie006_boarding_discipline"];
+  if (summonerCreature && !summonerCreature.huntersCallUsed && BOARDING_SUMMON_BUFF_EFFECT_IDS.some((id) => hasEffect(summonerCreature, id))) {
     summonerCreature.huntersCallUsed = true;
     const chosen = summonedRecords[Math.floor(Math.random() * summonedRecords.length)];
     applyEnemySelfModifier(combat, chosen.creatureObj, { acc: 5, turns: 2 });
@@ -2862,14 +2974,24 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName, summone
 // first N found in roster order; omitted entirely for the older,
 // uncapped pack-buffs (Rallying Roar, Grave Formation, ...), which keep
 // buffing the whole group as before.
+// spec.groupKey (Pack Coordination, Sanguivorum Imperial Military — Legion
+// Houndmaster): an override group to match recipients against, instead of
+// the caster's own `creature.group` — lets one creature's actives target
+// two DIFFERENT pack scopes (Legion Houndmaster's own shared
+// "sang_mil_imperial_military" group for receiving commander buffs, vs.
+// its own hounds' narrower "sang_mil_legion_hounds" group, which
+// groupKey reaches here without touching the caster's own `group` tag).
+// Every pre-existing call omits groupKey, so `creature.group` remains the
+// default, unchanged.
 function applyPackAuraBuff(combat, creature, spec) {
-  if (!creature.group) return;
+  const groupKey = spec.groupKey || creature.group;
+  if (!groupKey) return;
   const turns = spec.turns || 1;
-  let recipients = combat.enemies.filter((other) => other.alive && other.creatureObj !== creature && other.creatureObj.group === creature.group);
+  let recipients = combat.enemies.filter((other) => other.alive && other.creatureObj !== creature && other.creatureObj.group === groupKey);
   if (spec.maxTargets != null) recipients = recipients.slice(0, spec.maxTargets);
   for (const other of recipients) {
     for (const [key, amount] of Object.entries(spec)) {
-      if (key === "turns" || key === "maxTargets" || typeof amount !== "number") continue;
+      if (key === "turns" || key === "maxTargets" || key === "groupKey" || typeof amount !== "number") continue;
       // A "...Pct" key (Rallying Roar's atkPct) buffs a fraction of the
       // recipient's OWN current value — resolved to a flat delta here, at
       // application time, so the reversal in tickEnemyPassives can just
@@ -2880,6 +3002,20 @@ function applyPackAuraBuff(combat, creature, spec) {
       other.creatureObj[stat] = (other.creatureObj[stat] || 0) + delta;
       other.selfBuffs.push({ stat, amount: delta, turnsLeft: turns });
     }
+  }
+  // Imperial Authority (MIL-IE008, Arbitarius Insignia, Sanguivorum
+  // Imperial Military): the first time each combat the wearer successfully
+  // grants an active beneficial buff to one or more allies, the first
+  // recipient (in resolution order) additionally gets +5 Defense for 2 of
+  // its own turns. applyPackAuraBuff is only ever called for an
+  // ally-targeted packAuraBuff spec (never a self-only selfBuff/
+  // selfDebuff, which route through applyEnemySelfModifier directly), so
+  // "not triggered by a self-only buff" holds for free from this
+  // placement; `recipients` is already empty whenever nothing was
+  // actually buffed (no group, or no living packmate to find).
+  if (recipients.length && !creature.imperialAuthorityUsed && hasEffect(creature, "sang_mil_ie008_imperial_authority")) {
+    creature.imperialAuthorityUsed = true;
+    applyEnemySelfModifier(combat, recipients[0].creatureObj, { def: 5, turns: 2 });
   }
 }
 
@@ -2968,7 +3104,18 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   // resets it, which falls out for free since this is cleared below
   // regardless of whether it matched.
   const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
-  const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0);
+  // Calculated Aim (MIL-IE003) / Calculated Preparation (Sanguivorum
+  // Imperial Military): mirror resolveEnemyRetaliation's own copies —
+  // both consumed on this attempt regardless of hit/miss.
+  let calculatedAimBonusAlly = 0;
+  if (!creature.calculatedAimUsed && hasEffect(creature, "sang_mil_ie003_calculated_aim")) {
+    creature.calculatedAimUsed = true;
+    calculatedAimBonusAlly = 8;
+  }
+  const bankedPrepBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
+  creature.bankedAttackAccBonus = 0;
+  creature.bankedAttackAccBonusTurnsLeft = 0;
+  const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly;
   creature.duelistMeasurePendingTarget = null;
   if (!attackConnects(creature.acc + accBonus, allyAgi)) {
     // Riposte, generalized: this creature's own attack just dealt the
@@ -3007,6 +3154,12 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
     creature.tyrantsEdgeCooldown = 3;
     creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
     dmg = Math.round(dmg * 1.10);
+  }
+  // Decisive Impact (MIL-IE005, Sanguivorum Imperial Military): mirrors
+  // resolveEnemyRetaliation's own copy, against the ally instead.
+  if (dmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
+    creature.decisiveImpactUsed = true;
+    dmg = Math.round(dmg * 1.08);
   }
   // Guarded Strike, generalized: bank +2 Defense for this creature against
   // whatever hits it next, same basic-attack-only scope.
@@ -3976,7 +4129,25 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   const duelistPending = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === "player";
   const duelistBonus = duelistPending ? 10 : 0;
   creature.duelistMeasurePendingTarget = null; // consumed on the attempt regardless of hit/miss, same as Marked Target above
-  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus;
+  // Calculated Aim (MIL-IE003, Calculation Lens, Sanguivorum Imperial
+  // Military): the wearer's own first damaging attack ATTEMPT each
+  // combat, consumed whether it hits or misses — same unconditional-on-
+  // attempt consumption shape as Marked Target/Duelist's Measure above.
+  let calculatedAimBonus = 0;
+  if (!creature.calculatedAimUsed && hasEffect(creature, "sang_mil_ie003_calculated_aim")) {
+    creature.calculatedAimUsed = true;
+    calculatedAimBonus = 8;
+  }
+  // Calculated Preparation (Ingenum Field Engineer's own active, Sanguivorum
+  // Imperial Military): "+10 ACC on next damaging attack within 2 turns,
+  // consumed by qualifying attempt" — banked by resolveEnemyAction when
+  // the active is cast, consumed here on the next attempt regardless of
+  // hit/miss, same as Calculated Aim just above; tickEnemyPassives below
+  // decays it if 2 of the wearer's own turns pass unused.
+  const bankedPrepBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
+  creature.bankedAttackAccBonus = 0;
+  creature.bankedAttackAccBonusTurnsLeft = 0;
+  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus;
   if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
     return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
   }
@@ -4143,6 +4314,14 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
     creature.unbrokenGripUsed = true;
     edmg = Math.round(edmg * 1.10); // Unbroken Grip: first physical weapon attack each combat
+  }
+  // Decisive Impact (MIL-IE005, Heavy War Lance, Sanguivorum Imperial
+  // Military): the wearer's first SUCCESSFUL damaging attack each combat
+  // (edmg > 0 — a miss never reaches this line) deals x1.08 final damage;
+  // a miss does not consume it, same shape as Unbroken Grip just above.
+  if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
+    creature.decisiveImpactUsed = true;
+    edmg = Math.round(edmg * 1.08);
   }
   // Executioner's Seal (DRA-E06): same 30%-max-HP threshold as the base
   // Executioner effect, kept as its own id (DEP-07) rather than aliased.
@@ -4357,10 +4536,45 @@ function tickEnemyPassives(state, e) {
       // Discipline's own handler-summon-only condition); the default scope
       // reuses H11's bonusVsAllyAlive precedent — "any other alive,
       // non-friendly enemy counts as an ally," no species/group tag check.
+      // Section Discipline/Command Discipline (Sanguivorum Imperial
+      // Military, scope "division") / Marine Discipline (scope "family"):
+      // two new scope values — "division" matches iff any OTHER alive
+      // enemy shares this creature's own `division` BESTIARY tag
+      // ("imperial_military"); "family" matches iff any other alive enemy
+      // shares its own narrower `family` tag ("aqualis", ...). Same
+      // reversible toggle-via-applyPermanentSelfBuff/negation shape as the
+      // "summon"/default scopes above — just a different match condition.
       const flagKey = pid + ":active";
       const matches = p.scope === "summon"
         ? state.combat.enemies.some((x) => x.alive && x !== e && x.summonSourceKey === (p.summonKey || pid))
+        : p.scope === "division"
+        ? state.combat.enemies.some((x) => x.alive && x !== e && creature.division && x.creatureObj.division === creature.division)
+        : p.scope === "family"
+        ? state.combat.enemies.some((x) => x.alive && x !== e && creature.family && x.creatureObj.family === creature.family)
         : state.combat.enemies.some((x) => x.alive && x !== e && !x.creatureObj.friendly);
+      const wasActive = !!e.passiveOnceFlags[flagKey];
+      if (matches && !wasActive) {
+        e.passiveOnceFlags[flagKey] = true;
+        applyPermanentSelfBuff(creature, p.selfBuff);
+      } else if (!matches && wasActive) {
+        e.passiveOnceFlags[flagKey] = false;
+        const negated = {};
+        for (const [stat, amount] of Object.entries(p.selfBuff)) negated[stat] = -amount;
+        applyPermanentSelfBuff(creature, negated);
+      }
+    } else if (p.trigger === "whileAlliesDiverse") {
+      // Combined-Arms Authority (Arbitarius Commander, Sanguivorum
+      // Imperial Military): a genuinely new passive trigger — matches iff
+      // at least `minDistinct` DISTINCT `family` values are alive among
+      // this creature's own `division` (counting the creature's own
+      // family as one of them). Same reversible toggle shape as
+      // whileAllyAlive just above, placed as a sibling branch in the same
+      // per-round passive-upkeep loop.
+      const flagKey = pid + ":active";
+      const distinctFamilies = new Set(
+        state.combat.enemies.filter((x) => x.alive && x.creatureObj.division === creature.division).map((x) => x.creatureObj.family)
+      );
+      const matches = distinctFamilies.size >= (p.minDistinct || 2);
       const wasActive = !!e.passiveOnceFlags[flagKey];
       if (matches && !wasActive) {
         e.passiveOnceFlags[flagKey] = true;
@@ -4419,6 +4633,16 @@ function tickEnemyPassives(state, e) {
   // guarded_strike/brace already use elsewhere in this file.
   if (creature.smugglersGuardCooldown > 0) creature.smugglersGuardCooldown -= 1;
   if (creature.tyrantsEdgeCooldown > 0) creature.tyrantsEdgeCooldown -= 1;
+  // Prepare Ballista's banked state (lives on the enemy RECORD, `e` —
+  // see resolveEnemyAction/resolveEnemyActiveAbility) and Calculated
+  // Preparation's banked ACC bonus (lives on `creature`, same convention
+  // as sureFoundationBonusDef above) — both Sanguivorum Imperial
+  // Military — decay by one of the wearer's own rounds per tick, same
+  // once-per-round cadence as every other countdown in this function.
+  if (e.ballistaPreparedTurnsLeft > 0) e.ballistaPreparedTurnsLeft -= 1;
+  if (creature.bankedAttackAccBonusTurnsLeft > 0 && --creature.bankedAttackAccBonusTurnsLeft <= 0) {
+    creature.bankedAttackAccBonus = 0;
+  }
   if (hasEffect(creature, "sang_cu_ie008_handlers_resilience") && !creature.handlersResilienceUsed && e.hp / e.maxHp <= 0.5) {
     creature.handlersResilienceUsed = true;
     applyEnemySelfModifier(state.combat, creature, { def: 5, turns: 2 });
@@ -4944,6 +5168,21 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
     creature.equipment = equipment;
     creature.equipmentKnowledge = enemyEquipmentBonus(equipment, "knowledge");
   }
+  // Veteran Discipline (Ferratum Veteran, Sanguivorum Imperial Military):
+  // "constant +5 Defense while alive — no trigger, cooldown, or expiry."
+  // No existing convention in this file expresses a flat, untriggered
+  // passive stat bonus (every other passives entry is read either
+  // per-action via firstAttackPassiveBonus/resolveEnemyActiveAbility, or
+  // per-round via tickEnemyPassives) — this adds one, a minimal
+  // `flatStatBonus` trigger applied once right here at creature-build
+  // time, the same place equipment bonuses are folded in just above, so
+  // it is never re-applied or double-counted.
+  for (const pid of creature.passives || []) {
+    const p = getEnemyAbility(pid);
+    if (p && p.trigger === "flatStatBonus" && p.stat) {
+      creature[p.stat] = (creature[p.stat] || 0) + (p.amount || 0);
+    }
+  }
   return creature;
 }
 
@@ -5245,6 +5484,19 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
       // combat.enemies lookup resolves correctly.
       if (p && p.trigger === "combatStartSelfBuff" && p.selfBuff) {
         applyEnemySelfModifier(state.combat, e.creatureObj, p.selfBuff);
+      }
+      // Prepared Warhound (Legion Houndmaster, Sanguivorum Imperial
+      // Military): "start combat with 1 approved Legion Hound already
+      // active; counts toward active and lifetime caps; no automatic
+      // respawn" — a one-time pre-combat summon via the SAME
+      // resolveEnemySummon() path Deploy Legion Hounds' own active uses
+      // (shared capKey, so this starting hound occupies one of the same
+      // maxActive/maxLifetime slots), resolved once here rather than
+      // through tickEnemyPassives' per-round loop. state.combat already
+      // exists by this point (assigned above), so resolveEnemySummon's
+      // own combat.enemies bookkeeping resolves correctly.
+      if (p && p.trigger === "combatStartSummon" && p.summon) {
+        lines.push(...resolveEnemySummon(state, e.creatureObj.level, p.summon, pid, e.creatureObj.name, e.creatureObj));
       }
     }
   }

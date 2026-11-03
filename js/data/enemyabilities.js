@@ -833,6 +833,158 @@ const ENEMY_ABILITIES = {
   blood_price: { name: "Blood Price", type: "active", cooldown: 5, dmgMult: 1.5, inflict: { status: "bleed", chance: 1 } }, // IA-32
   warband_fury: { name: "Warband Fury", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { atkPct: 0.12, turns: 2 } }, // IA-33
   ruthless_execution: { name: "Ruthless Execution", type: "active", cooldown: 5, dmgMult: 1.7, bonusVsHealthBelowPct: { pct: 0.35, mult: 2.1 / 1.7 } }, // IA-34
+
+  // ---- Sanguivorum Imperial Military Division (Codex v0.3, Step 4.A
+  // owner-approved) — 14 identities, Appendix A register. Several ids
+  // collide by NAME ONLY with existing, mechanically different entries
+  // elsewhere in this file (Gate 5B.8's own "veteran_discipline"/H07,
+  // "veterans_guard"/IA-25 Criminal Underworld, and a placeholder
+  // "coordinated_strike") — kept as distinct `mil_`-prefixed ids below so
+  // neither this division nor the ones it collides with ever shares a key,
+  // while still showing the identical display `name` the codex specifies.
+  // Three mechanics needed small, additive engine support beyond anything
+  // Criminal Underworld needed (all in engine/combat.js): a `flatStatBonus`
+  // trigger for Veteran Discipline's untriggered "constant +N stat while
+  // alive" (applied once at buildFightCreature time, no existing
+  // trigger-less-passive convention existed to reuse); a `requiresPrepared
+  // State`/`consumesPreparedState`/`grantsPreparedState` pair for Prepare
+  // Ballista -> Ballista Discharge/Scattershot's two-step channel, the
+  // same banked-charge shape as Brace/Guarded Strike/Sure Foundation
+  // generalized to a SEPARATE ability consuming a DIFFERENT ability's
+  // charge; and a `banksNextAttackAccBonus` field for Calculated
+  // Preparation's "+10 ACC on next damaging attack within 2 turns,"
+  // mirroring Marked Target/Duelist's Measure's own "banked, consumed on
+  // the next attempt" shape but granted by the wearer's own active instead
+  // of another attacker's item.
+  measured_strike: { name: "Measured Strike", type: "active", cooldown: 3, dmgMult: 1.2 },
+  readied_guard: { name: "Readied Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 5, turns: 1 } },
+  ferratum_brace: { name: "Ferratum Brace", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 8, turns: 2 } },
+  // Shielded Thrust: "+5 ACC for this attack while Ferratum Brace is
+  // active" reads the SAME hasActiveDefBuff(combat, creature) check
+  // (an active, timed selfBuffs entry with stat "def") Disciplined
+  // Riposte/Measured Counteroffensive below use — Ferratum Brace's own
+  // selfBuff is a `def`+`turns` entry, so it shows up there directly, no
+  // name-specific check needed.
+  shielded_thrust: { name: "Shielded Thrust", type: "active", cooldown: 3, dmgMult: 1.3, accBonusIfOwnDefBuffActive: 5 },
+  mil_veteran_discipline: { name: "Veteran Discipline", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
+  mil_veterans_guard: { name: "Veteran's Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
+  disciplined_riposte: { name: "Disciplined Riposte", type: "active", cooldown: 4, dmgMult: 1.4, accBonusIfOwnDefBuffActive: 5 },
+  calculated_preparation: { name: "Calculated Preparation", type: "active", cooldown: 4, dmgMult: 0, banksNextAttackAccBonus: { amount: 10, turns: 2 } },
+  sabotaging_bolt: { name: "Sabotaging Bolt", type: "active", cooldown: 4, dmgMult: 1.15, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
+  // Range Calculation: the existing `firstAttack` trigger (Ambush/Patient
+  // Hunter/...) already supports a bare accBonus with no dmgMultBonus.
+  range_calculation: { name: "Range Calculation", type: "passive", trigger: "firstAttack", accBonus: 10 },
+  prepare_ballista: { name: "Prepare Ballista", type: "active", cooldown: 1, dmgMult: 0, grantsPreparedState: { turns: 2 } },
+  ballista_discharge: { name: "Ballista Discharge", type: "active", cooldown: 5, dmgMult: 2.0, requiresPreparedState: true, consumesPreparedState: true },
+  // Ballista Scattershot: "shared CD5 with Discharge" — no shared-cooldown
+  // mechanism exists in this file (no two-actives-one-clock precedent was
+  // found); given the identical literal cooldown value instead and left
+  // independently tracked, per this division's own implementation notes.
+  ballista_scattershot: { name: "Ballista Scattershot", type: "active", cooldown: 5, dmgMult: 0.85, aoe: true, aoeMaxTargets: 3, requiresPreparedState: true, consumesPreparedState: true },
+  // Rapid Reconnaissance: "+8 Speed during opening turn" reuses Smuggler's
+  // Caution's own combatStartSelfBuff trigger (Criminal Underworld) — a
+  // 1-turn window, not permanent.
+  rapid_reconnaissance: { name: "Rapid Reconnaissance", type: "passive", trigger: "combatStartSelfBuff", selfBuff: { spd: 8, turns: 1 } },
+  disrupting_javelin: { name: "Disrupting Javelin", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
+  scouts_strike: { name: "Scout's Strike", type: "active", cooldown: 3, dmgMult: 1.5 },
+  impact_discipline: { name: "Impact Discipline", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.15 },
+  impetum_lance_strike: { name: "Impetum Lance Strike", type: "active", cooldown: 3, dmgMult: 1.8 },
+  recovery_guard: { name: "Recovery Guard", type: "active", cooldown: 2, dmgMult: 0, selfBuff: { def: 8, turns: 1 } },
+  boarding_slash: { name: "Boarding Slash", type: "active", cooldown: 3, dmgMult: 1.45 },
+  weapon_hook: { name: "Weapon Hook", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
+  // Marine Discipline: whileAllyAlive's new "family" scope (engine/
+  // combat.js) — matches iff another alive enemy shares this creature's
+  // own `family` BESTIARY tag ("aqualis"), not just any non-friendly enemy.
+  marine_discipline: { name: "Marine Discipline", type: "passive", trigger: "whileAllyAlive", scope: "family", selfBuff: { acc: 5 } },
+  boarding_assault: { name: "Boarding Assault", type: "active", cooldown: 4, dmgMult: 1.6 },
+  // Coordinated Strike: scoped to `family: "aqualis"` specifically (a new
+  // bonusVsFamilyAllyAlive field, engine/combat.js) rather than H11's
+  // unscoped "any other enemy alive" precedent — an easy, small addition
+  // that matches the codex's own "another allied Aqualis unit" wording
+  // exactly, so taken over the looser approximation.
+  mil_coordinated_strike: { name: "Coordinated Strike", type: "active", cooldown: 4, dmgMult: 1.4, bonusVsFamilyAllyAlive: { family: "aqualis", mult: 1.65 / 1.4 } },
+  naval_guard: { name: "Naval Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 8, turns: 2 } },
+  call_boarding_party: { name: "Call Boarding Party", type: "active", cooldown: 6, dmgMult: 0, summon: { pool: ["aqualis_sailor"], countMin: 1, countMax: 2, maxActive: 2, maxLifetime: 4, noArrivalAttack: true } },
+  field_experience: { name: "Field Experience", type: "passive", trigger: "firstAttack", accBonus: 5 },
+  veterans_cut: { name: "Veteran's Cut", type: "active", cooldown: 3, dmgMult: 1.45 },
+  // Steady the Line: "wearer AND one other living ally +5 DEF for 2 turns"
+  // needs both fields at once — selfBuff for the caster itself,
+  // packAuraBuff (maxTargets 1) for the one ally — resolveEnemyAction
+  // already applies both unconditionally from the same abilityCtx.
+  steady_the_line: { name: "Steady the Line", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 5, turns: 2 }, packAuraBuff: { def: 5, turns: 2, maxTargets: 1 } },
+  // Section Discipline: whileAllyAlive's new "division" scope (engine/
+  // combat.js) — matches iff another alive enemy shares this creature's
+  // own `division` BESTIARY tag ("imperial_military").
+  section_discipline: { name: "Section Discipline", type: "passive", trigger: "whileAllyAlive", scope: "division", selfBuff: { acc: 5 } },
+  coordinated_order: { name: "Coordinated Order", type: "active", cooldown: 4, dmgMult: 0, packAuraBuff: { acc: 8, turns: 2, maxTargets: 2 } },
+  officers_strike: { name: "Officer's Strike", type: "active", cooldown: 3, dmgMult: 1.45 },
+  defensive_instruction: { name: "Defensive Instruction", type: "active", cooldown: 4, dmgMult: 0, packAuraBuff: { def: 8, turns: 2, maxTargets: 1 } },
+  command_discipline: { name: "Command Discipline", type: "passive", trigger: "whileAllyAlive", scope: "division", selfBuff: { def: 5 } },
+  battle_hardened: { name: "Battle-Hardened", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { def: 8, turns: 2 }, oncePerCombat: true },
+  hold_the_line: { name: "Hold the Line", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { def: 8, turns: 2, maxTargets: 3 } },
+  commanders_sword: { name: "Commander's Sword", type: "active", cooldown: 3, dmgMult: 1.55 },
+  // Measured Counteroffensive: "has an active defensive effect" reads the
+  // same hasActiveDefBuff(combat, creature) check Disciplined Riposte uses
+  // above (this creature's own enemy record's selfBuffs for a live
+  // stat:"def" entry, turnsLeft > 0) — a new conditional dmgMult field,
+  // checked alongside bonusVsHealthBelowPct/bonusVsAllyAlive in
+  // resolveEnemyActiveAbility.
+  measured_counteroffensive: { name: "Measured Counteroffensive", type: "active", cooldown: 5, dmgMult: 1.65, bonusIfOwnDefBuffActive: { mult: 1.85 / 1.65 } },
+  // Combined-Arms Authority: a genuinely new passive trigger
+  // (whileAlliesDiverse, engine/combat.js) — matches iff at least
+  // `minDistinct` DISTINCT `family` values are alive among this
+  // creature's own `division`, counting its own family as one of them.
+  combined_arms_authority: { name: "Combined-Arms Authority", type: "passive", trigger: "whileAlliesDiverse", minDistinct: 2, selfBuff: { acc: 5 } },
+  // Commander's Resolve: no `turns` field -> permanent-for-the-fight
+  // (applyPermanentSelfBuff), same as Cornered/Apex Predator's own
+  // healthBelowPct precedent.
+  commanders_resolve: { name: "Commander's Resolve", type: "passive", trigger: "healthBelowPct", threshold: 0.4, selfBuff: { atkPct: 0.10 }, oncePerCombat: true },
+  // Combined-Arms Order: the codex's "+5 ATK also, if >=2 eligible
+  // specializations among recipients" conditional-on-POST-HOC-recipient-
+  // diversity isn't a shape applyPackAuraBuff (or anything else in this
+  // engine) supports today, and isn't one of this division's budgeted new
+  // mechanisms — implemented here as an unconditional +10 ACC/+5 ATK for
+  // 3 turns to up to 3 recipients instead (a documented simplification,
+  // not a silently-dropped clause).
+  combined_arms_order: { name: "Combined-Arms Order", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { acc: 10, atk: 5, turns: 3, maxTargets: 3 } },
+  arbitarius_assault: { name: "Arbitarius Assault", type: "active", cooldown: 4, dmgMult: 1.7 },
+  tactical_suppression: { name: "Tactical Suppression", type: "active", cooldown: 5, dmgMult: 1.3, inflict: { custom: { acc: -10, turns: 3 }, chance: 1 } },
+  // Final Directive: a new `selfHealthBelowPct` eligibility gate, checked
+  // in resolveEnemyActiveAbility's existing `eligible` filter (the same
+  // place `a.summon.onlyIfAlliesBelow` is already checked) against the
+  // enemy record's own e.hp/e.maxHp — the creature simply never picks this
+  // active above the threshold.
+  final_directive: { name: "Final Directive", type: "active", cooldown: 3, dmgMult: 1.9, selfHealthBelowPct: 0.4 },
+  // Prepared Warhound: a new `combatStartSummon` passive trigger, resolved
+  // once in startCombat (not tickEnemyPassives — this is a one-time
+  // pre-combat summon, not a recurring check) via the same
+  // resolveEnemySummon() path Deploy Legion Hounds' own active uses,
+  // sharing its capKey so the starting hound occupies one of the same 3
+  // active / 5 lifetime slots. groupOverride tags the summoned hound with
+  // its own narrower group (see Pack Coordination below), distinct from
+  // the shared "sang_mil_imperial_military" group every other identity in
+  // this division carries.
+  prepared_warhound: { name: "Prepared Warhound", type: "passive", trigger: "combatStartSummon", summon: { pool: ["legion_hound"], count: 1, capKey: "deploy_legion_hounds", maxActive: 3, maxLifetime: 5, noArrivalAttack: true, groupOverride: "sang_mil_legion_hounds" } },
+  // Handler's Discipline: whileAllyAlive's existing "summon" scope (Pack
+  // Discipline's own precedent, Criminal Underworld) — summonKey matches
+  // BOTH Prepared Warhound's starting hound and Deploy Legion Hounds'
+  // own summons, since both share the same capKey/summonSourceKey below.
+  handlers_discipline: { name: "Handler's Discipline", type: "passive", trigger: "whileAllyAlive", scope: "summon", summonKey: "deploy_legion_hounds", selfBuff: { def: 5 } },
+  deploy_legion_hounds: { name: "Deploy Legion Hounds", type: "active", cooldown: 5, dmgMult: 0, summon: { pool: ["legion_hound"], count: 2, maxActive: 3, maxLifetime: 5, noArrivalAttack: true, groupOverride: "sang_mil_legion_hounds" } },
+  handlers_spear: { name: "Handler's Spear", type: "active", cooldown: 3, dmgMult: 1.2 },
+  // Pack Coordination: "living hounds controlled by this handler" —
+  // applyPackAuraBuff's new `groupKey` override (engine/combat.js) targets
+  // the hounds' own narrower "sang_mil_legion_hounds" group instead of
+  // this creature's own (shared, division-wide) `group`.
+  pack_coordination: { name: "Pack Coordination", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 8, turns: 2, groupKey: "sang_mil_legion_hounds" } },
+  // Legion Hound (summon-only creature, not one of the 14 approved
+  // identities — the codex specifies hounds as Prepared Warhound/Deploy
+  // Legion Hounds' summon target but gives no separate stat block of its
+  // own, the same way Call Outlaw Hounds reuses existing timberWolf/
+  // duskWolf rather than inventing a new species; no existing "hound"
+  // creature exists in BESTIARY to reuse instead, so this adds one
+  // minimal low-tier entry sized similarly to the existing wolves).
+  hound_bite: { name: "Hound Bite", type: "active", cooldown: 2, dmgMult: 1.2 },
 };
 
 function getEnemyAbility(id) {

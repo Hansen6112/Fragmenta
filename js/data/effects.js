@@ -368,6 +368,28 @@ const EFFECT_DEFS = {
   sang_cu_ie011_commanders_poise: { name: "Commander's Poise", category: "combat", description: "The first successful damaging attack against the wearer each combat deals 10% less final damage. Once per combat, consumed on the first qualifying hit." },
   sang_cu_ie012_tyrants_edge: { name: "Tyrant's Edge", category: "combat", description: "If the target is already below 35% max Health immediately before the wearer's hit resolves, that hit deals 10% more final damage. Cooldown 3 wearer turns; max twice per combat." },
   sang_cu_ie013_conquerors_resolve: { name: "Conqueror's Resolve", category: "combat", description: "The first time the wearer reaches at or below 35% max Health, gain +10% Attack for 2 wearer turns. Once per combat." },
+
+  // ---- Sanguivorum Imperial Military Division (Codex v0.3 Step 4.B,
+  // MIL-IE001-008) — 8 item effects. Two (IE002 Field Salvage, IE004
+  // Reconnaissance Insight) are the codex's own loot-table/trade-goods and
+  // exploration-currency bonuses — declared and left inert, same
+  // "currently inert" convention as heatproof/Light Fingers/Spoils of the
+  // Road/Hidden Compartments above, pending systems that don't exist in
+  // this engine. IE001 Hardened Formation and IE007 Officer's Bearing are
+  // two distinct ids (per the codex's own catalog, so each item can
+  // declare its own) that resolve through the SAME generalized, wearer-
+  // neutral one-hit-mitigation mechanism in engine/combat.js
+  // (hasOneHitMitigationEffect/enemyOneHitMitigationMultiplier) — "the
+  // same mechanical pattern...not a second mechanical effect," per the
+  // codex's own dependency note on IE007.
+  sang_mil_ie001_hardened_formation: { name: "Hardened Formation", category: "combat", description: "On the wearer's first incoming damaging hit each combat, multiply that hit's final damage by 0.90. Once per combat, no stacking, no lasting buff." },
+  sang_mil_ie002_field_salvage: { name: "Field Salvage", category: "utility", description: "After victory in an eligible mechanical/engineering or siege-support encounter, 10% chance of one additional common mechanical-material roll. Currently inert — this engine has no crafting-material loot table or encounter-eligibility hook for an equipped item to tie into yet." },
+  sang_mil_ie003_calculated_aim: { name: "Calculated Aim", category: "combat", description: "On the wearer's first damaging attack attempt each combat, gain +8 Accuracy for that attack roll only. Consumed on the attempt, whether it hits or misses. Once per combat." },
+  sang_mil_ie004_reconnaissance_insight: { name: "Reconnaissance Insight", category: "utility", description: "On an eligible nonrepeatable scouting/exploration discovery that pays currency, increase the base discovery currency by 5% (rounded down). Currently inert — this engine has no exploration-currency reward system for an equipped item to tie into yet." },
+  sang_mil_ie005_decisive_impact: { name: "Decisive Impact", category: "combat", description: "The wearer's first SUCCESSFUL damaging attack each combat deals final damage x1.08. A miss does not consume it. Once per combat." },
+  sang_mil_ie006_boarding_discipline: { name: "Boarding Discipline", category: "combat", description: "After the wearer successfully summons allies, the first newly summoned ally gains +5 Accuracy for its next 2 turns. Once per combat; does not raise summon caps or lift the summon-round attack ban. Mechanically the same reaction as Hunter's Call (Sanguivorum Criminal Underworld), generalized onto one shared code path with its own effect id." },
+  sang_mil_ie007_officers_bearing: { name: "Officer's Bearing", category: "combat", description: "Against the first incoming damaging hit each combat, multiply final damage against the wearer by 0.90. Once per combat, no stacking. Same mechanical pattern as Hardened Formation — a separate presentation name over one shared mechanism." },
+  sang_mil_ie008_imperial_authority: { name: "Imperial Authority", category: "combat", description: "The first time each combat the wearer successfully grants an active beneficial buff to one or more allies, the first recipient (in resolution order) additionally gains +5 Defense for 2 of that recipient's own turns. Once per combat; not triggered by a self-only buff." },
 };
 
 // Whether any currently-equipped item carries the given effect id. Boolean
