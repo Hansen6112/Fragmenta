@@ -65,6 +65,81 @@ function fatigueTier(state) {
   return fatigueTierForDays(state.day - state.lastSleptDay);
 }
 
+// ---- Injury System v0.2 ("downed, not dead," rally, and the injuries a
+// survived down leaves behind) ----
+//
+// Placeholder numbers below are the spec's own (v0.2) worked figures,
+// used verbatim, not this implementation's invention: minor -10%/severe
+// -25% stat penalty, 3 max injury slots, 6 max injuryLoad (3 severe =
+// the 7th fall), and the level-15 cost examples (70/205 gold) the cure
+// cost formulas reproduce exactly.
+const INJURY_MINOR_PENALTY = 0.10; // -10% to the one stat a minor injury targets
+const INJURY_SEVERE_PENALTY = 0.25; // -25% to the one stat a severe injury targets
+const INJURY_MAX_SLOTS = 3; // D2: at most 3 injuries held at once
+const INJURY_MAX_LOAD = 6; // D3: 3 severe injuries' worth — the 7th fall kills you
+
+// Injury groups (spec §6) — damage type -> group, and each group's 2-3
+// mechanical slots. The slot names below ARE the spec's own table
+// ("fractured arm," "cracked ribs," ...) — flavor/writing is explicitly
+// deferred to a later pass, but these aren't this implementation's own
+// placeholders, they're copied straight from the spec.
+const INJURY_GROUPS = {
+  trauma: { damageTypes: ["physical", "force", "earth"], slots: ["fractured_arm", "cracked_ribs", "broken_leg"] },
+  laceration: { damageTypes: ["bleed"], slots: ["deep_gash", "torn_tendon"] },
+  burns: { damageTypes: ["fire", "lightning"], slots: ["burned_hands", "seared_skin"] },
+  corrosion: { damageTypes: ["acid"], slots: ["acid_eaten_flesh", "damaged_eyes"] },
+  exposure: { damageTypes: ["water", "air"], slots: ["frostbite", "fluid_filled_lungs"] },
+  displacement: { damageTypes: ["transportation"], slots: ["dislocation_sickness", "fractured_mind"] },
+};
+
+// Built FROM INJURY_GROUPS (not hand-duplicated) so damage type -> group
+// can't silently drift out of sync with group -> damage types.
+const DAMAGE_TYPE_TO_INJURY_GROUP = {};
+for (const [groupId, groupDef] of Object.entries(INJURY_GROUPS)) {
+  for (const dt of groupDef.damageTypes) DAMAGE_TYPE_TO_INJURY_GROUP[dt] = groupId;
+}
+
+// Slot id ("<group>_<slot>" — matches the spec's own worked example id,
+// "trauma_fractured_arm") -> { group, stat, name }. `stat` is the ONE
+// stat recomputeStats docks for this slot; "maxHealth" is new ground
+// fatigue never touches (see recomputeStats below).
+const INJURY_SLOT_DEFS = {
+  trauma_fractured_arm: { group: "trauma", stat: "atk", name: "Fractured Arm" },
+  trauma_cracked_ribs: { group: "trauma", stat: "maxHealth", name: "Cracked Ribs" },
+  trauma_broken_leg: { group: "trauma", stat: "speed", name: "Broken Leg" },
+  laceration_deep_gash: { group: "laceration", stat: "maxHealth", name: "Deep Gash" },
+  laceration_torn_tendon: { group: "laceration", stat: "agility", name: "Torn Tendon" },
+  burns_burned_hands: { group: "burns", stat: "accuracy", name: "Burned Hands" },
+  burns_seared_skin: { group: "burns", stat: "def", name: "Seared Skin" },
+  corrosion_acid_eaten_flesh: { group: "corrosion", stat: "def", name: "Acid-Eaten Flesh" },
+  corrosion_damaged_eyes: { group: "corrosion", stat: "accuracy", name: "Damaged Eyes" },
+  exposure_frostbite: { group: "exposure", stat: "speed", name: "Frostbite" },
+  exposure_fluid_filled_lungs: { group: "exposure", stat: "magic", name: "Fluid-Filled Lungs" },
+  displacement_dislocation_sickness: { group: "displacement", stat: "agility", name: "Dislocation Sickness" },
+  displacement_fractured_mind: { group: "displacement", stat: "magic", name: "Fractured Mind" },
+};
+
+function injurySlotName(id) {
+  const slot = INJURY_SLOT_DEFS[id];
+  return slot ? slot.name : id;
+}
+
+// injuryLoad (spec §4): each minor injury counts 1, each severe counts 2
+// — 0 to INJURY_MAX_LOAD (6).
+function injuryLoad(state) {
+  return (state.injuries || []).reduce((sum, inj) => sum + (inj.severity === "severe" ? 2 : 1), 0);
+}
+
+// Town healer cure cost/time placeholders (spec §7). At level 15 these
+// reproduce the spec's own worked examples exactly: minor 10+15*4=70
+// gold/1 hour, severe 25+15*12=205 gold/overnight.
+function injuryCureCost(state, severity) {
+  return severity === "severe" ? 25 + state.level * 12 : 10 + state.level * 4;
+}
+function injuryCureMinutes(severity) {
+  return severity === "severe" ? 480 : 60; // overnight (D13: counts as a full sleep) vs. 1 hour
+}
+
 // Save format version, stamped into every save by toJSON. Bump it whenever
 // the save shape changes in a way fromJSON needs to know about.
 const SAVE_KEY = "fragmenta_save";
@@ -230,6 +305,14 @@ class GameState {
     // above; only ever shown to the player through the rank it crosses
     // into, never as a raw number.
     this.arena = defaultArenaState();
+    // Injury System v0.2 — persistent, player-only (D8: stored per
+    // combatant so allies can get their own list later with no rework).
+    // At most INJURY_MAX_SLOTS (3) entries: { id, group, severity:
+    // "minor"|"severe", acquiredDay, sourceDamageType, fieldTreated }.
+    // Never cleared by resting (D4) — only a town healer (cmdHeal) or an
+    // Apothecary field-treatment consumable (injuryDowngrade, severe-
+    // only, once per entry) touches this array.
+    this.injuries = [];
   }
 
   // Adds a new party member from ALLY_DEFS, at the player's current level,
@@ -394,6 +477,30 @@ class GameState {
       this.accuracy = Math.round(this.accuracy * fatigue.mult);
       this.agility = Math.round(this.agility * fatigue.mult);
     }
+    // Injuries (spec v0.2 §4/§5): minor -10%/severe -25% to the ONE stat
+    // each held injury's slot targets (INJURY_SLOT_DEFS), multiplying
+    // with fatigue on whatever stat they happen to share — same step,
+    // same "multiply with it" rule the spec states. Unlike fatigue (which
+    // deliberately spares max Health), two injury slots (Cracked Ribs,
+    // Deep Gash) target maxHealth directly — new ground fatigue has no
+    // equivalent for, computed here while maxHealth is still live, before
+    // the healOnGain/clamp logic right below reads it.
+    if (this.injuries && this.injuries.length) {
+      const injuryMult = {};
+      for (const inj of this.injuries) {
+        const slot = INJURY_SLOT_DEFS[inj.id];
+        if (!slot) continue; // defensive: an unknown/stale id in an old save
+        const pct = inj.severity === "severe" ? INJURY_SEVERE_PENALTY : INJURY_MINOR_PENALTY;
+        injuryMult[slot.stat] = (injuryMult[slot.stat] || 1) * (1 - pct);
+      }
+      if (injuryMult.atk) this.atk = Math.round(this.atk * injuryMult.atk);
+      if (injuryMult.def) this.def = Math.round(this.def * injuryMult.def);
+      if (injuryMult.magic) this.magic = Math.round(this.magic * injuryMult.magic);
+      if (injuryMult.speed) this.speed = Math.round(this.speed * injuryMult.speed);
+      if (injuryMult.accuracy) this.accuracy = Math.round(this.accuracy * injuryMult.accuracy);
+      if (injuryMult.agility) this.agility = Math.round(this.agility * injuryMult.agility);
+      if (injuryMult.maxHealth) this.maxHealth = Math.round(this.maxHealth * injuryMult.maxHealth);
+    }
     if (healOnGain) {
       this.health += Math.max(0, this.maxHealth - oldMaxHealth);
     } else {
@@ -555,6 +662,7 @@ class GameState {
       arena: this.arena,
       runId: this.runId,
       deathLog: this.deathLog,
+      injuries: this.injuries,
     };
   }
 
@@ -565,6 +673,11 @@ class GameState {
     // as just having slept, rather than retroactively penalizing whatever
     // day count they'd already reached.
     if (data.lastSleptDay == null) s.lastSleptDay = s.day;
+    // Saves from before the Injury System existed have no `injuries` at
+    // all — Object.assign above leaves the constructor's `[]` default in
+    // that case already, but guard against a corrupted non-array value
+    // too (recomputeStats reads .length/iterates it unconditionally).
+    if (!Array.isArray(s.injuries)) s.injuries = [];
     // Saves from before the Grand Ovum existed have no `arena` at all —
     // the constructor's own default already covers that (Object.assign
     // above never touched it). A save mid-arena-development missing just
@@ -730,8 +843,16 @@ function recordDeath(state, entry) {
 // by runId — so the death survives "refresh and load the last save"
 // without this function deciding the permadeath question (it never
 // touches the save slot itself).
-function recordPlayerDeath(state) {
-  const entry = recordDeath(state, { kind: "player", name: state.playerName });
+// `extraEntry` (Injury System v0.2): combat.js's resolvePlayerDefeatOrDowned/
+// killAlly already know WHY this death is happening (the 7th fall vs. an
+// ordinary party wipe) at the moment it's decided, long before main.js's
+// own single "health hit 0 and stayed there" check runs — they stash it
+// on state.flags.pendingDeathCause and main.js forwards it here as
+// { cause: "injuries" | "combat" }, which recordDeath's own `...entry`
+// spread (above) applies over its generic state.combat.name-or-null
+// default cleanly.
+function recordPlayerDeath(state, extraEntry) {
+  const entry = recordDeath(state, Object.assign({ kind: "player", name: state.playerName }, extraEntry || {}));
   try {
     const ledger = readDeathLedger();
     ledger.push({ runId: state.runId, ...entry });

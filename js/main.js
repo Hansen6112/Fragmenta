@@ -1769,7 +1769,15 @@ async function runCommand(commandText, echoText) {
       // on (playerDowned never set), or the moment killAlly clears
       // playerDowned back to false because the last ally also went down.
       if (state.health <= 0 && !state.playerDowned) {
-        recordPlayerDeath(state);
+        // Injury System v0.2: combat.js set state.flags.pendingDeathCause
+        // ("injuries" for the 7th fall, "combat" for an ordinary party
+        // wipe) the moment it decided this death was happening — this is
+        // still the one real trigger point, just forwarding the cause
+        // that was already chosen instead of letting recordDeath fall
+        // back to its own generic state.combat.name-or-null default.
+        const cause = state.flags.pendingDeathCause;
+        state.flags.pendingDeathCause = null;
+        recordPlayerDeath(state, cause ? { cause } : undefined);
         print("");
         print("Your journey ends here. Refresh the page to begin again.", "danger");
         gameOver = true;

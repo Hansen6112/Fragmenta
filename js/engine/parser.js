@@ -1471,11 +1471,12 @@ function cmdSleep(state) {
 // fatigue (only a real sleep clears that — paying someone to patch you up
 // isn't the same as actually resting) and doesn't decay the momentum-style
 // combat buffs performRest does, for the same reason.
-function cmdHeal(state) {
-  const loc = state.currentPlace();
-  if (!effectiveServices(loc).includes("healer")) {
-    return ["There's no healer here."];
-  }
+// Pre-injury-system behavior, unchanged byte-for-byte — factored out so
+// cmdHeal can still reach it directly when there's nothing to offer but a
+// plain heal, and so the post-injury-choice "just heal HP" option (see
+// buildChoiceMenu/cmdChoose's pendingHealChoice branches below) reuses
+// the exact same cost/flavor rather than a parallel copy.
+function doPlainHeal(state, loc) {
   const missing = state.maxHealth - state.health;
   if (missing <= 0) {
     return ["You're already at full health. The healer has nothing to do."];
@@ -1487,6 +1488,28 @@ function cmdHeal(state) {
   state.gold -= cost;
   const { healed } = applyHeal(state, missing);
   return [`You pay ${cost} gold. ${loc.name}'s healer sets to work — ${healed} health restored, quick and clean.`, ...advanceTime(state, 15, "heal")];
+}
+
+// The healer's paid, quick option: gold instead of time, a full heal in
+// minutes rather than an hour of rest or a night's sleep. Doesn't touch
+// fatigue (only a real sleep clears that — paying someone to patch you up
+// isn't the same as actually resting) and doesn't decay the momentum-style
+// combat buffs performRest does, for the same reason.
+// Injury System v0.2 §7: a healer is also the only full cure (town
+// healer, paid) for an injury — if the player is carrying any, this
+// opens a buildChoiceMenu/cmdChoose decision (cure one, cure all, or
+// just the plain HP heal above) instead of healing on the spot; with no
+// injuries at all, this is exactly the old behavior.
+function cmdHeal(state) {
+  const loc = state.currentPlace();
+  if (!effectiveServices(loc).includes("healer")) {
+    return ["There's no healer here."];
+  }
+  if (state.injuries && state.injuries.length) {
+    state.flags.pendingHealChoice = true;
+    return [`${loc.name}'s healer looks you over — there's old damage here beyond a simple patch-up. What would you like tended to?`];
+  }
+  return doPlainHeal(state, loc);
 }
 
 function cmdStatus(state) {
@@ -1504,9 +1527,21 @@ function cmdStatus(state) {
       ? `Element: ${ELEMENTS[state.primaryElement].name}${state.secondaryElement ? ` / ${ELEMENTS[state.secondaryElement].name}` : ""}${state.tertiaryElement ? ` / ${ELEMENTS[state.tertiaryElement].name}` : ""}`
       : null;
   const fatigue = fatigueTier(state);
+  // Injury System v0.2 §4: "Injuries: X/6" always shown (even at 0/6),
+  // and mid-fight X reads injuryLoad + pendingDowns (state.combat.downs,
+  // not yet turned into real injuries) so the danger is visible as it
+  // builds, exactly as the spec asks — not just the persisted injuryLoad
+  // alone. The 5/6 warning line is the spec's own wording, verbatim.
+  const pendingDowns = state.combat && state.combat.downs ? state.combat.downs.length : 0;
+  const displayedInjuryLoad = injuryLoad(state) + pendingDowns;
+  const injuryDetail = state.injuries.length
+    ? ` (${state.injuries.map((inj) => `${injurySlotName(inj.id)}${inj.severity === "severe" ? " [severe]" : " [minor]"}`).join(", ")})`
+    : "";
   return [
     `${state.playerName} — ${identity || "Wanderer"} — Level ${state.level} — day ${state.day}, ${formatTime(state)} (${getDaypart(state.hour)})`,
     ...(fatigue ? [`Fatigue: ${fatigue.label} (${Math.round((1 - fatigue.mult) * 100)}% stat penalty) — sleep it off.`] : []),
+    `Injuries: ${displayedInjuryLoad}/${INJURY_MAX_LOAD}${injuryDetail}`,
+    ...(displayedInjuryLoad >= 5 ? ["Another fall will be your last."] : []),
     `Location: ${loc.name}, ${getNation(loc.nation).name}`,
     `Health: ${state.health}/${state.maxHealth}   Attack: ${state.atk}   Defense: ${state.def}`,
     `Magic: ${state.magic}   Knowledge: ${state.knowledge}   Speed: ${state.speed}`,
@@ -1710,6 +1745,65 @@ function cmdChoose(arg, state) {
     state.flags.pendingDungeonRetreat = false;
     return ["You press on instead."];
   }
+  // Injury System v0.2 §7 — resolving buildChoiceMenu's own
+  // pendingHealChoice options above. "Cure all" judgment call: one gold
+  // cost (the sum of each injury's own cure cost) but a single visit's
+  // time cost rather than summing every injury's own time too — overnight
+  // if any severe injury is in the batch (D13: counts as a full sleep),
+  // else the flat 1-hour minor visit, since realistically the healer
+  // treats everything in one sitting rather than one separate visit per
+  // injury.
+  if (state.flags.pendingHealChoice) {
+    const a = (arg || "").toLowerCase().trim();
+    const loc = state.currentPlace();
+    if (a === "healhp") {
+      state.flags.pendingHealChoice = false;
+      return doPlainHeal(state, loc);
+    }
+    if (a === "healnevermind" || a === "nevermind" || a === "none") {
+      state.flags.pendingHealChoice = false;
+      return ["You decide against it, for now."];
+    }
+    if (a === "cureall") {
+      if (!state.injuries.length) {
+        state.flags.pendingHealChoice = false;
+        return ["There's nothing left to cure."];
+      }
+      const total = state.injuries.reduce((sum, inj) => sum + injuryCureCost(state, inj.severity), 0);
+      if (state.gold < total) {
+        return [`That's ${total} gold for everything — you have ${state.gold}.`];
+      }
+      const anySevere = state.injuries.some((inj) => inj.severity === "severe");
+      const names = state.injuries.map((inj) => injurySlotName(inj.id));
+      state.gold -= total;
+      state.injuries = [];
+      state.flags.pendingHealChoice = false;
+      const lines = [`You pay ${total} gold. ${loc.name}'s healer works through every injury in turn — cured: ${names.join(", ")}.`];
+      lines.push(...advanceTime(state, anySevere ? injuryCureMinutes("severe") : injuryCureMinutes("minor"), "heal"));
+      if (anySevere) state.lastSleptDay = state.day; // D13: an overnight severe cure counts as a full sleep
+      state.recomputeStats(true);
+      return lines;
+    }
+    const cureMatch = a.match(/^cure(\d+)$/);
+    if (cureMatch) {
+      const idx = parseInt(cureMatch[1], 10);
+      const inj = state.injuries[idx];
+      if (!inj) return ["Choose one of the listed injuries."];
+      const cost = injuryCureCost(state, inj.severity);
+      if (state.gold < cost) return [`That's ${cost} gold — you have ${state.gold}.`];
+      const wasSevere = inj.severity === "severe";
+      const name = injurySlotName(inj.id);
+      state.gold -= cost;
+      state.injuries.splice(idx, 1);
+      state.flags.pendingHealChoice = false;
+      const lines = [`You pay ${cost} gold. ${loc.name}'s healer cures your ${name.toLowerCase()}.`];
+      lines.push(...advanceTime(state, injuryCureMinutes(wasSevere ? "severe" : "minor"), "heal"));
+      if (wasSevere) state.lastSleptDay = state.day; // D13
+      state.recomputeStats(true);
+      return lines;
+    }
+    return ["Choose one of the listed options."];
+  }
   if (!state.flags.pendingLevel15Choice) {
     return ["There's nothing to choose right now."];
   }
@@ -1845,6 +1939,28 @@ function buildChoiceMenu(state) {
       { label: "Recruit Hadrian", command: "recruit hadrian" },
       { label: "Decline", command: "decline hadrian" },
     ];
+  }
+  // Injury System v0.2 §7 — town healer cure menu (set by cmdHeal once it
+  // sees state.injuries.length). One option per currently-held injury
+  // (indices into state.injuries, stable for the life of this one menu —
+  // nothing mutates that array while the choice is pending), plus "cure
+  // all" with 2+ held, plus the plain HP heal as its own option.
+  if (state.flags.pendingHealChoice) {
+    const loc = state.currentPlace();
+    const options = [{ heading: `${loc.name}'s healer — what needs tending?` }];
+    state.injuries.forEach((inj, i) => {
+      const cost = injuryCureCost(state, inj.severity);
+      const time = inj.severity === "severe" ? "overnight" : "1 hour";
+      options.push({ label: `Cure ${injurySlotName(inj.id)} (${inj.severity}) — ${cost} gold, ${time}`, command: `choose cure${i}` });
+    });
+    if (state.injuries.length > 1) {
+      const total = state.injuries.reduce((sum, inj) => sum + injuryCureCost(state, inj.severity), 0);
+      options.push({ label: `Cure every injury at once — ${total} gold`, command: "choose cureall" });
+    }
+    const missing = state.maxHealth - state.health;
+    options.push({ label: missing > 0 ? "Just heal HP (leave the injuries)" : "Nothing else, just the injuries", command: "choose healhp" });
+    options.push({ label: "Never mind", command: "choose healnevermind" });
+    return options;
   }
   return null;
 }

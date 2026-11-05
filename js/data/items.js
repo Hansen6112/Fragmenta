@@ -1913,6 +1913,28 @@ const ITEM_DEFS = {
   "a reinforced field kit": { slot: "trinkets", tier: 2, bonuses: { def: 2 }, source: "crafted" },
   "a sharpened trail kit": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, source: "crafted" },
 
+  // Injury System v0.2 (engine/state.js's INJURY_SLOT_DEFS, engine/
+  // combat.js's applyRallyItemOnPlayer/applyInjuriesFromDowns) — two new
+  // consumable effect types. Neither is wired into a RECIPES.js entry
+  // yet (ingredients + the Knowledge gate are explicitly the recipe
+  // pass's job per the spec) and both are deliberately placeholder tier/
+  // price (the item pass's job) — tools/audit.js's "no acquisition path"
+  // warning is expected to grow by exactly these two until that pass
+  // lands, same as every other not-yet-priced item already flagged that
+  // way in this file.
+  // "smelling salts" is the spec's own placeholder name for v1's one
+  // rally item (used BY an ally ON the downed player — see
+  // resolveOneAllyAction/applyRallyItemOnPlayer — never self-cast).
+  // `pct` is the spec's own default get-up amount (ceil(maxHealth*0.25)).
+  "smelling salts": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "rallyFromDowned", pct: 0.25 }, source: "crafted" },
+  // Apothecary field treatment (spec §7): turns one severe injury into a
+  // minor one, never removes it, once per injury (state.injuries[].
+  // fieldTreated), outside combat only. The spec names this category of
+  // item "splints" in its own prose but never gives the consumable
+  // itself a name — "a field splint kit" is THIS implementation's own
+  // placeholder, not the spec's, pending the flavor/naming pass.
+  "a field splint kit": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "injuryDowngrade" }, source: "crafted" },
+
   // Material — shop-purchasable, Thraekor only. Not "consumable" (there's
   // nothing to 'use' it for, only 'craft'/'gather' logic consumes it) and
   // not equipable gear either — `slot: "material"` is a new value, same
@@ -2682,6 +2704,9 @@ function describeUseEffect(effect) {
   if (effect.type === "heal") return `restores ${Math.round(effect.pct * 100)}% of max health when used.`;
   if (effect.type === "buff") return `grants +${scaledStat(effect.stat, effect.amount)} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns in combat.`;
   if (effect.type === "cleanse") return effect.all ? "clears every active status effect." : `clears: ${(effect.statuses || []).join(", ")}.`;
+  // Injury System v0.2.
+  if (effect.type === "rallyFromDowned") return `an ally can use this on you while you're downed, bringing you back into the fight at ${Math.round((effect.pct || 0.25) * 100)}% max health.`;
+  if (effect.type === "injuryDowngrade") return "turns one severe injury into a minor one (never removes it), once per injury, outside combat only.";
   return "does something when used.";
 }
 

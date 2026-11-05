@@ -521,6 +521,23 @@ function tickAllyStatuses(state, ally) {
   return lines;
 }
 
+// Injury System v0.2: maps a DOT status's own key (combat.playerStatuses,
+// data/enemyabilities.js's STATUS_EFFECTS — the only ids ever authored
+// with a `dot` field are bleed/venom/burning/blight/sang_iag_poison) to
+// one of the 10 real hit-type keys (physical/bleed/an ELEMENTS key),
+// for tickPlayerStatuses below to bank as the down's damage type if this
+// tick is what takes the player to 0. Venom/blight/Poison have no
+// damage-type flavor defined anywhere in this engine (ELEMENTS has no
+// "poison" key) — judgment call, flagged in the implementation report:
+// treated as Corrosion's "acid," the closest conceptual match, rather
+// than silently lumping every DOT into "physical."
+function statusDamageType(key) {
+  if (key === "bleed") return "bleed";
+  if (key === "burning") return "fire";
+  if (key === "venom" || key === "blight" || key === "sang_iag_poison") return "acid";
+  return "physical"; // any future/unknown DOT status
+}
+
 // Ticks every active player status by one turn: damage-over-time first
 // (Heatproof halves Burning specifically, per its own wording), then
 // duration. Called from beginTurn, the same place enemy-side burn/bleed
@@ -535,6 +552,7 @@ function tickPlayerStatuses(state) {
       if (key === "burning" && hasEffect(state, "heatproof")) dmg = Math.floor(dmg / 2);
       if (dmg > 0) {
         applyPlayerDamage(state, dmg);
+        combat.playerLastHitType = statusDamageType(key); // Injury System v0.2
         lines.push(`${entry.name} saps ${dmg} health.`);
         if (state.health <= 0) {
           const dotDefeatMsg = resolvePlayerDefeatOrDowned(state);
@@ -740,6 +758,18 @@ function effectiveMagic(state) {
 // max) so the caller's own flavor line can report the real number, plus
 // any extra lines (Overflowing Life's conversion message) to append.
 function applyHeal(state, amount) {
+  // Injury System v0.2 §3: "Healing (potions, Apothecary abilities,
+  // passive regeneration) does nothing to a downed fighter." A downed
+  // player can't act, so a self-cast heal can never reach here anyway,
+  // but several Divine Regalia/set-bonus effects heal the player
+  // unconditionally every round from inside beginTurn (Endless Bloom,
+  // Blessing of Renewal, Lasting Foundation, Flowing Waters, ...) — this
+  // single choke point is what actually stops THOSE from quietly
+  // reviving/topping-up a downed player before a real rally does. Only
+  // applyRallyItemOnPlayer and the D6 fight-ends-still-down 25% revive
+  // set state.health directly, bypassing this guard, exactly as they
+  // should.
+  if (state.playerDowned) return { healed: 0, lines: [] };
   if (amount <= 0) return { healed: 0, lines: [] };
   let amt = amount;
   if (hasEffect(state, "flourishing_soul")) amt = Math.round(amt * 1.5);
@@ -872,6 +902,15 @@ function useItem(state, arg) {
   if (!state.combat && def.useEffect && def.useEffect.type === "buff") {
     return [`${item} is for the middle of a fight — save it for one.`];
   }
+  // Injury System v0.2 §7: Apothecary field treatment (injuryDowngrade)
+  // is the opposite restriction — "only works outside combat" — rejected
+  // here, before the item is touched, same shape as the buff check above.
+  // rallyFromDowned never reaches here at all: it's never self-used (see
+  // resolveOneAllyAction/applyRallyItemOnPlayer), so useItem has no
+  // branch for it either.
+  if (state.combat && def.useEffect && def.useEffect.type === "injuryDowngrade") {
+    return [`${item} needs a steady hand and a quiet moment — not the middle of a fight.`];
+  }
 
   if (!state.combat) {
     state.inventory.splice(idx, 1);
@@ -939,6 +978,24 @@ function applyConsumableEffect(state, item, effect) {
     return cleared.length
       ? [`You drink ${item}, clearing: ${cleared.join(", ")}.`]
       : [`You drink ${item}, but nothing needed clearing.`];
+  }
+  // Apothecary field treatment (Injury System v0.2 §7): severe -> minor,
+  // never removes an injury, and each injury can only be field-treated
+  // once (fieldTreated) — otherwise splints would hand out unlimited
+  // downs in the field, per the spec's own stated reason for the limit.
+  // useItem's own gate above already keeps this out of combat entirely.
+  if (effect.type === "injuryDowngrade") {
+    const target = (state.injuries || []).find((inj) => inj.severity === "severe" && !inj.fieldTreated);
+    if (!target) {
+      const anySevere = (state.injuries || []).some((inj) => inj.severity === "severe");
+      return anySevere
+        ? [`You use ${item}, but every severe injury you're carrying has already been field-treated once — it won't take a second splint.`]
+        : [`You use ${item}, but nothing you're carrying is severe enough to need it.`];
+    }
+    target.severity = "minor";
+    target.fieldTreated = true;
+    state.recomputeStats(true);
+    return [`You use ${item} on your ${injurySlotName(target.id).toLowerCase()} — still hurt, but no longer as bad.`];
   }
   return [`You use ${item}, but nothing happens.`];
 }
@@ -1862,7 +1919,14 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
       // v0.11: routed through applyPlayerDamage (Temporary Health, NaN
       // guard, on-damage-taken stacks) instead of writing state.health
       // directly. Still silent — no message channel here.
-      if (reflect > 0) applyPlayerDamage(state, reflect);
+      if (reflect > 0) {
+        applyPlayerDamage(state, reflect);
+        // Injury System v0.2: no element info reaches this silent reflect
+        // — default to "physical" (judgment call per the implementation
+        // notes, consistent with every other no-element-available hit in
+        // this file, e.g. riposteCounterOnPlayer below).
+        if (state.combat) state.combat.playerLastHitType = "physical";
+      }
     }
     // Powdered Wings-style: the creature inflicts a status back on
     // whoever just struck it (silent, like the reflect above — this
@@ -1876,7 +1940,10 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
     // path, no message line.
     if (ability.counterChance && ability.counterPctOfAtk && Math.random() < ability.counterChance) {
       const counter = Math.max(0, Math.round((creature.atk || 0) * ability.counterPctOfAtk));
-      if (counter > 0) applyPlayerDamage(state, counter); // v0.11: see reflect above
+      if (counter > 0) {
+        applyPlayerDamage(state, counter); // v0.11: see reflect above
+        if (state.combat) state.combat.playerLastHitType = "physical"; // Injury System v0.2: see reflect above
+      }
     }
   }
 }
@@ -2131,7 +2198,45 @@ function resolveSpeedInitiative(state, creature) {
 // resolveAllyActions) — factored out so each ally takes their own slot in
 // the Speed-ordered round instead of every ally always acting together,
 // unconditional of Speed, before anyone else.
+// Injury System v0.2 §3: an ally rallies the player — spends the item,
+// gets the player up at ceil(injured maxHealth * effect.pct) (the
+// spec's own default, 0.25), and clears playerDowned. The rally item is
+// consumed from state.inventory (the PLAYER's own pack, shared loot —
+// not the ally's own equipment), since v1 ships no ally-held item slot
+// for this. `state.maxHealth` is already the fatigue/injury-adjusted
+// value here (recomputeStats applies both in the same step, well before
+// combat), so this needs no separate injury lookup of its own.
+function applyRallyItemOnPlayer(state, ally, item) {
+  const idx = state.inventory.indexOf(item);
+  if (idx >= 0) state.inventory.splice(idx, 1);
+  const def = getItemDef(item);
+  const pct = (def && def.useEffect && def.useEffect.pct) || 0.25;
+  state.playerDowned = false;
+  state.health = Math.max(1, Math.ceil(state.maxHealth * pct));
+  return [`${ally.name} breaks off to kneel at your side, breaking ${item} under your nose — the world snaps back into focus and you're back on your feet at ${state.health} Health.`];
+}
+
 function resolveOneAllyAction(state, ally) {
+  // Injury System v0.2 §3: once the player is downed, the FIRST ally to
+  // act each round checks the PLAYER's own inventory (not the ally's)
+  // for a rally item (useEffect.type "rallyFromDowned" — v1 ships
+  // exactly one, the spec's own placeholder "smelling salts") and spends
+  // their WHOLE action on it instead of their normal turn. Checked before
+  // the Companion Ability Engine dispatch below, so it preempts even a
+  // kit-bearing ally's (Hadrian's) own turn. Because this function runs
+  // once per living ally per round, in initiative order, whichever
+  // ally's call clears state.playerDowned first makes every LATER ally
+  // this same round simply fall through to its own normal action below
+  // — "the first ally to act" falls out for free, no extra bookkeeping.
+  // No rally item in the player's pack: allies fight on as normal (D10 —
+  // nothing brings a downed player back without one).
+  if (state.playerDowned) {
+    const rallyItem = state.inventory.find((i) => {
+      const d = getItemDef(i);
+      return d && d.useEffect && d.useEffect.type === "rallyFromDowned";
+    });
+    if (rallyItem) return applyRallyItemOnPlayer(state, ally, rallyItem);
+  }
   // Companion Ability Engine (engine/companion.js): an ally whose
   // ALLY_DEFS entry carries an abilityKit (Hadrian) runs its own real
   // kit instead of the generic 3-stance dispatch below — everyone else
@@ -3508,7 +3613,22 @@ function killAlly(state, ally) {
   // permanent game-over on this same command, same as it always has for
   // a true solo defeat.
   if (state.playerDowned && state.combat && aliveAllies(state).length === 0) {
+    const combat = state.combat;
     state.playerDowned = false;
+    // Injury System v0.2 D12/O1: the last ally falling is this engine's
+    // OTHER party-wipe trigger (the first being a fresh lethal hit with
+    // no ally left, handled in resolvePlayerDefeatOrDowned) — inside a
+    // dungeon it's the Mugamiir rescue, with the same injuries a win
+    // would have cost for every down already banked this fight, applied
+    // before dungeonRescue nulls state.combat (it reads combat.downs
+    // first). dungeonRescue clears state.combat itself — don't also null
+    // it here, or the second clear is a silent no-op at best.
+    if (state.activeDungeon) {
+      const injuryLines = applyInjuriesFromDowns(state, combat.downs);
+      const rescueMsg = dungeonRescue(state);
+      return [`${ally.name} falls.`, ...injuryLines, rescueMsg];
+    }
+    state.flags.pendingDeathCause = "combat";
     state.combat = null;
     return [
       `${ally.name} falls.`,
@@ -3989,6 +4109,75 @@ function beginTurn(state) {
   return lines;
 }
 
+// ---- Injury System v0.2, §4/§5: applying the downs a survived fight
+// leaves behind ----
+//
+// Called exactly once per fight, from every "the player survived this"
+// exit point (resolveKill's victory branch, attemptFlee's successful
+// flee, and — O1 — the Mugamiir dungeon rescue fired from either
+// resolvePlayerDefeatOrDowned's or killAlly's own party-wipe branch,
+// treated as a survived fight for injury purposes even though it's also
+// a rescue) — NEVER from a true, un-rescued defeat (D11: injuries only
+// apply if you survive). `downs` is state.combat.downs, read by the
+// caller before state.combat is nulled (dungeonRescue nulls it itself).
+function applyInjuriesFromDowns(state, downs) {
+  const lines = [];
+  for (const damageType of downs || []) {
+    // Judgment call: every real call site always sets playerLastHitType
+    // to one of the 10 known keys (physical/bleed/the 8 ELEMENTS keys)
+    // before a down can be pushed, so this fallback is only a defensive
+    // guard against a stale/unmapped value, never expected to fire.
+    const group = DAMAGE_TYPE_TO_INJURY_GROUP[damageType] || "trauma";
+    lines.push(...applyOneInjuryToGroup(state, group));
+  }
+  return lines;
+}
+
+function applyOneInjuryToGroup(state, group) {
+  const groupDef = INJURY_GROUPS[group];
+  const groupSlotIds = groupDef.slots.map((s) => group + "_" + s);
+  // Rule 2: already have a minor injury in this group -> upgrade it.
+  const minorInGroup = state.injuries.find((inj) => groupSlotIds.includes(inj.id) && inj.severity === "minor");
+  if (minorInGroup) {
+    minorInGroup.severity = "severe";
+    return [`Your ${injurySlotName(minorInGroup.id).toLowerCase()} worsens — it's severe now.`];
+  }
+  // Rule 3: fewer than 3 injuries held -> add a new minor from this
+  // group, skipping any slot you already hold (a severe one in this
+  // same group that rule 2 didn't match, i.e. no minor sibling to
+  // upgrade).
+  if (state.injuries.length < INJURY_MAX_SLOTS) {
+    const available = groupSlotIds.filter((id) => !state.injuries.some((inj) => inj.id === id));
+    if (available.length) {
+      const id = available[Math.floor(Math.random() * available.length)];
+      state.injuries.push({ id, group, severity: "minor", acquiredDay: state.day, sourceDamageType: null, fieldTreated: false });
+      return [`You come away with a new injury: ${injurySlotName(id)} (minor).`];
+    }
+    // Edge case the spec's own rule 3 doesn't literally cover: fewer than
+    // 3 injuries held overall, but EVERY slot in this specific group is
+    // already taken (and, since rule 2 above already failed, all of them
+    // are severe — a 2-slot group can reach this with just 2 total
+    // injuries). Judgment call: fall through to rule 4's upgrade
+    // behavior rather than silently dropping the down.
+  }
+  // Rule 4: upgrade a minor injury to severe — same group if possible,
+  // otherwise a random one elsewhere. (Reachable both "normally," with 3
+  // injuries already held, and via the rule-3 fallback just above.)
+  const sameGroupMinor = state.injuries.find((inj) => groupSlotIds.includes(inj.id) && inj.severity === "minor");
+  const anyMinor = sameGroupMinor || state.injuries.filter((inj) => inj.severity === "minor");
+  const target = sameGroupMinor || (Array.isArray(anyMinor) && anyMinor.length ? anyMinor[Math.floor(Math.random() * anyMinor.length)] : null);
+  if (target) {
+    target.severity = "severe";
+    return [`Your ${injurySlotName(target.id).toLowerCase()} worsens — it's severe now.`];
+  }
+  // No minor injury exists anywhere to upgrade (every held injury is
+  // already severe). Per the real-time 7th-fall check in
+  // resolvePlayerDefeatOrDowned, injuryLoad can never reach 6 without
+  // that check killing the player first, so this should be unreachable —
+  // defensive no-op rather than a crash if it's somehow hit.
+  return [];
+}
+
 // Elder Bark's plain 1-HP save prevents an otherwise-fatal hit, once per
 // fight — checked wherever state.health has just dropped to 0 or below,
 // in place of the usual "Everything goes dark" line.
@@ -4040,24 +4229,30 @@ function checkDeathPrevention(state) {
     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.2));
     if (healed > 0) msg += ` Avatar of Devotion answers in turn — mended for ${healed} health.${lines.length ? " " + lines.join(" ") : ""}`;
   }
-  // Dungeon Delve (data/dungeons.js): the Mugamiir Safor's rescue is the
-  // guaranteed last-resort save inside a dungeon run — checked only after
-  // every real cheat-death effect above has had its chance, same as those
-  // are checked in order of specificity among themselves.
-  if (!msg && state.activeDungeon) {
-    msg = dungeonRescue(state);
-  }
+  // The Mugamiir Safor's dungeon rescue USED to have its own unconditional
+  // fallback branch right here, firing the instant a lethal hit landed
+  // inside a dungeon — before resolvePlayerDefeatOrDowned (below) ever
+  // got a chance to check whether an ally could carry the fight instead.
+  // That's exactly the bug Injury System v0.2 D12 calls out: a party
+  // inside a dungeon could never go down at all, and any lethal hit on
+  // the player ended the run outright. The rescue's real trigger is now
+  // "the whole party has wiped" (no living ally AND the player has just
+  // taken a lethal hit), which only resolvePlayerDefeatOrDowned's own
+  // party-wipe branch (and killAlly's matching one) can actually
+  // determine — so it moved there, and nothing here calls dungeonRescue
+  // for a lethal-hit-triggered rescue anymore. checkTrapDeathPrevention's
+  // OWN direct dungeonRescue call (for a Trap room failure, outside
+  // combat/this function entirely) is unrelated and unchanged.
   return msg;
 }
 
 // The single entry point every lethal-hit-on-the-player call site uses in
 // place of the old `checkDeathPrevention(state) || "Everything goes
 // dark."` idiom. Gear-based cheat-death (checkDeathPrevention, above)
-// still gets first refusal, completely unchanged. Only once that's
-// exhausted does this decide between the two ways a lethal hit can
-// actually land: knocked down (if at least one ally is still standing to
-// carry the fight) or, for a solo player with no one left to lean on,
-// the original instant, permanent defeat.
+// still gets first refusal, completely unchanged. Once that's exhausted,
+// Injury System v0.2 §2 runs, in order: the 7th-fall injury death, then
+// knocked down (if at least one ally is still standing to carry the
+// fight), then the party-wipe branch (dungeon rescue, or real defeat).
 //
 // `state.playerDowned` itself is the single flag that keeps the fight
 // going without the player afterward (see combatOngoing, pickEnemyAttackTarget,
@@ -4073,10 +4268,58 @@ function resolvePlayerDefeatOrDowned(state) {
   if (saved) return saved;
   if (state.health > 0) return null; // the gear check itself only ever acts on a lethal hit; nothing lethal happened here after all
   if (state.playerDowned) return null; // already knocked down earlier this same fight — don't re-trigger or re-print
+  const combat = state.combat;
+  const pendingDowns = combat && combat.downs ? combat.downs.length : 0;
+  // §2 step 2: the 7th fall. injuryLoad (persistent, from past fights) +
+  // pendingDowns (this fight's own downs, not yet turned into injuries)
+  // reaching 6 means this lethal hit would be a 7th survivable down — it
+  // isn't survivable. Final, even inside a dungeon (D3): this is the
+  // player's own death from accumulated injuries, not a party wipe, so
+  // the Mugamiir rescue never gets a say. (>= rather than spec's literal
+  // == as a defensive margin — injuryLoad+pendingDowns should never
+  // legitimately exceed 6, since this same check already gates every
+  // down that could have pushed it past that.)
+  if (injuryLoad(state) + pendingDowns >= INJURY_MAX_LOAD) {
+    state.flags.pendingDeathCause = "injuries";
+    return `This fall isn't like the others. Everything you've already survived catches up with you at once, and this time your own body is what gives out — not the fight.`;
+  }
+  // §2 step 3: down, if at least one ally can carry the fight. The
+  // down's own damage type (playerLastHitType, set at whichever call
+  // site actually landed this hit) is banked now, for applyInjuriesFromDowns
+  // to turn into a real injury IF this fight is ultimately survived (D11)
+  // — never applied here, never applied at all if the run ends in a true
+  // defeat instead.
   if (aliveAllies(state).length > 0) {
     state.playerDowned = true;
+    if (combat) {
+      combat.downs = combat.downs || [];
+      combat.downs.push(combat.playerLastHitType || "physical");
+    }
     return `The hit takes everything out of you — you go down hard, the world swimming, and there's nothing left in you to answer it with. Your allies close ranks and keep fighting; whatever happens next isn't yours to decide.`;
   }
+  // §2 step 4: party wipe — no living ally left to carry the fight,
+  // whether solo from the start or because every ally has since fallen.
+  // D12/O1: inside a dungeon this is the Mugamiir rescue, and the rescue
+  // costs the SAME injuries a win would have for every down already
+  // banked this fight (applied before dungeonRescue nulls state.combat,
+  // since that's what holds the downs list) — on top of the rescue's own
+  // loot/gold cost, never instead of it. Anywhere else, it's the real,
+  // permanent end — no survival, so D11 means no injuries either.
+  // D14: the wipe-causing hit itself — the one that just landed with no
+  // ally left to catch it — counts as a down too, same as any other;
+  // it was never pushed onto combat.downs (step 3 above is the only
+  // place that happens, and it didn't run this time), so it's appended
+  // here instead of being silently dropped. The step-2 check already
+  // guaranteed injuryLoad+pendingDowns < INJURY_MAX_LOAD before this
+  // point, so adding exactly one more down here can't push the result
+  // past INJURY_MAX_LOAD (6) — the cap D14 asks for falls out for free.
+  if (state.activeDungeon) {
+    const downsIncludingWipeHit = (combat && combat.downs ? combat.downs : []).concat([combat.playerLastHitType || "physical"]);
+    const injuryLines = applyInjuriesFromDowns(state, downsIncludingWipeHit);
+    const rescueMsg = dungeonRescue(state);
+    return [...injuryLines, rescueMsg].join(" ");
+  }
+  state.flags.pendingDeathCause = "combat";
   return `Everything goes dark.`;
 }
 
@@ -4528,6 +4771,10 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
     const magicHit = mitigateAndApplyHitOnPlayer(state, edmg, "magic");
     edmg = magicHit.edmg;
     const absorbLines1 = magicHit.absorbLines;
+    // Injury System v0.2: the REAL element (creature.element), not the
+    // generic "magic" kind string just passed to mitigateAndApplyHitOnPlayer
+    // above — that's what picks the down's injury group (§5/§6).
+    if (edmg > 0) combat.playerLastHitType = creature.element;
     const elName = ELEMENTS[creature.element].name.toLowerCase();
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`, ...absorbLines1];
     if (state.health <= 0) {
@@ -4628,6 +4875,7 @@ function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCt
   const physicalHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
   edmg = physicalHit.edmg;
   const absorbLines2 = physicalHit.absorbLines;
+  if (edmg > 0) combat.playerLastHitType = "physical"; // Injury System v0.2
   // Guarded Strike, generalized: after THIS creature's own landed basic
   // physical attack (ability casts don't qualify, mirroring the player's
   // own isPhysicalHit scope), bank +2 Defense against whatever hits it
@@ -5022,6 +5270,7 @@ function riposteCounterOnPlayer(state, creature) {
   const playerDef = effectivePlayerDef(state);
   const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
   const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
+  if (hit.edmg > 0) state.combat.playerLastHitType = "physical"; // Injury System v0.2
   const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte for ${hit.edmg} damage.`, ...hit.absorbLines];
   if (state.health <= 0) {
     const defeatMsg = resolvePlayerDefeatOrDowned(state);
@@ -5073,6 +5322,7 @@ function arenaRiposteCounterOnPlayer(state, creature) {
   const playerDef = effectivePlayerDef(state);
   const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (passive.mult || 0.8)));
   const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
+  if (hit.edmg > 0) state.combat.playerLastHitType = "physical"; // Injury System v0.2
   const lines = [`${withThe(creature.name, true)} turns the blow aside and answers with a counter for ${hit.edmg} damage.`, ...hit.absorbLines];
   if (state.health <= 0) {
     const defeatMsg = resolvePlayerDefeatOrDowned(state);
@@ -5790,6 +6040,22 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     calmWatersDefBonus: 0, // Calm Waters' (Regalia) +4 Defense per Cleansing Current proc, capped at 12
     calmWatersMagicBonus: 0, // Calm Waters' +4 Magic per Cleansing Current proc, capped at 12
     calmWatersTurns: 0, // Calm Waters' 2-round window remaining
+    // Injury System v0.2: every down the PLAYER survives this fight,
+    // in order — one entry (a damage type string) per down, consumed by
+    // applyInjuriesFromDowns at whichever "the player survived this
+    // fight" exit point actually ends it (resolveKill's victory branch,
+    // attemptFlee's success branch, or — O1 — a Mugamiir dungeon rescue
+    // from either resolvePlayerDefeatOrDowned's or killAlly's own party-
+    // wipe branch). Its own .length IS "pendingDowns" from the spec —
+    // there's no separate counter to keep in sync.
+    downs: [],
+    // Whatever last actually dealt damage to the PLAYER this fight —
+    // "physical"/"bleed"/a real ELEMENTS key — set at every call site
+    // that lands a hit on the player (mirrors combat.lastDamageType just
+    // above, which tracks the opposite direction). Read by
+    // resolvePlayerDefeatOrDowned the moment a hit downs the player, to
+    // pick the down's injury group (§5).
+    playerLastHitType: null,
   };
   wireActiveEnemyProxy(state.combat);
   // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
@@ -6553,6 +6819,14 @@ function resolveKill(state, creature) {
       state.health = Math.ceil(state.maxHealth * 0.25);
       out.push(`You come to as the last of them falls — your allies carried this one. Bruised and unsteady, but back on your feet at ${state.health} Health.`);
     }
+    // Injury System v0.2 §4: a won fight is a survived fight (D11) —
+    // every down banked this fight (combatBeforeConclusion.downs, read
+    // now since state.combat is already null above) becomes a real
+    // injury, win or no-revive-needed alike (this runs whether or not the
+    // playerDowned branch just above fired — a player who went down and
+    // got RALLIED back up earlier in this same fight still banked that
+    // down, even though they're not still down at the moment of victory).
+    out.push(...applyInjuriesFromDowns(state, combatBeforeConclusion.downs));
     // The fight is genuinely over (last enemy down) — charge its time
     // cost once here, not per-kill within a pack.
     out.push(...advanceTime(state, randInt(10, 30), "combat"));
@@ -6793,8 +7067,12 @@ function attemptFlee(state) {
     // costs Hadrian his life, permanently, per Section 6's failure
     // condition — checked and reported BEFORE state.combat is nulled.
     const ambushLoss = state.combat.isHadrianAmbush ? markHadrianLostInAmbush(state) : [];
+    // Injury System v0.2 §4: a successful flee is a survived fight too
+    // (D11, spec's own wording: "victory, or a successful flee by the
+    // party") — read combat.downs before nulling state.combat below.
+    const injuryLines = applyInjuriesFromDowns(state, state.combat.downs);
     state.combat = null;
-    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...ambushLoss, ...applyRegrowth(state), ...advanceTime(state, randInt(10, 30), "combat")];
+    return [`You break away from ${withThe(creature.name, false)} and put distance between you.`, ...ambushLoss, ...injuryLines, ...applyRegrowth(state), ...advanceTime(state, randInt(10, 30), "combat")];
   }
 
   const out = beginTurn(state);
@@ -6846,6 +7124,7 @@ function attemptFlee(state) {
   const fleeHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
   edmg = fleeHit.edmg;
   const absorbLines = fleeHit.absorbLines;
+  if (edmg > 0) combat.playerLastHitType = "physical"; // Injury System v0.2
   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
   if (state.health <= 0) {
     const defeatMsg = resolvePlayerDefeatOrDowned(state);
