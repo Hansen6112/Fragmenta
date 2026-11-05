@@ -1,0 +1,12 @@
+[
+ {
+  "reg": "ITEM_DEFS",
+  "id": "smelling salts",
+  "type": "added"
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a field splint kit",
+  "type": "added"
+ }
+]

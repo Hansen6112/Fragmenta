@@ -1,0 +1,49 @@
+range: 77a2a3d293eaea85e69aed53c756f55f93441f9e..bcc43a6c966d07f2514bebb9bab2e1f3fbcfe3bc
+=== bcc43a6c966d07f2514bebb9bab2e1f3fbcfe3bc 2026-11-05 23:06:43 +0000
+Implement Injury System (spec v0.2/v0.3): persistent injuries from survived downs, rally mechanic, 7th-fall death
+- New per-down injury system: surviving a knockdown (win, flee, or a
+  Mugamiir dungeon rescue) banks the hit's damage type as a down, applied
+  at fight-end as one of 13 slot injuries across 6 damage-type groups
+  (minor -10%/severe -25% to one targeted stat, multiplicative with
+  fatigue; two slots target max Health, ground fatigue never touches).
+  Capped at 3 held injuries / injury load 6; a 7th fall is fatal outright,
+  even inside a dungeon.
+- Rally mechanic: the first ally to act each round, while the player is
+  downed, spends their turn using a "smelling salts"-type item from the
+  player's own inventory to bring them back up at 25% max Health, instead
+  of their normal action.
+- Apothecary field-treatment consumable downgrades one severe injury to
+  minor (never removes it), once per injury, outside combat only.
+- Town healer (cmdHeal) now offers a cure menu (one injury at a time, or
+  all at once) whenever the player is carrying any, alongside the
+  existing plain HP heal.
+- applyHeal is now a no-op while the player is downed, so passive/
+  set-bonus auto-heals can't quietly revive or top off a downed player
+  ahead of a real rally.
+- Moved the Mugamiir Safor dungeon rescue out of checkDeathPrevention's
+  unconditional fallback and into the actual party-wipe branches of
+  resolvePlayerDefeatOrDowned/killAlly, so a dungeon party can go down
+  and get carried like anywhere else instead of never going down at all.
+- D14: the hit that causes a party wipe is itself banked as a down when
+  a dungeon rescue follows, not just the downs that happened earlier in
+  the fight.
+- recordPlayerDeath now records why (ordinary combat vs. the 7th-fall
+  injury death) via state.flags.pendingDeathCause.
+
+Verified against the existing downed-system, ally-protection, and
+Dregnar Stage A/B regression ledgers (clean, two pre-existing unrelated
+failures confirmed via stash-compare against the prior commit) plus a
+new 24-case Injury System acceptance ledger covering assignment rules,
+the 7th-fall check inside and outside dungeons, the rally mechanic,
+healer/field-treatment cures, and save/load round-tripping.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/items.js    |  25 +++++
+ js/engine/combat.js | 309 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ js/engine/parser.js | 126 ++++++++++++++++++++-
+ js/engine/state.js  | 125 ++++++++++++++++++++-
+ js/main.js          |  10 +-
+ 5 files changed, 572 insertions(+), 23 deletions(-)
