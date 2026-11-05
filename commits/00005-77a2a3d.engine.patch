@@ -1,0 +1,82 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 3f7765d..0009aee 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -2343,7 +2343,14 @@ function dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpr
+   const hadBlackIceReservePending = !!creatureObj.blackIceReservePending;
+   const ctx = abilityCtx ? { ...abilityCtx, accBonus: (abilityCtx.accBonus || 0) + accBonus } : null;
+   const basicFirstBonus = abilityCtx ? null : { accBonus, dmgMultBonus: 1 };
+-  const result = resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
++  // Phase 0 hotfix: Dregnar used to call resolveEnemyRetaliation (the
++  // player-only damage path) unconditionally, so he could never damage an
++  // ally and kept hitting an already-downed player. Route through the
++  // same target roll every other creature's action already uses.
++  const target = pickEnemyAttackTarget(state);
++  const result = target.kind === "ally"
++    ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, ctx, basicFirstBonus)
++    : resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
+   if (p03Active) creatureObj.atk -= 3;
+   if (legacyActive) creatureObj.atk -= 3;
+   if (hadBlackIceReservePending) {
+@@ -3350,6 +3357,27 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
+   // Silent Preparation's banked dmgMultBonus: mirrors resolveEnemyRetaliation's
+   // own copy, against the ally instead.
+   if (bankedPrepDmgMultBonusAlly > 0) dmg = Math.round(dmg * bankedPrepDmgMultBonusAlly);
++  // Phase 0 hotfix — Dregnar on-hit riders ported from resolveEnemyRetaliation
++  // now that his attacks can land on an ally. Ice-Forged Edge (DRA-E01):
++  // every hit, no stacking, no state at all.
++  if (hasEffect(creature, "dra_e01_ice_forged_edge")) dmg = Math.round(dmg * 1.10);
++  // Unbroken Grip (DRA-E04): first physical weapon attack each combat —
++  // shares the SAME unbrokenGripUsed flag the player-path copy sets, since
++  // it's wearer-side bookkeeping ("first attack this combat," full stop),
++  // not target-side; whichever path lands the wearer's first hit consumes it.
++  if (dmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
++    creature.unbrokenGripUsed = true;
++    dmg = Math.round(dmg * 1.10);
++  }
++  // Executioner's Seal (DRA-E06): same shape as resolveEnemyRetaliation's own
++  // copy, but checked against the ALLY's own HP% (the target of THIS hit),
++  // not the player's — the codex's "target at/below 30% max HP" always means
++  // whoever is actually being hit.
++  if (hasEffect(creature, "dra_e06_executioners_seal") && ally.health <= ally.maxHealth * 0.3) dmg = Math.round(dmg * 1.20);
++  // Black-Ice Reserve (DRA-E09): peeked only (consumption/decay is wearer-side
++  // bookkeeping already handled in dregnarResolveDamagingAttempt/tickEnemyPassives,
++  // unaffected by which target this particular attempt landed on).
++  if (dmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) dmg = Math.round(dmg * 1.10);
+   // Tyrant's Edge (SANG-CU-IE012): mirrors resolveEnemyRetaliation's own
+   // copy, against the ally's HP instead of the player's.
+   if (dmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && ally.health <= ally.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+@@ -3415,7 +3443,17 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
+   // applyAbilityInflict above (not gated on dmg > 0 — a hit that's fully
+   // mitigated to 0 damage still "landed" for this purpose, same as the
+   // player branch).
+-  if (abilityCtx && abilityCtx.inflict) lines.push(...applyAbilityInflictOnAlly(ally, abilityCtx.inflict, creature.name));
++  if (abilityCtx && abilityCtx.inflict) {
++    const inflictLinesAlly = applyAbilityInflictOnAlly(ally, abilityCtx.inflict, creature.name);
++    lines.push(...inflictLinesAlly);
++    // Black-Ice Reserve (DRA-E09): mirrors resolveEnemyRetaliation's own
++    // grant — a non-empty return means Chilled's chance roll actually
++    // succeeded on the ally, not just that it was attempted.
++    if (inflictLinesAlly.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
++      creature.blackIceReservePending = true;
++      creature.blackIceReserveTurnsLeft = 2;
++    }
++  }
+   if (abilityCtx && abilityCtx.healOnHitPct && dmg > 0) {
+     const heal = Math.round(dmg * abilityCtx.healOnHitPct);
+     if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
+@@ -5528,6 +5566,14 @@ function legacyScaledCreature(creature) {
+   for (const key of ["hp", "atk", "def", "magic"]) {
+     if (typeof out[key] === "number") out[key] = Math.round(out[key] * PLAYER_STAT_SCALE);
+   }
++  // Phase 0 hotfix: a special:true creature's own level/Danger Class were
++  // previously absent entirely, so flee chance/XP/loot/notable-kill effects
++  // all silently fell back to "a Normal at the player's own level" against
++  // it. encounterLevel is purely a metadata field read by those consumers —
++  // this path still skips computeCreatureStats, so the flat x2 scale above
++  // stays exactly as it was; dangerClass is likewise never routed into
++  // stats here, only read downstream by the consumers it was missing from.
++  if (typeof creature.encounterLevel === "number") out.level = creature.encounterLevel;
+   return out;
+ }
+ 

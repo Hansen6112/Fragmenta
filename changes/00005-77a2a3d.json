@@ -1,0 +1,125 @@
+[
+ {
+  "reg": "BESTIARY",
+  "id": "dregnar_ashvein",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "dangerClass",
+    "new": "world_boss"
+   },
+   {
+    "f": "encounterLevel",
+    "new": 30
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "roadlord",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "levelRange",
+    "old": [
+     24,
+     32
+    ],
+    "new": [
+     24,
+     30
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "vigilis_unit_commander",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "levelRange",
+    "old": [
+     23,
+     33
+    ],
+    "new": [
+     23,
+     30
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "arbitarius_commander",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "levelRange",
+    "old": [
+     28,
+     38
+    ],
+    "new": [
+     28,
+     30
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "watch_captain",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "levelRange",
+    "old": [
+     24,
+     34
+    ],
+    "new": [
+     24,
+     30
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ovum_champion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "levelRange",
+    "old": [
+     25,
+     35
+    ],
+    "new": [
+     25,
+     30
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "militia_warleader",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "levelRange",
+    "old": [
+     23,
+     33
+    ],
+    "new": [
+     23,
+     30
+    ]
+   }
+  ]
+ }
+]

@@ -1,0 +1,55 @@
+range: 0a16460ab7b4774e883964a0237f11a71c6e82cd..77a2a3d293eaea85e69aed53c756f55f93441f9e
+=== 77a2a3d293eaea85e69aed53c756f55f93441f9e 2026-11-05 16:27:30 +0000
+Phase 0 combat hotfixes: Dregnar targeting, special-creature metadata, boss-recruits-boss, level cap
+Four fixes ahead of the combat rebuild, each verified against the live
+code before and after:
+
+1. Dregnar Ashvein's damage path (dregnarResolveDamagingAttempt) called
+   resolveEnemyRetaliation unconditionally, bypassing pickEnemyAttackTarget
+   entirely. He could never damage an ally, and kept hitting an already-
+   downed player (confirmed via simulation: 0 ally-damage-taking fights,
+   nonzero hits landed after the player went down). Now rolls a real
+   target and routes to resolveEnemyAttackOnAlly when it lands on an ally.
+   Ported his 5 on-hit riders (Ice-Forged Edge, Unbroken Grip, Executioner's
+   Seal, Black-Ice Reserve's peek + Chilled-triggered grant) to that path;
+   Unquenched Focus lives inside resolveEnemyRetaliation's elemental branch,
+   which resolveEnemyAttackOnAlly has no equivalent of and which Dregnar's
+   own (all-physical) kit never reaches on either path — left unported,
+   flagging rather than silently skipping, per instructions.
+
+2. special:true creatures had no level/dangerClass fields, so flee chance,
+   XP, loot, notable-kill effects and Hadrian's Worthy Foe all silently
+   treated Dregnar as a Normal at the player's own level (flee chance
+   measured 60.5%, now 15% at level 25, matching the expected
+   0.6-5*0.03-0.3). legacyScaledCreature now sets level from a new
+   encounterLevel field without touching the flat x2 stat scale or routing
+   dangerClass into stats. creaturesForTags gets a defensive !c.special
+   guard against any future special creature leaking through a shared tag.
+
+3. rollEncounterGroup let a Boss-tier anchor recruit other Bosses as
+   packmates; at the top of a level band that could mean nothing but
+   Bosses were left eligible. Boss-or-higher anchors now require strictly
+   lower-rank packmates; Normal/Elite anchors are unchanged. Confirmed
+   Arbitarius Commander now spawns solo across 200 rolls (was regularly
+   3-5 simultaneous bosses).
+
+4. Capped six bosses' levelRange max at 30 (enemy cap), keeping each
+   minimum: roadlord, vigilis_unit_commander, militia_warleader,
+   watch_captain, ovum_champion, arbitarius_commander. Added an audit.js
+   assertion so levelRange/encounterLevel over 30 fails the build.
+
+Retest (player level 25): Dregnar win rate 0%/0%/92%/100% for
+solo/+1 ally/+Kessa+Hadrian/+Kessa+Hadrian+3 mercs, with every multi-ally
+fight now showing real ally damage taken and zero hits landing on an
+already-downed player. Arbitarius Commander solo win rate 2.5%. Full
+regression suite and audit.js unchanged from baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/bestiary.js     | 19 +++++++++++++------
+ js/data/creaturetags.js |  8 +++++++-
+ js/engine/combat.js     | 50 +++++++++++++++++++++++++++++++++++++++++++++++--
+ tools/audit.js          |  6 ++++++
+ 4 files changed, 74 insertions(+), 9 deletions(-)
