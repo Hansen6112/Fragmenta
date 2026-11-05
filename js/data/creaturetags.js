@@ -202,7 +202,13 @@ function rollEncounterGroup(anchorId, level, playerLevel) {
   // "eligible" at every level — let a level-8 Razorback pack draw Tusk
   // King, a World Boss, as an ordinary packmate.
   const anchorRank = DANGER_CLASS_RANK[anchorDangerClass] ?? 0;
-  const pool = fullPool.filter((id) => isLevelEligible(BESTIARY[id], encounterLevel) && dangerClassRank(BESTIARY[id]) <= anchorRank);
+  // Phase 0 hotfix: a Boss-or-higher anchor's packmates must be STRICTLY
+  // lower rank — equal rank previously let a Boss recruit other Bosses
+  // (at the top of a level band, sometimes exclusively other Bosses,
+  // producing unwinnable 3-5-boss squads). Normal/Elite anchors keep equal
+  // rank, since packs of Normals and squads of Elites are intended.
+  const maxMemberRank = anchorRank >= DANGER_CLASS_RANK.boss ? anchorRank - 1 : anchorRank;
+  const pool = fullPool.filter((id) => isLevelEligible(BESTIARY[id], encounterLevel) && dangerClassRank(BESTIARY[id]) <= maxMemberRank);
   if (!pool.length) return members;
   const pickNatural = () => {
     const pickId = pool[Math.floor(Math.random() * pool.length)];

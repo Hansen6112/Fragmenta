@@ -400,6 +400,8 @@ const BESTIARY = {
     name: "Dregnar Ashvein",
     native: "Gods' Hand Kabal / Veranthari — First Sword of the Tower",
     tags: ["dregnar_scripted"],
+    dangerClass: "world_boss",
+    encounterLevel: 30,
     hp: 420, atk: 38, def: 38, magic: 24, spd: 13, acc: 96, agi: 12,
     description: "An Aqua/Cryo warrior-mage in distinctive silver Kar'Mhal plate, Ashquench — an unquenched dwarven maul completed by magically reinforced black ice — resting easy in one hand.",
     combatNotes: "He opens guarded, a shifting water barrier turning aside whatever he can't yet afford to answer. Give him an opening and he closes it; corner him and he stops holding back.",
@@ -3571,7 +3573,7 @@ const BESTIARY = {
     dangerClass: "boss",
     spawnRarity: "common",
     levelBandExempt: true,
-    levelRange: [24, 32],
+    levelRange: [24, 30], // Phase 0 hotfix: enemy level cap is 30 (player cap is 25)
     equipment: { helmet: "Roadlord's War Helm", chest: "Roadlord's Reinforced Cuirass", gloves: "Veteran War Gauntlets", boots: "Reinforced Warlord Boots", mainhand: "Roadlord's Veteran Blade", rings: "Ruthless Lord's Signet", cloak: "Roadlord's Battle Cloak", trinkets: ["Conqueror's Trophy"] },
     passives: ["ruthless_authority", "roadlords_momentum"],
     actives: ["roadlords_assault", "blood_price", "warband_fury", "ruthless_execution"],
@@ -3884,7 +3886,7 @@ const BESTIARY = {
     dangerClass: "boss",
     spawnRarity: "common",
     levelBandExempt: true,
-    levelRange: [23, 33],
+    levelRange: [23, 30], // Phase 0 hotfix: enemy level cap is 30 (player cap is 25)
     equipment: { helmet: "Vigilis War Helm", chest: "Commander Armor", gloves: "Command Gauntlets", boots: "Commander Boots", mainhand: "Vigilis Command Sword", offhand: "Reinforced Command Shield", cloak: "Vigilis Command Cloak", trinkets: ["Unit Command Insignia"] },
     passives: ["command_discipline", "battle_hardened"],
     actives: ["hold_the_line", "commanders_sword", "measured_counteroffensive"],
@@ -3906,7 +3908,7 @@ const BESTIARY = {
     dangerClass: "boss",
     spawnRarity: "common",
     levelBandExempt: true,
-    levelRange: [28, 38],
+    levelRange: [28, 30], // Phase 0 hotfix: enemy level cap is 30 (player cap is 25)
     equipment: { helmet: "Arbitarius War Helm", chest: "Senior Commander Cuirass", gloves: "Senior Officer Gauntlets", boots: "Arbitarius March Boots", mainhand: "Arbitarius Command Blade", offhand: "Imperial Command Shield", rings: "Commander Signet", cloak: "Arbitarius Command Cloak", trinkets: ["Arbitarius Insignia"] },
     passives: ["combined_arms_authority", "commanders_resolve"],
     actives: ["combined_arms_order", "arbitarius_assault", "tactical_suppression", "final_directive"],
@@ -4162,7 +4164,7 @@ const BESTIARY = {
     dangerClass: "boss",
     spawnRarity: "common",
     levelBandExempt: true,
-    levelRange: [24, 34],
+    levelRange: [24, 30], // Phase 0 hotfix: enemy level cap is 30 (player cap is 25)
     equipment: { helmet: "Watch Captain's War Helm", chest: "Captain's Enforcement Armor", gloves: "Veteran Officer Gauntlets", boots: "Captain's Patrol Boots", mainhand: "Watch Captain's Sword", offhand: "Captain's Command Shield", rings: "Watch Captain's Signet", cloak: "Captain's Command Cloak", trinkets: ["Civic Command Insignia"] },
     passives: ["sang_sec_captains_authority", "sang_sec_veteran_enforcement"],
     actives: ["sang_sec_protective_orders", "sang_sec_captains_sword", "sang_sec_coordinated_detainment", "sang_sec_stand_firm"],
@@ -4399,7 +4401,7 @@ const BESTIARY = {
     dangerClass: "boss",
     spawnRarity: "common",
     levelBandExempt: true,
-    levelRange: [25, 35],
+    levelRange: [25, 30], // Phase 0 hotfix: enemy level cap is 30 (player cap is 25)
     equipment: { helmet: "Champion's Arena Helm", chest: "Ovum Champion Cuirass", gloves: "Champion's Fighting Gauntlets", boots: "Champion's Arena Greaves", mainhand: "Ovum Champion Sword", offhand: "Champion's Arena Shield", rings: "Champion's Victory Signet", cloak: "Champion's Victory Mantle", trinkets: ["Ovum Championship Medal"] },
     passives: ["sang_iag_champions_discipline", "sang_iag_arena_resolve", "sang_iag_arena_counter"],
     actives: ["sang_iag_champions_guard", "sang_iag_masterful_cut", "sang_iag_final_exchange"],
@@ -4484,7 +4486,7 @@ const BESTIARY = {
     dangerClass: "boss",
     spawnRarity: "common",
     levelBandExempt: true,
-    levelRange: [23, 33],
+    levelRange: [23, 30], // Phase 0 hotfix: enemy level cap is 30 (player cap is 25)
     equipment: { helmet: "Warleader's Iron Helm", chest: "Reinforced Militia War Armor", gloves: "Warleader's Heavy Gauntlets", boots: "Warleader's Reinforced Boots", mainhand: "Militia Warleader's Sword", offhand: "Warleader's Heavy Shield", cloak: "Militia Warleader Cloak", trinkets: ["Militia Rallying Standard"] },
     passives: ["sang_iag_militia_authority", "sang_iag_warleaders_resolve"],
     actives: ["sang_iag_rally_the_fighters", "sang_iag_warleaders_cleave", "sang_iag_all_out_assault", "sang_iag_raise_the_militia"],
@@ -4519,6 +4521,11 @@ for (const creature of Object.values(BESTIARY)) {
 function creaturesForTags(tagList, nation) {
   return Object.entries(BESTIARY)
     .filter(([id, c]) => {
+      // Defensive guard (Phase 0): a special:true creature (Dregnar
+      // Ashvein, scripted-encounter-only) must never leak into an ordinary
+      // hunt/wild-spawn pool through a shared tag, even one it carries for
+      // flavor/lore grouping rather than spawn eligibility.
+      if (c.special) return false;
       if (c.nations && !c.nations.includes(nation)) return false;
       return c.tags.some((t) => tagList.includes(t));
     })

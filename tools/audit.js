@@ -134,6 +134,12 @@ for (const [id, a] of Object.entries(ENEMY_ABILITIES)) {
   if (inflict && !STATUS_EFFECTS[inflict]) err("ability", `${id}.inflict.status "${inflict}" is not a STATUS_EFFECTS key`);
 }
 
+// ---- level caps (Phase 0: players cap at 25, enemies cap at 30) ----
+for (const [id, c] of Object.entries(BESTIARY)) {
+  if (c.levelRange && c.levelRange[1] > 30) err("level-cap", `${id}.levelRange max is ${c.levelRange[1]}, over the 30 cap`);
+  if (typeof c.encounterLevel === "number" && c.encounterLevel > 30) err("level-cap", `${id}.encounterLevel is ${c.encounterLevel}, over the 30 cap`);
+}
+
 // ---- items / effects / sets ----
 for (const [name, d] of Object.entries(ITEM_DEFS)) {
   for (const e of d.effects || []) if (!EFFECT_DEFS[e]) err("item", `"${name}" has unknown effect "${e}"`);
