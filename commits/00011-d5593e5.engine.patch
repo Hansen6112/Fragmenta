@@ -1,0 +1,114 @@
+diff --git a/js/engine/arena.js b/js/engine/arena.js
+index 806ed16..06fff67 100644
+--- a/js/engine/arena.js
++++ b/js/engine/arena.js
+@@ -481,13 +481,20 @@ function hadrianFullyResolved(state) {
+ // currently pending, or returns null (falls through to cmdRecruit's own
+ // generic refusal) if neither is.
+ function acceptHadrianOffer(state) {
+-  if (state.flags.hadrianOfferPending) {
+-    state.flags.hadrianOfferPending = false;
+-  } else if (state.flags.hadrianThalvoraOfferPending) {
+-    state.flags.hadrianThalvoraOfferPending = false;
+-  } else {
+-    return null;
++  const offerPending = state.flags.hadrianOfferPending || state.flags.hadrianThalvoraOfferPending;
++  if (!offerPending) return null;
++  // Party Cap request: checked BEFORE either pending-offer flag is
++  // cleared below, so a full party doesn't permanently burn this
++  // one-time offer — unlike Kessa's own recruitment (parser.js's
++  // maybeTalkToKessa), accepting either Hadrian offer is a single,
++  // non-repeatable event once its flag clears, so the fix here has to
++  // leave the flag untouched on a full-party refusal, not just report
++  // one, for the player to actually be able to come back and retry.
++  if (state.party.filter((a) => a.alive).length >= MAX_PARTY_ALLIES) {
++    return [`Your party is already full. Make room, then come find him again.`];
+   }
++  if (state.flags.hadrianOfferPending) state.flags.hadrianOfferPending = false;
++  else state.flags.hadrianThalvoraOfferPending = false;
+   const recruited = state.recruitAlly("hadrian");
+   if (!recruited) return [`Something's already claimed that spot in your party.`];
+   return [HADRIAN.recruitment.accept, `${recruited.name} joins your party. Set a stance with 'stance hadrian aggressive|defensive|support'.`];
+diff --git a/js/engine/parser.js b/js/engine/parser.js
+index b732226..37c1cd0 100644
+--- a/js/engine/parser.js
++++ b/js/engine/parser.js
+@@ -1257,6 +1257,13 @@ function cmdRevive(arg, state) {
+   if (!ALLY_DEFS[fallen.defId] || state.party.some((a) => a.defId === fallen.defId)) {
+     return [`Something went wrong bringing ${fallen.name} back. Nothing was spent.`];
+   }
++  // Party Cap request: checked here too, same "verify before spending"
++  // reasoning as the pre-check right above — recruitAlly's own null
++  // return happens AFTER this function would already have spent the
++  // item/favor below, so this has to pre-empt it the same way.
++  if (state.party.filter((a) => a.alive).length >= MAX_PARTY_ALLIES) {
++    return [`Your party is already full. Nothing was spent.`];
++  }
+   const ally = state.recruitAlly(fallen.defId, { revived: true, relationship: fallen.relationship });
+   if (method === "item") state.inventory.splice(ritualIdx, 1);
+   else if (method === "favor") state.divineFavor -= DIVINE_FAVOR_REVIVAL_THRESHOLD;
+@@ -1342,6 +1349,15 @@ function maybeTalkToKessa(arg, state) {
+     return [`"Go on, then," Kessa says, unmoved. "I'm not signing on with someone who talks a bigger fight than they can finish."`];
+   }
+   const ally = state.recruitAlly("kessa");
++  // Party Cap request: recruitAlly returns null when the party's already
++  // full. state.flags.kessaQuestReady stays true either way (not
++  // cleared here), so talking to her again later — once a slot opens up
++  // — re-enters this same branch and retries; nothing about this offer
++  // is a one-time opportunity the way Hadrian's two pending-offer flags
++  // are (see arena.js's acceptHadrianOffer).
++  if (!ally) {
++    return ["Your party is already full."];
++  }
+   state.flags.kessaRecruited = true;
+   return [
+     `"Fine," Kessa says, pushing off the wall. "You'll do." She falls in step beside you like she's done it a hundred times before.`,
+diff --git a/js/engine/state.js b/js/engine/state.js
+index 56f67ab..abca666 100644
+--- a/js/engine/state.js
++++ b/js/engine/state.js
+@@ -65,6 +65,13 @@ function fatigueTier(state) {
+   return fatigueTierForDays(state.day - state.lastSleptDay);
+ }
+ 
++// Party Cap request (Tyler, 6 Nov): the player plus at most this many
++// companions — a party of four by design — enforced in recruitAlly
++// below. Nothing previously enforced this; the Expected-Gear rerun's
++// "largest party" cell (player + 5) described a party that can't
++// actually exist in the shipped game.
++const MAX_PARTY_ALLIES = 3;
++
+ // ---- Injury System v0.2 ("downed, not dead," rally, and the injuries a
+ // survived down leaves behind) ----
+ //
+@@ -317,15 +324,27 @@ class GameState {
+ 
+   // Adds a new party member from ALLY_DEFS, at the player's current level,
+   // with empty gear and an aggressive default stance. Returns null (and
+-  // adds nothing) if that ally is already in the party or the id is
+-  // unknown — the caller (parser.js's cmdRecruit) is responsible for any
+-  // recruitment gating; this just does the actual joining.
++  // adds nothing) if that ally is already in the party, the id is
++  // unknown, or the party is already at MAX_PARTY_ALLIES — the caller
++  // (parser.js's cmdRecruit, maybeTalkToKessa, cmdRevive; arena.js's
++  // acceptHadrianOffer) is responsible for any recruitment gating and for
++  // turning a null return into a clear message; this just does the
++  // actual joining.
+   // `opts.revived`: a Sanctuary revival (parser.js's cmdRevive) — skips the
+   // ally's starting gear (it already went back to the pack when they fell;
+   // re-issuing it duplicated it on every death/revive cycle) and restores
+   // the relationship value they had when they died.
+   recruitAlly(defId, opts = {}) {
+     if (!ALLY_DEFS[defId] || this.party.some((a) => a.defId === defId)) return null;
++    // Party-cap request: the player plus MAX_PARTY_ALLIES companions, a
++    // party of four (Tyler's design) — counted against LIVING members
++    // only. A fallen ally briefly stays in this.party (alive: false)
++    // until the player resolves them with 'send <name> home' or 'leave
++    // <name>' (both splice it out — see parser.js's cmdSendAllyHome/
++    // cmdLeaveAlly), so counting every entry regardless of alive would
++    // block a new recruit during that brief unresolved window even
++    // though a slot is, functionally, already free.
++    if (this.party.filter((a) => a.alive).length >= MAX_PARTY_ALLIES) return null;
+     const ally = {
+       defId,
+       name: ALLY_DEFS[defId].name,

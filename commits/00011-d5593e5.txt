@@ -1,0 +1,48 @@
+range: 07cc73ca05733eb398ddf802f5bc841e8af0f03d..d5593e56ed4b5f2086fa8b26ec46592ca2224a1d
+=== d5593e56ed4b5f2086fa8b26ec46592ca2224a1d 2026-11-06 11:53:38 +0000
+Enforce party cap: at most 3 allies (player + 3, a party of four)
+Party Cap request. recruitAlly had no limit; the player plus 3
+companions (Tyler's design) was never actually enforced anywhere.
+
+- state.js: new MAX_PARTY_ALLIES = 3. recruitAlly returns null once
+  the party already has 3 LIVING members — counted against alive
+  members specifically, not raw array length: a fallen ally stays in
+  state.party (alive: false) until the player resolves them with 'send
+  <name> home' or 'leave <name>' (both confirmed to splice them out —
+  cmdSendAllyHome/cmdLeaveAllyBody), so counting every entry regardless
+  of alive would block a new recruit during that brief unresolved
+  window even though a slot is, functionally, already free.
+- parser.js (maybeTalkToKessa): a null return no longer crashes on
+  `ally.name` or silently sets kessaRecruited — returns "Your party is
+  already full." and leaves kessaQuestReady alone, so talking to her
+  again once a slot opens actually recruits her; nothing about her own
+  offer was ever one-time to begin with.
+- arena.js (acceptHadrianOffer): the full-party check runs BEFORE either
+  pending-offer flag is cleared, not after — unlike Kessa, accepting
+  either of Hadrian's two offers is a one-time event once its flag
+  clears, so a full-party refusal has to leave the flag untouched too,
+  or the player would permanently lose him just for having a full party
+  at the wrong moment.
+- parser.js (cmdRevive): extended the existing pre-flight check (already
+  there to avoid spending a revival item/favor on a doomed recruitAlly
+  call) with the same full-party condition, so a full party costs
+  nothing here either.
+
+Verified with an 8-case functional test (synthetic test-ally defs stand
+in for a 3rd/4th recruit, since only Kessa and Hadrian exist as real
+named allies today): the 4th recruit is refused and the party stays at
+3; Kessa's and Hadrian's refusals both leave their own recruitment path
+retryable once a slot frees up; cmdRevive spends nothing on a full-party
+refusal; a fallen-but-unresolved ally doesn't block a different slot;
+recruiting with room still works unchanged. Existing downed-system
+(17/17), ally-protection (9/9), and Injury-System (24/24) ledgers plus
+tools/audit.js all stay clean.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/arena.js  | 19 +++++++++++++------
+ js/engine/parser.js | 16 ++++++++++++++++
+ js/engine/state.js  | 25 ++++++++++++++++++++++---
+ 3 files changed, 51 insertions(+), 9 deletions(-)
