@@ -1,0 +1,2794 @@
+[
+ {
+  "reg": "LOOT_BY_TIER",
+  "id": "2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "16",
+    "new": "a bronze compass pendant"
+   },
+   {
+    "f": "17",
+    "new": "a caravan escort's shield"
+   },
+   {
+    "f": "18",
+    "new": "a caravan guard saber"
+   },
+   {
+    "f": "19",
+    "new": "a falconer's hunting spear"
+   },
+   {
+    "f": "20",
+    "new": "a guild craftsman's ring"
+   },
+   {
+    "f": "21",
+    "new": "a huntsman's helm"
+   },
+   {
+    "f": "22",
+    "new": "a legion infantry helm"
+   },
+   {
+    "f": "23",
+    "new": "a legion scale harness"
+   },
+   {
+    "f": "24",
+    "new": "a merchant's ledger ring"
+   },
+   {
+    "f": "25",
+    "new": "a merchant's wax seal"
+   },
+   {
+    "f": "26",
+    "new": "a militia sergeant's sword"
+   },
+   {
+    "f": "27",
+    "new": "a smith's schematic for a reinforced field kit"
+   },
+   {
+    "f": "28",
+    "new": "a vanguard oath ring"
+   },
+   {
+    "f": "29",
+    "new": "an ashguard helm"
+   },
+   {
+    "f": "30",
+    "new": "an iron measuring rod"
+   },
+   {
+    "f": "31",
+    "new": "courier's riding boots"
+   },
+   {
+    "f": "32",
+    "new": "craftsman's calipers"
+   },
+   {
+    "f": "33",
+    "new": "falconer's gloves"
+   }
+  ]
+ },
+ {
+  "reg": "LOOT_BY_TIER",
+  "id": "3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "12",
+    "new": "a barkweave vest"
+   },
+   {
+    "f": "13",
+    "new": "a bastion axe"
+   },
+   {
+    "f": "14",
+    "new": "a beast ward shield"
+   },
+   {
+    "f": "15",
+    "new": "a beastslayer spear"
+   },
+   {
+    "f": "16",
+    "new": "a boarding pike"
+   },
+   {
+    "f": "17",
+    "new": "a border scout spear"
+   },
+   {
+    "f": "18",
+    "new": "a branchguard spear"
+   },
+   {
+    "f": "19",
+    "new": "a breacher's plate"
+   },
+   {
+    "f": "20",
+    "new": "a canopy guard shield"
+   },
+   {
+    "f": "21",
+    "new": "a canopy vest"
+   },
+   {
+    "f": "22",
+    "new": "a captain's buckler"
+   },
+   {
+    "f": "23",
+    "new": "a captain's signal whistle"
+   },
+   {
+    "f": "24",
+    "new": "a caravan captain's vest"
+   },
+   {
+    "f": "25",
+    "new": "a citadel spear"
+   },
+   {
+    "f": "26",
+    "new": "a coastguard buckler"
+   },
+   {
+    "f": "27",
+    "new": "a courier's band"
+   },
+   {
+    "f": "28",
+    "new": "a courier's jacket"
+   },
+   {
+    "f": "29",
+    "new": "a courier's kite shield"
+   },
+   {
+    "f": "30",
+    "new": "a desert route band"
+   },
+   {
+    "f": "31",
+    "new": "a desert veil"
+   },
+   {
+    "f": "32",
+    "new": "a dispatch dagger"
+   },
+   {
+    "f": "33",
+    "new": "a dispatch satchel"
+   },
+   {
+    "f": "34",
+    "new": "a dune spear"
+   },
+   {
+    "f": "35",
+    "new": "a dustcloak of the deep roads"
+   },
+   {
+    "f": "36",
+    "new": "a family crest chain"
+   },
+   {
+    "f": "37",
+    "new": "a forge harness"
+   },
+   {
+    "f": "38",
+    "new": "a furnace bulwark"
+   },
+   {
+    "f": "39",
+    "new": "a gem inspector's hammer"
+   },
+   {
+    "f": "40",
+    "new": "a granite helm"
+   },
+   {
+    "f": "41",
+    "new": "a guild caravan spear"
+   },
+   {
+    "f": "42",
+    "new": "a guild courier's coat"
+   },
+   {
+    "f": "43",
+    "new": "a guild dispatch cloak"
+   },
+   {
+    "f": "44",
+    "new": "a guild escort shield"
+   },
+   {
+    "f": "45",
+    "new": "a harbor officer's jacket"
+   },
+   {
+    "f": "46",
+    "new": "a harbor shield"
+   },
+   {
+    "f": "47",
+    "new": "a hunter's hood"
+   },
+   {
+    "f": "48",
+    "new": "a leafwatch hood"
+   },
+   {
+    "f": "49",
+    "new": "a legion field command cloak"
+   },
+   {
+    "f": "50",
+    "new": "a legion formation spear"
+   },
+   {
+    "f": "51",
+    "new": "a living bark buckler"
+   },
+   {
+    "f": "52",
+    "new": "a living branch spear"
+   },
+   {
+    "f": "53",
+    "new": "a long watch band"
+   },
+   {
+    "f": "54",
+    "new": "a navigator's band"
+   },
+   {
+    "f": "55",
+    "new": "a noble duelist's rapier"
+   },
+   {
+    "f": "56",
+    "new": "a noble house chain"
+   },
+   {
+    "f": "57",
+    "new": "a noble huntsman's longbow"
+   },
+   {
+    "f": "58",
+    "new": "a noble riding helm"
+   },
+   {
+    "f": "59",
+    "new": "a noble signet ring"
+   },
+   {
+    "f": "60",
+    "new": "a quarry shield"
+   },
+   {
+    "f": "61",
+    "new": "a ranger's leaf ring"
+   },
+   {
+    "f": "62",
+    "new": "a reinforced mantlet shield"
+   },
+   {
+    "f": "63",
+    "new": "a roadwarden helm"
+   },
+   {
+    "f": "64",
+    "new": "a roadwarden spear"
+   },
+   {
+    "f": "65",
+    "new": "a sandwarden helm"
+   },
+   {
+    "f": "66",
+    "new": "a scout corps recurve"
+   },
+   {
+    "f": "67",
+    "new": "a scout hood"
+   },
+   {
+    "f": "68",
+    "new": "a sea wind cloak"
+   },
+   {
+    "f": "69",
+    "new": "a silent pike"
+   },
+   {
+    "f": "70",
+    "new": "a stained page of Kabal apothecary notes"
+   },
+   {
+    "f": "71",
+    "new": "a stonewright torque"
+   },
+   {
+    "f": "72",
+    "new": "a storm helm"
+   },
+   {
+    "f": "73",
+    "new": "a sunshield buckler"
+   },
+   {
+    "f": "74",
+    "new": "a surveyor's cloak"
+   },
+   {
+    "f": "75",
+    "new": "a surveyor's compass"
+   },
+   {
+    "f": "76",
+    "new": "a tempest spear"
+   },
+   {
+    "f": "77",
+    "new": "a tempest torque"
+   },
+   {
+    "f": "78",
+    "new": "a thornrunner bow"
+   },
+   {
+    "f": "79",
+    "new": "a thornwoven bow"
+   },
+   {
+    "f": "80",
+    "new": "a tracker's helm"
+   },
+   {
+    "f": "81",
+    "new": "a trail warden's targe"
+   },
+   {
+    "f": "82",
+    "new": "a vanguard great helm"
+   },
+   {
+    "f": "83",
+    "new": "a vanguard tower shield"
+   },
+   {
+    "f": "84",
+    "new": "a vanguard war maul"
+   },
+   {
+    "f": "85",
+    "new": "a waymaster's helm"
+   },
+   {
+    "f": "86",
+    "new": "a white visor"
+   },
+   {
+    "f": "87",
+    "new": "a white watch buckler"
+   },
+   {
+    "f": "88",
+    "new": "a willow spear"
+   },
+   {
+    "f": "89",
+    "new": "a woven bark shield"
+   },
+   {
+    "f": "90",
+    "new": "an appraiser's coat"
+   },
+   {
+    "f": "91",
+    "new": "an ashfall mantle"
+   },
+   {
+    "f": "92",
+    "new": "an elderleaf hood"
+   },
+   {
+    "f": "93",
+    "new": "an elderwood band"
+   },
+   {
+    "f": "94",
+    "new": "an ember pike"
+   },
+   {
+    "f": "95",
+    "new": "an inspector's buckler"
+   },
+   {
+    "f": "96",
+    "new": "ancient root boots"
+   },
+   {
+    "f": "97",
+    "new": "barkwoven wraps"
+   },
+   {
+    "f": "98",
+    "new": "caravan guard gloves"
+   },
+   {
+    "f": "99",
+    "new": "coastwarden mail"
+   },
+   {
+    "f": "100",
+    "new": "deckrunner boots"
+   },
+   {
+    "f": "101",
+    "new": "deepdelver greaves"
+   },
+   {
+    "f": "102",
+    "new": "demolition gauntlets"
+   },
+   {
+    "f": "103",
+    "new": "dispatch wraps"
+   },
+   {
+    "f": "104",
+    "new": "forge gauntlets"
+   },
+   {
+    "f": "105",
+    "new": "foundation boots"
+   },
+   {
+    "f": "106",
+    "new": "grovekeeper wraps"
+   },
+   {
+    "f": "107",
+    "new": "guild road boots"
+   },
+   {
+    "f": "108",
+    "new": "helmsman's gloves"
+   },
+   {
+    "f": "109",
+    "new": "inspector's boots"
+   },
+   {
+    "f": "110",
+    "new": "iron march greaves"
+   },
+   {
+    "f": "111",
+    "new": "legion relay boots"
+   },
+   {
+    "f": "112",
+    "new": "legion shieldbearer's gauntlets"
+   },
+   {
+    "f": "113",
+    "new": "mason's gauntlets"
+   },
+   {
+    "f": "114",
+    "new": "mason's stone gloves"
+   },
+   {
+    "f": "115",
+    "new": "messenger's riding boots"
+   },
+   {
+    "f": "116",
+    "new": "mossstep boots"
+   },
+   {
+    "f": "117",
+    "new": "mountain mail"
+   },
+   {
+    "f": "118",
+    "new": "oasis boots"
+   },
+   {
+    "f": "119",
+    "new": "pathfinder wraps"
+   },
+   {
+    "f": "120",
+    "new": "precision grips"
+   },
+   {
+    "f": "121",
+    "new": "ranger boots"
+   },
+   {
+    "f": "122",
+    "new": "reinforced assault gauntlets"
+   },
+   {
+    "f": "123",
+    "new": "royal escort mail"
+   },
+   {
+    "f": "124",
+    "new": "scout leather"
+   },
+   {
+    "f": "125",
+    "new": "tempest gauntlets"
+   },
+   {
+    "f": "126",
+    "new": "tracker's boots"
+   },
+   {
+    "f": "127",
+    "new": "vine archer gloves"
+   },
+   {
+    "f": "128",
+    "new": "white march boots"
+   }
+  ]
+ },
+ {
+  "reg": "LOOT_BY_TIER",
+  "id": "4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "4",
+    "new": "a chancellor's signet"
+   },
+   {
+    "f": "5",
+    "new": "a grovekeeper bow"
+   },
+   {
+    "f": "6",
+    "new": "a high magistrate's ceremonial blade"
+   },
+   {
+    "f": "7",
+    "new": "a master fletcher's marking knife"
+   },
+   {
+    "f": "8",
+    "new": "a master smith's hammer charm"
+   },
+   {
+    "f": "9",
+    "new": "a noble officer's helm"
+   },
+   {
+    "f": "10",
+    "new": "a silver court rapier"
+   },
+   {
+    "f": "11",
+    "new": "a silver parade shield"
+   },
+   {
+    "f": "12",
+    "new": "an elder bark staff"
+   },
+   {
+    "f": "13",
+    "new": "an elder canopy cloak"
+   },
+   {
+    "f": "14",
+    "new": "an embroidered magistrate's mantle"
+   },
+   {
+    "f": "15",
+    "new": "an embroidered noble cloak"
+   },
+   {
+    "f": "16",
+    "new": "champion's duel gloves"
+   }
+  ]
+ },
+ {
+  "reg": "LOOT_BY_TIER",
+  "id": "5",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "3",
+    "new": "a chancellor's signet"
+   },
+   {
+    "f": "4",
+    "new": "a grovekeeper bow"
+   },
+   {
+    "f": "5",
+    "new": "a high magistrate's ceremonial blade"
+   },
+   {
+    "f": "6",
+    "new": "a master fletcher's marking knife"
+   },
+   {
+    "f": "7",
+    "new": "a master smith's hammer charm"
+   },
+   {
+    "f": "8",
+    "new": "a noble officer's helm"
+   },
+   {
+    "f": "9",
+    "new": "a silver court rapier"
+   },
+   {
+    "f": "10",
+    "new": "a silver parade shield"
+   },
+   {
+    "f": "11",
+    "new": "an elder bark staff"
+   },
+   {
+    "f": "12",
+    "new": "an elder canopy cloak"
+   },
+   {
+    "f": "13",
+    "new": "an embroidered magistrate's mantle"
+   },
+   {
+    "f": "14",
+    "new": "an embroidered noble cloak"
+   },
+   {
+    "f": "15",
+    "new": "champion's duel gloves"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Dawnbloom Branch",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Verdant Aegis",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Raiment of Endless Spring",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Verdant Promise",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sandals of Living Roots",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Seed of First Dawn",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Lantern of Quiet Passage",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veil of the Ferryman",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vestments of Silent Repose",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Last Breath",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Gravewalker's Sandals",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Coin of the Ferryman",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Loom of Destinies",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Threadkeeper's Spindle",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Robes of the Infinite Tapestry",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Unbroken Consequence",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boots of the Hidden Path",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Silver Thread of Veylana",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Warfather's Edge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Bulwark of Champions",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Armor of the First Legion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Conquest",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Gauntlets of the Unyielding",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "General's Standard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Codex of Infinite Horizons",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Librarian's Ward",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vestments of the First Scholar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Boundless Inquiry",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Gloves of Careful Script",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scholar's Seal",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Roseheart Scepter",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Heartward Embrace",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vestments of Boundless Devotion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Sacred Vows",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Cloak of Gentle Light",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Bloom of Devotion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Trickster's Cane",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Coincatcher's Buckler",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Garments of the Wandering Breeze",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Lucky Misfortune",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boots of the Wandering Wind",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Gambler's Coin",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Foundation's Hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ageless Bulwark",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Stonewarden Plate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Immutable Law",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Stillwarden Greaves",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Keystone of Endurance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Galecaller",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Wayfinder's Compass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Mantle of Wandering Skies",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Far Horizons",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Windstep Boots",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Feather of the First Wind",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Forgefather's Hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Forgeguard Buckler",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Forge Master's Apron",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Endless Labor",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Smith's Grasp",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Embercore",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Tidecaller",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Shell of the Deep",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vestments of the Endless Sea",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Gentle Rain",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sandals of the River",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Pearl of Serenity",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Epochkeeper",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Chronal Dial",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Robes of Endless Record",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of Measured Fate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sandals of the Unbroken Path",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sands of the Last Hour",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "devotion_quest"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Duskfang Veilknife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Nightmarket Shadowcoat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veilrunner Mantle",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Nightglass Fang",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scorpion-Tail Shiv",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Black-Silk Executioner's Coat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Hands of the Hidden Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Underworld Blood-Signet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Mantle of the Last Witness",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Cutthroat's Black Token",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Outlaw Command Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Plundered Sunward Buckler",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Captain's Duneplate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Bandit Chieftain Signet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scourge of the Sandroads",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Blood-Iron Warlord Crown",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scavenged Warlord Warplate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reaver Grips",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ring of the Plunder-King",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Bloodstorm Battlecloak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Veteran's Helm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sellsword's Contract Band",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Oathsteel Contract Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran's Silverguard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Indemnity Warcoat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Mercenary Oath Chain",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Campaigner's Blade Chain",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sunclan Warleader's Khopesh",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Oathwoven Tribal Warcoat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Desert Kinship Torque",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Marshal's Warblade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marshal's Indemnity Plate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Commander's Bond Signet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Contract Seal",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Ward Helm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Guard Oath Signet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Lord Bastion Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Reinforced Lord's Aegis",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Lord's Guard Cuirass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Bulwark Gauntlets",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Lord Suppression Seal",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Captain's Edict Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Lord Captain's Helm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Lord Command Plate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Captain's Authority Signet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Oathbound Shieldhammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Lord's Grand Shield",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Shieldmaster Plate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Fedahl Veteran Visor",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sahrimori Vigil Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Fedahl Battle Guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Fedahl Campaign Cuirass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Fedahl Service Ring",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Filhari Elephant Goad",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Filhari Harness Guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Filhari Rider Lamellar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "War Elephant Battle Crest",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Akharul Venom-Lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Akharu Riding Harness",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Akharul Scorpion Rider Scale",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Qahir Field Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Qahir Officer Helm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Qahir Command Harness",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Qahir Signet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Amahri Marshal Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Amahri Guard Buckler",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Amahri Field Plate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Amahri Command Ring",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sardarr War Scimitar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sardarr Command Shield",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sardarr War Helm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sardarr Command Plate",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sardarr Standard Gauntlets",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sardarr Signet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "High Command Torc",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Command Banner Fragment",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Cutthroat's Blade V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Captain's Reinforced Armor",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Captain's Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Roadlord's War Helm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Roadlord's Reinforced Cuirass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Roadlord's Veteran Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Cuirass V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Blade V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Tower Shield V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Armor V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gladius V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Shield V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ductus Command Sword V2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Commander Armor",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vigilis Command Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius War Helm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Senior Commander Cuirass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius Command Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Imperial Command Shield",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master City Guard Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master Contract Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Free Company Command Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Champion Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Warleader's Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "monster",
+    "new": "enemy_gear"
+   }
+  ]
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "5",
+  "type": "removed"
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "6",
+  "type": "removed"
+ },
+ {
+  "reg": "COMBAT_LOOT_POOL",
+  "id": "8",
+  "type": "removed"
+ },
+ {
+  "reg": "REGIONAL_LOOT_POOL",
+  "id": "sanguivorum",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "5",
+    "old": [
+     "Highway Cutthroat's Blade V3",
+     "Captain's Reinforced Armor",
+     "Highway Captain's Sword",
+     "Roadlord's War Helm",
+     "Veteran Cuirass V3",
+     "Veteran Legion Blade V3",
+     "Veteran Tower Shield V3",
+     "Veteran Legion Armor V3",
+     "Veteran Gladius V3",
+     "Veteran Shield V3",
+     "Ductus Command Sword V2",
+     "Commander Armor",
+     "Vigilis Command Sword",
+     "Arbitarius War Helm",
+     "Imperial Command Shield",
+     "Master City Guard Sword",
+     "Master Contract Blade",
+     "Free Company Command Sword",
+     "Ovum Champion Sword",
+     "Militia Warleader's Sword"
+    ]
+   },
+   {
+    "f": "6",
+    "old": [
+     "Roadlord's Reinforced Cuirass",
+     "Roadlord's Veteran Blade",
+     "Senior Commander Cuirass",
+     "Arbitarius Command Blade"
+    ]
+   }
+  ]
+ }
+]

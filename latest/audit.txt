@@ -1,5 +1,8 @@
 
-WARNINGS (73)
+ERRORS (1)
+  [item-source] R2: 10 item(s) with a live source nothing actually reaches: Ascended Bloodbound Champion's Maul (companion), Ascended Bloodbound Champion Helm (companion), Ascended Bloodbound Champion Cuirass (companion), Ascended Bloodbound Champion Gauntlets (companion), Ascended Bloodbound Champion Boots (companion), Ascended Crimson Champion's Sash (companion), The Roll of the Ferratum (companion), Astra Sa'Lahru's Broken Crest (companion), smelling salts (crafted), a field splint kit (crafted)
+
+WARNINGS (72)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -72,6 +75,7 @@ WARNINGS (73)
   [ability] passive artificial_construct (trigger "elementalResist") is on 1 creature(s) but no engine code handles that trigger — inert
   [ability] passive guardian_directive (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
   [ability] passive arcane_reflection (trigger "firstMagicalHitPerRoundReduction") is on 1 creature(s) but no engine code handles that trigger — inert
-  [items] 622/1865 items have no acquisition path — by source: {"contract":245,"faction":70,"job":145,"world_boss":20,"hidden_dungeon":3,"quest":10,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"monster":71}
 
-0 error(s), 73 warning(s) across 47 scripts.
+[items] live-reachable: 1358/1865; reserved: 497 ({"contract":263,"faction":70,"world_boss (unworn)":20,"hidden_dungeon":3,"quest":11,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"devotion_quest":72}); R2 violations: 10
+
+1 error(s), 72 warning(s) across 47 scripts.
