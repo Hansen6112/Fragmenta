@@ -19,25 +19,58 @@
  * `source` says where an item can be acquired, and gates which pool(s) it
  * shows up in — it's what keeps "a short sword" (an Origin's starting
  * kit) from raining out of a dead Stoneback Beetle, and keeps a guild's
- * capstone reward from also turning up as random loot:
- *   - "starter"  — Origin starting kits only, never dropped
- *   - "job"      — data/jobs.js LOOT_BY_TIER only, never dropped by combat
- *   - "contract" — a specific hand-authored guild contract, one-off
- *   - "monster"  — the general random combat-kill loot table (see
- *                  COMBAT_LOOT_POOL / rollCreatureLoot below)
- *   - "shop"     — buyable at a location whose services list "shop" (see
- *                  engine/shop.js for stock eligibility/pricing/refresh).
- *   - "faction"  — reserved for a future reputation/faction-reward system.
- *                  Tagged for when that exists; not obtainable today.
- * "contract" items beyond the two Legendary capstones below are similarly
- * reserved (tagged for a future hand-authored contract) rather than
- * auto-attached to one of the existing six guild contracts, which already
- * have their own loot assigned.
+ * capstone reward from also turning up as random loot. Live sources (real
+ * delivery code exists) as of the Loot Reachability Fixes (v2):
+ *   - "starter"       — Origin starting kits only, never dropped
+ *   - "job"           — data/jobs.js LOOT_BY_TIER / REGIONAL_JOB_LOOT_POOL
+ *                        only, never dropped by combat
+ *   - "monster"       — wildlife's general random combat-kill loot table
+ *                        (COMBAT_LOOT_POOL / REGIONAL_LOOT_POOL below),
+ *                        capped at tier 4 — a "monster" item above that
+ *                        cap is a bug (tools/audit.js's R3 catches it).
+ *   - "enemy_gear"    — a specific humanoid's own worn equipment
+ *                        (BESTIARY `equipment`/`equipmentBands`); dropped
+ *                        only by that creature, one random piece per kill
+ *                        (rollCreatureLoot's worn-gear path, below), never
+ *                        from the general wildlife pools.
+ *   - "world_boss"    — same worn-gear path as "enemy_gear", for a world
+ *                        boss's own kit (Dregnar Ashvein's 10 pieces).
+ *                        An item tagged "world_boss" that nothing actually
+ *                        wears is reserved, not live — see below.
+ *   - "shop"          — buyable at a location whose services list "shop"
+ *                        (see engine/shop.js for stock eligibility/pricing).
+ *   - "arena"/"arena_champion" — the Grand Ovum's own bonus-loot pools
+ *                        (engine/arena.js), separate from kill loot.
+ *   - "crafted"       — a recipe or schematic output (data/recipes.js /
+ *                        data/schematics.js).
+ *   - "companion"     — part of a specific ally's own starting equipment
+ *                        (data/allies.js ALLY_DEFS), never dropped.
+ * Reserved sources (tagged for a system that isn't built yet; not
+ * obtainable today, and NOT errors on their own):
+ *   - "contract"        — a future hand-authored guild contract, beyond
+ *                          the six existing contracts' own assigned loot.
+ *   - "faction"         — a future reputation/faction-reward system.
+ *   - "devotion_quest"  — the 12 gods' own devotion-tracker quest system
+ *                          (Divine Regalia, tier 8 — see below).
+ *   - "world_boss" items nobody wears — a world boss planned but not yet
+ *     added to the roster.
+ *   - the placeholder content sources (quest/secret_quest/hidden_quest/
+ *     legendary_quest/exploration/dungeon/hidden_dungeon/puzzle_dungeon/
+ *     ancient_vault/hidden_vault/hidden_temple/ancient_temple/
+ *     ancient_titan/forgotten_library/lost_capital/ancient_fortress/
+ *     hidden_river_shrine/hidden_archive/secret_encounter) — each one
+ *     the stand-in name for a specific not-yet-built dungeon/quest/vault,
+ *     not a real category of its own.
+ * tools/audit.js's item-source check enforces this live/reserved split
+ * (R1: an unrecognized source; R2: a live source whose real path doesn't
+ * reach the item; R3: the monster tier-4 cap above).
  *
- * Tier 5 (Legendary, +8) is never in the "monster" or "job" pools — it's
- * reserved for two hand-authored guild-contract capstone rewards (the
- * difficulty-5 Mugamiir Safor and Magma-Hearth contracts), so it stays
- * rare and story-tied rather than a normal drop.
+ * Tier 8 (Divine Regalia) is "devotion_quest"-sourced, not "monster" —
+ * each god's 6-piece set is the reward for maxing that god's devotion
+ * tracker, a system that doesn't exist yet. It never enters
+ * COMBAT_LOOT_POOL (there is no tier 8 there at all), so tagging it
+ * "monster" would have been silently unreachable — exactly what it was
+ * before this fix.
  *
  * An entry may also carry an `effects: [...]` array of ids from
  * data/effects.js — a separate, non-tier-scaled layer of fixed-magnitude
@@ -1726,104 +1759,104 @@ const ITEM_DEFS = {
   // broken out per-piece the way Legendary/Mythic/Artifact items were —
   // these are presented as a cohesive drop set, so "monster" (the same
   // convention every earlier gear SET used) covers all six.
-  "Dawnbloom Branch": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["living_current"], source: "monster", set: "Regalia of the First Bloom" },
-  "Verdant Aegis": { slot: "offhand", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["rooted_resolve"], source: "monster", set: "Regalia of the First Bloom" },
-  "Raiment of Endless Spring": { slot: "chest", tier: 8, bonuses: { health: 12, magic: 4 }, effects: ["flourishing_soul"], source: "monster", set: "Regalia of the First Bloom" },
-  "Ring of Verdant Promise": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["seedbearer"], source: "monster", set: "Regalia of the First Bloom" },
-  "Sandals of Living Roots": { slot: "boots", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["natures_persistence"], source: "monster", set: "Regalia of the First Bloom" },
-  "Seed of First Dawn": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["endless_bloom"], source: "monster", set: "Regalia of the First Bloom" },
+  "Dawnbloom Branch": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["living_current"], source: "devotion_quest", set: "Regalia of the First Bloom" },
+  "Verdant Aegis": { slot: "offhand", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["rooted_resolve"], source: "devotion_quest", set: "Regalia of the First Bloom" },
+  "Raiment of Endless Spring": { slot: "chest", tier: 8, bonuses: { health: 12, magic: 4 }, effects: ["flourishing_soul"], source: "devotion_quest", set: "Regalia of the First Bloom" },
+  "Ring of Verdant Promise": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["seedbearer"], source: "devotion_quest", set: "Regalia of the First Bloom" },
+  "Sandals of Living Roots": { slot: "boots", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["natures_persistence"], source: "devotion_quest", set: "Regalia of the First Bloom" },
+  "Seed of First Dawn": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["endless_bloom"], source: "devotion_quest", set: "Regalia of the First Bloom" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Final Veil (Mortasha) ----
-  "Lantern of Quiet Passage": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["gentle_crossing"], source: "monster", set: "Regalia of the Final Veil" },
-  "Veil of the Ferryman": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["between_worlds"], source: "monster", set: "Regalia of the Final Veil" },
-  "Vestments of Silent Repose": { slot: "chest", tier: 8, bonuses: { def: 12, magic: 4 }, effects: ["rest_eternal"], source: "monster", set: "Regalia of the Final Veil" },
-  "Ring of Last Breath": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["passing_whisper"], source: "monster", set: "Regalia of the Final Veil" },
-  "Gravewalker's Sandals": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calm_beyond_fear"], source: "monster", set: "Regalia of the Final Veil" },
-  "Coin of the Ferryman": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["soul_ledger"], source: "monster", set: "Regalia of the Final Veil" },
+  "Lantern of Quiet Passage": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["gentle_crossing"], source: "devotion_quest", set: "Regalia of the Final Veil" },
+  "Veil of the Ferryman": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["between_worlds"], source: "devotion_quest", set: "Regalia of the Final Veil" },
+  "Vestments of Silent Repose": { slot: "chest", tier: 8, bonuses: { def: 12, magic: 4 }, effects: ["rest_eternal"], source: "devotion_quest", set: "Regalia of the Final Veil" },
+  "Ring of Last Breath": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["passing_whisper"], source: "devotion_quest", set: "Regalia of the Final Veil" },
+  "Gravewalker's Sandals": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calm_beyond_fear"], source: "devotion_quest", set: "Regalia of the Final Veil" },
+  "Coin of the Ferryman": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["soul_ledger"], source: "devotion_quest", set: "Regalia of the Final Veil" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Woven Thread (Veylana) ----
-  "Loom of Destinies": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["foreseen_strike"], source: "monster", set: "Regalia of the Woven Thread" },
-  "Threadkeeper's Spindle": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["redirected_fate"], source: "monster", set: "Regalia of the Woven Thread" },
-  "Robes of the Infinite Tapestry": { slot: "chest", tier: 8, bonuses: { knowledge: 10, def: 6 }, effects: ["threads_intertwined"], source: "monster", set: "Regalia of the Woven Thread" },
-  "Ring of Unbroken Consequence": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["every_choice_matters"], source: "monster", set: "Regalia of the Woven Thread" },
-  "Boots of the Hidden Path": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["guided_footsteps"], source: "monster", set: "Regalia of the Woven Thread" },
-  "Silver Thread of Veylana": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["weavers_insight"], source: "monster", set: "Regalia of the Woven Thread" },
+  "Loom of Destinies": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["foreseen_strike"], source: "devotion_quest", set: "Regalia of the Woven Thread" },
+  "Threadkeeper's Spindle": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["redirected_fate"], source: "devotion_quest", set: "Regalia of the Woven Thread" },
+  "Robes of the Infinite Tapestry": { slot: "chest", tier: 8, bonuses: { knowledge: 10, def: 6 }, effects: ["threads_intertwined"], source: "devotion_quest", set: "Regalia of the Woven Thread" },
+  "Ring of Unbroken Consequence": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["every_choice_matters"], source: "devotion_quest", set: "Regalia of the Woven Thread" },
+  "Boots of the Hidden Path": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["guided_footsteps"], source: "devotion_quest", set: "Regalia of the Woven Thread" },
+  "Silver Thread of Veylana": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["weavers_insight"], source: "devotion_quest", set: "Regalia of the Woven Thread" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Crimson Vanguard (Kar'Mhal) ----
-  "Warfather's Edge": { slot: "mainhand", tier: 8, bonuses: { atk: 12, def: 4 }, effects: ["worthy_challenge"], source: "monster", set: "Regalia of the Crimson Vanguard" },
-  "Bulwark of Champions": { slot: "offhand", tier: 8, bonuses: { def: 12, atk: 4 }, effects: ["unbroken_line"], source: "monster", set: "Regalia of the Crimson Vanguard" },
-  "Armor of the First Legion": { slot: "chest", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["battle_tempered"], source: "monster", set: "Regalia of the Crimson Vanguard" },
-  "Ring of Conquest": { slot: "rings", tier: 8, bonuses: { atk: 10, knowledge: 6 }, effects: ["victors_momentum"], source: "monster", set: "Regalia of the Crimson Vanguard" },
-  "Gauntlets of the Unyielding": { slot: "gloves", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["clash_of_steel"], source: "monster", set: "Regalia of the Crimson Vanguard" },
-  "General's Standard": { slot: "trinkets", tier: 8, bonuses: { atk: 8, def: 8 }, effects: ["rally_the_line"], source: "monster", set: "Regalia of the Crimson Vanguard" },
+  "Warfather's Edge": { slot: "mainhand", tier: 8, bonuses: { atk: 12, def: 4 }, effects: ["worthy_challenge"], source: "devotion_quest", set: "Regalia of the Crimson Vanguard" },
+  "Bulwark of Champions": { slot: "offhand", tier: 8, bonuses: { def: 12, atk: 4 }, effects: ["unbroken_line"], source: "devotion_quest", set: "Regalia of the Crimson Vanguard" },
+  "Armor of the First Legion": { slot: "chest", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["battle_tempered"], source: "devotion_quest", set: "Regalia of the Crimson Vanguard" },
+  "Ring of Conquest": { slot: "rings", tier: 8, bonuses: { atk: 10, knowledge: 6 }, effects: ["victors_momentum"], source: "devotion_quest", set: "Regalia of the Crimson Vanguard" },
+  "Gauntlets of the Unyielding": { slot: "gloves", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["clash_of_steel"], source: "devotion_quest", set: "Regalia of the Crimson Vanguard" },
+  "General's Standard": { slot: "trinkets", tier: 8, bonuses: { atk: 8, def: 8 }, effects: ["rally_the_line"], source: "devotion_quest", set: "Regalia of the Crimson Vanguard" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Endless Archive (Ithrien) ----
-  "Codex of Infinite Horizons": { slot: "mainhand", tier: 8, bonuses: { magic: 12, knowledge: 4 }, effects: ["endless_study"], source: "monster", set: "Regalia of the Endless Archive" },
-  "Librarian's Ward": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["prepared_response"], source: "monster", set: "Regalia of the Endless Archive" },
-  "Vestments of the First Scholar": { slot: "chest", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["expanding_mind"], source: "monster", set: "Regalia of the Endless Archive" },
-  "Ring of Boundless Inquiry": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["eureka"], source: "monster", set: "Regalia of the Endless Archive" },
-  "Gloves of Careful Script": { slot: "gloves", tier: 8, bonuses: { knowledge: 8, def: 8 }, effects: ["precision_formula"], source: "monster", set: "Regalia of the Endless Archive" },
-  "Scholar's Seal": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["archive_eternal"], source: "monster", set: "Regalia of the Endless Archive" },
+  "Codex of Infinite Horizons": { slot: "mainhand", tier: 8, bonuses: { magic: 12, knowledge: 4 }, effects: ["endless_study"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
+  "Librarian's Ward": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["prepared_response"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
+  "Vestments of the First Scholar": { slot: "chest", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["expanding_mind"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
+  "Ring of Boundless Inquiry": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["eureka"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
+  "Gloves of Careful Script": { slot: "gloves", tier: 8, bonuses: { knowledge: 8, def: 8 }, effects: ["precision_formula"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
+  "Scholar's Seal": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["archive_eternal"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Eternal Heart (Seressa) ----
-  "Roseheart Scepter": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["compassions_grace"], source: "monster", set: "Regalia of the Eternal Heart" },
-  "Heartward Embrace": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["shared_burden"], source: "monster", set: "Regalia of the Eternal Heart" },
-  "Vestments of Boundless Devotion": { slot: "chest", tier: 8, bonuses: { health: 12, magic: 4 }, effects: ["unwavering_devotion"], source: "monster", set: "Regalia of the Eternal Heart" },
-  "Ring of Sacred Vows": { slot: "rings", tier: 8, bonuses: { health: 8, magic: 8 }, effects: ["faithful_heart"], source: "monster", set: "Regalia of the Eternal Heart" },
-  "Cloak of Gentle Light": { slot: "cloak", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calming_presence"], source: "monster", set: "Regalia of the Eternal Heart" },
-  "Bloom of Devotion": { slot: "trinkets", tier: 8, bonuses: { health: 10, knowledge: 6 }, effects: ["love_endures"], source: "monster", set: "Regalia of the Eternal Heart" },
+  "Roseheart Scepter": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["compassions_grace"], source: "devotion_quest", set: "Regalia of the Eternal Heart" },
+  "Heartward Embrace": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["shared_burden"], source: "devotion_quest", set: "Regalia of the Eternal Heart" },
+  "Vestments of Boundless Devotion": { slot: "chest", tier: 8, bonuses: { health: 12, magic: 4 }, effects: ["unwavering_devotion"], source: "devotion_quest", set: "Regalia of the Eternal Heart" },
+  "Ring of Sacred Vows": { slot: "rings", tier: 8, bonuses: { health: 8, magic: 8 }, effects: ["faithful_heart"], source: "devotion_quest", set: "Regalia of the Eternal Heart" },
+  "Cloak of Gentle Light": { slot: "cloak", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["calming_presence"], source: "devotion_quest", set: "Regalia of the Eternal Heart" },
+  "Bloom of Devotion": { slot: "trinkets", tier: 8, bonuses: { health: 10, knowledge: 6 }, effects: ["love_endures"], source: "devotion_quest", set: "Regalia of the Eternal Heart" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Laughing Gale (Nystros) ----
-  "Trickster's Cane": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["loaded_dice"], source: "monster", set: "Regalia of the Laughing Gale" },
-  "Coincatcher's Buckler": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["fortunes_favor"], source: "monster", set: "Regalia of the Laughing Gale" },
-  "Garments of the Wandering Breeze": { slot: "chest", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["winds_of_change"], source: "monster", set: "Regalia of the Laughing Gale" },
-  "Ring of Lucky Misfortune": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["unlikely_outcome"], source: "monster", set: "Regalia of the Laughing Gale" },
-  "Boots of the Wandering Wind": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["never_where_expected"], source: "monster", set: "Regalia of the Laughing Gale" },
-  "Gambler's Coin": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["double_or_nothing"], source: "monster", set: "Regalia of the Laughing Gale" },
+  "Trickster's Cane": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["loaded_dice"], source: "devotion_quest", set: "Regalia of the Laughing Gale" },
+  "Coincatcher's Buckler": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["fortunes_favor"], source: "devotion_quest", set: "Regalia of the Laughing Gale" },
+  "Garments of the Wandering Breeze": { slot: "chest", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["winds_of_change"], source: "devotion_quest", set: "Regalia of the Laughing Gale" },
+  "Ring of Lucky Misfortune": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["unlikely_outcome"], source: "devotion_quest", set: "Regalia of the Laughing Gale" },
+  "Boots of the Wandering Wind": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["never_where_expected"], source: "devotion_quest", set: "Regalia of the Laughing Gale" },
+  "Gambler's Coin": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["double_or_nothing"], source: "devotion_quest", set: "Regalia of the Laughing Gale" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Eternal Bastion (Xalaxar) ----
   // "Ageless Bulwark" replaces the source text's "Bulwark of Ages" — that
   // exact name is already taken by an existing Legendary-tier offhand item
   // (js/data/items.js, tier 5, "unbreakable"), and ITEM_DEFS keys must be
   // unique.
-  "Foundation's Hammer": { slot: "mainhand", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["stones_patience"], source: "monster", set: "Regalia of the Eternal Bastion" },
-  "Ageless Bulwark": { slot: "offhand", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["unyielding_wall"], source: "monster", set: "Regalia of the Eternal Bastion" },
-  "Stonewarden Plate": { slot: "chest", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["bedrock"], source: "monster", set: "Regalia of the Eternal Bastion" },
-  "Ring of Immutable Law": { slot: "rings", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["ordered_mind"], source: "monster", set: "Regalia of the Eternal Bastion" },
-  "Stillwarden Greaves": { slot: "boots", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["grounded"], source: "monster", set: "Regalia of the Eternal Bastion" },
-  "Keystone of Endurance": { slot: "trinkets", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["lasting_foundation"], source: "monster", set: "Regalia of the Eternal Bastion" },
+  "Foundation's Hammer": { slot: "mainhand", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["stones_patience"], source: "devotion_quest", set: "Regalia of the Eternal Bastion" },
+  "Ageless Bulwark": { slot: "offhand", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["unyielding_wall"], source: "devotion_quest", set: "Regalia of the Eternal Bastion" },
+  "Stonewarden Plate": { slot: "chest", tier: 8, bonuses: { def: 12, health: 4 }, effects: ["bedrock"], source: "devotion_quest", set: "Regalia of the Eternal Bastion" },
+  "Ring of Immutable Law": { slot: "rings", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["ordered_mind"], source: "devotion_quest", set: "Regalia of the Eternal Bastion" },
+  "Stillwarden Greaves": { slot: "boots", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["grounded"], source: "devotion_quest", set: "Regalia of the Eternal Bastion" },
+  "Keystone of Endurance": { slot: "trinkets", tier: 8, bonuses: { def: 8, health: 8 }, effects: ["lasting_foundation"], source: "devotion_quest", set: "Regalia of the Eternal Bastion" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Endless Horizon (Aethyra) ----
-  "Galecaller": { slot: "mainhand", tier: 8, bonuses: { atk: 10, magic: 6 }, effects: ["momentum_unbound"], source: "monster", set: "Regalia of the Endless Horizon" },
-  "Wayfinder's Compass": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["open_road"], source: "monster", set: "Regalia of the Endless Horizon" },
-  "Mantle of Wandering Skies": { slot: "chest", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["unbound_spirit"], source: "monster", set: "Regalia of the Endless Horizon" },
-  "Ring of Far Horizons": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["wanderers_reward"], source: "monster", set: "Regalia of the Endless Horizon" },
-  "Windstep Boots": { slot: "boots", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["swift_passage"], source: "monster", set: "Regalia of the Endless Horizon" },
-  "Feather of the First Wind": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["trailblazer"], source: "monster", set: "Regalia of the Endless Horizon" },
+  "Galecaller": { slot: "mainhand", tier: 8, bonuses: { atk: 10, magic: 6 }, effects: ["momentum_unbound"], source: "devotion_quest", set: "Regalia of the Endless Horizon" },
+  "Wayfinder's Compass": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["open_road"], source: "devotion_quest", set: "Regalia of the Endless Horizon" },
+  "Mantle of Wandering Skies": { slot: "chest", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["unbound_spirit"], source: "devotion_quest", set: "Regalia of the Endless Horizon" },
+  "Ring of Far Horizons": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["wanderers_reward"], source: "devotion_quest", set: "Regalia of the Endless Horizon" },
+  "Windstep Boots": { slot: "boots", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["swift_passage"], source: "devotion_quest", set: "Regalia of the Endless Horizon" },
+  "Feather of the First Wind": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["trailblazer"], source: "devotion_quest", set: "Regalia of the Endless Horizon" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Eternal Forge (Pyreith) ----
-  "Forgefather's Hammer": { slot: "mainhand", tier: 8, bonuses: { atk: 10, magic: 6 }, effects: ["tempered_steel"], source: "monster", set: "Regalia of the Eternal Forge" },
-  "Forgeguard Buckler": { slot: "offhand", tier: 8, bonuses: { def: 10, atk: 6 }, effects: ["reinforced"], source: "monster", set: "Regalia of the Eternal Forge" },
-  "Forge Master's Apron": { slot: "chest", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["crafted_perfection"], source: "monster", set: "Regalia of the Eternal Forge" },
-  "Ring of Endless Labor": { slot: "rings", tier: 8, bonuses: { atk: 8, knowledge: 8 }, effects: ["work_refines"], source: "monster", set: "Regalia of the Eternal Forge" },
-  "Smith's Grasp": { slot: "gloves", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["master_craftsman"], source: "monster", set: "Regalia of the Eternal Forge" },
-  "Embercore": { slot: "trinkets", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["living_forge"], source: "monster", set: "Regalia of the Eternal Forge" },
+  "Forgefather's Hammer": { slot: "mainhand", tier: 8, bonuses: { atk: 10, magic: 6 }, effects: ["tempered_steel"], source: "devotion_quest", set: "Regalia of the Eternal Forge" },
+  "Forgeguard Buckler": { slot: "offhand", tier: 8, bonuses: { def: 10, atk: 6 }, effects: ["reinforced"], source: "devotion_quest", set: "Regalia of the Eternal Forge" },
+  "Forge Master's Apron": { slot: "chest", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["crafted_perfection"], source: "devotion_quest", set: "Regalia of the Eternal Forge" },
+  "Ring of Endless Labor": { slot: "rings", tier: 8, bonuses: { atk: 8, knowledge: 8 }, effects: ["work_refines"], source: "devotion_quest", set: "Regalia of the Eternal Forge" },
+  "Smith's Grasp": { slot: "gloves", tier: 8, bonuses: { atk: 10, def: 6 }, effects: ["master_craftsman"], source: "devotion_quest", set: "Regalia of the Eternal Forge" },
+  "Embercore": { slot: "trinkets", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["living_forge"], source: "devotion_quest", set: "Regalia of the Eternal Forge" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Endless Tide (Aqualis) ----
-  "Tidecaller": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["flowing_waters"], source: "monster", set: "Regalia of the Endless Tide" },
-  "Shell of the Deep": { slot: "offhand", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["cleansing_current"], source: "monster", set: "Regalia of the Endless Tide" },
-  "Vestments of the Endless Sea": { slot: "chest", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["adaptive_tide"], source: "monster", set: "Regalia of the Endless Tide" },
-  "Ring of Gentle Rain": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["mercys_gift"], source: "monster", set: "Regalia of the Endless Tide" },
-  "Sandals of the River": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["patient_current"], source: "monster", set: "Regalia of the Endless Tide" },
-  "Pearl of Serenity": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["calm_waters"], source: "monster", set: "Regalia of the Endless Tide" },
+  "Tidecaller": { slot: "mainhand", tier: 8, bonuses: { magic: 10, health: 6 }, effects: ["flowing_waters"], source: "devotion_quest", set: "Regalia of the Endless Tide" },
+  "Shell of the Deep": { slot: "offhand", tier: 8, bonuses: { def: 10, health: 6 }, effects: ["cleansing_current"], source: "devotion_quest", set: "Regalia of the Endless Tide" },
+  "Vestments of the Endless Sea": { slot: "chest", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["adaptive_tide"], source: "devotion_quest", set: "Regalia of the Endless Tide" },
+  "Ring of Gentle Rain": { slot: "rings", tier: 8, bonuses: { magic: 8, health: 8 }, effects: ["mercys_gift"], source: "devotion_quest", set: "Regalia of the Endless Tide" },
+  "Sandals of the River": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["patient_current"], source: "devotion_quest", set: "Regalia of the Endless Tide" },
+  "Pearl of Serenity": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["calm_waters"], source: "devotion_quest", set: "Regalia of the Endless Tide" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Eternal Hour (Chronaeus) ----
-  "Epochkeeper": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["borrowed_seconds"], source: "monster", set: "Regalia of the Eternal Hour" },
-  "Chronal Dial": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["timeless_guard"], source: "monster", set: "Regalia of the Eternal Hour" },
-  "Robes of Endless Record": { slot: "chest", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["perfect_memory"], source: "monster", set: "Regalia of the Eternal Hour" },
-  "Ring of Measured Fate": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["moment_preserved"], source: "monster", set: "Regalia of the Eternal Hour" },
-  "Sandals of the Unbroken Path": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["unhurried_step"], source: "monster", set: "Regalia of the Eternal Hour" },
-  "Sands of the Last Hour": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["hourglass_reserve"], source: "monster", set: "Regalia of the Eternal Hour" },
+  "Epochkeeper": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["borrowed_seconds"], source: "devotion_quest", set: "Regalia of the Eternal Hour" },
+  "Chronal Dial": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["timeless_guard"], source: "devotion_quest", set: "Regalia of the Eternal Hour" },
+  "Robes of Endless Record": { slot: "chest", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["perfect_memory"], source: "devotion_quest", set: "Regalia of the Eternal Hour" },
+  "Ring of Measured Fate": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["moment_preserved"], source: "devotion_quest", set: "Regalia of the Eternal Hour" },
+  "Sandals of the Unbroken Path": { slot: "boots", tier: 8, bonuses: { def: 8, knowledge: 8 }, effects: ["unhurried_step"], source: "devotion_quest", set: "Regalia of the Eternal Hour" },
+  "Sands of the Last Hour": { slot: "trinkets", tier: 8, bonuses: { knowledge: 10, magic: 6 }, effects: ["hourglass_reserve"], source: "devotion_quest", set: "Regalia of the Eternal Hour" },
 
   // ---- Consumables — usable in or out of combat, consumed on use (see
   // useItem/applyConsumableEffect in engine/combat.js). Tiered 1-4 like
@@ -1980,29 +2013,29 @@ const ITEM_DEFS = {
   "Desert Fang Parrying Knife": { slot: "offhand", tier: 3, bonuses: { atk: 2, def: 1 }, source: "monster" },
   "Underworld Threadcoat": { slot: "chest", tier: 3, bonuses: { atk: 1, def: 2 }, source: "monster" },
   "Smuggler's Dustcloak": { slot: "cloak", tier: 3, bonuses: { atk: 2, knowledge: 1 }, source: "monster" },
-  "Duskfang Veilknife": { slot: "mainhand", tier: 5, bonuses: { atk: 6 }, source: "monster" },
+  "Duskfang Veilknife": { slot: "mainhand", tier: 5, bonuses: { atk: 6 }, source: "enemy_gear" },
   "Sahrimori Reaver's Shiv": { slot: "offhand", tier: 4, bonuses: { atk: 3, def: 1 }, source: "monster" },
-  "Nightmarket Shadowcoat": { slot: "chest", tier: 5, bonuses: { atk: 2, def: 4 }, source: "monster" },
-  "Veilrunner Mantle": { slot: "cloak", tier: 5, bonuses: { atk: 3, knowledge: 2 }, source: "monster" },
-  "Nightglass Fang": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Scorpion-Tail Shiv": { slot: "offhand", tier: 5, bonuses: { atk: 4, def: 2 }, source: "monster" },
-  "Black-Silk Executioner's Coat": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 4 }, source: "monster" },
-  "Hands of the Hidden Blade": { slot: "gloves", tier: 6, bonuses: { atk: 5 }, source: "monster" },
-  "Underworld Blood-Signet": { slot: "rings", tier: 5, bonuses: { atk: 3, knowledge: 2 }, source: "monster" },
-  "Mantle of the Last Witness": { slot: "cloak", tier: 6, bonuses: { atk: 4, knowledge: 2 }, source: "monster" },
-  "Cutthroat's Black Token": { slot: "trinkets", tier: 5, bonuses: { atk: 2 }, source: "monster" },
+  "Nightmarket Shadowcoat": { slot: "chest", tier: 5, bonuses: { atk: 2, def: 4 }, source: "enemy_gear" },
+  "Veilrunner Mantle": { slot: "cloak", tier: 5, bonuses: { atk: 3, knowledge: 2 }, source: "enemy_gear" },
+  "Nightglass Fang": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Scorpion-Tail Shiv": { slot: "offhand", tier: 5, bonuses: { atk: 4, def: 2 }, source: "enemy_gear" },
+  "Black-Silk Executioner's Coat": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 4 }, source: "enemy_gear" },
+  "Hands of the Hidden Blade": { slot: "gloves", tier: 6, bonuses: { atk: 5 }, source: "enemy_gear" },
+  "Underworld Blood-Signet": { slot: "rings", tier: 5, bonuses: { atk: 3, knowledge: 2 }, source: "enemy_gear" },
+  "Mantle of the Last Witness": { slot: "cloak", tier: 6, bonuses: { atk: 4, knowledge: 2 }, source: "enemy_gear" },
+  "Cutthroat's Black Token": { slot: "trinkets", tier: 5, bonuses: { atk: 2 }, source: "enemy_gear" },
   "Enforcer's Knuckle Chain": { slot: "necklace", tier: 4, bonuses: { atk: 4 }, source: "monster" },
   "Smuggler's Night Mantle": { slot: "cloak", tier: 4, bonuses: { atk: 2, knowledge: 2 }, source: "monster" },
-  "Outlaw Command Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Plundered Sunward Buckler": { slot: "offhand", tier: 6, bonuses: { def: 6, knowledge: 2 }, source: "monster" },
-  "Captain's Duneplate": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "monster" },
-  "Bandit Chieftain Signet": { slot: "rings", tier: 6, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
-  "Scourge of the Sandroads": { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, source: "monster" },
-  "Blood-Iron Warlord Crown": { slot: "helmet", tier: 6, bonuses: { atk: 4, def: 5 }, source: "monster" },
-  "Scavenged Warlord Warplate": { slot: "chest", tier: 6, bonuses: { def: 9 }, source: "monster" },
-  "Reaver Grips": { slot: "gloves", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Ring of the Plunder-King": { slot: "rings", tier: 6, bonuses: { atk: 6, def: 3 }, source: "monster" },
-  "Bloodstorm Battlecloak": { slot: "cloak", tier: 6, bonuses: { atk: 5, def: 4 }, source: "monster" },
+  "Outlaw Command Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Plundered Sunward Buckler": { slot: "offhand", tier: 6, bonuses: { def: 6, knowledge: 2 }, source: "enemy_gear" },
+  "Captain's Duneplate": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "enemy_gear" },
+  "Bandit Chieftain Signet": { slot: "rings", tier: 6, bonuses: { atk: 4, knowledge: 4 }, source: "enemy_gear" },
+  "Scourge of the Sandroads": { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, source: "enemy_gear" },
+  "Blood-Iron Warlord Crown": { slot: "helmet", tier: 6, bonuses: { atk: 4, def: 5 }, source: "enemy_gear" },
+  "Scavenged Warlord Warplate": { slot: "chest", tier: 6, bonuses: { def: 9 }, source: "enemy_gear" },
+  "Reaver Grips": { slot: "gloves", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Ring of the Plunder-King": { slot: "rings", tier: 6, bonuses: { atk: 6, def: 3 }, source: "enemy_gear" },
+  "Bloodstorm Battlecloak": { slot: "cloak", tier: 6, bonuses: { atk: 5, def: 4 }, source: "enemy_gear" },
 
   // ---- Independent Armed Groups (Gate 5B.8 equipment codex, v1) ----
   // 16 new-item proposals for the eight Independent Armed Groups
@@ -2010,40 +2043,40 @@ const ITEM_DEFS = {
   // bonuses only, no granted effects, per the codex's own item register
   // (New-item design register). Same "data only for now" treatment as the
   // Criminal Underworld codex's items: no acquisition path assigned yet.
-  "Contract Veteran's Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
-  "Sellsword's Contract Band": { slot: "rings", tier: 5, bonuses: { atk: 4, knowledge: 2 }, source: "monster" },
-  "Oathsteel Contract Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Veteran's Silverguard": { slot: "offhand", tier: 6, bonuses: { def: 7 }, source: "monster" },
-  "Indemnity Warcoat": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 7 }, source: "monster" },
-  "Mercenary Oath Chain": { slot: "necklace", tier: 5, bonuses: { atk: 3, def: 3 }, source: "monster" },
+  "Contract Veteran's Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "enemy_gear" },
+  "Sellsword's Contract Band": { slot: "rings", tier: 5, bonuses: { atk: 4, knowledge: 2 }, source: "enemy_gear" },
+  "Oathsteel Contract Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Veteran's Silverguard": { slot: "offhand", tier: 6, bonuses: { def: 7 }, source: "enemy_gear" },
+  "Indemnity Warcoat": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 7 }, source: "enemy_gear" },
+  "Mercenary Oath Chain": { slot: "necklace", tier: 5, bonuses: { atk: 3, def: 3 }, source: "enemy_gear" },
   "Sahrimori Saltwind Bow": { slot: "mainhand", tier: 3, bonuses: { atk: 3 }, source: "monster" },
   "Falcon-Fletched Quiver": { slot: "offhand", tier: 3, bonuses: { atk: 2, knowledge: 1 }, source: "monster" },
-  "Campaigner's Blade Chain": { slot: "necklace", tier: 5, bonuses: { atk: 4 }, source: "monster" },
-  "Sunclan Warleader's Khopesh": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Oathwoven Tribal Warcoat": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "monster" },
-  "Desert Kinship Torque": { slot: "necklace", tier: 5, bonuses: { def: 3, knowledge: 3 }, source: "monster" },
-  "Contract Marshal's Warblade": { slot: "mainhand", tier: 6, bonuses: { atk: 9 }, source: "monster" },
-  "Marshal's Indemnity Plate": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 8 }, source: "monster" },
-  "Commander's Bond Signet": { slot: "rings", tier: 6, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
-  "Veteran Contract Seal": { slot: "trinkets", tier: 5, bonuses: { atk: 3, knowledge: 3 }, source: "monster" },
+  "Campaigner's Blade Chain": { slot: "necklace", tier: 5, bonuses: { atk: 4 }, source: "enemy_gear" },
+  "Sunclan Warleader's Khopesh": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Oathwoven Tribal Warcoat": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "enemy_gear" },
+  "Desert Kinship Torque": { slot: "necklace", tier: 5, bonuses: { def: 3, knowledge: 3 }, source: "enemy_gear" },
+  "Contract Marshal's Warblade": { slot: "mainhand", tier: 6, bonuses: { atk: 9 }, source: "enemy_gear" },
+  "Marshal's Indemnity Plate": { slot: "chest", tier: 6, bonuses: { atk: 2, def: 8 }, source: "enemy_gear" },
+  "Commander's Bond Signet": { slot: "rings", tier: 6, bonuses: { atk: 4, knowledge: 4 }, source: "enemy_gear" },
+  "Veteran Contract Seal": { slot: "trinkets", tier: 5, bonuses: { atk: 3, knowledge: 3 }, source: "enemy_gear" },
 
   // ---- Security and Enforcement (Gate 5B.8 equipment codex, v1) ----
   // 14 new-item proposals for the Security and Enforcement roster
   // (Junior Merchant Guard through Merchant Lord Shieldmaster).
-  "Merchant Ward Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
-  "Merchant Guard Oath Signet": { slot: "rings", tier: 5, bonuses: { def: 4 }, source: "monster" },
-  "Merchant Lord Bastion Spear": { slot: "mainhand", tier: 6, bonuses: { atk: 7, def: 2 }, source: "monster" },
-  "Reinforced Lord's Aegis": { slot: "offhand", tier: 6, bonuses: { def: 8 }, source: "monster" },
-  "Lord's Guard Cuirass": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "monster" },
-  "Bulwark Gauntlets": { slot: "gloves", tier: 6, bonuses: { atk: 4, def: 3 }, source: "monster" },
-  "Merchant Lord Suppression Seal": { slot: "rings", tier: 5, bonuses: { atk: 4 }, source: "monster" },
-  "Captain's Edict Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Merchant Lord Captain's Helm": { slot: "helmet", tier: 6, bonuses: { def: 6 }, source: "monster" },
-  "Merchant Lord Command Plate": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "monster" },
-  "Captain's Authority Signet": { slot: "rings", tier: 5, bonuses: { def: 4, knowledge: 3 }, source: "monster" },
-  "Oathbound Shieldhammer": { slot: "mainhand", tier: 6, bonuses: { atk: 7 }, source: "monster" },
-  "Merchant Lord's Grand Shield": { slot: "offhand", tier: 6, bonuses: { def: 10 }, source: "monster" },
-  "Shieldmaster Plate": { slot: "chest", tier: 6, bonuses: { def: 9 }, source: "monster" },
+  "Merchant Ward Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "enemy_gear" },
+  "Merchant Guard Oath Signet": { slot: "rings", tier: 5, bonuses: { def: 4 }, source: "enemy_gear" },
+  "Merchant Lord Bastion Spear": { slot: "mainhand", tier: 6, bonuses: { atk: 7, def: 2 }, source: "enemy_gear" },
+  "Reinforced Lord's Aegis": { slot: "offhand", tier: 6, bonuses: { def: 8 }, source: "enemy_gear" },
+  "Lord's Guard Cuirass": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "enemy_gear" },
+  "Bulwark Gauntlets": { slot: "gloves", tier: 6, bonuses: { atk: 4, def: 3 }, source: "enemy_gear" },
+  "Merchant Lord Suppression Seal": { slot: "rings", tier: 5, bonuses: { atk: 4 }, source: "enemy_gear" },
+  "Captain's Edict Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Merchant Lord Captain's Helm": { slot: "helmet", tier: 6, bonuses: { def: 6 }, source: "enemy_gear" },
+  "Merchant Lord Command Plate": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "enemy_gear" },
+  "Captain's Authority Signet": { slot: "rings", tier: 5, bonuses: { def: 4, knowledge: 3 }, source: "enemy_gear" },
+  "Oathbound Shieldhammer": { slot: "mainhand", tier: 6, bonuses: { atk: 7 }, source: "enemy_gear" },
+  "Merchant Lord's Grand Shield": { slot: "offhand", tier: 6, bonuses: { def: 10 }, source: "enemy_gear" },
+  "Shieldmaster Plate": { slot: "chest", tier: 6, bonuses: { def: 9 }, source: "enemy_gear" },
 
   // ---- Sahrimor Military (Gate 5B.8 equipment codex, v1) ----
   // 33 new-item proposals for the Sahrimor Military roster (Fedahl
@@ -2051,36 +2084,36 @@ const ITEM_DEFS = {
   "Bahrun Boarding Hook": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
   "Farahl Scout Lance": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
   "Ramahsi Patrol Bow": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, source: "monster" },
-  "Fedahl Veteran Visor": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
-  "Sahrimori Vigil Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Fedahl Battle Guard": { slot: "offhand", tier: 6, bonuses: { def: 6 }, source: "monster" },
-  "Fedahl Campaign Cuirass": { slot: "chest", tier: 6, bonuses: { def: 7 }, source: "monster" },
-  "Fedahl Service Ring": { slot: "rings", tier: 5, bonuses: { atk: 3, def: 3 }, source: "monster" },
+  "Fedahl Veteran Visor": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "enemy_gear" },
+  "Sahrimori Vigil Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Fedahl Battle Guard": { slot: "offhand", tier: 6, bonuses: { def: 6 }, source: "enemy_gear" },
+  "Fedahl Campaign Cuirass": { slot: "chest", tier: 6, bonuses: { def: 7 }, source: "enemy_gear" },
+  "Fedahl Service Ring": { slot: "rings", tier: 5, bonuses: { atk: 3, def: 3 }, source: "enemy_gear" },
   "Ramahsi Sharpshooter Bow": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, source: "monster" },
   "Ramahsi War Quiver": { slot: "offhand", tier: 4, bonuses: { atk: 4 }, source: "monster" },
-  "Filhari Elephant Goad": { slot: "mainhand", tier: 5, bonuses: { atk: 6 }, source: "monster" },
-  "Filhari Harness Guard": { slot: "offhand", tier: 5, bonuses: { def: 5 }, source: "monster" },
-  "Filhari Rider Lamellar": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "monster" },
-  "War Elephant Battle Crest": { slot: "trinkets", tier: 5, bonuses: { atk: 4, def: 2 }, source: "monster" },
-  "Akharul Venom-Lance": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Akharu Riding Harness": { slot: "offhand", tier: 5, bonuses: { def: 5 }, source: "monster" },
-  "Akharul Scorpion Rider Scale": { slot: "chest", tier: 5, bonuses: { atk: 2, def: 6 }, source: "monster" },
-  "Qahir Field Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "monster" },
-  "Qahir Officer Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "monster" },
-  "Qahir Command Harness": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "monster" },
-  "Qahir Signet": { slot: "rings", tier: 5, bonuses: { atk: 3, knowledge: 3 }, source: "monster" },
-  "Amahri Marshal Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 9 }, source: "monster" },
-  "Amahri Guard Buckler": { slot: "offhand", tier: 6, bonuses: { def: 7 }, source: "monster" },
-  "Amahri Field Plate": { slot: "chest", tier: 6, bonuses: { def: 8, knowledge: 2 }, source: "monster" },
-  "Amahri Command Ring": { slot: "rings", tier: 5, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
-  "Sardarr War Scimitar": { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, source: "monster" },
-  "Sardarr Command Shield": { slot: "offhand", tier: 6, bonuses: { def: 8 }, source: "monster" },
-  "Sardarr War Helm": { slot: "helmet", tier: 6, bonuses: { def: 7 }, source: "monster" },
-  "Sardarr Command Plate": { slot: "chest", tier: 6, bonuses: { def: 9, knowledge: 2 }, source: "monster" },
-  "Sardarr Standard Gauntlets": { slot: "gloves", tier: 5, bonuses: { atk: 5 }, source: "monster" },
-  "Sardarr Signet": { slot: "rings", tier: 6, bonuses: { atk: 5, knowledge: 4 }, source: "monster" },
-  "High Command Torc": { slot: "necklace", tier: 5, bonuses: { def: 4, knowledge: 3 }, source: "monster" },
-  "Command Banner Fragment": { slot: "trinkets", tier: 5, bonuses: { atk: 4, knowledge: 4 }, source: "monster" },
+  "Filhari Elephant Goad": { slot: "mainhand", tier: 5, bonuses: { atk: 6 }, source: "enemy_gear" },
+  "Filhari Harness Guard": { slot: "offhand", tier: 5, bonuses: { def: 5 }, source: "enemy_gear" },
+  "Filhari Rider Lamellar": { slot: "chest", tier: 6, bonuses: { def: 8 }, source: "enemy_gear" },
+  "War Elephant Battle Crest": { slot: "trinkets", tier: 5, bonuses: { atk: 4, def: 2 }, source: "enemy_gear" },
+  "Akharul Venom-Lance": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Akharu Riding Harness": { slot: "offhand", tier: 5, bonuses: { def: 5 }, source: "enemy_gear" },
+  "Akharul Scorpion Rider Scale": { slot: "chest", tier: 5, bonuses: { atk: 2, def: 6 }, source: "enemy_gear" },
+  "Qahir Field Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 8 }, source: "enemy_gear" },
+  "Qahir Officer Helm": { slot: "helmet", tier: 5, bonuses: { def: 5 }, source: "enemy_gear" },
+  "Qahir Command Harness": { slot: "chest", tier: 6, bonuses: { def: 7, knowledge: 2 }, source: "enemy_gear" },
+  "Qahir Signet": { slot: "rings", tier: 5, bonuses: { atk: 3, knowledge: 3 }, source: "enemy_gear" },
+  "Amahri Marshal Saber": { slot: "mainhand", tier: 6, bonuses: { atk: 9 }, source: "enemy_gear" },
+  "Amahri Guard Buckler": { slot: "offhand", tier: 6, bonuses: { def: 7 }, source: "enemy_gear" },
+  "Amahri Field Plate": { slot: "chest", tier: 6, bonuses: { def: 8, knowledge: 2 }, source: "enemy_gear" },
+  "Amahri Command Ring": { slot: "rings", tier: 5, bonuses: { atk: 4, knowledge: 4 }, source: "enemy_gear" },
+  "Sardarr War Scimitar": { slot: "mainhand", tier: 6, bonuses: { atk: 10 }, source: "enemy_gear" },
+  "Sardarr Command Shield": { slot: "offhand", tier: 6, bonuses: { def: 8 }, source: "enemy_gear" },
+  "Sardarr War Helm": { slot: "helmet", tier: 6, bonuses: { def: 7 }, source: "enemy_gear" },
+  "Sardarr Command Plate": { slot: "chest", tier: 6, bonuses: { def: 9, knowledge: 2 }, source: "enemy_gear" },
+  "Sardarr Standard Gauntlets": { slot: "gloves", tier: 5, bonuses: { atk: 5 }, source: "enemy_gear" },
+  "Sardarr Signet": { slot: "rings", tier: 6, bonuses: { atk: 5, knowledge: 4 }, source: "enemy_gear" },
+  "High Command Torc": { slot: "necklace", tier: 5, bonuses: { def: 4, knowledge: 3 }, source: "enemy_gear" },
+  "Command Banner Fragment": { slot: "trinkets", tier: 5, bonuses: { atk: 4, knowledge: 4 }, source: "enemy_gear" },
 
   // ---- Dregnar Ashvein's First Sword's Regalia (World Boss, Step 4
   // Stage B) ---- Ten Mythic pieces, no level requirement (consistent
@@ -2144,7 +2177,7 @@ const ITEM_DEFS = {
   "Dark Travel Cloak": { slot: "cloak", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
   "Master Cutthroat Coat": { slot: "chest", tier: 4, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
   "Master Knife-Fighter's Gloves": { slot: "gloves", tier: 3, bonuses: { agility: 3 }, source: "monster", region: "sanguivorum" },
-  "Highway Cutthroat's Blade V3": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, effects: ["sang_cu_ie003_serrated_opening"], source: "monster", region: "sanguivorum" },
+  "Highway Cutthroat's Blade V3": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, effects: ["sang_cu_ie003_serrated_opening"], source: "enemy_gear", region: "sanguivorum" },
   "Highway Cutthroat's Shiv V3": { slot: "offhand", tier: 4, bonuses: { atk: 8 }, source: "monster", region: "sanguivorum" },
   "Reinforced Dark Cloak": { slot: "cloak", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
   // Caravan Ambusher
@@ -2178,20 +2211,20 @@ const ITEM_DEFS = {
   "Packmaster's Whistle": { slot: "trinkets", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_cu_ie009_hunters_call"], source: "monster", region: "sanguivorum" },
   // Highway Captain
   "Highway Officer's Helm": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
-  "Captain's Reinforced Armor": { slot: "chest", tier: 5, bonuses: { def: 10, health: 8 }, source: "monster", region: "sanguivorum" },
+  "Captain's Reinforced Armor": { slot: "chest", tier: 5, bonuses: { def: 10, health: 8 }, source: "enemy_gear", region: "sanguivorum" },
   "Veteran Officer's Gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
   "Captain's Riding Boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
-  "Highway Captain's Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Highway Captain's Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "enemy_gear", region: "sanguivorum" },
   "Highway Captain's Command Shield": { slot: "offhand", tier: 4, bonuses: { def: 8, health: 3 }, effects: ["sang_cu_ie010_officers_intercession"], source: "monster", region: "sanguivorum" },
   "Officer's Signet": { slot: "rings", tier: 3, bonuses: { accuracy: 3 }, effects: ["merchants_eye"], source: "monster", region: "sanguivorum" },
   "Captain's Command Cloak": { slot: "cloak", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
   "Commander's Insignia": { slot: "trinkets", tier: 3, bonuses: { accuracy: 2 }, effects: ["sang_cu_ie011_commanders_poise"], source: "monster", region: "sanguivorum" },
   // Roadlord
-  "Roadlord's War Helm": { slot: "helmet", tier: 5, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
-  "Roadlord's Reinforced Cuirass": { slot: "chest", tier: 6, bonuses: { def: 12, health: 10 }, source: "monster", region: "sanguivorum" },
+  "Roadlord's War Helm": { slot: "helmet", tier: 5, bonuses: { def: 6 }, source: "enemy_gear", region: "sanguivorum" },
+  "Roadlord's Reinforced Cuirass": { slot: "chest", tier: 6, bonuses: { def: 12, health: 10 }, source: "enemy_gear", region: "sanguivorum" },
   "Veteran War Gauntlets": { slot: "gloves", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
   "Reinforced Warlord Boots": { slot: "boots", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
-  "Roadlord's Veteran Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 12 }, effects: ["sang_cu_ie012_tyrants_edge"], source: "monster", region: "sanguivorum" },
+  "Roadlord's Veteran Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 12 }, effects: ["sang_cu_ie012_tyrants_edge"], source: "enemy_gear", region: "sanguivorum" },
   "Ruthless Lord's Signet": { slot: "rings", tier: 4, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
   "Roadlord's Battle Cloak": { slot: "cloak", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
   "Conqueror's Trophy": { slot: "trinkets", tier: 4, bonuses: { health: 5 }, effects: ["sang_cu_ie013_conquerors_resolve"], source: "monster", region: "sanguivorum" },
@@ -2240,11 +2273,11 @@ const ITEM_DEFS = {
   "Veteran Legion Blade V2": { slot: "mainhand", tier: 4, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
   "Veteran Tower Shield V2": { slot: "offhand", tier: 4, bonuses: { def: 7 }, effects: ["sang_mil_ie001_hardened_formation"], source: "monster", region: "sanguivorum" },
   "Veteran Ferratum Helm V3": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
-  "Veteran Cuirass V3": { slot: "chest", tier: 5, bonuses: { def: 10 }, source: "monster", region: "sanguivorum" },
+  "Veteran Cuirass V3": { slot: "chest", tier: 5, bonuses: { def: 10 }, source: "enemy_gear", region: "sanguivorum" },
   "Veteran Gauntlets V3": { slot: "gloves", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
   "Reinforced Greaves V3": { slot: "boots", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
-  "Veteran Legion Blade V3": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "monster", region: "sanguivorum" },
-  "Veteran Tower Shield V3": { slot: "offhand", tier: 5, bonuses: { def: 9 }, effects: ["sang_mil_ie001_hardened_formation"], source: "monster", region: "sanguivorum" },
+  "Veteran Legion Blade V3": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "enemy_gear", region: "sanguivorum" },
+  "Veteran Tower Shield V3": { slot: "offhand", tier: 5, bonuses: { def: 9 }, effects: ["sang_mil_ie001_hardened_formation"], source: "enemy_gear", region: "sanguivorum" },
   // Ingenum Field Engineer (Gloves reuses "Crossbowman's Gloves" above)
   "Engineer's Leather Coat": { slot: "chest", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
   "Utility Boots": { slot: "boots", tier: 1, bonuses: { def: 1 }, source: "monster", region: "sanguivorum" },
@@ -2306,10 +2339,10 @@ const ITEM_DEFS = {
   "Veteran Gladius V2": { slot: "mainhand", tier: 4, bonuses: { atk: 7 }, source: "monster", region: "sanguivorum" },
   "Veteran Shield V2": { slot: "offhand", tier: 4, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
   "Gradus Veteran Helm V3": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
-  "Veteran Legion Armor V3": { slot: "chest", tier: 5, bonuses: { def: 9 }, source: "monster", region: "sanguivorum" },
+  "Veteran Legion Armor V3": { slot: "chest", tier: 5, bonuses: { def: 9 }, source: "enemy_gear", region: "sanguivorum" },
   "Veteran March Boots V3": { slot: "boots", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
-  "Veteran Gladius V3": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "monster", region: "sanguivorum" },
-  "Veteran Shield V3": { slot: "offhand", tier: 5, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Veteran Gladius V3": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "enemy_gear", region: "sanguivorum" },
+  "Veteran Shield V3": { slot: "offhand", tier: 5, bonuses: { def: 8 }, source: "enemy_gear", region: "sanguivorum" },
   // Ductus Section Commander V1/V2
   "Ductus Officer Helm V1": { slot: "helmet", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
   "Officer Cuirass V1": { slot: "chest", tier: 3, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
@@ -2322,25 +2355,25 @@ const ITEM_DEFS = {
   "Officer Cuirass V2": { slot: "chest", tier: 4, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
   "Officer Gauntlets V2": { slot: "gloves", tier: 2, bonuses: { def: 2 }, source: "monster", region: "sanguivorum" },
   "Officer Riding Boots V2": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
-  "Ductus Command Sword V2": { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, source: "monster", region: "sanguivorum" },
+  "Ductus Command Sword V2": { slot: "mainhand", tier: 5, bonuses: { atk: 8 }, source: "enemy_gear", region: "sanguivorum" },
   "Section Command Shield V2": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
   "Officer Signet V2": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, effects: ["sang_mil_ie007_officers_bearing"], source: "monster", region: "sanguivorum" },
   // Vigilis Unit Commander
   "Vigilis War Helm": { slot: "helmet", tier: 4, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
-  "Commander Armor": { slot: "chest", tier: 5, bonuses: { def: 9 }, source: "monster", region: "sanguivorum" },
+  "Commander Armor": { slot: "chest", tier: 5, bonuses: { def: 9 }, source: "enemy_gear", region: "sanguivorum" },
   "Command Gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
   "Commander Boots": { slot: "boots", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
-  "Vigilis Command Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "monster", region: "sanguivorum" },
+  "Vigilis Command Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 9 }, source: "enemy_gear", region: "sanguivorum" },
   "Reinforced Command Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
   "Vigilis Command Cloak": { slot: "cloak", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
   "Unit Command Insignia": { slot: "trinkets", tier: 3, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
   // Arbitarius Commander
-  "Arbitarius War Helm": { slot: "helmet", tier: 5, bonuses: { def: 6 }, source: "monster", region: "sanguivorum" },
-  "Senior Commander Cuirass": { slot: "chest", tier: 6, bonuses: { def: 11 }, source: "monster", region: "sanguivorum" },
+  "Arbitarius War Helm": { slot: "helmet", tier: 5, bonuses: { def: 6 }, source: "enemy_gear", region: "sanguivorum" },
+  "Senior Commander Cuirass": { slot: "chest", tier: 6, bonuses: { def: 11 }, source: "enemy_gear", region: "sanguivorum" },
   "Senior Officer Gauntlets": { slot: "gloves", tier: 3, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
   "Arbitarius March Boots": { slot: "boots", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
-  "Arbitarius Command Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 11 }, source: "monster", region: "sanguivorum" },
-  "Imperial Command Shield": { slot: "offhand", tier: 5, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
+  "Arbitarius Command Blade": { slot: "mainhand", tier: 6, bonuses: { atk: 11 }, source: "enemy_gear", region: "sanguivorum" },
+  "Imperial Command Shield": { slot: "offhand", tier: 5, bonuses: { def: 8 }, source: "enemy_gear", region: "sanguivorum" },
   "Commander Signet": { slot: "rings", tier: 3, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
   "Arbitarius Command Cloak": { slot: "cloak", tier: 4, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
   "Arbitarius Insignia": { slot: "trinkets", tier: 4, bonuses: { accuracy: 3 }, effects: ["sang_mil_ie008_imperial_authority"], source: "monster", region: "sanguivorum" },
@@ -2422,7 +2455,7 @@ const ITEM_DEFS = {
   "Master Watch Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
   "Master City Guard Armor": { slot: "chest", tier: 4, bonuses: { def: 9 }, source: "monster", region: "sanguivorum" },
   "Master Guard Gauntlets": { slot: "gloves", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
-  "Master City Guard Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Master City Guard Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "enemy_gear", region: "sanguivorum" },
   "Master Watch Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, effects: ["sang_sec_ie004_watchmans_resilience"], source: "monster", region: "sanguivorum" },
   "Senior Guard Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 2 }, source: "monster", region: "sanguivorum" },
   "Senior Watch Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
@@ -2539,7 +2572,7 @@ const ITEM_DEFS = {
   "Veteran Mercenary War Helm": { slot: "helmet", tier: 3, bonuses: { def: 5 }, source: "monster", region: "sanguivorum" },
   "Master Sellsword Mail": { slot: "chest", tier: 4, bonuses: { def: 8 }, source: "monster", region: "sanguivorum" },
   "Master Sword Gloves": { slot: "gloves", tier: 3, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
-  "Master Contract Blade": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Master Contract Blade": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "enemy_gear", region: "sanguivorum" },
   "Master Contract Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, effects: ["sang_iag_ie002_contractors_endurance"], source: "monster", region: "sanguivorum" },
   "Mercenary Oath Ring": { slot: "rings", tier: 1, bonuses: { health: 2 }, source: "monster", region: "sanguivorum" },
   "Veteran Travel Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
@@ -2556,7 +2589,7 @@ const ITEM_DEFS = {
   "Captain's Mercenary Armor": { slot: "chest", tier: 4, bonuses: { def: 9, health: 5 }, source: "monster", region: "sanguivorum" },
   "Officer's Sword Gauntlets": { slot: "gloves", tier: 2, bonuses: { atk: 2 }, source: "monster", region: "sanguivorum" },
   "Reinforced Officer Boots": { slot: "boots", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
-  "Free Company Command Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Free Company Command Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "enemy_gear", region: "sanguivorum" },
   "Mercenary Captain's Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
   "Mercenary Officer Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
   "Captain's Travel Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
@@ -2573,7 +2606,7 @@ const ITEM_DEFS = {
   "Ovum Champion Cuirass": { slot: "chest", tier: 4, bonuses: { def: 10, health: 8 }, source: "monster", region: "sanguivorum" },
   "Champion's Fighting Gauntlets": { slot: "gloves", tier: 3, bonuses: { atk: 3, agility: 2 }, source: "monster", region: "sanguivorum" },
   "Champion's Arena Greaves": { slot: "boots", tier: 3, bonuses: { def: 3, agility: 2 }, source: "monster", region: "sanguivorum" },
-  "Ovum Champion Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 11 }, source: "monster", region: "sanguivorum" },
+  "Ovum Champion Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 11 }, source: "enemy_gear", region: "sanguivorum" },
   "Champion's Arena Shield": { slot: "offhand", tier: 4, bonuses: { def: 8 }, effects: ["sang_iag_ie006_champions_poise"], source: "monster", region: "sanguivorum" },
   "Champion's Victory Signet": { slot: "rings", tier: 2, bonuses: { accuracy: 3 }, source: "monster", region: "sanguivorum" },
   "Champion's Victory Mantle": { slot: "cloak", tier: 3, bonuses: { def: 4 }, source: "monster", region: "sanguivorum" },
@@ -2605,7 +2638,7 @@ const ITEM_DEFS = {
   "Reinforced Militia War Armor": { slot: "chest", tier: 4, bonuses: { def: 9, health: 5 }, source: "monster", region: "sanguivorum" },
   "Warleader's Heavy Gauntlets": { slot: "gloves", tier: 2, bonuses: { atk: 3 }, source: "monster", region: "sanguivorum" },
   "Warleader's Reinforced Boots": { slot: "boots", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
-  "Militia Warleader's Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "monster", region: "sanguivorum" },
+  "Militia Warleader's Sword": { slot: "mainhand", tier: 5, bonuses: { atk: 10 }, source: "enemy_gear", region: "sanguivorum" },
   "Warleader's Heavy Shield": { slot: "offhand", tier: 4, bonuses: { def: 7 }, source: "monster", region: "sanguivorum" },
   "Militia Warleader Cloak": { slot: "cloak", tier: 2, bonuses: { def: 3 }, source: "monster", region: "sanguivorum" },
   "Militia Rallying Standard": { slot: "trinkets", tier: 2, bonuses: { accuracy: 3 }, effects: ["sang_iag_ie010_rallying_standard"], source: "monster", region: "sanguivorum" },
@@ -2792,17 +2825,47 @@ function equipmentBonus(state, statKey) {
   return total;
 }
 
-// Whether/what a defeated creature drops, scaled to its Spawn Rarity
-// (common/uncommon/rare/epic/unique) instead of the old flat tier number —
-// still capped at item tier 4/Masterwork even for Unique kills, since
-// Legendary+ stays reserved for hand-authored guild-contract capstones
-// (see file header). Drop chance climbs with rarity (and Danger Class),
-// Master Appraiser's 6pc set bonus still raises it by 20% (relative), and
-// nation-locked creatures (BESTIARY's optional `nations` field) still have
-// a 50% chance to draw from that nation's REGIONAL_LOOT_POOL instead of
-// the generic pool, when one exists at this tier.
+// Flattens resolveEnemyEquipment(creature, creature.level) (engine/
+// combat.js — defined later in load order, but only ever CALLED at
+// runtime, well after every script has loaded) into a plain list of item
+// names, same shape as combat.js's own enemyEquipmentBonus flattening —
+// a trinket array counts each item as its own entry. [] for a creature
+// with no equipment at all (wildlife), which rollCreatureLoot below
+// takes as "fall back to the general/regional wildlife pools."
+function wornItemsFor(creature) {
+  const equipment = resolveEnemyEquipment(creature, creature.level);
+  if (!equipment) return [];
+  const items = [];
+  for (const value of Object.values(equipment)) {
+    for (const item of [].concat(value || [])) items.push(item);
+  }
+  return items;
+}
+
+// Whether/what a defeated creature drops. Loot Reachability Fixes (v2):
+// an equipped creature (every codex humanoid, plus Dregnar Ashvein) drops
+// ONLY one random piece of its own worn gear, or nothing — never the
+// general/regional wildlife pools below, which stay wildlife-only.
+// Creatures with no equipment at all (wildlife, Legion Hound included)
+// are unaffected, scaled to Spawn Rarity (common/uncommon/rare/epic/
+// unique) instead of the old flat tier number — still capped at item
+// tier 4/Masterwork even for Unique kills, since tier 5+ wildlife loot
+// isn't a thing this pool has ever carried. Drop chance climbs with
+// rarity (and Danger Class) either way, Master Appraiser's 6pc set bonus
+// still raises it by 20% (relative) either way, and nation-locked
+// WILDLIFE (BESTIARY's optional `nations` field) still has a 50% chance
+// to draw from that nation's REGIONAL_LOOT_POOL instead of the generic
+// pool, when one exists at this tier — humanoids never reach that check
+// now, since their own worn-gear branch returns first.
 const ITEM_TIER_BY_SPAWN_RARITY = { common: 1, uncommon: 2, rare: 3, epic: 4, unique: 4 };
 function rollCreatureLoot(state, creature) {
+  const worn = wornItemsFor(creature); // flattened resolveEnemyEquipment(creature, creature.level); trinket arrays count each item
+  if (worn.length) {
+    let chance = (0.08 + spawnRarityRank(creature) * 0.08) * dangerClassMultiplier(creature.dangerClass);
+    if (hasSetTier(state, "Master Appraiser", 6)) chance *= 1.2;
+    if (Math.random() >= chance) return null;
+    return worn[Math.floor(Math.random() * worn.length)];
+  }
   const rarity = creature.spawnRarity || DEFAULT_SPAWN_RARITY;
   const tier = ITEM_TIER_BY_SPAWN_RARITY[rarity] || ITEM_TIER_BY_SPAWN_RARITY[DEFAULT_SPAWN_RARITY];
   let dropChance = (0.08 + spawnRarityRank(creature) * 0.08) * dangerClassMultiplier(creature.dangerClass);

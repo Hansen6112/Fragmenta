@@ -150,7 +150,45 @@ for (const m of engineSrc.matchAll(/(?:hasSetTier|setPieceCount)\([^,]+,\s*"([^"
 for (const [id, a] of Object.entries(ALLY_DEFS)) {
   for (const [slot, v] of Object.entries(a.startingEquipment || {})) for (const it of [].concat(v || [])) if (!ITEM_DEFS[it]) err("ally", `${id}.startingEquipment.${slot} "${it}" is not an item`);
 }
-// Acquisition paths: items no pool, shop, origin, recipe, or literal can produce.
+// Item source audit (Loot Reachability Fixes v2, §4): classify every
+// equippable item by whether a real delivery path reaches it. The pools
+// below are the REAL ones — built from the same data structures the game
+// itself reads at runtime, not a name search over the source text. A name
+// search would count enemy-worn gear as "reachable" just because its own
+// name appears once, in its own BESTIARY equipment field — exactly the
+// false negative this replaces (the old `literalUses > 1` fallback below
+// is gone for that reason).
+//
+// LIVE: real delivery code exists for this source. `world_boss` is the
+// one exception handled per-item rather than per-source: live for a piece
+// some creature actually wears (checked against the real worn-gear pool,
+// built from BESTIARY below), reserved for one nothing wears yet.
+const LIVE_ITEM_SOURCES = new Set(["starter", "shop", "monster", "enemy_gear", "world_boss", "job", "arena", "arena_champion", "crafted", "companion"]);
+// RESERVED: tagged for a system that isn't built yet — never an R2 error
+// on its own, just counted in the summary below.
+const RESERVED_ITEM_SOURCES = new Set([
+  "devotion_quest", "contract", "faction",
+  "quest", "secret_quest", "hidden_quest", "legendary_quest",
+  "exploration", "dungeon", "hidden_dungeon", "puzzle_dungeon",
+  "ancient_vault", "hidden_vault", "hidden_temple", "ancient_temple",
+  "ancient_titan", "forgotten_library", "lost_capital", "ancient_fortress",
+  "hidden_river_shrine", "hidden_archive", "secret_encounter",
+]);
+// R1: source is neither live nor reserved — catches a new or misspelled source.
+for (const [n, d] of Object.entries(ITEM_DEFS)) {
+  if (!LIVE_ITEM_SOURCES.has(d.source) && !RESERVED_ITEM_SOURCES.has(d.source)) {
+    err("item-source", `"${n}" has source "${d.source}" — not a recognized live or reserved source (R1)`);
+  }
+}
+// The real worn-gear pool: every item any BESTIARY creature's own
+// equipment/equipmentBands (every band resolved, not just the one a given
+// fight happens to roll) actually lists — the delivery path for
+// "enemy_gear" and "world_boss" (when worn).
+const wornItems = new Set();
+for (const c of Object.values(BESTIARY)) {
+  const sets = c.equipmentBands ? c.equipmentBands.map((b) => b.equipment) : c.equipment ? [c.equipment] : [];
+  for (const eq of sets) for (const v of Object.values(eq)) for (const it of [].concat(v || [])) wornItems.add(it);
+}
 const reachable = new Set();
 const add = (x) => typeof x === "string" && reachable.add(x);
 for (const t of [1, 2, 3, 4]) (G("COMBAT_LOOT_POOL")[t] || []).forEach(add);
@@ -163,17 +201,22 @@ Object.values(ORIGINS).forEach((o) => (o.inventory || []).forEach(add));
 Object.values(ALLY_DEFS).forEach((a) => Object.values(a.startingEquipment || {}).flat().forEach(add));
 for (const t of ["RECIPES", "SCHEMATICS"]) Object.values(G(t)).forEach((r) => add(r.output));
 for (const [n, d] of Object.entries(ITEM_DEFS)) if (d.source === "shop") add(n);
-const allSrc = Object.values(sources).join("\n");
-let unreachable = 0;
-const bySource = {};
+wornItems.forEach(add);
+// R2 (a live-sourced item its own path doesn't reach) and R3 (a "monster"
+// item above the kill-loot tier cap), plus the live/reserved summary.
+let liveReachable = 0;
+const reservedCounts = {};
+const r2 = [];
 for (const [n, d] of Object.entries(ITEM_DEFS)) {
-  if (reachable.has(n)) continue;
-  const literalUses = allSrc.split(JSON.stringify(n)).length - 1;
-  if (literalUses > 1) continue; // referenced somewhere besides its own definition
-  unreachable++;
-  bySource[d.source] = (bySource[d.source] || 0) + 1;
+  if (RESERVED_ITEM_SOURCES.has(d.source)) { reservedCounts[d.source] = (reservedCounts[d.source] || 0) + 1; continue; }
+  if (!LIVE_ITEM_SOURCES.has(d.source)) continue; // already an R1 error above
+  if (d.source === "world_boss" && !wornItems.has(n)) { reservedCounts["world_boss (unworn)"] = (reservedCounts["world_boss (unworn)"] || 0) + 1; continue; }
+  if (d.source === "monster" && d.tier > 4) { err("item-source", `"${n}" is source "monster" at tier ${d.tier}, above the kill-loot tier cap (R3)`); continue; }
+  if (!reachable.has(n)) { r2.push(`${n} (${d.source})`); continue; }
+  liveReachable++;
 }
-if (unreachable) warn("items", `${unreachable}/${Object.keys(ITEM_DEFS).length} items have no acquisition path — by source: ${JSON.stringify(bySource)}`);
+if (r2.length) err("item-source", `R2: ${r2.length} item(s) with a live source nothing actually reaches: ${r2.join(", ")}`);
+const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 
 // ---- save coverage ----
 const fresh = G("new GameState()");
@@ -189,5 +232,6 @@ const print = (title, list) => {
 };
 print("ERRORS", errors);
 print("WARNINGS", warnings);
+process.stdout.write(`\n[items] live-reachable: ${liveReachable}/${Object.keys(ITEM_DEFS).length}; reserved: ${reservedTotal} (${JSON.stringify(reservedCounts)}); R2 violations: ${r2.length}\n`);
 process.stdout.write(`\n${errors.length} error(s), ${warnings.length} warning(s) across ${scripts.length} scripts.\n`);
 process.exit(errors.length || (strict && warnings.length) ? 1 : 0);
