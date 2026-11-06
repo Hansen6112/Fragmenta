@@ -1948,18 +1948,22 @@ const ITEM_DEFS = {
 
   // Injury System v0.2 (engine/state.js's INJURY_SLOT_DEFS, engine/
   // combat.js's applyRallyItemOnPlayer/applyInjuriesFromDowns) — two new
-  // consumable effect types. Neither is wired into a RECIPES.js entry
-  // yet (ingredients + the Knowledge gate are explicitly the recipe
-  // pass's job per the spec) and both are deliberately placeholder tier/
-  // price (the item pass's job) — tools/audit.js's "no acquisition path"
-  // warning is expected to grow by exactly these two until that pass
-  // lands, same as every other not-yet-priced item already flagged that
-  // way in this file.
+  // consumable effect types. Both are deliberately placeholder tier/price
+  // (the item pass's job), same as every other not-yet-priced item
+  // flagged that way in this file.
   // "smelling salts" is the spec's own placeholder name for v1's one
   // rally item (used BY an ally ON the downed player — see
   // resolveOneAllyAction/applyRallyItemOnPlayer — never self-cast).
   // `pct` is the spec's own default get-up amount (ceil(maxHealth*0.25)).
-  "smelling salts": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "rallyFromDowned", pct: 0.25 }, source: "crafted" },
+  // Shop + Apothecary recipe (data/recipes.js's smelling_salts), not
+  // crafted-only (Tyler, 6 Nov) — recipes are Apothecary-only and neither
+  // existing ally is one, so without a shop source most parties could
+  // never actually rally a downed player. Tier 2 -> shopBuyPrice's
+  // 20*tier^3 = 160 gold, the same price as a physician's tonic's 40%
+  // heal; a rally back into the fight at 25% HP is worth at least that.
+  // Both the price and tier are placeholders for the economy pass,
+  // alongside the injury-cure costs (state.js's injuryCureCost).
+  "smelling salts": { slot: "consumable", tier: 2, bonuses: {}, useEffect: { type: "rallyFromDowned", pct: 0.25 }, source: "shop" },
   // Apothecary field treatment (spec §7): turns one severe injury into a
   // minor one, never removes it, once per injury (state.injuries[].
   // fieldTreated), outside combat only. The spec names this category of

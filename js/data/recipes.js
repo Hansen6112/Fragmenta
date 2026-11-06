@@ -65,4 +65,24 @@ const RECIPES = {
     materials: ["a fragment of refined ore", "a sprig of swamp nightroot", "a vial of distilled ashroot"],
     output: "a swiftwater draught",
   },
+
+  // Injury System v0.2 (data/items.js's "smelling salts"/"a field splint
+  // kit", engine/combat.js's applyRallyItemOnPlayer/injuryDowngrade): the
+  // two items existed with no recipe at all, so nobody could ever actually
+  // obtain either one. Knowledge-gated, automatic — same shape as
+  // minor_fortifying_draught above. Ingredients, Knowledge thresholds and
+  // naming are placeholders, same as every other not-yet-balanced recipe
+  // in this file; the real pass is separate.
+  smelling_salts: {
+    name: "Smelling Salts",
+    knowledgeReq: 8,
+    materials: ["a handful of scrap components", "a vial of distilled ashroot"],
+    output: "smelling salts",
+  },
+  field_splint_kit: {
+    name: "Field Splint Kit",
+    knowledgeReq: 10,
+    materials: ["a handful of scrap components", "a sprig of swamp nightroot"],
+    output: "a field splint kit",
+  },
 };

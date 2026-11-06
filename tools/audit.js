@@ -199,6 +199,16 @@ G("ARENA_CHAMPION_LOOT_POOL").forEach(add);
 Object.values(G("LOOT_BY_TIER")).flat().forEach(add);
 Object.values(ORIGINS).forEach((o) => (o.inventory || []).forEach(add));
 Object.values(ALLY_DEFS).forEach((a) => Object.values(a.startingEquipment || {}).flat().forEach(add));
+// Companion quest rewards: items a `companion`-sourced item's own path
+// delivers OUTSIDE ally starting equipment — Hadrian's Personal Quest
+// ascension (data/hadrianquest.js's HADRIAN_ASCENSION_MAP, swapped into
+// his equipment on completion by engine/hadrianquest.js's
+// ascendHadrianEquipment) and its two Companion Trinkets
+// (HADRIAN_QUEST_TRINKETS, filled in the same way). Read from the actual
+// grant data, not a text search, so a renamed or added reward is picked
+// up automatically instead of silently going stale here.
+Object.values(G("HADRIAN_ASCENSION_MAP")).forEach(add);
+G("HADRIAN_QUEST_TRINKETS").forEach(add);
 for (const t of ["RECIPES", "SCHEMATICS"]) Object.values(G(t)).forEach((r) => add(r.output));
 for (const [n, d] of Object.entries(ITEM_DEFS)) if (d.source === "shop") add(n);
 wornItems.forEach(add);
