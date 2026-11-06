@@ -1,0 +1,28 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 8d79de0..dd41436 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -40,10 +40,19 @@
+  *      real exception to the "HP changes only in applyAndReact" rule
+  *      (spec section 3, hard rule), forced by Mirror Soul redirecting the
+  *      hit onto a DIFFERENT combatant than the one steps 2-5 are resolving
+- *      for. Disclosed here rather than quietly preserved; tools/audit.js's
+- *      future P1 rule (step 1h) will need an explicit allow-list entry for
+- *      this one call site, same as the existing out-of-combat-healing
+- *      allow-list the spec already anticipates.
++ *      for.
++ *
++ *      TEMPORARY, KNOWN, TIME-BOUNDED (Tyler, 6 Nov) — not a permanent
++ *      allow-list entry. Reflection is a REACTION, not part of calculating
++ *      the original hit's damage, so it belongs in step 1f (reactions and
++ *      ticks), as its own action against the attacker that runs through
++ *      the real step 5 (applyAndReact) like everything else — that's what
++ *      actually removes the exception, rather than codifying it as a
++ *      permanent audit allow-list entry at step 1h. Tracked as part of
++ *      1f's own scope (see that step's task description); left as-is here
++ *      in 1b, since 1b's only job is this one path's control-flow shape,
++ *      not fixing a cross-cutting reaction mechanic that belongs to a
++ *      later step by the migration order's own rules.
+  */
+ 
+ // ---- Step 1: choose action ----

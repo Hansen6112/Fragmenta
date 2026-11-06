@@ -1,0 +1,17 @@
+range: ee4f394f33bc4cd846d8e2fba8c7121fea41aaea..d4bfb1b380a6d178c4a1d051de7cdcdf5affaa5b
+=== d4bfb1b380a6d178c4a1d051de7cdcdf5affaa5b 2026-11-06 16:10:41 +0000
+Step 1b follow-up: reframe Mirror Soul as a tracked, time-bounded fix for 1f
+Per coder review: Mirror Soul's step-4 HP write isn't a permanent
+tools/audit.js allow-list candidate -- it's a reaction (the first hostile
+spell reflected onto the caster), so it belongs in step 1f once reactions
+move into the pipeline, as its own action against the attacker that runs
+through the real step 5 (applyAndReact). That removes the exception
+instead of codifying it. Updated pipeline.js's header accordingly and
+added it explicitly to step 1f's task scope. No behavior change.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
