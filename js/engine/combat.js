@@ -3568,6 +3568,12 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   lines.push(...maybeCompanionRetaliate(state, ally, creature));
   if (ally.health <= 0) {
     lines.push(...killAlly(state, ally));
+    // killAlly's own party-wipe branch (the player already downed, and
+    // this the last living ally) can null state.combat — the fight is
+    // over, so there's no "rest of this encounter" left for an onKill
+    // self-buff to apply to; without this, applyEnemySelfModifier below
+    // reads state.combat fresh and crashes on a null dereference.
+    if (!state.combat) return { lines, damage: null };
     // Enemy Ability Engine: Predator's Momentum-style "after defeating an
     // enemy" passives — the only thing this engine's creatures can
     // actually defeat mid-fight is a party member, since the player's own
@@ -4019,6 +4025,16 @@ function beginTurn(state) {
     if ((ally.allyProtectionCooldown || 0) > 0) ally.allyProtectionCooldown -= 1;
     lines.push(...tickAllyStatuses(state, ally));
   });
+  // tickAllyStatuses' own DOT tick can call killAlly, whose party-wipe
+  // branch (the player already downed, and this the last living ally)
+  // nulls state.combat — same "a kill mid-loop can end the fight" case
+  // the enemy-DOT loop above already guards for (combat.enemies' own
+  // "if (!state.combat) return lines;"), just reached from the ally side
+  // instead. Everything below this point reads combat.actionCounter
+  // (applyHeartwoodVitality re-reads state.combat itself, fresh, so the
+  // `combat` local captured at the top of this function going stale
+  // doesn't save it) and crashes without this same early-return.
+  if (!combatOngoing(state)) return lines;
   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
   // Regeneration HoT set up once at combat start (see startCombat),
   // ticked here identically in shape to burn/bleed but healing instead of
