@@ -1,0 +1,113 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index a1da065..9af1eff 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -913,8 +913,9 @@ function useItem(state, arg) {
+   }
+ 
+   if (!state.combat) {
+-    state.inventory.splice(idx, 1);
+-    return applyConsumableEffect(state, item, def.useEffect);
++    const result = applyConsumableEffect(state, item, def.useEffect);
++    if (result.consumed) state.inventory.splice(idx, 1);
++    return result.lines;
+   }
+ 
+   let creature = getCombatCreature(state);
+@@ -938,8 +939,9 @@ function useItem(state, arg) {
+   // already null.
+   if (!state.combat || state.health <= 0) return out;
+ 
+-  state.inventory.splice(idx, 1);
+-  out.push(...applyConsumableEffect(state, item, def.useEffect));
++  const result = applyConsumableEffect(state, item, def.useEffect);
++  if (result.consumed) state.inventory.splice(idx, 1);
++  out.push(...result.lines);
+   if (!state.combat || state.health <= 0) return out;
+ 
+   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0);
+@@ -952,32 +954,54 @@ function useItem(state, arg) {
+   return checkReflectDeath(state, out);
+ }
+ 
+-// Branches on useEffect.type — currently just "heal" (through the shared
++// Branches on useEffect.type — currently "heal" (through the shared
+ // applyHeal entry point, so Flourishing Soul/Avatar of Devotion/etc. all
+-// apply to a potion's heal exactly like any other heal source), with a
+-// harmless fallback for a consumable authored without one yet.
++// apply to a potion's heal exactly like any other heal source), "buff",
++// "cleanse", and "injuryDowngrade" — with a harmless fallback for a
++// consumable authored without one yet. Returns { lines, consumed }:
++// `consumed` is false whenever the effect would genuinely do nothing
++// (already full Health with no Overflowing-Life-style conversion, no
++// status to clear, no injury a splint can touch), so the item stays in
++// the player's pack instead of being spent for nothing — useItem (both
++// the in- and out-of-combat call sites) only splices it out of
++// state.inventory when this says to.
+ function applyConsumableEffect(state, item, effect) {
+-  if (!effect) return [`You use ${item}, but nothing happens.`];
++  if (!effect) return { lines: [`You use ${item}, but nothing happens.`], consumed: false };
+   if (effect.type === "heal") {
+     const amount = Math.ceil(state.maxHealth * effect.pct);
+     const { healed, lines } = applyHeal(state, amount);
+-    return [`You drink ${item}, mending ${healed} health.`, ...lines];
++    // healed<=0 with no lines means applyHeal's own guards (playerDowned,
++    // amount<=0) or a full-Health clamp left nothing to report — EXCEPT
++    // Overflowing Life (Regalia of the First Bloom 4pc), which still
++    // produces a real line (Temporary Health from the "wasted" healing)
++    // even when healed itself is 0, so that case still consumes the item.
++    if (healed <= 0 && !lines.length) {
++      return { lines: [`You're already at full health — ${item} would do nothing right now.`], consumed: false };
++    }
++    return { lines: [`You drink ${item}, mending ${healed} health.`, ...lines], consumed: true };
+   }
+   // useItem's own guard above already rejects a "buff" effect outside
+   // combat, so state.combat is always live here.
+   if (effect.type === "buff") {
+     const amount = scaledStat(effect.stat, effect.amount); // v0.11 PLAYER_STAT_SCALE (Attack/Defense/Magic only)
+     state.combat.playerBuffs[effect.stat] = { amount, turns: effect.turns };
+-    return [`You drink ${item} — +${amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns.`];
++    return { lines: [`You drink ${item} — +${amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns.`], consumed: true };
+   }
+   if (effect.type === "cleanse") {
++    // Nothing to clear outside combat either — state.combat.playerStatuses
++    // only ever exists mid-fight, and a cleanse potion used outside one
++    // would otherwise crash reading it.
++    if (!state.combat) {
++      return { lines: [`There's nothing to clear right now — ${item} would do nothing.`], consumed: false };
++    }
+     const cleared = effect.all
+       ? Object.keys(state.combat.playerStatuses)
+       : effect.statuses.filter((s) => state.combat.playerStatuses[s]);
++    if (!cleared.length) {
++      return { lines: [`There's nothing to clear right now — ${item} would do nothing.`], consumed: false };
++    }
+     cleared.forEach((s) => delete state.combat.playerStatuses[s]);
+-    return cleared.length
+-      ? [`You drink ${item}, clearing: ${cleared.join(", ")}.`]
+-      : [`You drink ${item}, but nothing needed clearing.`];
++    return { lines: [`You drink ${item}, clearing: ${cleared.join(", ")}.`], consumed: true };
+   }
+   // Apothecary field treatment (Injury System v0.2 §7): severe -> minor,
+   // never removes an injury, and each injury can only be field-treated
+@@ -987,17 +1011,14 @@ function applyConsumableEffect(state, item, effect) {
+   if (effect.type === "injuryDowngrade") {
+     const target = (state.injuries || []).find((inj) => inj.severity === "severe" && !inj.fieldTreated);
+     if (!target) {
+-      const anySevere = (state.injuries || []).some((inj) => inj.severity === "severe");
+-      return anySevere
+-        ? [`You use ${item}, but every severe injury you're carrying has already been field-treated once — it won't take a second splint.`]
+-        : [`You use ${item}, but nothing you're carrying is severe enough to need it.`];
++      return { lines: [`There's nothing a splint can help with right now.`], consumed: false };
+     }
+     target.severity = "minor";
+     target.fieldTreated = true;
+     state.recomputeStats(true);
+-    return [`You use ${item} on your ${injurySlotName(target.id).toLowerCase()} — still hurt, but no longer as bad.`];
++    return { lines: [`You use ${item} on your ${injurySlotName(target.id).toLowerCase()} — still hurt, but no longer as bad.`], consumed: true };
+   }
+-  return [`You use ${item}, but nothing happens.`];
++  return { lines: [`You use ${item}, but nothing happens.`], consumed: false };
+ }
+ 
+ // Out-of-combat only (mid-fight healing is still self-only via useItem's

@@ -1,0 +1,44 @@
+range: f06725212823557d1fbe206e7422e7f68be64f1a..dcc843f8ef53184db7e2782e85cbda9b0464a0a1
+=== dcc843f8ef53184db7e2782e85cbda9b0464a0a1 2026-11-06 12:07:00 +0000
+Consumables: don't consume the item when its effect would do nothing
+applyConsumableEffect now returns { lines, consumed } instead of a bare
+line array; both useItem call sites (the out-of-combat and the
+mid-combat paths) only splice the item out of state.inventory when
+consumed is true, instead of unconditionally beforehand.
+
+- heal: already at full Health (and no Overflowing Life-style
+  conversion into Temporary Health, which still counts as something
+  real happening) -> "You're already at full health — X would do
+  nothing right now." Not consumed.
+- cleanse: nothing active to clear -> "There's nothing to clear right
+  now — X would do nothing." Not consumed. Also fixes a real crash:
+  using a cleanse potion OUTSIDE combat previously read
+  state.combat.playerStatuses on a null state.combat.
+- injuryDowngrade (the field splint kit): no severe, untreated injury
+  -> "There's nothing a splint can help with right now." Not consumed.
+  Collapses the two previous distinct messages (no severe injury at
+  all / every severe one already field-treated) into this one, per
+  request.
+- buff is unaffected — it always has somewhere to apply, no no-op case.
+
+In-combat turn economy is unchanged: using an item mid-fight still
+spends the turn (beginTurn/resolveSpeedInitiative already ran before
+the item's own effect resolves) even when its effect turns out to do
+nothing — only whether the physical item is consumed changes.
+
+Verified with a 9-case test (heal at full HP in and out of combat kept
+vs. spent correctly, cleanse with/without an active status, cleanse
+outside combat no longer crashes, both field-splint-kit no-target
+sub-cases now refuse without consuming) plus the existing Injury-System
+(24/24), downed-system (17/17), and ally-protection (9/9) ledgers,
+tools/audit.js, and combatsim.js, all still clean. Updated one existing
+test (injury_items_retest's SPLINT-02) that had asserted the prior
+always-consumed behavior as deliberate and correct — it was, at the
+time; this commit is what changes it.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 59 ++++++++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 40 insertions(+), 19 deletions(-)
