@@ -1,0 +1,65 @@
+range: dfef51c8fed43482911fe32f644f9167b1bf6f40..fb3508782a1bd963bf338c59b3cd37fcac37cc57
+=== fb3508782a1bd963bf338c59b3cd37fcac37cc57 2026-11-06 01:15:59 +0000
+Loot Reachability Fixes v2.1: Normal-tier high-tier drop cap, Dregnar's guaranteed full-kit drop
+Follow-up to the v2 worn-gear drop implementation (previous commit),
+per Tyler's same-day clarifications.
+
+- HIGH_TIER_WORN_SHARE (data/items.js): a Normal-rank wearer's drop roll,
+  once it succeeds, now picks from its own tier-5+ worn items only this
+  share of the time (placeholder 0.10) and from its tier <= 4 items the
+  rest, instead of one plain uniform pick across everything worn. Per-
+  item down-weighting doesn't work here, since several Normal bands are
+  MOSTLY tier-5+ (7 of 8, 6 of 9, 5 of 9 items) and would still make
+  Legendary/Mythic the common case for those wearers. Net effect
+  verified by simulation: ~0.9% per Normal kill for a high-tier piece
+  specifically (handoff predicted ~0.8%), against the existing ~8%
+  overall drop chance. Elite/Boss/World Boss are absent from the table
+  (no cap, plain uniform pick) — verified uncapped high-tier rates by
+  simulation too (Elite ~3.2%, Boss ~7.3%) for Tyler's review on whether
+  those need their own cap later; tightening any class is a data change.
+
+- dropsAllWorn (data/bestiary.js, Dregnar Ashvein; data/items.js,
+  rollCreatureLoot): a one-time endgame World Boss now drops ALL of his
+  worn gear on defeat, guaranteed, bypassing the usual drop-chance roll
+  entirely — a generic per-creature flag, not a hardcoded id, so any
+  future one-time boss can reuse it. resolveKill's loot-handling (engine/
+  combat.js) and trackDungeonKillRewards (engine/dungeon.js) both now
+  take rollCreatureLoot's result as either a single item name or an
+  array uniformly.
+
+- Generalized the existing "defeated_<bestiaryKey>" flag (engine/
+  combat.js's "enemy.killed" listener, previously unique-only) to also
+  cover any `dropsAllWorn` creature, so Dregnar's guaranteed full-kit
+  drop can't be farmed once something actually starts his fight (nothing
+  does yet).
+
+- Found and fixed the actual reason that flag could never have fired for
+  Dregnar regardless: startCombat's `special`-creature branch builds its
+  fight creature via legacyScaledCreature, skipping buildFightCreature
+  entirely — the one place bestiaryKey normally gets stamped. Stamped it
+  there instead, onto the fresh per-fight instance only (never the shared
+  BESTIARY entry). Confirmed by directly emitting "enemy.killed" against
+  a real Dregnar combat creature before and after: false, then true.
+  This also means Hunt/Track bounties (checkJobProgressOnKill, which
+  reads the same field) can now target a `special` creature at all,
+  previously impossible for any of them — a dead path turned live, not
+  a behavior change for anything that exists today.
+
+Verified: 1000-kill simulations confirm Dregnar drops exactly his own 10
+items on every kill with the defeated flag set, Watch Captain/bandit
+cutthroat/wildlife/Legion Hound behavior unchanged from v2, the Normal-
+class high-tier share lands within simulation noise of the handoff's
+predicted rate, tools/audit.js's R1-R3 output is unchanged (this touches
+only the drop ROLL, not any item's source), and combatsim.js plus the
+existing downed-system/ally-protection/Injury-System ledgers are all
+still clean (stat/gear computation is untouched by this change).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/bestiary.js  |  8 ++++++++
+ js/data/items.js     | 49 ++++++++++++++++++++++++++++++++++++-------------
+ js/engine/combat.js  | 29 ++++++++++++++++++++++++++---
+ js/engine/dungeon.js |  6 +++++-
+ 4 files changed, 75 insertions(+), 17 deletions(-)

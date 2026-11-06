@@ -1,0 +1,17 @@
+[
+ {
+  "reg": "BESTIARY",
+  "id": "dregnar_ashvein",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "dropsAllWorn",
+    "new": true
+   }
+  ]
+ },
+ {
+  "reg": "HIGH_TIER_WORN_SHARE",
+  "type": "registry added"
+ }
+]
