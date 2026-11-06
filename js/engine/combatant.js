@@ -142,13 +142,21 @@ function stat(state, combatant, key) {
     const ally = combatant.ref;
     switch (key) {
       case "spd": return effectiveAllySpeed(ally);
-      case "agi": return ally.agility;
+      // def/agi: centralized in step 1c, the step that reaches
+      // resolveEnemyAttackOnAlly's call site (an ally defending against an
+      // enemy attack). effectiveAllyDef already existed (companion.js);
+      // effectiveAllyAgility was extracted from that same function's
+      // inline calc, same zero-behavior-change move as everything else in
+      // this file.
+      case "def": return effectiveAllyDef(ally);
+      case "agi": return effectiveAllyAgility(ally);
       case "magic": return ally.magic;
       case "knowledge": return ally.knowledge;
       case "maxHp": return ally.maxHealth;
       case "hp": return ally.health;
-      // atk/def/acc: see header — still computed inline at each ally
-      // attack/defend call site today, not centralized. Migrated in 1c/1d.
+      // atk/acc: still computed inline at each ally ATTACK call site
+      // today (allyAggressiveAction, companion.js's basicCompanionAttack),
+      // not centralized. Migrated in 1d, the step that reaches those.
       default: return notYetMigrated("ally", key);
     }
   }

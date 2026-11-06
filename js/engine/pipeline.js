@@ -1,6 +1,6 @@
 /*
- * FRAGMENTA — Combat Rebuild Phase 1, step 1b: the five-step pipeline
- * skeleton, and the first path migrated through it (enemy -> player).
+ * FRAGMENTA — Combat Rebuild Phase 1: the five-step pipeline skeleton
+ * (step 1b), extended in step 1c with the enemy -> ally path.
  *
  * The five generic functions below (chooseAction/chooseTargets/rollToHit/
  * calculateDamage/applyAndReact) are the shared shape every actor/target
@@ -10,12 +10,29 @@
  * convention js/engine/combatant.js's stat() already uses, so a bug reads
  * as a loud crash, never a silently wrong number.
  *
- * Only ONE path is real in this step: enemy attacking the player. Its
- * logic is moved here from resolveEnemyRetaliation (combat.js) verbatim —
- * same arithmetic, same effect order, same early-return shape for every
- * miss/evasion/negation — just reorganized into the five named steps.
- * Nothing about any mechanic's numbers or triggers changes in this step;
- * see the step 1b parity report for how that's verified.
+ * Step 1b's path: enemy attacking the player, moved here from
+ * resolveEnemyRetaliation (combat.js) verbatim. Step 1c's path: enemy
+ * attacking an ally, moved here from resolveEnemyAttackOnAllyLegacy
+ * (combat.js, formerly just resolveEnemyAttackOnAlly — see that
+ * function's own header). Same arithmetic, same effect order, same
+ * early-return shape for every miss/evasion/negation in both — just
+ * reorganized into the five named steps. Nothing about any mechanic's
+ * numbers or triggers changes; see each step's own parity report for how
+ * that's verified.
+ *
+ * The player-attacking and ally-attacking paths are NOT symmetric today,
+ * and step 1c preserves every one of those asymmetries exactly rather
+ * than "completing" them — see the per-step comments below for each one
+ * (the short version: Reinforced/the stun gate/Timeless Guard/Guardian
+ * Spirit/Guided Footsteps/Never Where Expected/Blessing or Avatar of
+ * Freedom/evasion charges or windows/Marked Target/Flowing Discipline/
+ * Winter's Verdict/Stonewarden's physical-branch reduction/Toxic
+ * Preparation only ever applied when the player was the target; Hadrian's
+ * protection, the generalized Ally Protection Reaction, companion damage
+ * mitigation, Last Bastion retaliation, and a miss provoking Riposte only
+ * ever applied when an ally was). Deciding whether any of these should
+ * become symmetric is a balance question for later, not something Phase
+ * 1's restructure gets to silently decide either way.
  *
  * Two deliberate, disclosed departures from a "pure" five-step split,
  * both forced by preserving EXACT existing behavior rather than the
@@ -64,25 +81,33 @@
 // act this turn at all (the only such case today: a stunned enemy).
 function chooseAction(actor, ctx) {
   if (actor.kind === "enemy") {
-    const combat = ctx.state.combat;
-    const creature = actor.ref.creatureObj;
-    // Reinforced: see this file's header, departure #1 — stays first,
-    // ahead of the stun gate, to match resolveEnemyRetaliation's original
-    // order exactly.
-    if (hasEffect(ctx.state, "reinforced")) {
-      combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
-      if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
-        combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
+    // Reinforced and the stun gate: resolveEnemyAttackOnAllyLegacy never
+    // had either check — both are specific to the player-targeted path in
+    // the original code (resolveEnemyRetaliation). A pre-existing
+    // asymmetry (an enemy stunned the round it happens to target an ally
+    // simply isn't stopped, and Reinforced's counter only ever advances
+    // against the player), preserved here exactly via the target-kind
+    // guard rather than corrected or extended — see this file's header.
+    if (ctx.target && ctx.target.kind === "player") {
+      const combat = ctx.state.combat;
+      // Reinforced: see this file's header, departure #1 — stays first,
+      // ahead of the stun gate, to match resolveEnemyRetaliation's
+      // original order exactly.
+      if (hasEffect(ctx.state, "reinforced")) {
+        combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
+        if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
+          combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
+        }
       }
-    }
-    // enemyStunCharges is itself a PER_ENEMY_FIELDS entry, proxied as
-    // combat.enemyStunCharges when this creature is the active one — read/
-    // write it directly on the slot via actor.store instead, since
-    // actor.store already points at the right slot regardless of which
-    // enemy is "active" (see js/engine/combatant.js).
-    if ((actor.store.enemyStunCharges || 0) > 0) {
-      actor.store.enemyStunCharges -= 1;
-      return null;
+      // enemyStunCharges is itself a PER_ENEMY_FIELDS entry, proxied as
+      // combat.enemyStunCharges when this creature is the active one —
+      // read/write it directly on the slot via actor.store instead, since
+      // actor.store already points at the right slot regardless of which
+      // enemy is "active" (see js/engine/combatant.js).
+      if ((actor.store.enemyStunCharges || 0) > 0) {
+        actor.store.enemyStunCharges -= 1;
+        return null;
+      }
     }
     return ctx.pendingAction;
   }
@@ -96,7 +121,7 @@ function chooseAction(actor, ctx) {
 // have real targeting: taunts, pack AoE, Hadrian's priority target) slot
 // into the same shape, but it's a documented no-op here.
 function chooseTargets(actor, action, ctx) {
-  if (actor.kind === "enemy" && ctx.target && ctx.target.kind === "player") {
+  if (actor.kind === "enemy" && ctx.target && (ctx.target.kind === "player" || ctx.target.kind === "ally")) {
     return [ctx.target];
   }
   throw new Error(`chooseTargets(): actor "${actor.kind}" -> target not migrated yet.`);
@@ -107,7 +132,7 @@ function chooseTargets(actor, action, ctx) {
 // { hit: false, result: {lines, damage} } to short-circuit with a final
 // result (a miss, or one of the several named full-negation effects).
 function rollToHit(actor, target, action, ctx) {
-  if (!(actor.kind === "enemy" && target.kind === "player")) {
+  if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
     throw new Error(`rollToHit(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
   }
   const state = ctx.state;
@@ -115,8 +140,37 @@ function rollToHit(actor, target, action, ctx) {
   const creature = actor.ref.creatureObj;
   const { abilityCtx, basicFirstBonus } = action;
   const miss = (line) => ({ hit: false, result: { lines: [line], damage: 0 } });
-
   const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
+
+  if (target.kind === "ally") {
+    const ally = target.ref;
+    // Marked Target is absent here on purpose — it's a player-only
+    // mechanic in the original (resolveEnemyAttackOnAllyLegacy never
+    // reads or clears combat.exposedTarget). See this file's header.
+    const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
+    let calculatedAimBonusAlly = 0;
+    if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
+      creature.calculatedAimUsed = true;
+      calculatedAimBonusAlly = 8;
+    }
+    const bankedPrepBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
+    const bankedPrepDmgMultBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
+    const measuredAimAccBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
+    creature.bankedAttackAccBonus = 0;
+    creature.bankedAttackAccBonusTurnsLeft = 0;
+    creature.bankedAttackDmgMultBonus = 0;
+    const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
+    creature.duelistMeasurePendingTarget = null;
+    if (!attackConnects(creature.acc + accBonus, stat(state, target, "agi"))) {
+      // Riposte, generalized: a miss on an ally provokes a counter FROM
+      // the ally onto the attacker — the player-targeted path has no
+      // equivalent (a miss there is just a miss). See this file's header.
+      const enemySlot = actor.store;
+      return { hit: false, result: { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`, ...riposteCounterByAllyOnEnemy(state, ally, enemySlot)], damage: null } };
+    }
+    return { hit: true, accBonus, bankedPrepDmgMultBonus: bankedPrepDmgMultBonusAlly };
+  }
+
   let markedTargetBonus = 0;
   if (combat.exposedTarget && combat.exposedTarget.by !== creature) {
     markedTargetBonus = 8;
@@ -185,7 +239,7 @@ function rollToHit(actor, target, action, ctx) {
 // matching exactly where resolveEnemyRetaliation called
 // mitigateAndApplyHitOnPlayer in the original.
 function calculateDamage(actor, target, action, ctx, hitInfo) {
-  if (!(actor.kind === "enemy" && target.kind === "player")) {
+  if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
     throw new Error(`calculateDamage(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
   }
   const state = ctx.state;
@@ -193,6 +247,52 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
   const creature = actor.ref.creatureObj;
   const { atkSpread, extraDef, abilityCtx, basicFirstBonus } = action;
   const bonusDef = extraDef || 0;
+
+  if (target.kind === "ally") {
+    const ally = target.ref;
+    // Brace/Guarded Strike, generalized: the ally's own banked bonus
+    // against its next incoming hit, consumed here (read then zeroed) —
+    // same side-effecting-at-the-usage-site shape as the enemy-def banked
+    // bonuses elsewhere in this file, never folded into stat() itself
+    // (the stat()-purity rule, js/engine/combatant.js's header).
+    const bankedDef = (ally.braceBonusDef || 0) + (ally.guardedStrikeBonusDef || 0);
+    ally.braceBonusDef = 0;
+    ally.guardedStrikeBonusDef = 0;
+    const effectiveDef = stat(state, target, "def") + bankedDef;
+    // No elemental branch here on purpose — resolveEnemyAttackOnAllyLegacy
+    // never had one; an enemy mage attacking an ally always uses the
+    // physical formula below (effectiveEnemyAtk's own magic-fallback
+    // makes rawAtk sane regardless). See this file's header.
+    const rawAtk = effectiveEnemyAtk(state, creature);
+    let edmg = abilityCtx
+      ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
+      : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
+    if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+    edmg = Math.round(edmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
+    if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
+    if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
+    if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
+      creature.unbrokenGripUsed = true;
+      edmg = Math.round(edmg * 1.10);
+    }
+    // Executioner's Seal/Tyrant's Edge: checked against the ALLY's own
+    // HP% here (the actual target of this hit), not the player's.
+    if (hasEffect(creature, "dra_e06_executioners_seal") && ally.health <= ally.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
+    if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10);
+    if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && ally.health <= ally.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+      creature.tyrantsEdgeCooldown = 3;
+      creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
+      edmg = Math.round(edmg * 1.10);
+    }
+    if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
+      creature.decisiveImpactUsed = true;
+      edmg = Math.round(edmg * 1.08);
+    }
+    // No Flowing Discipline/Winter's Verdict/Stonewarden/Toxic Preparation
+    // here — all four are absent from resolveEnemyAttackOnAllyLegacy too.
+    // See this file's header.
+    return { shortCircuit: false, edmg, kind: "ally" };
+  }
 
   if (creature.element) {
     const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
@@ -296,7 +396,7 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
 // the original (so every mutation below reads the POST-mitigation edmg) —
 // this is the only place state.health changes for this path.
 function applyAndReact(actor, target, dmgInfo, ctx, action) {
-  if (!(actor.kind === "enemy" && target.kind === "player")) {
+  if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
     throw new Error(`applyAndReact(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
   }
   const state = ctx.state;
@@ -304,6 +404,68 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   const creature = actor.ref.creatureObj;
   const { abilityCtx } = action;
   let edmg = dmgInfo.edmg;
+
+  if (target.kind === "ally") {
+    const ally = target.ref;
+    if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
+    const sangAllyLines = [];
+    if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+      creature.serratedOpeningUsed = true;
+      if (!(ally.statuses && ally.statuses.bleed)) {
+        sangAllyLines.push(...applyAbilityInflictOnAlly(ally, { status: "bleed", chance: 1 }, creature.name));
+      }
+    }
+    // No Marked Target grant here — see this file's header.
+    if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
+      creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
+      creature.duelistMeasurePendingTarget = ally.name;
+    }
+    // Legion's Memory/Brothers in Arms, then the generalized Ally
+    // Protection Reaction, then Companion Ability Engine mitigation —
+    // this path's equivalent of "shields and temporary HP" (spec step 5),
+    // all ally-only mechanics with no player-path counterpart.
+    const protection = maybeHadrianAllyProtection(state, ally, edmg);
+    edmg = protection.dmg;
+    const allyProtectionReaction = applyAllyProtectionReaction(state, ally, edmg);
+    edmg = allyProtectionReaction.dmg;
+    const mitigation = applyCompanionDamageTaken(ally, edmg);
+    edmg = mitigation.dmg;
+    const arenaFloor = combat && combat.isArenaFight && !combat.arenaLethal ? 1 : 0;
+    ally.health = Math.max(arenaFloor, ally.health - edmg);
+    const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
+    const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${edmg} damage.`, ...protection.lines, ...allyProtectionReaction.lines, ...mitigation.lines, ...sangAllyLines];
+    if (abilityCtx && abilityCtx.inflict) {
+      const inflictLinesAlly = applyAbilityInflictOnAlly(ally, abilityCtx.inflict, creature.name);
+      lines.push(...inflictLinesAlly);
+      if (inflictLinesAlly.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
+        creature.blackIceReservePending = true;
+        creature.blackIceReserveTurnsLeft = 2;
+      }
+    }
+    if (abilityCtx && abilityCtx.healOnHitPct && edmg > 0) {
+      const heal = Math.round(edmg * abilityCtx.healOnHitPct);
+      if (heal > 0) actor.store.hp = Math.min(actor.store.maxHp, actor.store.hp + heal);
+    }
+    lines.push(...maybeCompanionRetaliate(state, ally, creature));
+    if (ally.health <= 0) {
+      lines.push(...killAlly(state, ally));
+      // killAlly's own party-wipe branch (the player already downed, and
+      // this the last living ally) can null state.combat — see combat.js's
+      // own comment on this same guard in the pre-pipeline function.
+      if (!state.combat) return { lines, damage: null };
+      for (const pid of creature.passives || []) {
+        const p = getEnemyAbility(pid);
+        if (!p || p.trigger !== "onKill") continue;
+        if (p.oncePerCombat) {
+          creature.onKillUsed = creature.onKillUsed || {};
+          if (creature.onKillUsed[pid]) continue;
+          creature.onKillUsed[pid] = true;
+        }
+        applyEnemySelfModifier(state.combat, creature, p.selfBuff);
+      }
+    }
+    return { lines, damage: null };
+  }
 
   const hitResult = mitigateAndApplyHitOnPlayer(state, edmg, dmgInfo.kind);
   edmg = hitResult.edmg;
@@ -369,6 +531,31 @@ function resolveEnemyAttackOnPlayer(state, creature, atkSpread, extraDef, abilit
   const actor = findEnemyCombatant(state, creature);
   const target = makePlayerCombatant(state);
   const action = { atkSpread, extraDef, abilityCtx, basicFirstBonus };
+  const ctx = { state, pendingAction: action, target };
+
+  const chosen = chooseAction(actor, ctx);
+  if (!chosen) return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
+
+  const targets = chooseTargets(actor, chosen, ctx);
+  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
+  if (!hitInfo.hit) return hitInfo.result;
+
+  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+  if (dmgInfo.shortCircuit) return dmgInfo.result;
+
+  return applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+}
+
+// ---- Orchestrator: same signature/return shape as the old
+// resolveEnemyAttackOnAlly (now resolveEnemyAttackOnAllyLegacy in
+// combat.js), so every existing call site keeps working unchanged —
+// nothing needed to change there, since this function keeps the name
+// every call site already uses; only the OLD definition had to be
+// renamed so both can exist side by side for the parity harness.
+function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstBonus) {
+  const actor = findEnemyCombatant(state, creature);
+  const target = makeAllyCombatant(ally);
+  const action = { abilityCtx, basicFirstBonus };
   const ctx = { state, pendingAction: action, target };
 
   const chosen = chooseAction(actor, ctx);

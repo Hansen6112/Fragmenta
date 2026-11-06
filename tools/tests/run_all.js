@@ -46,6 +46,7 @@ const LEDGERS = [
   "injury_items_ledger.js",
   "phase1_step1a_combatant_ledger.js",
   "phase1_step1b_pipeline_parity.js",
+  "phase1_step1c_ally_pipeline_parity.js",
 ];
 
 function waitForServer(url, timeoutMs) {

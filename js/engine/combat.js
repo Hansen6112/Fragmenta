@@ -3402,7 +3402,16 @@ function applyAllyProtectionReaction(state, targetAlly, dmg) {
   return { dmg, lines: [] };
 }
 
-function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstBonus) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1c): every real call site now
+// calls resolveEnemyAttackOnAlly (js/engine/pipeline.js) instead, which
+// runs this exact same logic through the five-step pipeline. This copy is
+// kept, unchanged, only as the step 1c forced-roll parity oracle — delete
+// it in step 1h alongside the other superseded per-pair functions. Note
+// the two renamings this required: this function used to BE named
+// resolveEnemyAttackOnAlly; it's "Legacy" now so the live, pipeline-backed
+// version (same name as it always had at every call site) can exist
+// alongside it for the parity harness to call both.
+function resolveEnemyAttackOnAllyLegacy(state, creature, ally, abilityCtx, basicFirstBonus) {
   // allyBuffStatTotal (companion.js): Steady Grip cast on this ally —
   // same crafted-potion-buff storage effectiveAllyDef already reads for
   // Defense. allyStatusStatTotal/allyStatusStatPctTotal: an inflicted

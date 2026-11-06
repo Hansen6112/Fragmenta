@@ -259,6 +259,19 @@ function effectiveAllyDef(ally) {
   );
 }
 
+// Extracted from resolveEnemyAttackOnAlly's own inline calc (Combat
+// Rebuild Phase 1, step 1c) — zero behavior change, just centralized so
+// stat()'s ally "agi" case (js/engine/combatant.js) has a real function
+// to call instead of the bare ally.agility it returned before this step
+// reached this call site. allyStatusStatPctTotal (engine/combat.js): a
+// percentage Agility debuff (Pinned, Restrained, ...), same flat-then-pct
+// combination effectivePlayerAgility uses for the player.
+function effectiveAllyAgility(ally) {
+  const base = ally.agility + allyBuffStatTotal(ally, "agi") + allyStatusStatTotal(ally, "agi");
+  const pct = allyStatusStatPctTotal(ally, "agiPct");
+  return Math.max(0, Math.round(base * (1 + pct)));
+}
+
 // Buffs given to an ally — either a crafted potion out of combat
 // (engine/combat.js's applyConsumableEffectToAlly) or an Apothecary
 // ability cast on them mid-fight (useApothecaryAbility). ally.buffs lives
