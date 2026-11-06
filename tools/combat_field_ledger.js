@@ -35,39 +35,57 @@
 const fs = require("fs");
 const path = require("path");
 const ROOT = path.join(__dirname, "..");
-const FILES = ["js/engine/combat.js", "js/engine/companion.js", "js/engine/dungeon.js", "js/engine/arena.js", "js/engine/parser.js"];
+const FILES = ["js/engine/combat.js", "js/engine/combatant.js", "js/engine/pipeline.js", "js/engine/companion.js", "js/engine/dungeon.js", "js/engine/arena.js", "js/engine/parser.js"];
 
-// Spec section 4's migration-order table, "Today's code" column, verbatim
-// function names, mapped to the step that owns migrating them.
+// Spec section 4's migration-order table, "Today's code" column — plus,
+// from step 1b onward, the SHARED pipeline functions (js/engine/
+// pipeline.js) that replace those per-pair functions as the real, live
+// entry points. A value is an array because a shared function can belong
+// to more than one step once a later step adds its own actor/target
+// branch into the same function (e.g. rollToHit gains a step 1c branch
+// when ally-targeting lands) — add that step's tag to the array AT THAT
+// TIME, don't pre-guess it now.
+//
+// resolveEnemyRetaliation is deliberately ABSENT here as of step 1b: it's
+// superseded, unchanged, kept only as the parity harness's oracle (see
+// its own header comment in combat.js) — no longer a live step 1b entry
+// point, so fields it still textually references don't count as "open"
+// through it alone. The same removal happens for every other superseded
+// per-pair function as its own step lands.
 const FUNCTION_STEP = {
-  resolveEnemyRetaliation: "1b",
-  resolveEnemyAttackOnAlly: "1c",
-  resolveCompanionAction: "1d",
-  basicCompanionAttack: "1d",
-  useHadrianActive: "1d",
-  killEnemyAsAlly: "1d",
-  allyAggressiveAction: "1d",
-  playerAttack: "1e",
-  rollPlayerDamage: "1e",
-  useFeint: "1e",
-  useDecoy: "1e",
-  useAmbush: "1e",
-  useDisarm: "1e",
-  useElementAbility: "1e",
-  maybeRiposte: "1f",
-  checkReflectDeath: "1f",
-  maybeCompanionRetaliate: "1f",
-  maybeHadrianAllyProtection: "1f",
-  beginTurn: "1f",
-  tickPlayerStatuses: "1f",
-  tickAllyStatuses: "1f",
-  tickEnemyPassives: "1f",
-  tickPlayerBuffs: "1f",
-  tickAllyBuffs: "1f",
-  resolveEnemyActiveAbility: "1f",
-  resolveEnemySummon: "1f",
-  dregnarResolveDamagingAttempt: "1g",
-  resolveDregnarAction: "1g",
+  chooseAction: ["1b"],
+  chooseTargets: ["1b"],
+  rollToHit: ["1b"],
+  calculateDamage: ["1b"],
+  applyAndReact: ["1b"],
+  resolveEnemyAttackOnPlayer: ["1b"],
+  resolveEnemyAttackOnAlly: ["1c"],
+  resolveCompanionAction: ["1d"],
+  basicCompanionAttack: ["1d"],
+  useHadrianActive: ["1d"],
+  killEnemyAsAlly: ["1d"],
+  allyAggressiveAction: ["1d"],
+  playerAttack: ["1e"],
+  rollPlayerDamage: ["1e"],
+  useFeint: ["1e"],
+  useDecoy: ["1e"],
+  useAmbush: ["1e"],
+  useDisarm: ["1e"],
+  useElementAbility: ["1e"],
+  maybeRiposte: ["1f"],
+  checkReflectDeath: ["1f"],
+  maybeCompanionRetaliate: ["1f"],
+  maybeHadrianAllyProtection: ["1f"],
+  beginTurn: ["1f"],
+  tickPlayerStatuses: ["1f"],
+  tickAllyStatuses: ["1f"],
+  tickEnemyPassives: ["1f"],
+  tickPlayerBuffs: ["1f"],
+  tickAllyBuffs: ["1f"],
+  resolveEnemyActiveAbility: ["1f"],
+  resolveEnemySummon: ["1f"],
+  dregnarResolveDamagingAttempt: ["1g"],
+  resolveDregnarAction: ["1g"],
 };
 const STEP_ORDER = ["1b", "1c", "1d", "1e", "1f", "1g"];
 
@@ -128,8 +146,9 @@ function build() {
   }
 
   const stepEntryFns = {};
-  for (const [fn, step] of Object.entries(FUNCTION_STEP)) {
-    if (allFns[fn]) (stepEntryFns[step] = stepEntryFns[step] || []).push(fn);
+  for (const [fn, steps] of Object.entries(FUNCTION_STEP)) {
+    if (!allFns[fn]) continue;
+    for (const step of steps) (stepEntryFns[step] = stepEntryFns[step] || []).push(fn);
   }
   const stepClosure = {};
   for (const [step, entries] of Object.entries(stepEntryFns)) {

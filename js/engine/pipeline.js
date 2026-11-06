@@ -1,0 +1,376 @@
+/*
+ * FRAGMENTA — Combat Rebuild Phase 1, step 1b: the five-step pipeline
+ * skeleton, and the first path migrated through it (enemy -> player).
+ *
+ * The five generic functions below (chooseAction/chooseTargets/rollToHit/
+ * calculateDamage/applyAndReact) are the shared shape every actor/target
+ * pair will eventually run through (spec section 3). Each dispatches on
+ * `actor.kind`/`target.kind` to the real logic for a migrated path, or
+ * throws a clear "not migrated yet" error for anything that isn't — same
+ * convention js/engine/combatant.js's stat() already uses, so a bug reads
+ * as a loud crash, never a silently wrong number.
+ *
+ * Only ONE path is real in this step: enemy attacking the player. Its
+ * logic is moved here from resolveEnemyRetaliation (combat.js) verbatim —
+ * same arithmetic, same effect order, same early-return shape for every
+ * miss/evasion/negation — just reorganized into the five named steps.
+ * Nothing about any mechanic's numbers or triggers changes in this step;
+ * see the step 1b parity report for how that's verified.
+ *
+ * Two deliberate, disclosed departures from a "pure" five-step split,
+ * both forced by preserving EXACT existing behavior rather than the
+ * cleanest possible shape (balance-neutrality wins over tidiness in
+ * Phase 1 — Phase 2's registry is where the shape itself can improve):
+ *
+ *   1. Reinforced's attack-counter (Divine Regalia) increments BEFORE the
+ *      stun gate in the original function — a stunned creature's "attack"
+ *      still counts toward Reinforced's every-3rd-attack trigger. That's
+ *      not naturally chooseAction's job (it's an "attempt happened" tally,
+ *      closer to rollToHit's domain), but moving it after the stun gate
+ *      would change behavior (a stunned creature would stop counting).
+ *      So it stays textually first inside chooseAction, ahead of the stun
+ *      check, preserving the original order even though it doesn't fit
+ *      the step's own conceptual job. Flagged for Phase 2 to reconsider.
+ *
+ *   2. Mirror Soul (Artifact) is a full short-circuit found INSIDE
+ *      calculateDamage: the first hostile spell each combat is reflected
+ *      onto the CASTER (not the original target), including that
+ *      creature's own HP loss and kill resolution, resolved immediately
+ *      and returned. That's an HP write inside step 4, not step 5 — a
+ *      real exception to the "HP changes only in applyAndReact" rule
+ *      (spec section 3, hard rule), forced by Mirror Soul redirecting the
+ *      hit onto a DIFFERENT combatant than the one steps 2-5 are resolving
+ *      for. Disclosed here rather than quietly preserved; tools/audit.js's
+ *      future P1 rule (step 1h) will need an explicit allow-list entry for
+ *      this one call site, same as the existing out-of-combat-healing
+ *      allow-list the spec already anticipates.
+ */
+
+// ---- Step 1: choose action ----
+// actor: a combatant view (js/engine/combatant.js). ctx.pendingAction: the
+// attack resolveEnemyAction already decided on (basic swing or a specific
+// Active's abilityCtx) — 1b doesn't yet build real action DEFINITIONS
+// (spec section 3.1); that catalog is step 1e's job, alongside the player
+// skill resolver. Returns the chosen action, or null if the actor can't
+// act this turn at all (the only such case today: a stunned enemy).
+function chooseAction(actor, ctx) {
+  if (actor.kind === "enemy") {
+    const combat = ctx.state.combat;
+    const creature = actor.ref.creatureObj;
+    // Reinforced: see this file's header, departure #1 — stays first,
+    // ahead of the stun gate, to match resolveEnemyRetaliation's original
+    // order exactly.
+    if (hasEffect(ctx.state, "reinforced")) {
+      combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
+      if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
+        combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
+      }
+    }
+    // enemyStunCharges is itself a PER_ENEMY_FIELDS entry, proxied as
+    // combat.enemyStunCharges when this creature is the active one — read/
+    // write it directly on the slot via actor.store instead, since
+    // actor.store already points at the right slot regardless of which
+    // enemy is "active" (see js/engine/combatant.js).
+    if ((actor.store.enemyStunCharges || 0) > 0) {
+      actor.store.enemyStunCharges -= 1;
+      return null;
+    }
+    return ctx.pendingAction;
+  }
+  throw new Error(`chooseAction(): actor kind "${actor.kind}" is not migrated into the pipeline yet.`);
+}
+
+// ---- Step 2: choose targets ----
+// 1b's only real path never had a targeting choice (an enemy's basic
+// attack/active always hits the player) — this step exists as a real,
+// callable function with the right signature so later steps (which DO
+// have real targeting: taunts, pack AoE, Hadrian's priority target) slot
+// into the same shape, but it's a documented no-op here.
+function chooseTargets(actor, action, ctx) {
+  if (actor.kind === "enemy" && ctx.target && ctx.target.kind === "player") {
+    return [ctx.target];
+  }
+  throw new Error(`chooseTargets(): actor "${actor.kind}" -> target not migrated yet.`);
+}
+
+// ---- Step 3: roll to hit ----
+// Returns { hit: true, accBonus } to continue the pipeline, or
+// { hit: false, result: {lines, damage} } to short-circuit with a final
+// result (a miss, or one of the several named full-negation effects).
+function rollToHit(actor, target, action, ctx) {
+  if (!(actor.kind === "enemy" && target.kind === "player")) {
+    throw new Error(`rollToHit(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+  }
+  const state = ctx.state;
+  const combat = state.combat;
+  const creature = actor.ref.creatureObj;
+  const { abilityCtx, basicFirstBonus } = action;
+  const miss = (line) => ({ hit: false, result: { lines: [line], damage: 0 } });
+
+  const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
+  let markedTargetBonus = 0;
+  if (combat.exposedTarget && combat.exposedTarget.by !== creature) {
+    markedTargetBonus = 8;
+    combat.exposedTarget = null;
+  }
+  const duelistPending = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === "player";
+  const duelistBonus = duelistPending ? 10 : 0;
+  creature.duelistMeasurePendingTarget = null;
+  let calculatedAimBonus = 0;
+  if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
+    creature.calculatedAimUsed = true;
+    calculatedAimBonus = 8;
+  }
+  const bankedPrepBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
+  const bankedPrepDmgMultBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
+  const measuredAimAccBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
+  creature.bankedAttackAccBonus = 0;
+  creature.bankedAttackAccBonusTurnsLeft = 0;
+  creature.bankedAttackDmgMultBonus = 0;
+  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus + measuredAimAccBonus;
+
+  if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
+    return miss(`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`);
+  }
+  if (applyTimelessGuard(state)) {
+    return miss(`Timeless Guard — for a moment, time itself refuses to let the blow land.`);
+  }
+  if (hasEffect(state, "guardian_spirit") && !combat.guardianSpiritUsed) {
+    combat.guardianSpiritUsed = true;
+    return miss(`Guardian Spirit turns the first blow aside completely.`);
+  }
+  if (hasEffect(state, "guided_footsteps") && !combat.guidedFootstepsUsed) {
+    combat.guidedFootstepsUsed = true;
+    if (Math.random() < 0.75) return miss(`Guided Footsteps — you're already a step from where it lands.`);
+  }
+  if (hasEffect(state, "never_where_expected") && Math.random() < 0.15) {
+    return miss(`Never Where Expected — it swings, and finds nothing there.`);
+  }
+  if (hasSetTier(state, "Regalia of the Endless Horizon", 2) && Math.random() < 0.15) {
+    return miss(`Blessing of Freedom carries you clear of the blow.`);
+  }
+  if (combat.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
+    return miss(`Avatar of Freedom carries you beyond its reach entirely.`);
+  }
+  let evasionRolled = false;
+  if (combat.evasionCharges > 0) {
+    combat.evasionCharges -= 1;
+    evasionRolled = Math.random() < 0.5;
+  } else if (combat.evasionTurns > 0) {
+    evasionRolled = Math.random() < 0.5;
+  }
+  if (evasionRolled) {
+    if (hasEffect(state, "evasive_guard")) combat.evasiveGuardBonus = Math.min(3, combat.evasiveGuardBonus + 1);
+    if (creature.element && hasSetTier(state, "River Warden", 6)) {
+      combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
+    }
+    return miss(`You slip past ${withThe(creature.name, false)}'s counter entirely.`);
+  }
+  return { hit: true, accBonus, bankedPrepDmgMultBonus };
+}
+
+// ---- Step 4: calculate damage ----
+// Returns { shortCircuit: true, result } for Mirror Soul's reflection
+// (see this file's header, departure #2), or { edmg, kind } to continue
+// into applyAndReact — edmg is the fully-computed pre-mitigation damage,
+// matching exactly where resolveEnemyRetaliation called
+// mitigateAndApplyHitOnPlayer in the original.
+function calculateDamage(actor, target, action, ctx, hitInfo) {
+  if (!(actor.kind === "enemy" && target.kind === "player")) {
+    throw new Error(`calculateDamage(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+  }
+  const state = ctx.state;
+  const combat = state.combat;
+  const creature = actor.ref.creatureObj;
+  const { atkSpread, extraDef, abilityCtx, basicFirstBonus } = action;
+  const bonusDef = extraDef || 0;
+
+  if (creature.element) {
+    const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
+    const base = randInt(creature.magic - 2, creature.magic + 2);
+    if (hasEffect(state, "mirror_soul") && !combat.mirrorSoulUsed) {
+      combat.mirrorSoulUsed = true;
+      const reflected = Math.max(0, Math.round(base * matchup));
+      if (reflected > 0) {
+        // Departure #2: Mirror Soul's own HP write and kill resolution
+        // target the ATTACKER (actor), not the player this pipeline call
+        // is otherwise resolving for — actor.store is this creature's own
+        // slot, so writing through it is correct regardless of which
+        // enemy is "active" right now (unlike the old combat.hp proxy,
+        // which happened to be safe here only because Mirror Soul always
+        // fires on the currently-acting creature).
+        actor.store.hp -= reflected;
+        actor.store.lastDamageType = creature.element;
+        const lines = [`Mirror Soul turns ${withThe(creature.name, false)}'s spell back on it, for ${reflected} damage.`];
+        if (actor.store.hp <= 0) lines.push(...resolveKill(state, creature));
+        return { shortCircuit: true, result: { lines, damage: 0 } };
+      }
+      return { shortCircuit: true, result: { lines: [`Mirror Soul readies itself, but there's nothing in the spell worth turning aside.`], damage: 0 } };
+    }
+    const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
+    const def = effectivePlayerDef(state) + bonusDef + coldBonus;
+    let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
+    if (edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
+      creature.unquenchedFocusUsed = true;
+      edmg = Math.round(edmg * 1.10);
+    }
+    if (hasEffect(state, "adaptive_ward")) {
+      if (!combat.adaptiveWardElement) {
+        combat.adaptiveWardElement = creature.element;
+      } else if (creature.element === combat.adaptiveWardElement) {
+        edmg = Math.round(edmg * 0.5);
+      }
+    }
+    const swMult = spellWardMultiplier(state);
+    if (swMult < 1) {
+      edmg = Math.round(edmg * swMult);
+      if (hasSetTier(state, "River Warden", 6)) combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
+    }
+    if (edmg > 0 && !combat.stormBarrierUsed) {
+      combat.stormBarrierUsed = true;
+      if (hasSetTier(state, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
+    }
+    if (edmg > 0 && !combat.firstHitTakenUsed) {
+      combat.firstHitTakenUsed = true;
+      if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+    }
+    return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
+  }
+
+  const atk = effectiveEnemyAtk(state, creature);
+  const playerDef = effectivePlayerDef(state) + bonusDef;
+  let edmg = abilityCtx
+    ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), playerDef))) : 0)
+    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
+  if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+  edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
+  if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
+  if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
+  if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
+    creature.unbrokenGripUsed = true;
+    edmg = Math.round(edmg * 1.10);
+  }
+  if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
+    creature.decisiveImpactUsed = true;
+    edmg = Math.round(edmg * 1.08);
+  }
+  if (hasEffect(creature, "dra_e06_executioners_seal") && state.health <= state.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
+  if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10);
+  if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && state.health <= state.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+    creature.tyrantsEdgeCooldown = 3;
+    creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
+    edmg = Math.round(edmg * 1.10);
+  }
+  if (edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
+    creature.flowingDisciplinePending = false;
+    creature.flowingDisciplineTurnsLeft = 0;
+    edmg = Math.round(edmg * 1.10);
+  }
+  if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && combat.playerStatuses && combat.playerStatuses.chilled) {
+    creature.wintersVerdictUsed = true;
+    edmg = Math.round(edmg * 1.15);
+  }
+  if (edmg > 0 && !combat.firstHitTakenUsed) {
+    combat.firstHitTakenUsed = true;
+    if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+  }
+  if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.playerStatuses && combat.playerStatuses["sang_iag_poison"]) {
+    creature.toxicPreparationUsed = true;
+    edmg += Math.max(1, Math.floor(edmg * 0.05));
+  }
+  return { shortCircuit: false, edmg, kind: "physical" };
+}
+
+// ---- Step 5: apply and react ----
+// dmgInfo: calculateDamage's { edmg, kind, elName? } for the non-short-
+// circuit case. Everything here ran AFTER mitigateAndApplyHitOnPlayer in
+// the original (so every mutation below reads the POST-mitigation edmg) —
+// this is the only place state.health changes for this path.
+function applyAndReact(actor, target, dmgInfo, ctx, action) {
+  if (!(actor.kind === "enemy" && target.kind === "player")) {
+    throw new Error(`applyAndReact(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+  }
+  const state = ctx.state;
+  const combat = state.combat;
+  const creature = actor.ref.creatureObj;
+  const { abilityCtx } = action;
+  let edmg = dmgInfo.edmg;
+
+  const hitResult = mitigateAndApplyHitOnPlayer(state, edmg, dmgInfo.kind);
+  edmg = hitResult.edmg;
+  const absorbLines = hitResult.absorbLines;
+
+  if (dmgInfo.kind === "magic") {
+    if (edmg > 0) combat.playerLastHitType = creature.element;
+    const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${dmgInfo.elName} of its own, for ${edmg} damage.` : `Its ${dmgInfo.elName} washes over you harmlessly.`, ...absorbLines];
+    if (state.health <= 0) {
+      const defeatMsg = resolvePlayerDefeatOrDowned(state);
+      if (defeatMsg) lines.push(defeatMsg);
+    }
+    return { lines, damage: edmg };
+  }
+
+  if (edmg > 0) combat.playerLastHitType = "physical";
+  if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
+  const sangLines = [];
+  if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+    creature.serratedOpeningUsed = true;
+    if (!(combat.playerStatuses && combat.playerStatuses.bleed)) {
+      sangLines.push(...applyAbilityInflict(state, { status: "bleed", chance: 1 }, creature.name));
+    }
+  }
+  if (edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.exposedTarget) {
+    creature.markedTargetUsed = true;
+    combat.exposedTarget = { by: creature };
+  }
+  if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
+    creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
+    creature.duelistMeasurePendingTarget = "player";
+  }
+  const verb = abilityCtx ? `uses ${abilityCtx.name} on you` : "hits back";
+  const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines, ...sangLines];
+  if (abilityCtx) {
+    if (abilityCtx.inflict) {
+      const inflictLines = applyAbilityInflict(state, abilityCtx.inflict, creature.name);
+      if (inflictLines.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
+        creature.blackIceReservePending = true;
+        creature.blackIceReserveTurnsLeft = 2;
+      }
+      lines.push(...inflictLines);
+    }
+    if (abilityCtx.healOnHitPct && edmg > 0) {
+      const heal = Math.round(edmg * abilityCtx.healOnHitPct);
+      if (heal > 0) actor.store.hp = Math.min(actor.store.maxHp, actor.store.hp + heal);
+    }
+  }
+  if (edmg > 0) lines.push(...checkMercyOfTheVeil(state));
+  if (state.health <= 0) {
+    const defeatMsg = resolvePlayerDefeatOrDowned(state);
+    if (defeatMsg) lines.push(defeatMsg);
+  }
+  return { lines, damage: edmg };
+}
+
+// ---- Orchestrator: same signature/return shape as the old
+// resolveEnemyRetaliation, so every existing call site redirects here
+// unchanged. Kept as its own small function (not inlined into
+// resolveEnemyRetaliation's old body) so the parity harness can call the
+// pipeline and the pre-migration snapshot side by side under forced RNG.
+function resolveEnemyAttackOnPlayer(state, creature, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
+  const actor = findEnemyCombatant(state, creature);
+  const target = makePlayerCombatant(state);
+  const action = { atkSpread, extraDef, abilityCtx, basicFirstBonus };
+  const ctx = { state, pendingAction: action, target };
+
+  const chosen = chooseAction(actor, ctx);
+  if (!chosen) return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
+
+  const targets = chooseTargets(actor, chosen, ctx);
+  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
+  if (!hitInfo.hit) return hitInfo.result;
+
+  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+  if (dmgInfo.shortCircuit) return dmgInfo.result;
+
+  return applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+}

@@ -94,6 +94,19 @@ function makeEnemyCombatant(state, enemySlot, index) {
   };
 }
 
+// Finds the combatant view for a specific creature object, wherever its
+// slot currently is in the roster — the pipeline's enemy-side entry point
+// (resolveEnemyAttackOnPlayer, etc.) is handed the creature directly, not
+// an index, same as the functions it supersedes. Mirrors the existing
+// combat.enemies.find((e) => e.creatureObj === creature) lookup
+// applyEnemySelfModifier (combat.js) already uses for the same reason:
+// "whoever happens to be active" isn't guaranteed to be the one acting.
+function findEnemyCombatant(state, creature) {
+  const index = state.combat.enemies.findIndex((e) => e.creatureObj === creature);
+  if (index === -1) return null;
+  return makeEnemyCombatant(state, state.combat.enemies[index], index);
+}
+
 // Every living fighter on one side, as combatant views — built fresh each
 // call (views are cheap closures over existing storage, nothing to cache).
 function partyCombatants(state) {

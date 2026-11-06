@@ -2050,7 +2050,7 @@ function checkCounteringGuard(state, creature) {
   const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnHit");
   if (!passive) return [];
   enemy.counterGuardUsedThisRound = true;
-  const result = resolveEnemyRetaliation(state, creature, 2, 0, { name: passive.name, dmgMult: passive.dmgMult });
+  const result = resolveEnemyAttackOnPlayer(state, creature, 2, 0, { name: passive.name, dmgMult: passive.dmgMult });
   return [`${withThe(creature.name, true)} reacts with a counter —`, ...result.lines];
 }
 
@@ -2360,7 +2360,7 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
   }
   if (abilityCtx && abilityCtx.aoe) {
     const lines = [];
-    const playerResult = resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx);
+    const playerResult = resolveEnemyAttackOnPlayer(state, creatureObj, atkSpread, extraDef, abilityCtx);
     lines.push(...playerResult.lines);
     // H16 Calculated Volley ("no more than 3 distinct targets"): the
     // player always counts as the first target, so aoeMaxTargets - 1 is
@@ -2385,7 +2385,7 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
   const basicFirstBonus = abilityCtx ? null : firstAttackPassiveBonus(state, creatureObj);
   return target.kind === "ally"
     ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, abilityCtx, basicFirstBonus)
-    : resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, abilityCtx, basicFirstBonus);
+    : resolveEnemyAttackOnPlayer(state, creatureObj, atkSpread, extraDef, abilityCtx, basicFirstBonus);
 }
 
 // Wraps resolveEnemyAction with the BESTIARY `flurry` flag (a handful of
@@ -2476,7 +2476,7 @@ function dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpr
   const target = pickEnemyAttackTarget(state);
   const result = target.kind === "ally"
     ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, ctx, basicFirstBonus)
-    : resolveEnemyRetaliation(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
+    : resolveEnemyAttackOnPlayer(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
   if (p03Active) creatureObj.atk -= 3;
   if (legacyActive) creatureObj.atk -= 3;
   if (hadBlackIceReservePending) {
@@ -4585,6 +4585,11 @@ function tryApplyEnemyStun(state, creature) {
   return [];
 }
 
+// SUPERSEDED (Combat Rebuild Phase 1, step 1b): every real call site now
+// calls resolveEnemyAttackOnPlayer (js/engine/pipeline.js) instead, which
+// runs this exact same logic through the five-step pipeline. This copy is
+// kept, unchanged, only as the step 1b forced-roll parity oracle — delete
+// it in step 1h alongside the other superseded per-pair functions.
 function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
   const combat = state.combat;
   const bonusDef = extraDef || 0;
