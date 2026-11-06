@@ -1,0 +1,26 @@
+range: fb3508782a1bd963bf338c59b3cd37fcac37cc57..e19d6303dd9a2b6489781944c383f97aa0e8df0f
+=== e19d6303dd9a2b6489781944c383f97aa0e8df0f 2026-11-06 11:13:31 +0000
+Add tools/expectedgear.js: expected-gear profile (median, reachable-only loadouts)
+Per the coder handoff's proposed tool and home path. Picks, per level
+band/archetype/slot, the real item at the median archetype-score rank
+among items with an actual acquisition path (shop, kill loot capped at
+tier 4, job/dungeon loot, regional job loot, starter kits) — replacing
+"best available gear" as the balance yardstick, which rises every time
+a new item ships (the report's own example: Dregnar's party win rate
+moving from 73% to 92% with nothing about him changing).
+
+Verified against current HEAD (fb35087): runs clean, EQUIP_SLOTS/
+EQUIP_SLOT_CAPACITY exist as referenced. Tiers 1-2 reproduce the
+handoff's own worked numbers; tiers 3-4 shift from the handoff's table
+because the two prior commits on this branch (Loot Reachability Fixes
+v2/v2.1) wired 148 previously-unwired job items into LOOT_BY_TIER after
+the handoff's own 77a2a3d base — this tool's REACHABLE set picks those
+up automatically, exactly as its own design intends ("rerun it whenever
+gear is added, and the profile updates itself").
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/expectedgear.js | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 43 insertions(+)
