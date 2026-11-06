@@ -1,0 +1,52 @@
+range: a377fdede2e244f3bd268d52f34ced44319a1028..70af51e718e9d32f96b449d59acf22fb0c998d56
+=== 70af51e718e9d32f96b449d59acf22fb0c998d56 2026-11-06 14:48:08 +0000
+Combat Rebuild Phase 1: field ledger, stat() purity rule, fix stale Dregnar test
+Three follow-ups from coder review ahead of step 1b (none change step 1a's
+own behavior):
+
+1. Add tools/combat_field_ledger.js, a regenerable report (rerun after each
+   step lands, diff tools/combat_field_ledger.md against the previous
+   commit) covering every combat.* field referenced in combat.js/
+   companion.js/dungeon.js/arena.js/parser.js: its owner (player/enemy
+   per-slot via the PER_ENEMY_FIELDS proxy/structural fight-wide with no
+   fighter owner), and which migration step(s) 1b-1g still touch it via a
+   static call-graph closure from the spec's own migration-order table.
+   148 fields tracked toward the step 1h gate (every player field off flat
+   state.combat.*, every PER_ENEMY_FIELDS entry's last caller migrated so
+   the proxy has nothing left using it); 14 structural fields listed for
+   completeness but explicitly excluded from that count — they stay
+   fight-wide forever, never move into a combatant's store. (The spec's
+   own "~76" estimate was approximate; the real count, scanning more
+   files, is roughly double.)
+
+2. Codify in combatant.js: stat() must never mutate state, including
+   consuming a one-shot banked bonus (Brace/Guarded Strike/Sure Foundation
+   on enemy Defense). That consumption belongs in pipeline step 5
+   (applyAndReact), once per resolved hit, not in whatever reads the stat.
+   Flagging this now, before 1b sets the pipeline's shape, surfaced that
+   the rule is already violated live today: effectivePlayerAtk (which
+   stat(player, 'atk') already wraps unchanged) consumes a Siege Corps
+   attack charge as a side effect of being called — currently safe only
+   because every caller is disciplined to call it once per damage roll
+   and reuse the result, not because anything enforces it. Not fixed here
+   (fixing it now would be exactly the kind of premature extraction this
+   same review warned about for enemy Defense) — tracked as a concrete
+   target for whichever step migrates rollPlayerDamage's call to it (1e)
+   to move the charge consumption into step 5 instead.
+
+3. Fixed DRA-STATS-01 in the (scratchpad-only) Dregnar Stage A ledger: it
+   asserted Dregnar's pre-Stage-B, unequipped stats (840/76/76/48/13/96/12)
+   and had been failing ever since Stage B's 10-item Mythic kit landed
+   (fb35087) without the assertion being updated — not an engine bug. The
+   live numbers (860/100/110/62/13/99/14) exactly match bestiary.js's own
+   documented Stage B total. Suite now reports a clean 30/30, not a
+   permanent 29/30.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combatant.js       |  13 +++
+ tools/combat_field_ledger.js | 198 +++++++++++++++++++++++++++++++++++++++++++
+ tools/combat_field_ledger.md | 177 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 388 insertions(+)
