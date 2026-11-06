@@ -407,6 +407,14 @@ const BESTIARY = {
     combatNotes: "He opens guarded, a shifting water barrier turning aside whatever he can't yet afford to answer. Give him an opening and he closes it; corner him and he stops holding back.",
     special: true,
     bossKit: "dregnar_ashvein",
+    // Loot Reachability Fixes v2.1 (Tyler, 5 Nov): a one-time endgame
+    // World Boss drops his entire kit on defeat, not a random single
+    // piece — rollCreatureLoot (data/items.js) checks this flag before
+    // its usual drop-chance roll. Generic, not a hardcoded id, so any
+    // future one-time boss can reuse it; the "enemy.killed" defeated-flag
+    // listener (engine/combat.js) checks it too, to keep that guaranteed
+    // drop from being farmable once something actually starts this fight.
+    dropsAllWorn: true,
     equipment: {
       mainhand: "Ashquench",
       helmet: "First Sword's Crown",

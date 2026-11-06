@@ -50,7 +50,11 @@ function dungeonEscalatedDifficulty(state) {
 function trackDungeonKillRewards(state, goldFound, lootItem) {
   if (!state.activeDungeon) return;
   state.activeDungeon.goldGainedThisRun += goldFound;
-  if (lootItem) state.activeDungeon.lootGainedThisRun.push(lootItem);
+  // Loot Reachability Fixes v2.1: a `dropsAllWorn` creature's kill loot
+  // (combat.js's resolveKill) is an array of every piece, not one item
+  // name — flattened here so this stays a flat list of item-name strings
+  // throughout (dungeonRescue/the status lines below both read it that way).
+  if (lootItem) state.activeDungeon.lootGainedThisRun.push(...[].concat(lootItem));
 }
 
 // Called from resolveKill once the whole encounter is over (state.combat

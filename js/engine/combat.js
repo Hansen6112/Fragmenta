@@ -5851,6 +5851,15 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // both spawn exactly one creature, same as before multi-enemy fights
   // existed. The clone means the shared BESTIARY dict entry itself is
   // never mutated between fights.
+  // Loot Reachability Fixes v2.1: a `special` creature (Dregnar Ashvein,
+  // the Kabal Enforcer patrol, ...) skips buildFightCreature entirely —
+  // the one place that normally stamps `bestiaryKey` — so it never
+  // carried one at all. Stamped here instead, straight onto this fresh
+  // legacyScaledCreature() instance (never the shared BESTIARY entry),
+  // so the "enemy.killed" defeated-flag listener (and checkJobProgressOnKill,
+  // which reads the same field for Hunt/Track bounties) can actually see
+  // which species this was, same as every non-special creature already can.
+  if (!isDynamic && template.special) template.bestiaryKey = creatureIdOrObject;
   let roster;
   if (isDynamic || template.special) {
     roster = [{ id: isDynamic ? creatureIdOrObject : creatureIdOrObject, creature: template, dynamicCreature: isDynamic }];
@@ -6742,8 +6751,18 @@ function resolveKill(state, creature) {
     out.push(`You find ${goldFound} gold on/near the creature.`);
     loot = rollCreatureLoot(state, creature);
     if (loot) {
-      state.inventory.push(loot);
-      out.push(`It was also carrying ${formatItemLine(loot)}.`);
+      // Loot Reachability Fixes v2.1: a `dropsAllWorn` creature (Dregnar
+      // Ashvein) hands rollCreatureLoot back its whole worn-gear array,
+      // guaranteed, instead of the usual single item name — everything
+      // below (and trackDungeonKillRewards/dungeon.js's run tally) takes
+      // either shape uniformly.
+      const lootItems = Array.isArray(loot) ? loot : [loot];
+      for (const item of lootItems) state.inventory.push(item);
+      out.push(
+        lootItems.length > 1
+          ? `It was carrying: ${lootItems.map((i) => formatItemLine(i)).join(", ")}.`
+          : `It was also carrying ${formatItemLine(lootItems[0])}.`
+      );
     }
   }
   // Dungeon Delve (engine/dungeon.js): every kill's own gold/loot counts
@@ -6869,8 +6888,12 @@ function resolveKill(state, creature) {
 // it, so every unique boss respawned forever and that filter was dead code.
 // (bestiaryKey is only stamped on BESTIARY-built fights, so the arena's
 // inline Champion — also spawnRarity "unique" — is correctly skipped.)
+// Loot Reachability Fixes v2.1: also set for any `dropsAllWorn` creature
+// (Dregnar Ashvein, special with no spawnRarity of his own) — otherwise
+// his guaranteed full-kit drop would be farmable the moment something
+// actually starts his fight (nothing does yet).
 Events.on("enemy.killed", ({ creature, state }) => {
-  if (creature && creature.spawnRarity === "unique" && creature.bestiaryKey) {
+  if (creature && (creature.spawnRarity === "unique" || creature.dropsAllWorn) && creature.bestiaryKey) {
     state.flags["defeated_" + creature.bestiaryKey] = true;
   }
 });

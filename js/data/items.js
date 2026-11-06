@@ -2842,28 +2842,51 @@ function wornItemsFor(creature) {
   return items;
 }
 
+// Loot Reachability Fixes v2.1 (Tyler, 5 Nov): once a Normal-rank
+// wearer's drop roll succeeds, it picks from its own tier-5+ worn items
+// only this share of the time, and from its tier <= 4 worn items the
+// rest — per-item down-weighting doesn't work here, since several
+// Normal bands are MOSTLY tier-5+ (7 of 8, 6 of 9, 5 of 9 items), which
+// would still make Legendary/Mythic the common case. Net per-kill rate
+// for a Normal wearer with any tier-5+ piece: ~0.8% (8% base drop chance
+// x 10% share) for a high-tier piece specifically, ~7.2% for everything
+// else, however many high-tier pieces it actually wears. Elite/Boss/
+// World Boss are absent (no cap — plain uniform pick), so tightening
+// those later is a data change here, not a code change.
+const HIGH_TIER_WORN_SHARE = { normal: 0.1 };
+
 // Whether/what a defeated creature drops. Loot Reachability Fixes (v2):
 // an equipped creature (every codex humanoid, plus Dregnar Ashvein) drops
-// ONLY one random piece of its own worn gear, or nothing — never the
-// general/regional wildlife pools below, which stay wildlife-only.
-// Creatures with no equipment at all (wildlife, Legion Hound included)
-// are unaffected, scaled to Spawn Rarity (common/uncommon/rare/epic/
-// unique) instead of the old flat tier number — still capped at item
-// tier 4/Masterwork even for Unique kills, since tier 5+ wildlife loot
-// isn't a thing this pool has ever carried. Drop chance climbs with
-// rarity (and Danger Class) either way, Master Appraiser's 6pc set bonus
-// still raises it by 20% (relative) either way, and nation-locked
-// WILDLIFE (BESTIARY's optional `nations` field) still has a 50% chance
-// to draw from that nation's REGIONAL_LOOT_POOL instead of the generic
-// pool, when one exists at this tier — humanoids never reach that check
-// now, since their own worn-gear branch returns first.
+// ONLY one random piece of its own worn gear (or, for a `dropsAllWorn`
+// creature — Dregnar Ashvein, a one-time endgame World Boss — every
+// piece, guaranteed, no roll at all), or nothing — never the general/
+// regional wildlife pools below, which stay wildlife-only. Creatures with
+// no equipment at all (wildlife, Legion Hound included) are unaffected,
+// scaled to Spawn Rarity (common/uncommon/rare/epic/unique) instead of
+// the old flat tier number — still capped at item tier 4/Masterwork even
+// for Unique kills, since tier 5+ wildlife loot isn't a thing this pool
+// has ever carried. Drop chance climbs with rarity (and Danger Class)
+// either way, Master Appraiser's 6pc set bonus still raises it by 20%
+// (relative) either way, and nation-locked WILDLIFE (BESTIARY's optional
+// `nations` field) still has a 50% chance to draw from that nation's
+// REGIONAL_LOOT_POOL instead of the generic pool, when one exists at
+// this tier — humanoids never reach that check now, since their own
+// worn-gear branch returns first.
 const ITEM_TIER_BY_SPAWN_RARITY = { common: 1, uncommon: 2, rare: 3, epic: 4, unique: 4 };
 function rollCreatureLoot(state, creature) {
   const worn = wornItemsFor(creature); // flattened resolveEnemyEquipment(creature, creature.level); trinket arrays count each item
   if (worn.length) {
+    if (creature.dropsAllWorn) return worn.slice();
     let chance = (0.08 + spawnRarityRank(creature) * 0.08) * dangerClassMultiplier(creature.dangerClass);
     if (hasSetTier(state, "Master Appraiser", 6)) chance *= 1.2;
     if (Math.random() >= chance) return null;
+    const highShare = HIGH_TIER_WORN_SHARE[creature.dangerClass];
+    if (highShare != null) {
+      const high = worn.filter((n) => ITEM_DEFS[n] && ITEM_DEFS[n].tier >= 5);
+      const low = worn.filter((n) => !(ITEM_DEFS[n] && ITEM_DEFS[n].tier >= 5));
+      const pool = !low.length ? high : !high.length ? low : Math.random() < highShare ? high : low;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
     return worn[Math.floor(Math.random() * worn.length)];
   }
   const rarity = creature.spawnRarity || DEFAULT_SPAWN_RARITY;
