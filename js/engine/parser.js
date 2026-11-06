@@ -1257,6 +1257,13 @@ function cmdRevive(arg, state) {
   if (!ALLY_DEFS[fallen.defId] || state.party.some((a) => a.defId === fallen.defId)) {
     return [`Something went wrong bringing ${fallen.name} back. Nothing was spent.`];
   }
+  // Party Cap request: checked here too, same "verify before spending"
+  // reasoning as the pre-check right above — recruitAlly's own null
+  // return happens AFTER this function would already have spent the
+  // item/favor below, so this has to pre-empt it the same way.
+  if (state.party.filter((a) => a.alive).length >= MAX_PARTY_ALLIES) {
+    return [`Your party is already full. Nothing was spent.`];
+  }
   const ally = state.recruitAlly(fallen.defId, { revived: true, relationship: fallen.relationship });
   if (method === "item") state.inventory.splice(ritualIdx, 1);
   else if (method === "favor") state.divineFavor -= DIVINE_FAVOR_REVIVAL_THRESHOLD;
@@ -1342,6 +1349,15 @@ function maybeTalkToKessa(arg, state) {
     return [`"Go on, then," Kessa says, unmoved. "I'm not signing on with someone who talks a bigger fight than they can finish."`];
   }
   const ally = state.recruitAlly("kessa");
+  // Party Cap request: recruitAlly returns null when the party's already
+  // full. state.flags.kessaQuestReady stays true either way (not
+  // cleared here), so talking to her again later — once a slot opens up
+  // — re-enters this same branch and retries; nothing about this offer
+  // is a one-time opportunity the way Hadrian's two pending-offer flags
+  // are (see arena.js's acceptHadrianOffer).
+  if (!ally) {
+    return ["Your party is already full."];
+  }
   state.flags.kessaRecruited = true;
   return [
     `"Fine," Kessa says, pushing off the wall. "You'll do." She falls in step beside you like she's done it a hundred times before.`,

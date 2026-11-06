@@ -481,13 +481,20 @@ function hadrianFullyResolved(state) {
 // currently pending, or returns null (falls through to cmdRecruit's own
 // generic refusal) if neither is.
 function acceptHadrianOffer(state) {
-  if (state.flags.hadrianOfferPending) {
-    state.flags.hadrianOfferPending = false;
-  } else if (state.flags.hadrianThalvoraOfferPending) {
-    state.flags.hadrianThalvoraOfferPending = false;
-  } else {
-    return null;
+  const offerPending = state.flags.hadrianOfferPending || state.flags.hadrianThalvoraOfferPending;
+  if (!offerPending) return null;
+  // Party Cap request: checked BEFORE either pending-offer flag is
+  // cleared below, so a full party doesn't permanently burn this
+  // one-time offer — unlike Kessa's own recruitment (parser.js's
+  // maybeTalkToKessa), accepting either Hadrian offer is a single,
+  // non-repeatable event once its flag clears, so the fix here has to
+  // leave the flag untouched on a full-party refusal, not just report
+  // one, for the player to actually be able to come back and retry.
+  if (state.party.filter((a) => a.alive).length >= MAX_PARTY_ALLIES) {
+    return [`Your party is already full. Make room, then come find him again.`];
   }
+  if (state.flags.hadrianOfferPending) state.flags.hadrianOfferPending = false;
+  else state.flags.hadrianThalvoraOfferPending = false;
   const recruited = state.recruitAlly("hadrian");
   if (!recruited) return [`Something's already claimed that spot in your party.`];
   return [HADRIAN.recruitment.accept, `${recruited.name} joins your party. Set a stance with 'stance hadrian aggressive|defensive|support'.`];

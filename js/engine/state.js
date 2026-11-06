@@ -65,6 +65,13 @@ function fatigueTier(state) {
   return fatigueTierForDays(state.day - state.lastSleptDay);
 }
 
+// Party Cap request (Tyler, 6 Nov): the player plus at most this many
+// companions — a party of four by design — enforced in recruitAlly
+// below. Nothing previously enforced this; the Expected-Gear rerun's
+// "largest party" cell (player + 5) described a party that can't
+// actually exist in the shipped game.
+const MAX_PARTY_ALLIES = 3;
+
 // ---- Injury System v0.2 ("downed, not dead," rally, and the injuries a
 // survived down leaves behind) ----
 //
@@ -317,15 +324,27 @@ class GameState {
 
   // Adds a new party member from ALLY_DEFS, at the player's current level,
   // with empty gear and an aggressive default stance. Returns null (and
-  // adds nothing) if that ally is already in the party or the id is
-  // unknown — the caller (parser.js's cmdRecruit) is responsible for any
-  // recruitment gating; this just does the actual joining.
+  // adds nothing) if that ally is already in the party, the id is
+  // unknown, or the party is already at MAX_PARTY_ALLIES — the caller
+  // (parser.js's cmdRecruit, maybeTalkToKessa, cmdRevive; arena.js's
+  // acceptHadrianOffer) is responsible for any recruitment gating and for
+  // turning a null return into a clear message; this just does the
+  // actual joining.
   // `opts.revived`: a Sanctuary revival (parser.js's cmdRevive) — skips the
   // ally's starting gear (it already went back to the pack when they fell;
   // re-issuing it duplicated it on every death/revive cycle) and restores
   // the relationship value they had when they died.
   recruitAlly(defId, opts = {}) {
     if (!ALLY_DEFS[defId] || this.party.some((a) => a.defId === defId)) return null;
+    // Party-cap request: the player plus MAX_PARTY_ALLIES companions, a
+    // party of four (Tyler's design) — counted against LIVING members
+    // only. A fallen ally briefly stays in this.party (alive: false)
+    // until the player resolves them with 'send <name> home' or 'leave
+    // <name>' (both splice it out — see parser.js's cmdSendAllyHome/
+    // cmdLeaveAlly), so counting every entry regardless of alive would
+    // block a new recruit during that brief unresolved window even
+    // though a slot is, functionally, already free.
+    if (this.party.filter((a) => a.alive).length >= MAX_PARTY_ALLIES) return null;
     const ally = {
       defId,
       name: ALLY_DEFS[defId].name,
