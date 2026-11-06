@@ -1,0 +1,68 @@
+range: d4bfb1b380a6d178c4a1d051de7cdcdf5affaa5b..f1bbfea94355dc920b08ae2eff6eff1a0bcf3227
+=== f1bbfea94355dc920b08ae2eff6eff1a0bcf3227 2026-11-06 17:06:33 +0000
+Commit the regression suite under tools/tests/, with one runner command
+Per coder review, three follow-ups to the Combat Rebuild Phase 1 work so
+far (step 1a/1b), none of which change engine behavior:
+
+1. All 10 standing Playwright ledgers this engagement has been rerunning
+   by hand each phase are now committed under tools/tests/ (previously
+   scratchpad-only, lost between sessions): injury, downed, ally
+   protection, Dregnar Stage A/B, party cap, consumable no-op, injury
+   items, and both Phase 1 step 1a/1b parity suites. Each now ends with
+   exactly one `RESULT: <passed>/<total>` line (added here, the one
+   contract the runner depends on) and a correct exit code; the two that
+   wrote a redundant copy of their own output to a hardcoded scratchpad
+   path (Dregnar Stage A/B) had that stripped, and two dead `require('fs'
+   )`/`require('path')` imports (downed_ledger) removed.
+
+   `node tools/tests/run_all.js` starts a local server, runs all 10, and
+   prints one `suite: X/X` line plus tools/audit.js's own error count as
+   a separate, clearly-labeled second check (not folded into the suite
+   total, since it isn't a pass/fail ledger) -- that `suite: X/X` line is
+   what every step's report quotes from here on. Currently 195/195, audit
+   0 errors. tools/combatsim.js stays a manual, by-hand check (a balance
+   report with no fixed "correct" answer, not a regression ledger).
+
+2. Added an "effect changed something" control to every Layer 1 (step
+   1b) parity scenario that names a gear effect/set: for each one, also
+   run it with that effect/set stripped and assert the outcome actually
+   differs. Prompted by a real bug this caught retroactively: the
+   original Spell Ward scenario mutated field names spellWardMultiplier
+   never reads, so gear-on and gear-off were identical -- both did
+   nothing -- and old-vs-new parity passed for the wrong reason. Running
+   the new control against the existing 33 scenarios surfaced two more:
+   P1-EVACHARGE-OFF-01 named an effect (evasive_guard) that's never even
+   checked once its triggering roll fails, and P1-COLDPROOF-01's +2
+   Defense rounded away to the same final damage at that scenario's
+   stats. Fixed both (the first by dropping the irrelevant effect tag,
+   since nothing there is gear-gated; the second by lowering the
+   player's base Defense so the same +2 actually moves the rounded
+   result) -- not disabled or loosened.
+
+3. Added the "equipped but already consumed/not yet at threshold"
+   off-case for Reinforced and Evasive Release, matching Mirror Soul's
+   existing treatment: P1-REINFORCED-OFF-01 (equipped, but this attempt
+   isn't the 3rd) and P1-EVACHARGE-OFF-01 (charge present, but its own
+   50% roll fails) -- both distinct from simply not wearing the gear at
+   all.
+
+Net: 23 -> 35 Layer 1 scenarios, all passing, including the new control
+check on every one with a gear toggle.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/tests/README.md                         |  46 +++
+ tools/tests/ally_protection_ledger.js         | 248 ++++++++++++++
+ tools/tests/consumable_noop_ledger.js         | 131 ++++++++
+ tools/tests/downed_ledger.js                  | 268 +++++++++++++++
+ tools/tests/dregnar_stage_a_ledger.js         | 399 ++++++++++++++++++++++
+ tools/tests/dregnar_stage_b_ledger.js         | 454 ++++++++++++++++++++++++++
+ tools/tests/injury_items_ledger.js            | 152 +++++++++
+ tools/tests/injury_ledger.js                  | 320 ++++++++++++++++++
+ tools/tests/party_cap_ledger.js               | 132 ++++++++
+ tools/tests/phase1_step1a_combatant_ledger.js | 203 ++++++++++++
+ tools/tests/phase1_step1b_pipeline_parity.js  | 337 +++++++++++++++++++
+ tools/tests/run_all.js                        | 128 ++++++++
+ 12 files changed, 2818 insertions(+)
