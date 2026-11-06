@@ -1,0 +1,47 @@
+range: dcc843f8ef53184db7e2782e85cbda9b0464a0a1..a377fdede2e244f3bd268d52f34ced44319a1028
+=== a377fdede2e244f3bd268d52f34ced44319a1028 2026-11-06 13:01:19 +0000
+Combat Rebuild Phase 1, step 1a: combatant views and stat() accessor
+Adds js/engine/combatant.js: a thin, additive wrapper layer per the Phase
+1 spec section 2. makePlayerCombatant/makeAllyCombatant/makeEnemyCombatant
+build a combatant view over the player's existing state fields, an
+ally's existing state.party[i] record, and an enemy's existing
+state.combat.enemies[i] slot respectively — none of them copy or move
+any field, each is a live read-through, matching "wrap first, move
+later." partyCombatants()/enemyCombatants() build the full roster of
+each side on demand.
+
+stat(state, combatant, key) is the single accessor future pipeline
+steps (1b+) will call instead of effectivePlayerAtk/effectiveAllyDef/
+effectiveEnemyAtk/etc. For every (kind, stat) pair that already has one
+centralized "effective" function today (all five player stats,
+ally speed, enemy atk, everyone's hp/maxHp/magic/knowledge/agi), it
+calls that function unchanged. For stats that are currently computed
+inline per call site instead of centralized (ally atk/def/acc; enemy
+def as seen by an attacker, which also side-effects consumption of
+banked Brace/Guarded Strike/Sure Foundation bonuses), stat() throws a
+clear, named error rather than silently returning a wrong value —
+those get their real centralized function extracted, on purpose, when
+the step that owns their call site lands (1c/1d/1e), each with its own
+forced-roll parity test. Forcing that extraction prematurely here risked
+exactly the kind of silent behavior drift the spec's parity gates exist
+to catch.
+
+Nothing in combat.js is rewired to call stat() yet — this step is
+purely additive, by design (see migration order, spec section 4): the
+pipeline itself (step 1b) is what starts actually using it.
+
+Verified: 17/17 new wiring + forced-state parity cases (combatant.js
+has zero behavior of its own — every parity case asserts stat() returns
+bit-identical results to the existing effective* function across varied
+buff/debuff states), plus the full existing regression suite unaffected
+(injury_ledger 24/24, downed_ledger 17/17, ally_protection_ledger 9/9,
+Dregnar Stage A 29/30 — the one pre-existing unrelated failure — and B
+36/36, tools/audit.js 0 errors).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ index.html             |   1 +
+ js/engine/combatant.js | 146 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 147 insertions(+)
