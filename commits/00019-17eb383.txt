@@ -1,0 +1,70 @@
+range: f1bbfea94355dc920b08ae2eff6eff1a0bcf3227..17eb3836e15ae07633db4080fb77f84336106650
+=== 17eb3836e15ae07633db4080fb77f84336106650 2026-11-06 17:41:04 +0000
+Combat Rebuild Phase 1, step 1c: extend the pipeline to the enemy-to-ally path
+Extends the five shared pipeline functions (js/engine/pipeline.js, step
+1b) with the enemy-attacking-an-ally branch, migrated verbatim from
+resolveEnemyAttackOnAlly (combat.js) -- same arithmetic, same effect
+order, nothing rebalanced. The old function is renamed
+resolveEnemyAttackOnAllyLegacy and kept byte-for-byte unchanged as the
+parity oracle; the new pipeline-backed resolveEnemyAttackOnAlly (same
+name, same signature, so all 4 real call sites needed no edits at all)
+is defined in pipeline.js and wins by load order.
+
+Two centralized functions extracted along the way, since 1c is the step
+that reaches their call site (an ally defending against an enemy attack):
+effectiveAllyAgility (companion.js, new -- pure extract from the inline
+calc, zero behavior change) and effectiveAllyDef (already existed,
+companion.js), both now wired into stat()'s ally branch
+(js/engine/combatant.js). Ally atk/acc (the ally ATTACKING, not
+defending) stay unmigrated until step 1d, same disclosure as step 1a.
+
+The player-attacking and ally-attacking paths are NOT symmetric in the
+original game, and this step preserves every one of those asymmetries
+exactly rather than quietly "completing" them (a balance question for
+later, not Phase 1's call): Reinforced/the stun gate/Timeless Guard/
+Guardian Spirit/Guided Footsteps/Never Where Expected/Blessing or Avatar
+of Freedom/evasion charges or windows/Marked Target/Flowing Discipline/
+Winter's Verdict/Stonewarden's physical reduction/Toxic Preparation only
+ever applied targeting the player; Hadrian's protection, the generalized
+Ally Protection Reaction, companion damage mitigation, Last Bastion
+retaliation, and Riposte-on-miss only ever applied targeting an ally.
+Each asymmetry has its own preserved-on-purpose test. Also moved the
+ability heal-on-hit write off the old combat.hp activeIndex proxy onto
+actor.store.hp/maxHp directly, same fix step 1b already made for Mirror
+Soul.
+
+Verified: Layer 1 (forced-roll unit parity, tools/tests/
+phase1_step1c_ally_pipeline_parity.js) -- 27/27 scenarios against
+resolveEnemyAttackOnAllyLegacy, each checking byte-identical result, full
+state snapshot, Math.random() consumption count, AND (per the step 1b
+review that caught the Spell Ward false-pass) an "effect changed
+something" control on every scenario naming a gear toggle. Layer 2
+(statistical parity): reran all 16 bosses x 2 classes x 2 modes and the
+Dregnar/Arbitarius legal-party cells (which include allies taking
+damage) -- exact match on every field, not just within tolerance. Full
+suite green: node tools/tests/run_all.js -> 222/222 (was 195/195 before
+this step's own 27 additions), audit 0 errors.
+
+tools/combat_field_ledger.js's FUNCTION_STEP updated: the five shared
+pipeline functions now carry both ["1b","1c"] tags (they hold both
+steps' logic in the same bodies); resolveEnemyAttackOnAllyLegacy is
+absent, same treatment resolveEnemyRetaliation got in step 1b. Ledger
+count unchanged at 148/148 open, same as after step 1b -- expected, not
+a miss: this step restructured control flow, it didn't relocate fields
+off flat state.combat (still an open question raised after step 1b,
+unresolved pending a decision).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                               |  11 +-
+ js/engine/combatant.js                            |  14 +-
+ js/engine/companion.js                            |  13 ++
+ js/engine/pipeline.js                             | 249 ++++++++++++++++++---
+ tools/combat_field_ledger.js                      |  10 +-
+ tools/combat_field_ledger.md                      |  54 ++---
+ tools/tests/README.md                             |   1 +
+ tools/tests/phase1_step1c_ally_pipeline_parity.js | 254 ++++++++++++++++++++++
+ tools/tests/run_all.js                            |   1 +
+ 9 files changed, 540 insertions(+), 67 deletions(-)
