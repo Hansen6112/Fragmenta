@@ -30,6 +30,19 @@
  * call site lands (ally atk/def/acc: step 1c/1d; enemy def-as-attacked:
  * step 1d/1e) and extracts the real function there, on purpose, with its
  * own forced-roll parity test.
+ *
+ * HARD RULE, binding from here through every later step (flagged by Tyler,
+ * 6 Nov, ahead of 1b setting the pipeline's shape): stat() must never
+ * mutate anything, and that includes consuming a one-shot banked bonus.
+ * When enemy "def" is extracted out of its inline call sites (1d/1e), the
+ * extracted function must report Brace/Guarded Strike/Sure Foundation's
+ * current value WITHOUT zeroing it — reading a stat, including reading it
+ * twice, or reading it to show a number nobody acts on, must be side-
+ * effect-free. The actual one-shot consumption (zeroing those banked
+ * fields) belongs in pipeline step 5 (applyAndReact), once per resolved
+ * hit, same as every other reaction. A `stat()` branch that both reads
+ * and consumes a bonus is a bug, not a style choice — this is the shape
+ * the five-step pipeline (step 1b) is built around.
  */
 
 function makePlayerCombatant(state) {
