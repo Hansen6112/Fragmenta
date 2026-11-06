@@ -1,0 +1,42 @@
+range: d5593e56ed4b5f2086fa8b26ec46592ca2224a1d..f06725212823557d1fbe206e7422e7f68be64f1a
+=== f06725212823557d1fbe206e7422e7f68be64f1a 2026-11-06 12:01:47 +0000
+Fix two party-wipe null-dereference crashes found during the Boss Difficulty Sweep
+Discovered empirically while running the sweep's "alone" and "as
+spawned" simulations at N=100-200 per boss — both are genuine crashes
+reachable in real play, not harness artifacts: killAlly's party-wipe
+branch (the player already downed, and this the last living ally) can
+null state.combat, and two existing call sites kept running
+combat-dependent code right afterward without checking for it first,
+the same way three other spots in this file already do (e.g.
+resolveKill's own enemy-DOT-tick loop, beginTurn's own post-tickPlayerStatuses
+check) — these two just didn't.
+
+- beginTurn: an ally's own DOT tick (tickAllyStatuses, inside the
+  per-round ally buff/status loop) killing the last living ally while
+  the player is downed nulls state.combat; applyHeartwoodVitality right
+  after re-reads state.combat fresh and crashed on
+  `combat.actionCounter += 1`. Added the same
+  `if (!combatOngoing(state)) return lines;` early-return already used
+  right before and right after the enemy-side DOT loop earlier in this
+  same function, just missing after the ally-side one.
+- resolveEnemyAttackOnAlly: an enemy's own attack killing the last
+  living ally this same way, then its onKill passives loop calling
+  applyEnemySelfModifier(state.combat, ...) unconditionally right after
+  — same fix, `if (!state.combat) return { lines, damage: null };`
+  right after killAlly.
+
+Verified: the Boss Difficulty Sweep (16 Boss-class humanoids x 2
+classes x 2 modes, ~9600 simulated fights) now completes without
+crashing. Existing downed-system (17/17), ally-protection (9/9), and
+Injury-System (24/24) ledgers, tools/audit.js, and combatsim.js all stay
+clean; Dregnar Stage A/B ledgers show the same single pre-existing,
+already-documented, unrelated DRA-STATS-01 failure as before this
+change (confirmed during the Injury System work, traced to the Phase 0
+hotfix's Dregnar metadata addition).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
