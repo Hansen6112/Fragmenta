@@ -1,0 +1,24 @@
+[
+ {
+  "reg": "ITEM_DEFS",
+  "id": "smelling salts",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "source",
+    "old": "crafted",
+    "new": "shop"
+   }
+  ]
+ },
+ {
+  "reg": "RECIPES",
+  "id": "smelling_salts",
+  "type": "added"
+ },
+ {
+  "reg": "RECIPES",
+  "id": "field_splint_kit",
+  "type": "added"
+ }
+]

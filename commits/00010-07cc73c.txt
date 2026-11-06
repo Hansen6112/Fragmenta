@@ -1,0 +1,50 @@
+range: e19d6303dd9a2b6489781944c383f97aa0e8df0f..07cc73ca05733eb398ddf802f5bc841e8af0f03d
+=== 07cc73ca05733eb398ddf802f5bc841e8af0f03d 2026-11-06 11:28:37 +0000
+Injury items reachability: placeholder recipes, smelling salts shop source, companion audit path
+Fixes the two real gameplay gaps and the one audit gap behind
+tools/audit.js's 1 remaining error (R2: 10 items with a live source
+nothing reaches).
+
+- data/recipes.js: placeholder Knowledge-gated recipes for "smelling
+  salts" and "a field splint kit" — the Injury System's rally and
+  field-treatment items existed with no recipe at all, so neither could
+  ever actually be obtained in play. Materials are existing generic
+  crafting components; ingredients/Knowledge thresholds/naming are
+  explicitly placeholders for a separate recipe-authoring pass, same as
+  every other test-sample entry already in this file.
+- data/items.js: "smelling salts" source "crafted" -> "shop" (stays
+  tier 2, verified shopBuyPrice = 20*2^3 = 160 gold, same as a
+  physician's tonic's 40% heal). Recipes are Apothecary-only and neither
+  existing ally is one, so without a shop source most parties could
+  never rally a downed player at all. The recipe above still lets an
+  Apothecary brew it instead of buying it. "a field splint kit" stays
+  recipe-only, per the Apothecary-field-treatment spec.
+- tools/audit.js: extended the `companion` reachability pool with the 8
+  items data/hadrianquest.js's HADRIAN_ASCENSION_MAP/HADRIAN_QUEST_TRINKETS
+  actually grant on Hadrian's Personal Quest completion (read from that
+  real grant data, not a text search) — the existing companion path only
+  ever counted ally STARTING equipment, never a quest-completion reward.
+
+Verified: tools/audit.js now reports 0 errors (R2: 0, live-reachable
+1358 -> 1368, exactly the 10 items this fixes). A 10-case functional
+retest confirms an Apothecary can craft both items at the placeholder
+Knowledge level, a non-Apothecary is still refused at the crafting
+bench, a non-Apothecary CAN buy smelling salts from any shop for 160
+gold (consumables bypass the random stock roll entirely, so it's always
+available), the field splint kit never appears in any shop, the rally
+mechanic (ally uses salts on a downed player, player up at 25% HP) and
+the field-treatment mechanic (severe -> minor, a second use on an
+already-treated-but-reinjured entry correctly refused with the specific
+"already field-treated" message) both work end to end. Existing
+downed-system (17/17), ally-protection (9/9), and Injury-System (24/24)
+ledgers plus combatsim.js all stay clean — nothing here touches combat
+stats or gear computation.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/items.js   | 20 ++++++++++++--------
+ js/data/recipes.js | 20 ++++++++++++++++++++
+ tools/audit.js     | 10 ++++++++++
+ 3 files changed, 42 insertions(+), 8 deletions(-)
