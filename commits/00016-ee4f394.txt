@@ -1,0 +1,70 @@
+range: 70af51e718e9d32f96b449d59acf22fb0c998d56..ee4f394f33bc4cd846d8e2fba8c7121fea41aaea
+=== ee4f394f33bc4cd846d8e2fba8c7121fea41aaea 2026-11-06 15:08:33 +0000
+Combat Rebuild Phase 1, step 1b: pipeline skeleton + enemy-to-player path
+Adds js/engine/pipeline.js: the five generic step functions (chooseAction/
+chooseTargets/rollToHit/calculateDamage/applyAndReact, spec section 3),
+dispatching on actor/target combatant kind, with the first real path wired
+through them — enemy attacking the player, migrated verbatim from
+resolveEnemyRetaliation (combat.js). Same arithmetic, same effect order,
+same early-return shape for every miss/evasion/negation; nothing about any
+mechanic's numbers or triggers changes.
+
+resolveEnemyRetaliation is kept, byte-for-byte unchanged, purely as the
+parity oracle (see its new header comment) — no longer a live call site.
+All four real call sites now go through resolveEnemyAttackOnPlayer (the
+new orchestrator, identical signature/return shape).
+
+Two disclosed departures from a "pure" five-step split, both forced by
+exact behavior preservation rather than the cleanest shape (see pipeline.js's
+header for the full reasoning): (1) Reinforced's attack counter stays
+textually first in chooseAction, ahead of the stun gate, matching the
+original's order even though it's not naturally that step's job. (2) Mirror
+Soul's reflection is a real exception to "HP changes only in step 5" — it
+redirects the hit onto the attacking creature itself, inside calculateDamage,
+exactly as the original did. tools/audit.js's future P1 rule (step 1h) will
+need an allow-list entry for this one call site.
+
+Also: wired pipeline.js into tools/combat_field_ledger.js's FUNCTION_STEP
+map (now step-array-valued, since shared pipeline functions will gain more
+steps' branches over 1c-1g) in place of the now-superseded
+resolveEnemyRetaliation entry, and fixed one standing regression test
+(Dregnar Stage B's DRA-B-STACK-02) that spied on resolveEnemyRetaliation
+as if it were still the live call site -- re-pointed at
+resolveEnemyAttackOnPlayer, same verification intent.
+
+Note for the next step: the field ledger's open count is unchanged at
+148/148 after this step, and that's expected, not a miss -- 1b restructured
+resolveEnemyRetaliation's CONTROL FLOW into the pipeline shape, but
+(consistent with "the old fields are kept and mirrored until 1h" in the
+spec's own step 1a row) did not relocate any field off flat state.combat.
+Worth a decision before 1c: should each step ALSO relocate the specific
+fields it touches as it lands (so the ledger visibly shrinks step by step),
+or is bulk relocation intentionally an 1h-only activity per the spec's
+original wording? Proceeding on the latter unless told otherwise.
+
+Verified: Layer 1 (forced-roll unit parity) -- 23/23 scenarios, each
+asserting byte-identical {lines, damage}, full state.combat snapshot, AND
+Math.random() consumption count between resolveEnemyRetaliation and
+resolveEnemyAttackOnPlayer, across every named branch (Reinforced, every
+accuracy-bonus source, every miss/evasion effect, Mirror Soul both
+outcomes, every elemental and physical damage multiplier, every post-hit
+reaction, a lethal hit, the zero-atk case). Layer 2 (statistical parity) --
+reran all 16 bosses x 2 classes x 2 modes (boss_sweep_f067252.json) and the
+Dregnar/Arbitarius legal-party cells (plus3_out.json): EXACT match on
+every numeric field, not just within tolerance. Full existing regression
+suite green: injury_ledger 24/24, downed_ledger 17/17, ally_protection_ledger
+9/9, Dregnar Stage A 30/30, Stage B 36/36 (after the one test fix above),
+party cap 8/8, consumable no-op 9/9, step 1a's own parity suite 17/17,
+tools/audit.js 0 errors, tools/combatsim.js consistent.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ index.html                   |   1 +
+ js/engine/combat.js          |  13 +-
+ js/engine/combatant.js       |  13 ++
+ js/engine/pipeline.js        | 376 +++++++++++++++++++++++++++++++++++++++++++
+ tools/combat_field_ledger.js |  85 ++++++----
+ tools/combat_field_ledger.md |  10 +-
+ 6 files changed, 456 insertions(+), 42 deletions(-)
