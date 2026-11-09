@@ -1,0 +1,72 @@
+range: 17eb3836e15ae07633db4080fb77f84336106650..7853740b2b3d51a5ee38efef100f34f144a5f72f
+=== 7853740b2b3d51a5ee38efef100f34f144a5f72f 2026-11-09 09:18:47 +0000
+Combat Rebuild Phase 1, listed change D1: stun stops the whole action
+A stunned enemy's enemyStunCharges was only checked/consumed deep inside
+the player-targeted branch of pipeline chooseAction (the old
+resolveEnemyRetaliation's own behavior, carried over unchanged in step
+1b). So a stunned enemy that happened to roll an ally as its target, or
+that used an active ability or a summon, acted anyway and kept the
+charge until it eventually targeted the player.
+
+Fix, per Tyler (9 Nov), decision D1: a stun stops a stunned enemy's whole
+action, whatever it would have attacked. The check now runs in
+resolveEnemyAction (combat.js), before any ability, summon or target is
+chosen -- mirroring resolveDregnarAction's own per-action-slot stun
+check exactly (Dregnar's bespoke resolver already did this correctly and
+is untouched: his bossKit dispatch returns before the new check).
+Flurry's second action re-checks and consumes its own charge
+independently, same as Dregnar's normal/bonus split. Removed the now-
+dead stun branch from pipeline chooseAction, which can no longer return
+null for an enemy actor.
+
+damage stays 0 (not null) on the skip, matching exactly what the old
+player-targeted skip returned -- that 0 is load-bearing several call
+sites up (retaliation.damage === 0 gates the player's own dodge/Riposte
+bonuses), so changing it would have been an undisclosed second behavior
+change. Dregnar's own stunned-skip already returns damage: null and
+therefore does NOT grant those same bonuses -- a pre-existing
+Dregnar/ordinary-enemy inconsistency this fix doesn't touch either way;
+flagged for the asymmetry register.
+
+This can't be parity-tested against a kept oracle the way steps 1b/1c
+are -- the old behavior was the bug. tools/tests/d1_stun_fix_ledger.js
+calls resolveEnemyAction/resolveEnemyActionWithFlurry directly (one layer
+above the pipeline orchestrators) and asserts the fix: a stunned enemy
+skips regardless of forced target (ally or player), an active ability is
+never even chosen (resolveEnemyActiveAbility not called), Flurry consumes
+one charge per action slot, and Dregnar is unaffected -- each with an
+"effect changed something" control proving the skip is really caused by
+the charge. Updated phase1_step1b/1c's own stun scenarios: P1-STUN-01
+removed (it tested a check that no longer lives in that orchestrator);
+P1C-NOSTUN-01 kept but recaptioned (neither the ally orchestrator nor its
+oracle ever checked stun -- that was never the asymmetry; the real check
+now lives one layer up, for both targets alike).
+
+Layer 2: reran the existing boss-sweep (32 cells) and Dregnar/Arbitarius
+legal-party (12 cells) baselines against this fix. Zero win-rate movement
+across every cell -- not because the fix is a no-op, but because none of
+these sims' expected-gear loadouts ever land the one source of Stun in
+the game (the Force element ability), so the fixed branch is never
+exercised by these particular baselines. The forced-roll unit tests above
+are the real evidence for this change; the sims are silent on it by
+construction.
+
+Full suite: 230/230 (node tools/tests/run_all.js). audit: 0 errors.
+Field ledger: enemyStunCharges no longer shows 1b/1c in "touched by" --
+it genuinely left the pipeline steps, closesAfter stays 1g (still
+touched by 1e/1g elsewhere). Still 148/148 tracked fields open overall;
+this was a control-flow fix, not a field move.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                               |  36 ++++
+ js/engine/pipeline.js                             |  98 +++++-----
+ tools/combat_field_ledger.md                      |   2 +-
+ tools/tests/README.md                             |   3 +-
+ tools/tests/d1_stun_fix_ledger.js                 | 211 ++++++++++++++++++++++
+ tools/tests/phase1_step1b_pipeline_parity.js      |  13 +-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js |  12 +-
+ tools/tests/run_all.js                            |   1 +
+ 8 files changed, 323 insertions(+), 53 deletions(-)
