@@ -5,15 +5,16 @@ enemy-attacks-ally path in `js/engine/pipeline.js` (step 1b/1c), plus
 any found later. Each row: the mechanic, which path has it, where it
 lives, its parity test, its **kind**, and its **status**.
 
-Kinds (Tyler, 9 Nov 2026):
+Kinds (Tyler, 9 Nov 2026; kind D added 9 Nov, step 1e handoff §0):
 
 | Kind | Meaning | Default status |
 |---|---|---|
-| **A** | Enemy-side rule — part of the attacker's own kit, but today only fires when it hits the player | Gets a `U3` switch (`COMBAT_UNIFY` in pipeline.js); turned on per decision D2 once built |
+| **A** | Enemy-side rule — part of the attacker's own kit, but today only fires when it hits the player (or, as of step 1e, only when a specific ALLY shape attacks it) | Gets a `U3` switch (`COMBAT_UNIFY` in pipeline.js); turned on per decision D2 once built |
 | **B** | Player-only gear defense (reacts to the player specifically being attacked) | Approved to extend to allies per D3; **built in Phase 2** (the modifier registry), not 1d |
 | **C** | Deliberately ally-only mechanic, with no player-path counterpart | **Kept** (D4) |
+| **D** | "Ally kit difference" — the ATTACKING ally's own gear/kit bonus applies for one ally shape (Kessa) but not another (Hadrian); not an enemy-side rule, so it doesn't fit U3 | **Deferred to Phase 2**, same as kind B — Hadrian's gear is lore-fixed, named equipment (see `js/data/hadrian.js`), not generic `hasEffect`-tagged gear, so this is moot until his Legendary ascension (explicitly out of scope today) gives him an item with one of these effect ids |
 
-A row that doesn't fit A/B/C is marked **"needs Tyler"** rather than
+A row that doesn't fit A/B/C/D is marked **"needs Tyler"** rather than
 decided here.
 
 Regenerate this file's content by hand after each step that changes
@@ -127,6 +128,45 @@ ally branch always returns `damage: null`, never `0` — see
 Riposte-via-`maybeRiposte` would silently stay player-only even after the
 gear itself went symmetric. **needs Tyler** if/when that day comes; not
 an issue today since nothing kind-B is built yet.
+
+## Kind A (continued) — enemy kit asymmetries found between the two ally-attack shapes (step 1d/1e)
+
+Step 1d's own report flagged that Hadrian's kit-bearing attack
+(`action.kit` in `rollToHitAllyActor`/`calculateDamageAllyActor`/
+`applyAndReactAllyActor`, pipeline.js) is missing five things the plain
+ally's attack (Kessa today) has. Step 1e handoff §0 asked this register
+to sort each of the five into a kind. Three are the ENEMY's own kit —
+same D2 principle as the rest of this table ("an enemy's kit applies to
+whatever it hits" extends to "and whatever hits it") — and now have a
+`U3` switch, off by default, same convention as U3a-d:
+
+| Mechanic | Enemy effect id(s) | Lives in | U3 switch | Parity test |
+|---|---|---|---|---|
+| Banked Defense bonus (Brace/Guarded Strike/Sure Foundation) protects the enemy from Kessa's hit but not Hadrian's | `dra_e05_sure_foundation` (grant), `braceBonusDef`/`guardedStrikeBonusDef`/`sureFoundationBonusDef` (the banked fields themselves) | peek: `calculateDamageAllyActor`'s kit branch; consume: `applyAndReactAllyActor`'s kit branch | `U3e` | `U3E-ON-01` |
+| Smuggler's Guard / Commander's Poise: the enemy's own flat mitigation fires against Kessa's hit but not Hadrian's | `sang_cu_ie006_smugglers_guard`, `sang_cu_ie011_commanders_poise` (`sangCuDefenderMitigation`) | `calculateDamageAllyActor`'s kit branch | `U3f` | `U3F-ON-01` |
+| Riposte-on-miss: the enemy's own Riposte effect counters a miss by Kessa but not by Hadrian | `riposte` (`riposteCounterByEnemyOnAlly`) | `rollToHitAllyActor`'s kit branch, miss case | `U3g` | `U3G-ON-01` |
+
+The other two are the ATTACKING ally's own gear/kit bonus, not an enemy
+rule at all — they don't fit U3's shape (U3 is specifically "the
+enemy's own kit, extended to a case it doesn't fire in today"; these two
+are "this attacker's own gear bonus, which the generic functions below
+already support for ANY attacker passed in, but Hadrian's kit-bearing
+branch simply never calls them"). Classified as the new **kind D** ("ally
+kit difference") instead, deferred to Phase 2 alongside kind B:
+
+| Mechanic | Lives in | Why it's kind D, not A |
+|---|---|---|
+| Opening Reach: +15% on an ally's first physical attack each combat, if that ally's own gear has the `opening_reach` effect | `applyOpeningReachForActor(actor, dmg)`, combat.js:1999 — generic over whichever `actor` is passed; called from the plain-ally path, never from Hadrian's kit branches | Checks the ATTACKER's own gear (`hasEffect(actor, "opening_reach")`), not anything about the enemy. In practice moot for Hadrian today — his equipment is lore-fixed named gear (`js/data/hadrian.js`), not generic `hasEffect`-tagged items — but structurally a gap if his deferred Legendary ascension ever adds the effect id |
+| Executioner multiplier: +20% damage against an enemy below 30% HP, if the attacker's own gear has the `executioner` effect | `executionerMultiplierFor(attacker, defenderHp, defenderMaxHp)`, combat.js:1122 — same generic-over-attacker shape | Same reasoning as Opening Reach — attacker's own gear check, moot for Hadrian's fixed gear today, same Legendary-ascension caveat |
+
+Both kind-D rows are "moot in practice, real in structure": nothing
+breaks today because Hadrian's current gear never carries either effect
+id, so no test asserts a behavior difference for them (unlike the kind-A
+rows above, which DO get an on/off switch and test because the enemy
+side of the interaction is real and already in play). If Hadrian's
+Legendary ascension (deferred, per `js/data/hadrian.js`'s own header)
+ever grants one of these effect ids, this row needs re-opening rather
+than assumed still-moot.
 
 ## Not yet classified — found while building this register, not part of step 1c's own list
 

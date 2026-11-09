@@ -158,6 +158,76 @@ const { chromium } = require('playwright');
       ally.statuses['sang_iag_poison'] = { turns: 2 };
     }, { hasEffectExtra: (obj, id) => (id === 'sang_iag_ie008_toxic_preparation' ? true : undefined) });
 
+    // ============ U3e/U3f/U3g: step 1e handoff §0 -- Hadrian's kit path
+    // vs the enemy's own kit (banked Defense, Smuggler's Guard/
+    // Commander's Poise, Riposte-on-miss). Different direction than
+    // U1-U3d above (ally ATTACKING an enemy, not an enemy attacking an
+    // ally), so this needs its own harness driving basicCompanionAttack
+    // (pipeline.js's Hadrian-kit-bearing fallback swing) instead of
+    // resolveEnemyAttackOnAlly. ============
+    function runWithSwitchesHadrian(opts) {
+      const { on = [], setup, hasEffectExtra, hasSetTierExtra, connects = true } = opts;
+      const prevUnify = Object.assign({}, COMBAT_UNIFY);
+      const origRandom = Math.random;
+      const origConnects = window.attackConnects;
+      const origHasEffect = window.hasEffect;
+      const origHasSetTier = window.hasSetTier;
+      for (const k of on) COMBAT_UNIFY[k] = true;
+      let i = 0;
+      Math.random = () => MID[i++ % MID.length];
+      window.attackConnects = () => connects;
+      if (hasEffectExtra) window.hasEffect = (obj, id) => hasEffectExtra(obj, id) ?? origHasEffect(obj, id);
+      if (hasSetTierExtra) window.hasSetTier = (obj, setName, tier) => hasSetTierExtra(obj, setName, tier) ?? origHasSetTier(obj, setName, tier);
+      try {
+        const s = new GameState();
+        s.playerName = 'T'; s.race = 'human'; s.class = 'warrior';
+        s.origin = Object.keys(ORIGINS)[0]; s.level = 25;
+        s.recomputeStats(false);
+        const hadrian = s.recruitAlly('hadrian');
+        startCombat(s, 'stoneback_beetle', 25);
+        ensureCompanionFields(hadrian);
+        const enemies = s.combat.enemies;
+        const creature = enemies[0].creatureObj;
+        if (setup) setup(s, creature, hadrian, enemies);
+        const hpBefore = enemies[0].hp;
+        const hadrianHpBefore = hadrian.health;
+        const result = basicCompanionAttack(s, hadrian, enemies);
+        return { result, s, creature, hpAfter: enemies[0].hp, hpBefore, hadrianHpAfter: hadrian.health, hadrianHpBefore };
+      } finally {
+        Object.assign(COMBAT_UNIFY, prevUnify);
+        Math.random = origRandom;
+        window.attackConnects = origConnects;
+        window.hasEffect = origHasEffect;
+        window.hasSetTier = origHasSetTier;
+      }
+    }
+
+    function switchOnChangesSomethingHadrian(code, description, on, setup, stubs, connects) {
+      record(code, description, () => {
+        const off = runWithSwitchesHadrian(Object.assign({ on: [], setup, connects }, stubs));
+        const onRun = runWithSwitchesHadrian(Object.assign({ on, setup, connects }, stubs));
+        const mattered = JSON.stringify(off.result) !== JSON.stringify(onRun.result)
+          || off.hpAfter !== onRun.hpAfter
+          || off.hadrianHpAfter !== onRun.hadrianHpAfter;
+        return {
+          pass: mattered,
+          off: { result: off.result, hpAfter: off.hpAfter, hadrianHpAfter: off.hadrianHpAfter },
+          on: { result: onRun.result, hpAfter: onRun.hpAfter, hadrianHpAfter: onRun.hadrianHpAfter },
+        };
+      });
+    }
+
+    switchOnChangesSomethingHadrian('U3E-ON-01', "U3e on: the enemy's banked Brace/Guarded Strike/Sure Foundation Defense bonus protects it from Hadrian's basic swing too -- off, calculateDamageAllyActor's kit branch never peeks those fields", ['U3e'], (s, creature) => {
+      creature.braceBonusDef = 3;
+      creature.guardedStrikeBonusDef = 2;
+    });
+    switchOnChangesSomethingHadrian('U3F-ON-01', "U3f on: the enemy's own Smuggler's Guard/Commander's Poise mitigation (sangCuDefenderMitigation) applies against Hadrian's basic swing too -- off, it's never called on this path", ['U3f'], null, {
+      hasEffectExtra: (obj, id) => (id === 'sang_cu_ie006_smugglers_guard' || id === 'sang_cu_ie011_commanders_poise' ? true : undefined),
+    });
+    switchOnChangesSomethingHadrian('U3G-ON-01', "U3g on: a miss on Hadrian's basic swing provokes the enemy's own Riposte (riposteCounterByEnemyOnAlly), damaging Hadrian -- off, a miss here never provokes it (asymmetry vs Kessa's miss)", ['U3g'], null, {
+      hasEffectExtra: (obj, id) => (id === 'riposte' ? true : undefined),
+    }, /* connects */ false);
+
     const summary = { total: ledger.length, passed: ledger.filter((l) => l.pass).length, failed: ledger.filter((l) => !l.pass) };
     return { ledger, summary };
   });
