@@ -1,0 +1,231 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index eae3e2e..f2106f1 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -20,10 +20,11 @@
+  * numbers or triggers changes; see each step's own parity report for how
+  * that's verified.
+  *
+- * The player-attacking and ally-attacking paths are NOT symmetric today.
+- * Step 1c preserved every asymmetry found at the time exactly, rather
+- * than "completing" them — see the per-step comments below for each one
+- * (the short version: Reinforced/Timeless Guard/Guardian Spirit/Guided
++ * The player-attacking and ally-attacking paths are NOT symmetric today,
++ * with every COMBAT_UNIFY switch below at its default of off. Step 1c
++ * preserved every asymmetry found at the time exactly, rather than
++ * "completing" them — see the per-step comments below for each one (the
++ * short version: Reinforced/Timeless Guard/Guardian Spirit/Guided
+  * Footsteps/Never Where Expected/Blessing or Avatar of Freedom/evasion
+  * charges or windows/Marked Target/Flowing Discipline/Winter's Verdict/
+  * Stonewarden's physical-branch reduction/Toxic Preparation only ever
+@@ -31,8 +32,11 @@
+  * generalized Ally Protection Reaction, companion damage mitigation, Last
+  * Bastion retaliation, and a miss provoking Riposte only ever applied
+  * when an ally was). Full list, with each one's disposition (kept,
+- * switched behind a U3 unification flag, or fixed outright), now tracked
+- * in tools/combat_asymmetry_register.md rather than only here.
++ * switched behind a COMBAT_UNIFY flag, or fixed outright), tracked in
++ * tools/combat_asymmetry_register.md rather than only here — four of
++ * these (Marked Target, Flowing Discipline, Winter's Verdict, Toxic
++ * Preparation) now have a U3 switch (off by default) that unifies them;
++ * the rest don't yet, per that register's own kind split.
+  *
+  * The stun gate was ALSO on that list through step 1c, but it was a
+  * listed bug, not a balance asymmetry (Tyler, 9 Nov, decision D1): a
+@@ -72,6 +76,58 @@
+  *      later step by the migration order's own rules.
+  */
+ 
++// Combat Rebuild Phase 1 handoff §2 (Tyler, 9 Nov 2026): unification
++// switches. Every switch defaults OFF — with every switch off, this file
++// behaves exactly as step 1c left it (every existing parity scenario
++// keeps passing unchanged; see the on/off scenarios in
++// phase1_step1c_ally_pipeline_parity.js tagged COMBAT_UNIFY). Turning a
++// switch on is a real, disclosed behavior change, done one at a time,
++// each its own commit, measured against the boss sweep and the
++// Dregnar/Arbitarius legal-party cells (stop and tell Tyler if any
++// boss's win rate moves more than 10 points). See
++// tools/combat_asymmetry_register.md for what each one unifies and why;
++// U3 only has entries for the register's kind-A rows that are actually
++// built here — a row still marked "needs Tyler" in that register
++// (Stonewarden 6pc, whether it's kind A or B) gets no switch yet.
++const COMBAT_UNIFY = {
++  // Allies take element/magic damage the same formula the player does,
++  // instead of calculateDamage's ally branch always falling through to
++  // the flat physical formula. The matchup multiplier is fixed at 1.0
++  // (neutral) under this switch: allies have no elemental-affinity field
++  // anywhere in the data model (no ally.primaryElement, no "this ally is
++  // attuned to element X" concept in allies.js/companion.js) — Tyler's
++  // call (9 Nov): ship U1 with a flat matchup rather than invent one, and
++  // revisit if/when allies get a real elemental identity. Mirror Soul is
++  // deliberately OUT of U1's scope — it's the player's own artifact,
++  // already a separate, time-bounded step-1f fix (this file's departure
++  // #1 above); U1 doesn't entangle a second open question with it.
++  U1: false,
++  // Dregnar's Unquenched Focus (dra_e07) applies on his first successful
++  // elemental hit against an ally too, not just the player. Only
++  // meaningful with U1 also on (there's no elemental hit on an ally for
++  // it to trigger from otherwise) — gated on both flags at the call site,
++  // not implied by U1 alone, so flipping U1 on by itself doesn't silently
++  // also turn U2 on.
++  U2: false,
++  // Marked Target (sang_cu_ie002_marked_target): a successful hit marks
++  // the TARGET (combat.exposedTarget), not just the player, and the
++  // marked-target accuracy bonus is read/consumed on an ally-targeted
++  // roll too.
++  U3a: false,
++  // Flowing Discipline (First Sword's Regalia 6pc): the banked +10%
++  // physical-damage bonus fires on an ally-targeted hit too.
++  U3b: false,
++  // Winter's Verdict (First Sword's Regalia 8pc): fires when the ALLY
++  // (not just the player) is Chilled — reads ally.statuses.chilled,
++  // the same per-ally status bag Serrated Opening's bleed check already
++  // reads in this file's ally branches.
++  U3c: false,
++  // Toxic Preparation (sang_iag_ie008): fires when the ALLY (not just
++  // the player) carries the Sanguivorum poison status — reads
++  // ally.statuses["sang_iag_poison"], same per-ally status bag as U3c.
++  U3d: false,
++};
++
+ // ---- Step 1: choose action ----
+ // actor: a combatant view (js/engine/combatant.js). ctx.pendingAction: the
+ // attack resolveEnemyAction already decided on (basic swing or a specific
+@@ -143,9 +199,14 @@ function rollToHit(actor, target, action, ctx) {
+ 
+   if (target.kind === "ally") {
+     const ally = target.ref;
+-    // Marked Target is absent here on purpose — it's a player-only
+-    // mechanic in the original (resolveEnemyAttackOnAllyLegacy never
+-    // reads or clears combat.exposedTarget). See this file's header.
++    // U3a (off by default): Marked Target's bonus reads/clears the same
++    // fight-wide combat.exposedTarget the player branch below uses — it
++    // was set by whichever enemy last landed a marking hit on EITHER
++    // target kind (see the grant side in applyAndReact's ally branch),
++    // so no ally-specific storage is needed here, same as the player
++    // branch's own read.
++    const markedTargetBonusAlly = COMBAT_UNIFY.U3a && combat.exposedTarget && combat.exposedTarget.by !== creature ? 8 : 0;
++    if (markedTargetBonusAlly) combat.exposedTarget = null;
+     const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
+     let calculatedAimBonusAlly = 0;
+     if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
+@@ -158,7 +219,7 @@ function rollToHit(actor, target, action, ctx) {
+     creature.bankedAttackAccBonus = 0;
+     creature.bankedAttackAccBonusTurnsLeft = 0;
+     creature.bankedAttackDmgMultBonus = 0;
+-    const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
++    const accBonus = baseAccBonus + markedTargetBonusAlly + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
+     creature.duelistMeasurePendingTarget = null;
+     if (!attackConnects(creature.acc + accBonus, stat(state, target, "agi"))) {
+       // Riposte, generalized: a miss on an ally provokes a counter FROM
+@@ -258,10 +319,54 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+     ally.braceBonusDef = 0;
+     ally.guardedStrikeBonusDef = 0;
+     const effectiveDef = stat(state, target, "def") + bankedDef;
+-    // No elemental branch here on purpose — resolveEnemyAttackOnAllyLegacy
+-    // never had one; an enemy mage attacking an ally always uses the
+-    // physical formula below (effectiveEnemyAtk's own magic-fallback
+-    // makes rawAtk sane regardless). See this file's header.
++
++    // U1 (off by default): an enemy mage's hit on an ally uses the same
++    // element/magic formula the player branch below does, instead of
++    // always falling through to the flat physical formula — see
++    // COMBAT_UNIFY's own header comment for the matchup-multiplier
++    // caveat and why Mirror Soul is deliberately excluded. Adaptive
++    // Ward/Spell Ward/Stormwatch 6pc/Stonewarden 6pc check the ALLY's
++    // OWN gear (hasEffect/hasSetTier are wearer-neutral) and track their
++    // once-per-combat flags on the ally object itself, not on the shared
++    // combat object: combat.adaptiveWardElement/stormBarrierUsed/
++    // firstHitTakenUsed are the PLAYER's own per-fight state (still flat
++    // on state.combat — 1a's deferred field move), and sharing one flag
++    // across the whole party would let one fighter's ward block
++    // everyone else's. River Warden 6pc's bonus-on-a-successful-evasion
++    // (riverWardenMagicBonus) is NOT granted here even if Spell Ward
++    // procs — it feeds a player-only evasion-charge mechanic (rollToHit's
++    // player branch, kind B in the asymmetry register) that has no ally
++    // equivalent to receive it.
++    if (COMBAT_UNIFY.U1 && creature.element) {
++      const matchup = 1.0;
++      const base = randInt(creature.magic - 2, creature.magic + 2);
++      const coldBonus = creature.element === "water" && hasColdproof(ally) ? 2 : 0;
++      const def = effectiveDef + coldBonus;
++      let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, ally.health, ally.maxHealth)));
++      if (COMBAT_UNIFY.U2 && edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
++        creature.unquenchedFocusUsed = true;
++        edmg = Math.round(edmg * 1.10);
++      }
++      if (hasEffect(ally, "adaptive_ward")) {
++        if (!ally.adaptiveWardElement) {
++          ally.adaptiveWardElement = creature.element;
++        } else if (creature.element === ally.adaptiveWardElement) {
++          edmg = Math.round(edmg * 0.5);
++        }
++      }
++      const swMult = spellWardMultiplier(ally);
++      if (swMult < 1) edmg = Math.round(edmg * swMult);
++      if (edmg > 0 && !ally.stormBarrierUsed) {
++        ally.stormBarrierUsed = true;
++        if (hasSetTier(ally, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
++      }
++      if (edmg > 0 && !ally.firstHitTakenUsed) {
++        ally.firstHitTakenUsed = true;
++        if (hasSetTier(ally, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
++      }
++      return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
++    }
++
+     const rawAtk = effectiveEnemyAtk(state, creature);
+     let edmg = abilityCtx
+       ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
+@@ -283,13 +388,34 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+       creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
+       edmg = Math.round(edmg * 1.10);
+     }
++    // U3b (off by default): Flowing Discipline's banked +10% on an ally
++    // target too, same bank/consume shape as the player branch's own.
++    if (COMBAT_UNIFY.U3b && edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
++      creature.flowingDisciplinePending = false;
++      creature.flowingDisciplineTurnsLeft = 0;
++      edmg = Math.round(edmg * 1.10);
++    }
++    // U3c (off by default): Winter's Verdict reads the ALLY's own Chilled
++    // status (ally.statuses.chilled) rather than the player's
++    // combat.playerStatuses.chilled.
++    if (COMBAT_UNIFY.U3c && edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && ally.statuses && ally.statuses.chilled) {
++      creature.wintersVerdictUsed = true;
++      edmg = Math.round(edmg * 1.15);
++    }
+     if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
+       creature.decisiveImpactUsed = true;
+       edmg = Math.round(edmg * 1.08);
+     }
+-    // No Flowing Discipline/Winter's Verdict/Stonewarden/Toxic Preparation
+-    // here — all four are absent from resolveEnemyAttackOnAllyLegacy too.
+-    // See this file's header.
++    // U3d (off by default): Toxic Preparation reads the ALLY's own
++    // Sanguivorum-poison status (ally.statuses["sang_iag_poison"]) rather
++    // than the player's combat.playerStatuses["sang_iag_poison"].
++    if (COMBAT_UNIFY.U3d && edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && ally.statuses && ally.statuses["sang_iag_poison"]) {
++      creature.toxicPreparationUsed = true;
++      edmg += Math.max(1, Math.floor(edmg * 0.05));
++    }
++    // Stonewarden 6pc's first-hit-taken reduction has no switch yet —
++    // tools/combat_asymmetry_register.md flags it needs-Tyler (is it
++    // kind A or kind B?) rather than guessing a U3 slot for it here.
+     return { shortCircuit: false, edmg, kind: "ally" };
+   }
+ 
+@@ -414,7 +540,12 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+         sangAllyLines.push(...applyAbilityInflictOnAlly(ally, { status: "bleed", chance: 1 }, creature.name));
+       }
+     }
+-    // No Marked Target grant here — see this file's header.
++    // U3a (off by default): grant side of Marked Target — see this
++    // function's own read/consume in rollToHit's ally branch.
++    if (COMBAT_UNIFY.U3a && edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.exposedTarget) {
++      creature.markedTargetUsed = true;
++      combat.exposedTarget = { by: creature };
++    }
+     if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
+       creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
+       creature.duelistMeasurePendingTarget = ally.name;

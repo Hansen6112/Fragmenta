@@ -1,0 +1,74 @@
+range: b744134e6030da9975f58f093233a10690076189..3bf5d0d5f824368f696bf33ce4d63eb3663fa545
+=== 3bf5d0d5f824368f696bf33ce4d63eb3663fa545 2026-11-09 09:37:12 +0000
+Combat Rebuild Phase 1: COMBAT_UNIFY switches (handoff §2)
+Adds a COMBAT_UNIFY switch table to pipeline.js, every switch off by
+default, implementing the asymmetry register's kind-A rows (plus the
+U1/U2 structural gap it calls out) as real but inert code paths:
+
+- U1: an enemy mage's hit on an ally uses the same element/magic formula
+  the player branch uses, instead of calculateDamage's ally branch
+  always falling through to the flat physical formula. Matchup is fixed
+  at 1.0 (neutral) -- allies have no elemental-affinity field anywhere
+  in the data model, confirmed by inspection (no ally.primaryElement, no
+  "this ally is attuned to element X" concept in allies.js/companion.js)
+  and by asking Tyler how to handle it rather than inventing a
+  convention; his call: ship flat for now, revisit later. Mirror Soul is
+  deliberately excluded from U1's scope -- it's the player's own
+  artifact, already a separate, time-bounded step-1f fix. Adaptive
+  Ward/Spell Ward/Stormwatch 6pc/Stonewarden 6pc check the ALLY's own
+  gear (hasEffect/hasSetTier are wearer-neutral) and track their
+  once-per-combat flags on the ally object itself, not the shared
+  combat object, since those flags are still the player's own flat
+  per-fight state (1a's deferred field move) and sharing one flag across
+  the party would let one fighter's ward block everyone else's.
+- U2: Dregnar's Unquenched Focus (dra_e07) applies on his first
+  elemental hit against an ally too -- gated on U1 AND U2 both, so
+  turning U1 on alone doesn't silently also turn U2 on.
+- U3a: Marked Target's grant/read/consume (combat.exposedTarget) extends
+  to the ally-targeted path on both ends.
+- U3b: Flowing Discipline's banked +10% fires on an ally-targeted
+  physical hit too.
+- U3c: Winter's Verdict reads the ALLY's own Chilled status
+  (ally.statuses.chilled) instead of the player's
+  combat.playerStatuses.chilled.
+- U3d: Toxic Preparation reads the ALLY's own Sanguivorum-poison status
+  (ally.statuses["sang_iag_poison"]) the same way.
+
+Stonewarden 6pc's first-hit-taken reduction gets no switch yet -- the
+asymmetry register flags it needs-Tyler (kind A or B?) rather than
+guessing a U3 slot for it.
+
+Every addition is purely additive around the existing, untouched
+physical-formula code in calculateDamage/rollToHit/applyAndReact's ally
+branches -- with every switch at its default of false, nothing executes
+differently. Verified: the full suite (238/238, one unrelated pre-
+existing flake in injury_ledger.js on one run, clean on rerun -- not
+touched by this change) and an exact bit-for-bit rerun of the boss sweep
+(32 cells) and Dregnar/Arbitarius legal-party baselines (12 cells)
+against the post-D1 snapshot, both identical with every switch off.
+
+New: tools/tests/combat_unify_switches_ledger.js (8 scenarios) proves,
+per switch, that forcing it on changes something against the exact same
+setup and forced RNG sequence a switch left off does not -- a switch
+that does nothing can't pass. Includes U2-REQUIRES-U1-01, confirming U2
+alone (U1 still off) is inert.
+
+This commit only BUILDS the switches -- none are turned on. Turning them
+on is its own separate, risk-gated process per the handoff (one at a
+time, each its own commit, before/after boss-sweep numbers, stop and ask
+Tyler if any boss's win rate moves more than 10 points) -- deliberately
+not attempted in this pass given the number of full sweep-and-commit
+cycles that implies; flagged as explicit follow-up work.
+
+Field ledger: regenerated, no change (148/148 still open) -- this is a
+control-flow addition, not a field move.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js                       | 167 +++++++++++++++++++++++---
+ tools/tests/README.md                       |   1 +
+ tools/tests/combat_unify_switches_ledger.js | 177 ++++++++++++++++++++++++++++
+ tools/tests/run_all.js                      |   1 +
+ 4 files changed, 328 insertions(+), 18 deletions(-)
