@@ -1,0 +1,65 @@
+range: 7667c246a4b19f6f0f712a1219d840d25f156060..80e86430d9d52491202033614a3f564ca09d3308
+=== 80e86430d9d52491202033614a3f564ca09d3308 2026-11-09 19:54:26 +0000
+1e completion §6+§7: gap-fix before/after tables + field ledger correction
+§6 (D5): tools/combat_1e_completion_gapfix_tables.md -- every cell that
+moved in boss_sweep/plus3_run between the commit before and after each
+of the two accepted gap fixes. f746464 (Decoy/Ambush low-health +
+Ambush dodge/Riposte follow-ups) moves exactly 2 plus3_run cells
+(Dregnar/Arbitarius, warrior, normal gear) by a few points each; zero
+boss_sweep cells. d16e380 (apothecary action tracking) moves ZERO cells
+in either harness -- disclosed explicitly as a coverage gap, not a
+clean bill of health: neither harness ever simulates an apothecary-
+class character, the only class this fix touches, so its real (small,
+genuine) impact on an apothecary build with the right Divine Regalia
+gear simply isn't observable in either existing sweep.
+
+§7: regenerated tools/combat_field_ledger.md. The owner-tag fix for
+burn/creatureObj/hamstringApplied was already correct (landed in the
+§3.3 commit, c5e4193) -- confirmed, not re-done. The real work here:
+tools/combat_field_ledger.js's own FILES list never included
+js/data/actions.js/tactics.js/elementabilities.js/hadrian.js (added in
+this handoff's own earlier commits), and its extractFunctions only ever
+recognized a top-level `function name(...)` declaration, never an
+object-method-shorthand entry -- meaning PIPELINE_HOOKS' own methods
+(fireOnHit, waterOnHit, ...) were invisible to the ledger even once
+their file was added to FILES. Fixed both: FILES now includes the four
+data files, and extractFunctions recognizes a method-shorthand entry
+one level inside `const PIPELINE_HOOKS = {`, added to FUNCTION_STEP
+(tagged "1e") so a field whose logic moved from a per-pair function
+into a hook doesn't silently misread as "closed."
+
+Net result after this fix: 148 open, unchanged from before the 31-field
+move (and briefly, incorrectly, 147 before this commit's own
+extractFunctions fix caught burn's hook-based reference). This does NOT
+match this handoff's own "148 -> 117" expectation, and that gap is
+disclosed here rather than forced or left unexplained: the §3.3 commit
+already found (and this regeneration reconfirms) that the alias-based
+field move makes the ownership change real without moving the ledger's
+own count, because the ledger's "closed" state is a literal text-scan
+for the `combat.<field>` spelling inside 1e-tracked functions -- not a
+semantic check of which store actually backs the read. Measured the
+real size of what WOULD close it: ~119 individual `combat.<field>`
+occurrences across the 31 moved fields, spread over roughly 30-40 small
+helper functions (every checkAvatarOfX-style function, applyEndlessStudy/
+applyWanderersReward/applyActionTypeTracking/applyPerfectMemory/
+applyPerfectTiming/applyTacticalMemory, the four pipeline functions, and
+most of the nine orchestrators) -- each would need a local alias
+(player-side `actor.store` already equals `state.combat` today, the
+same established pattern enemy fields already use via `target.store`,
+so this is a real, low-risk, purely mechanical rename, not a logic
+change) substituted in for that function's own references. Sizing this
+rather than attempting it blindly: it's a genuinely large, tedious,
+zero-runtime-impact pass (pure cosmetic for this reporting tool, no
+behavior changes either way) -- flagged as its own follow-up rather than
+rushed through or silently skipped.
+
+Full suite unaffected by this commit: 363/363.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_1e_completion_gapfix_tables.md | 81 +++++++++++++++++++++++++++++
+ tools/combat_field_ledger.js                | 54 ++++++++++++++++---
+ tools/combat_field_ledger.md                |  4 +-
+ 3 files changed, 131 insertions(+), 8 deletions(-)
