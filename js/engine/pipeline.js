@@ -1463,6 +1463,15 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
       lines.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
     }
   }
+  // Generic, chance-gated on-hit effect: declared as { chance, hookName }
+  // on the definition (named hook resolved by NAME, never by action
+  // identity), so a new skill with a genuinely new on-hit mechanic adds
+  // one hook and this one field, nothing else. None of today's 11
+  // real actions use this -- introduced for the step 1e completion
+  // handoff's own test-strike proof.
+  if (action.onHitChanceEffect && edmg > 0 && Math.random() < action.onHitChanceEffect.chance) {
+    lines.push(...PIPELINE_HOOKS[action.onHitChanceEffect.hookName]({ state, actor, target, enemySlot, creature, edmg, action, dmgInfo, pipelineCtx: ctx }));
+  }
   return { lines, damage: edmg, killed: false, isPhysicalHit: isPhysical };
 }
 

@@ -176,6 +176,18 @@ const PIPELINE_HOOKS = {
     h.state.combat.evasionTurns = 2;
     return { lines: [`${ELEMENTS.air.verb(withThe(h.creature.name, false))} for ${h.edmg} damage, leaving you lighter on your feet.`], castDamageDealt: h.edmg };
   },
+  // "Stagger": this engine has no generic "named status, arbitrary
+  // chance" system for a player-on-enemy effect -- Force/Acid/Fire's own
+  // on-hit effects are each a dedicated per-enemy field/function, not a
+  // shared status bag the way combat.playerStatuses is for the player
+  // (confirmed by reading PER_ENEMY_FIELDS, combat.js). Building a real
+  // new status from scratch is out of scope for a test-only action, so
+  // this reuses the existing stun mechanism (tryApplyEnemyStun) under
+  // the test's own name -- disclosed here rather than silently treated
+  // as a genuinely new mechanic.
+  staggerOnHit(h) {
+    return tryApplyEnemyStun(h.state, h.creature);
+  },
 };
 
 // ---- formula table: today's formulas only, no new math. Resolved by
