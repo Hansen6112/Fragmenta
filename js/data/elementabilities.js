@@ -12,54 +12,79 @@
  * Resolution logic lives in engine/combat.js (useElementAbility).
  */
 
+// A pipelined element's own miss line, one-line each -- the shared
+// factory just saves repeating actorKinds/actionType/toHit/etc across
+// all 7 (earth/Stoneskin has none of this: it's a no-target, no-damage
+// self-buff, same shape as Feint -- its own `action` block, added
+// separately below, is the smaller buff-shaped kind, not this one).
+function pipelinedElementAction(missLine, elementOnHit, extra) {
+  return Object.assign({
+    actorKinds: ["player"], actionType: "elemental", usesPerfectMemory: true, consumesTrailblazer: true,
+    toHit: "roll", formula: "playerCore", usesOrchestratorDmgMult: true, reportPhysical: "always",
+    missLine: (state, creature) => [missLine(creature)],
+    elementOnHit,
+  }, extra || {});
+}
+
 const ELEMENT_ABILITIES = {
   fire: {
     name: "Ignite",
     knowledgeReq: 10,
     cooldown: 3,
     description: "A burning strike that keeps dealing damage for several turns after.",
+    action: pipelinedElementAction((creature) => `${ELEMENTS.fire.name}'s lance goes wide, the flame guttering out short of ${withThe(creature.name, false)}.`, "fireOnHit"),
   },
   water: {
     name: "Torrent",
     knowledgeReq: 10,
     cooldown: 3,
     description: "A crushing strike of compressed water that also mends your wounds.",
+    action: pipelinedElementAction((creature) => `The wave crashes past ${withThe(creature.name, false)}, missing entirely.`, "waterOnHit"),
   },
   earth: {
     name: "Stoneskin",
     knowledgeReq: 10,
     cooldown: 4,
     description: "Harden your body against all harm, magical or physical, for several turns.",
+    // No-target, no-damage self-buff -- see useElementAbility's own
+    // header. Handled by the "toHit: none" buff-shaped resolver branch,
+    // not the pipelinedElementAction shape above.
+    action: { actorKinds: ["player"], actionType: "elemental", usesPerfectMemory: true, consumesTrailblazer: true, toHit: "none" },
   },
   lightning: {
     name: "Flurry",
     knowledgeReq: 10,
     cooldown: 3,
     description: "Two strikes faster than the eye can follow.",
+    action: pipelinedElementAction((creature) => `The bolt arcs past ${withThe(creature.name, false)} without connecting.`, "lightningOnHit"),
   },
   acid: {
     name: "Corrode",
     knowledgeReq: 10,
     cooldown: 2,
     description: "Dissolve your target's defenses permanently — once per target, per fight.",
+    action: pipelinedElementAction((creature) => `The acid splashes wide, missing ${withThe(creature.name, false)} entirely.`, "acidOnHit"),
   },
   force: {
     name: "Concuss",
     knowledgeReq: 10,
     cooldown: 3,
     description: "A blow that knocks the fight out of them — they lose their next action.",
+    action: pipelinedElementAction((creature) => `The wall of force passes ${withThe(creature.name, false)} by.`, "forceOnHit"),
   },
   transportation: {
     name: "Blink",
     knowledgeReq: 10,
     cooldown: 2,
     description: "Teleport in for a free strike, no opening required, no cooldown-limited window.",
+    action: pipelinedElementAction((creature) => `You reappear a beat too far from ${withThe(creature.name, false)} to land the strike.`, "transportationOnHit", { extraElementMultiplier: 1.3 }),
   },
   air: {
     name: "Windcut",
     knowledgeReq: 10,
     cooldown: 3,
     description: "A cutting blade of compressed air that leaves you harder to hit for a few turns.",
+    action: pipelinedElementAction((creature) => `The gust tears past ${withThe(creature.name, false)}, missing.`, "airOnHit"),
   },
 };
 

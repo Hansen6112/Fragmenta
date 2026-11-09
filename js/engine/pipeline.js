@@ -1148,31 +1148,21 @@ function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veter
 // own miss provokes riposteCounterOnPlayer. Decoy/Ambush/Disarm never
 // did (useDecoyLegacy/useAmbushLegacy/useDisarmLegacy's own miss
 // branches never call it), preserved exactly, not "completed."
+// Step 1e completion handoff (9 Nov 2026 follow-up): reads only the
+// action definition's own declared `missLine` function -- never
+// action.id. Every attack-shaped player action (basic_attack, the four
+// Tactics, the seven pipelined elements) declares its own missLine in
+// js/data/actions.js or js/data/tactics.js/elementabilities.js's own
+// `action` block. missProvokesRiposte is true for basic_attack only (the
+// only action whose miss line includes riposteCounterOnPlayer -- none of
+// the others ever called it, confirmed by reading each Legacy function).
 function rollToHitPlayerActor(actor, target, action, ctx) {
   const state = ctx.state;
   const enemySlot = target.store;
   const creature = enemySlot.creatureObj;
   if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
-    const missLines = {
-      basic_attack: [`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`, ...riposteCounterOnPlayer(state, creature)],
-      decoy: [`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`],
-      ambush: [`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`],
-      disarm: [`The follow-up strike doesn't land, but the disarm holds.`],
-      // Step 1e-iii: none of the seven pipeline-migrated elements
-      // provoke riposteCounterOnPlayer either -- useElementAbilityLegacy's
-      // switch's own miss lines never called it, same as Decoy/Ambush/
-      // Disarm above. Earth (Stoneskin) never reaches this check at all
-      // -- its own "spellHits" is unconditionally true (see
-      // useElementAbility's own header).
-      fire: [`${ELEMENTS.fire.name}'s lance goes wide, the flame guttering out short of ${withThe(creature.name, false)}.`],
-      water: [`The wave crashes past ${withThe(creature.name, false)}, missing entirely.`],
-      lightning: [`The bolt arcs past ${withThe(creature.name, false)} without connecting.`],
-      acid: [`The acid splashes wide, missing ${withThe(creature.name, false)} entirely.`],
-      force: [`The wall of force passes ${withThe(creature.name, false)} by.`],
-      transportation: [`You reappear a beat too far from ${withThe(creature.name, false)} to land the strike.`],
-      air: [`The gust tears past ${withThe(creature.name, false)}, missing.`],
-    };
-    return { hit: false, result: { lines: missLines[action.id], damage: null } };
+    const lines = action.missLine(state, creature);
+    return { hit: false, result: { lines, damage: null } };
   }
   return { hit: true };
 }
@@ -1330,83 +1320,60 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
   return { dmg, physicalBranch: !isSpell };
 }
 
-// Every element id this step migrates onto the pipeline -- "earth"
-// (Stoneskin) deliberately excluded: it's a no-target, no-damage self-
-// buff, same shape as Feint, so it never reaches rollToHit/
-// calculateDamage/applyAndReact at all (see useElementAbility's own
-// header in this file).
-const PIPELINE_ELEMENT_IDS = ["fire", "water", "lightning", "acid", "force", "transportation", "air"];
-
+// Step 1e completion handoff: reads only the action definition's own
+// declared fields (openingReach/extraDamageMultiplierFn/
+// usesOrchestratorDmgMult/extraElementMultiplier/borrowedSecondsBonusInDamage/
+// consumesFeintBonus/reportPhysical) -- never action.id. Each field's
+// value, per action, is set in js/data/actions.js or js/data/tactics.js/
+// elementabilities.js's own `action` block; see js/data/actions.js's own
+// header for what each one means and which action used to need which
+// `action.id === ...` branch for it (Flurry's own second-roll note
+// below still applies unchanged -- it's about STEP ORDERING, not
+// per-action identity).
 function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
   const state = ctx.state;
   const enemySlot = target.store;
   const creature = enemySlot.creatureObj;
-  const isElement = PIPELINE_ELEMENT_IDS.includes(action.id);
-  const activeElement = isElement ? action.id : action.activeElement;
+  const isElement = !!action.elementOnHit;
+  const activeElement = isElement ? action.id : (action.picksElement ? action.activeElement : undefined);
 
   const core = rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement);
   let dmg = core.dmg;
   const physicalBranch = core.physicalBranch;
 
-  let feintBonusApplied = false;
-  let reportPhysical;
-  // ---- per-action post-processing, from each action's own ORIGINAL
-  // code (combat.js) -- see this function's own header for exactly
-  // which asymmetries are preserved here, not "completed." ----
-  if (action.id === "basic_attack") {
-    if (physicalBranch) dmg = applyOpeningReach(state, dmg);
-    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
-    if (state.combat.nextAttackBonus) {
-      const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
-      dmg = Math.round(dmg * feintMult);
-      state.combat.nextAttackBonus = false;
-      feintBonusApplied = true;
-    }
-    reportPhysical = physicalBranch;
-  } else if (action.id === "decoy") {
+  // Disarm's own original order is multiply-by-0.7 THEN openingReach
+  // (not the other way around) -- since Math.round happens at each step,
+  // this order is NOT interchangeable with openingReach-then-multiply in
+  // general (only basic_attack's own default multiplier of 1 makes the
+  // two orders equivalent for it specifically), so extraDamageMultiplierFn
+  // runs first, matching Disarm's original, for every action.
+  dmg = Math.round(dmg * (action.extraDamageMultiplierFn ? action.extraDamageMultiplierFn(state) : 1));
+
+  const openingReach = action.openingReach || "none";
+  if (openingReach === "physicalGated" ? physicalBranch : openingReach === "unconditional") {
     dmg = applyOpeningReach(state, dmg);
-    reportPhysical = true;
-  } else if (action.id === "ambush") {
-    dmg = Math.round(dmg * ambushMultiplier(state));
-    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
-    reportPhysical = true;
-  } else if (action.id === "disarm") {
-    dmg = Math.round(dmg * 0.7);
-    dmg = applyOpeningReach(state, dmg);
-    reportPhysical = true;
-  } else if (action.id === "transportation") {
-    dmg = Math.round(dmg * 1.3 * action.dmgMult);
-    reportPhysical = true;
-  } else if (action.id === "lightning") {
-    // Only the FIRST of Flurry's two independent rolls happens here.
-    // useElementAbilityLegacy's own second rollPlayerDamage(state,
-    // creature, "lightning") call only happens AT ALL if the first hit
-    // didn't already kill ("if (state.combat.hp > 0)") -- rolling it
-    // unconditionally here, in step 4, before step 5 has even applied
-    // the first hit, would call rollPlayerDamageCoreForPipeline (and
-    // its own state.combat.hitsTakenFromPlayer += 1, among other things)
-    // an extra time the original never does whenever the first hit is
-    // lethal. So the second roll -- own crit roll, own Avatar of
-    // Creation stack bump, everything, same as the first -- happens in
-    // applyAndReactPlayerActor instead, AFTER the first hit's damage is
-    // actually applied there, gated on the enemy still being alive.
-    // Caught by this step's own Layer 2 check (a boss-sweep cell that
-    // stopped matching exactly, bisected to a lightning-kills-on-first-
-    // hit case inflating hitsTakenFromPlayer by one extra, unused
-    // count) — not by Layer 1, whose own LIGHTNING-KILL-01 scenario
-    // happened to be a single-enemy fight, where the kill ends combat
-    // and wipes state.combat before the extra count could be observed.
-    dmg = Math.round(dmg * action.dmgMult);
-    reportPhysical = true;
-  } else if (PIPELINE_ELEMENT_IDS.includes(action.id)) {
-    // fire/water/acid/force/air: a flat elementalDmgMult (synergy +
-    // Elemental Focus/Surging Conduit, computed once by the orchestrator
-    // before this step runs and carried on the action object), no other
-    // post-processing -- none of the seven call applyOpeningReach or
-    // Borrowed Seconds or read the Feint flag.
-    dmg = Math.round(dmg * action.dmgMult);
-    reportPhysical = true;
   }
+
+  // Lightning's second roll: only computed AT ALL if the first hit didn't
+  // already kill -- see applyAndReactPlayerActor's lightningOnHit hook for
+  // why this can't be precomputed here, before step 5 has even applied
+  // the first hit (it would increment state.combat.hitsTakenFromPlayer an
+  // extra, unused time whenever the first hit is lethal). Caught by this
+  // step's own Layer 2 check originally, not Layer 1 -- see
+  // lightningOnHit's own comment in js/data/actions.js.
+  if (action.usesOrchestratorDmgMult) dmg = Math.round(dmg * (action.extraElementMultiplier || 1) * action.dmgMult);
+
+  if (action.borrowedSecondsBonusInDamage && borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
+
+  let feintBonusApplied = false;
+  if (action.consumesFeintBonus && state.combat.nextAttackBonus) {
+    const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
+    dmg = Math.round(dmg * feintMult);
+    state.combat.nextAttackBonus = false;
+    feintBonusApplied = true;
+  }
+
+  const reportPhysical = action.reportPhysical === "coreBranch" ? physicalBranch : true;
 
   return { shortCircuit: false, edmg: dmg, kind: "enemy", isPhysical: physicalBranch, reportPhysical, feintBonusApplied, activeElement };
 }
@@ -1439,80 +1406,34 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
     }
   }
 
-  const isElement = PIPELINE_ELEMENT_IDS.includes(action.id);
-
-  // Step 1e-iii: elements set lastDamageType to the ELEMENT ITSELF
-  // (useElementAbilityLegacy's own unconditional
-  // `state.combat.lastDamageType = elementKey;`, set once before its
-  // whole switch runs — never "physical", unlike every other player
-  // action), and never call applyPhysicalOnHitEffects at all. Kill
-  // resolution is NOT done here: useElementAbilityLegacy's own kill
-  // check happens AFTER synergy and Spell Echo, both OUTSIDE this
-  // function's shape — the orchestrator (useElementAbility, this file)
-  // does it instead, once, after calling this, using castDamageDealt
-  // below. This is the one player action shape where applyAndReact does
-  // not resolve the kill itself.
-  if (isElement) {
+  // Step 1e completion handoff: dispatch reads only action.elementOnHit
+  // (a hook NAME, declared per-element in js/data/elementabilities.js)
+  // -- never action.id. An element's on-hit effect sets lastDamageType to
+  // the ELEMENT ITSELF (never "physical", unlike every other player
+  // action) and never calls applyPhysicalOnHitEffects. Kill resolution is
+  // NOT done here: useElementAbilityLegacy's own kill check happens AFTER
+  // synergy and Spell Echo, both OUTSIDE this function's shape -- the
+  // orchestrator (useElementAbility) does it instead, once, after calling
+  // this, using castDamageDealt below. This is the one player action
+  // shape where applyAndReact does not resolve the kill itself.
+  if (action.elementOnHit) {
     enemySlot.lastDamageType = action.id;
     enemySlot.hp -= edmg;
-    let castDamageDealt = edmg;
-    const lines = [];
-    if (action.id === "fire") {
-      lines.push(`${ELEMENTS.fire.verb(withThe(creature.name, false))} for ${edmg} damage, and the flame catches.`);
-      state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 4)) };
-    } else if (action.id === "water") {
-      const heal = Math.round(edmg * waterHealPct(state));
-      const { healed, lines: healLines } = applyHeal(state, heal);
-      lines.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${edmg} damage, and the backwash mends you for ${healed}.`, ...healLines);
-      if (hasSetTier(state, "First Sword's Regalia", 10)) state.combat.sovereigntyTurnsLeft = 2;
-    } else if (action.id === "lightning") {
-      lines.push(`${ELEMENTS.lightning.verb(withThe(creature.name, false))} for ${edmg} damage —`);
-      // The second roll: only computed AT ALL if the first hit didn't
-      // already kill -- see calculateDamagePlayerActor's own comment on
-      // why this can't be precomputed in step 4 (it would increment
-      // state.combat.hitsTakenFromPlayer an extra, unused time whenever
-      // the first hit is lethal).
-      if (enemySlot.hp > 0) {
-        const core2 = rollPlayerDamageCoreForPipeline(actor, target, ctx, dmgInfo.activeElement);
-        const secondHitDmg = Math.round(core2.dmg * action.dmgMult);
-        enemySlot.hp -= secondHitDmg;
-        castDamageDealt += secondHitDmg;
-        lines.push(`— and again, for ${secondHitDmg} more before it can react.`);
-      }
-    } else if (action.id === "acid") {
-      state.combat.corroded = true;
-      state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 4;
-      lines.push(`${ELEMENTS.acid.verb(withThe(creature.name, false))} for ${edmg} damage — its defenses will be weaker against you for the rest of this fight.`);
-    } else if (action.id === "force") {
-      lines.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${edmg} damage — it reels, stunned.`, ...tryApplyEnemyStun(state, creature));
-    } else if (action.id === "transportation") {
-      lines.push(`${ELEMENTS.transportation.verb(withThe(creature.name, false))} for ${edmg} damage before it can track where you went.`);
-    } else if (action.id === "air") {
-      state.combat.evasionTurns = 2;
-      lines.push(`${ELEMENTS.air.verb(withThe(creature.name, false))} for ${edmg} damage, leaving you lighter on your feet.`);
-    }
-    return { lines, damage: edmg, killed: false, isPhysicalHit: isPhysical, castDamageDealt };
+    const hookResult = PIPELINE_HOOKS[action.elementOnHit]({ state, actor, target, enemySlot, creature, edmg, action, dmgInfo, pipelineCtx: ctx });
+    return { lines: hookResult.lines, damage: edmg, killed: false, isPhysicalHit: isPhysical, castDamageDealt: hookResult.castDamageDealt };
   }
 
   // reportPhysical: what gets REPORTED (lastDamageType, whether
   // on-hit-effects run) -- basic_attack reports the true internal
-  // branch; Decoy/Ambush/Disarm always report "physical" regardless
-  // (see calculateDamagePlayerActor's own header on this asymmetry).
+  // branch (action.reportPhysical === "coreBranch"); Decoy/Ambush/Disarm
+  // always report "physical" regardless (action.reportPhysical ===
+  // "always") -- see calculateDamagePlayerActor's own header on this
+  // asymmetry.
   const reportPhysical = dmgInfo.reportPhysical;
 
   enemySlot.hp -= edmg;
   enemySlot.lastDamageType = reportPhysical ? "physical" : dmgInfo.activeElement;
-  const lines = [];
-  if (action.id === "basic_attack") {
-    if (dmgInfo.feintBonusApplied) lines.push("Your feint pays off —");
-    lines.push(attackFlavorLine(state, creature, edmg, dmgInfo.activeElement));
-  } else if (action.id === "decoy") {
-    lines.push(`${attackFlavorLine(state, creature, edmg)} (while it's distracted)`);
-  } else if (action.id === "ambush") {
-    lines.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${edmg} damage, no counter.`);
-  } else if (action.id === "disarm") {
-    lines.push(`You still land a hit for ${edmg} damage.`);
-  }
+  const lines = action.flavorLine(state, creature, edmg, dmgInfo);
 
   // No "&& enemySlot.alive" guard here, unlike the ally-actor branches
   // above -- playerAttackLegacy's own kill check is the bare
@@ -1523,16 +1444,18 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
     lines.push(...resolveKill(state, creature));
     return { lines, damage: edmg, killed: true, isPhysicalHit: isPhysical };
   }
-  if (action.id === "basic_attack") {
+  if (action.onHitEffectsForm === "gated") {
+    // basic_attack only: isPhysical-gated, plus Arena Riposte.
     if (isPhysical) lines.push(...applyPhysicalOnHitEffects(state, creature));
-    if (edmg > 0) lines.push(...arenaRiposteCounterOnPlayer(state, creature));
+    if (edmg > 0 && action.arenaRiposte) lines.push(...arenaRiposteCounterOnPlayer(state, creature));
   } else {
-    // Decoy/Ambush/Disarm: unconditional, no isPhysical gate, and no
-    // Arena Riposte at all -- useDecoyLegacy/useAmbushLegacy/
-    // useDisarmLegacy never call arenaRiposteCounterOnPlayer, only
-    // playerAttackLegacy does. Preserved exactly.
+    // Decoy/Ambush/Disarm (onHitEffectsForm: "unconditional"): no
+    // isPhysical gate, and no Arena Riposte at all -- useDecoyLegacy/
+    // useAmbushLegacy/useDisarmLegacy never call
+    // arenaRiposteCounterOnPlayer, only playerAttackLegacy does.
+    // Preserved exactly.
     lines.push(...applyPhysicalOnHitEffects(state, creature));
-    if (action.id === "ambush" && hasEffect(state, "evasive_release")) {
+    if (action.evasiveReleaseCheck && hasEffect(state, "evasive_release")) {
       state.combat.evasionCharges += 1;
       lines.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
     }
@@ -1602,7 +1525,7 @@ function playerAttack(state) {
   };
   const actor = makePlayerCombatant(state);
   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
-  const action = { id: "basic_attack", isPhysical, activeElement };
+  const action = Object.assign({}, getActionDef("basic_attack"), { isPhysical, activeElement });
   const ctx = { state, pendingAction: action, target };
   const chosen = chooseAction(actor, ctx);
   const targets = chooseTargets(actor, chosen, ctx);
@@ -1705,7 +1628,7 @@ function useDecoy(state) {
   };
   const actor = makePlayerCombatant(state);
   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
-  const action = { id: "decoy" };
+  const action = getActionDef("decoy");
   const ctx = { state, pendingAction: action, target };
   const chosen = chooseAction(actor, ctx);
   const targets = chooseTargets(actor, chosen, ctx);
@@ -1775,7 +1698,7 @@ function useAmbush(state) {
   };
   const actor = makePlayerCombatant(state);
   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
-  const action = { id: "ambush" };
+  const action = getActionDef("ambush");
   const ctx = { state, pendingAction: action, target };
   const chosen = chooseAction(actor, ctx);
   const targets = chooseTargets(actor, chosen, ctx);
@@ -1878,7 +1801,7 @@ function useDisarm(state) {
   };
   const actor = makePlayerCombatant(state);
   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
-  const action = { id: "disarm" };
+  const action = getActionDef("disarm");
   const ctx = { state, pendingAction: action, target };
   const chosen = chooseAction(actor, ctx);
   const targets = chooseTargets(actor, chosen, ctx);
@@ -2050,7 +1973,7 @@ function useElementAbility(state, elementKey) {
     };
     const actor = makePlayerCombatant(state);
     const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
-    const action = { id: elementKey, dmgMult: elementalDmgMult };
+    const action = Object.assign({}, getActionDef(elementKey), { dmgMult: elementalDmgMult });
     const ctx = { state, pendingAction: action, target };
     const chosen = chooseAction(actor, ctx);
     const targets = chooseTargets(actor, chosen, ctx);

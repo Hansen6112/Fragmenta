@@ -30,18 +30,43 @@ const TACTICS = {
     knowledgeReq: 12,
     cooldown: 3,
     description: "Draw the enemy's attack into a decoy — you take no retaliation this turn, and still attack normally.",
+    action: {
+      actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
+      toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
+      missLine: (state, creature) => [`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`],
+      openingReach: "unconditional", reportPhysical: "always",
+      flavorLine: (state, creature, edmg) => [`${attackFlavorLine(state, creature, edmg)} (while it's distracted)`],
+      onHitEffectsForm: "unconditional", runsLowHealthChecks: true, followupForm: "unconditional",
+    },
   },
   ambush: {
     name: "Ambush",
     knowledgeReq: 12,
     cooldown: null, // limiter is "opening move only," not a cooldown
     description: "A free opening strike — usable only before you've taken any other action this fight. Bonus damage, no counter.",
+    action: {
+      actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
+      toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
+      missLine: (state, creature) => [`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`],
+      extraDamageMultiplierFn: (state) => ambushMultiplier(state), borrowedSecondsBonusInDamage: true,
+      reportPhysical: "always",
+      flavorLine: (state, creature, edmg) => [`You strike first — ${withThe(creature.name, false)} never saw it coming. ${edmg} damage, no counter.`],
+      onHitEffectsForm: "unconditional", evasiveReleaseCheck: true, runsLowHealthChecks: true, followupForm: "unconditional",
+    },
   },
   disarm: {
     name: "Disarm",
     knowledgeReq: 18,
     cooldown: 2,
     description: "Knock the fight out of your opponent, reducing their attack for the rest of the encounter. Lands once per target, ever, in a fight.",
+    action: {
+      actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
+      toHit: "roll", formula: "playerCore",
+      missLine: () => [`The follow-up strike doesn't land, but the disarm holds.`],
+      extraDamageMultiplierFn: () => 0.7, openingReach: "unconditional", reportPhysical: "always",
+      flavorLine: (state, creature, edmg) => [`You still land a hit for ${edmg} damage.`],
+      onHitEffectsForm: "unconditional", runsLowHealthChecks: true, followupForm: "gated",
+    },
   },
 };
 
