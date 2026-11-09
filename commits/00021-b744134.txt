@@ -1,0 +1,56 @@
+range: 7853740b2b3d51a5ee38efef100f34f144a5f72f..b744134e6030da9975f58f093233a10690076189
+=== b744134e6030da9975f58f093233a10690076189 2026-11-09 09:21:31 +0000
+Combat Rebuild Phase 1: path-difference register (handoff §3)
+tools/combat_asymmetry_register.md -- one committed list of every known
+difference between the enemy-attacks-player and enemy-attacks-ally
+paths in pipeline.js (step 1c's own header comment, now cross-
+referenced from there instead of only living in prose). Each row: the
+mechanic, where it lives (file:line), its parity test if one exists, and
+its kind per Tyler's three-way split (9 Nov):
+
+  A: enemy-side rule, only fires vs the player today -> gets a U3
+     switch, turned on per D2 (Marked Target, Flowing Discipline,
+     Winter's Verdict, Toxic Preparation)
+  B: player-only gear defense -> approved for Phase 2, not 1d
+     (Reinforced, Timeless Guard, Guardian Spirit, Guided Footsteps,
+     Never Where Expected, Blessing of Freedom, Avatar of Freedom,
+     evasion charges/turns, Mercy of the Veil)
+  C: deliberately ally-only, kept per D4 (Hadrian's protection, the
+     generalized Ally Protection Reaction, companion damage mitigation,
+     Last Bastion retaliation, Riposte-on-miss)
+
+Plus the ally path's structural gap (no elemental/magic damage branch
+at all) that U1/U2 target specifically, with Unquenched Focus called
+out as the concrete thing U2 unblocks.
+
+Two corrections made while actually re-reading the code line by line to
+build this, rather than just transcribing the existing prose list:
+
+- Stonewarden 6pc's first-hit-taken reduction was listed in pipeline.js's
+  header as a player-only ASYMMETRY, but it's really "no defensive gear
+  reduces an enemy's first hit on an ally at all" -- same shape as the
+  kind-B table, not a kind-A enemy-side rule. Flagged needs-Tyler on
+  which table it belongs in rather than guessing.
+- Riposte-on-a-miss isn't actually ally-only: the player has the same
+  gear effect (maybeRiposte, combat.js), just wired at a different layer
+  (an outer call gated on retaliation.damage === 0, which covers every
+  zero-damage case, not just a miss). The two wirings happen to cover
+  the same ground today only because the ally path has none of the
+  kind-B mechanics that would otherwise also reach zero damage --
+  documented as a needs-Tyler follow-up for whenever Phase 2 extends any
+  of those to allies.
+
+Several rows (Marked Target, Flowing Discipline, Winter's Verdict, Toxic
+Preparation, Mercy of the Veil) are asymmetric only by omission -- no
+existing test asserts they *stay* absent on the ally path the way
+P1C-NOREINFORCED-01/P1C-NOEVASION-01 do for the rest of the kind-B list.
+Called out explicitly rather than implied covered.
+
+No code changes in this commit.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_asymmetry_register.md | 137 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 137 insertions(+)
