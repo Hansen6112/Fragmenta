@@ -1,0 +1,64 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 5204e0d..f51434b 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -87,6 +87,51 @@ function wireActiveEnemyProxy(combat) {
+   });
+ }
+ 
++// Step 1e §3.3: the 34 fields the handoff listed as player-owned turned out
++// to include three already enemy-owned via PER_ENEMY_FIELDS above (burn,
++// creatureObj, hamstringApplied — confirmed by cross-reference, not assumed)
++// — this is the real remaining 31. Real storage moves into a private store
++// closed over by the accessors below; combat.<field> stays a transparent
++// alias (get/set) on top of it, same pattern as PER_ENEMY_FIELDS/
++// wireActiveEnemyProxy just above, so every existing call site (migrated or
++// not) keeps working unchanged until step 1h removes the alias. NOTE for
++// the field ledger (tools/combat_field_ledger.js):
++// that tool's "closed" count is a literal text-scan for the `combat.<field>`
++// spelling inside step-tracked functions — exactly the same mechanism that
++// already keeps PER_ENEMY_FIELDS entries open until their call sites stop
++// spelling them that way. This alias makes the move real (confirmed via the
++// full regression suite + Layer 2 exact-match, zero behavior change) but,
++// like the enemy-field precedent, does NOT by itself move the ledger's
++// count — most of these 31 fields are read/written by small shared helpers
++// (applyEndlessStudy, the checkAvatarOfX family, applyOpeningReach, ...)
++// called from several 1e-tagged orchestrators, so rewriting every one of
++// those call sites off the alias spelling is a materially larger, separate
++// pass better scoped with step 1h's cleanup (where the alias itself is
++// removed) than bundled into this field-ownership move.
++const PLAYER_FIELDS = [
++  "actionTypeHistory", "avatarOfBloomUsed", "avatarOfChaosUsed", "avatarOfCreationUsed",
++  "avatarOfDevotionUsed", "avatarOfEnduranceUsed", "avatarOfFateUsed", "avatarOfFreedomUsed",
++  "avatarOfKnowledgeUsed", "avatarOfPassingUsed", "avatarOfRenewalUsed", "avatarOfTimeUsed",
++  "avatarOfWarUsed", "endlessStudyKeys", "firstPhysicalAttackDone", "holdTheLineUsed",
++  "hourglassReserveReady", "lastActionType", "lastElementUsed", "loveEnduresUsed",
++  "nextAttackBonus", "noviceFreeCastUsed", "perfectMemoryKeys", "perfectTimingUsed",
++  "rallyTheLineUsed", "recentActionKeys", "rootedResolveUsed", "spellCastCounter",
++  "surgingConduitUsesLeft", "swiftPassageReady", "tacticalMemoryUsed",
++];
++
++function wirePlayerFieldsProxy(combat) {
++  const store = {};
++  PLAYER_FIELDS.forEach((field) => {
++    store[field] = combat[field];
++    Object.defineProperty(combat, field, {
++      configurable: true,
++      enumerable: true,
++      get() { return store[field]; },
++      set(v) { store[field] = v; },
++    });
++  });
++}
++
+ // Every enemy still standing, in roster order.
+ function aliveEnemies(state) {
+   return state.combat ? state.combat.enemies.filter((e) => e.alive) : [];
+@@ -6199,6 +6244,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     playerLastHitType: null,
+   };
+   wireActiveEnemyProxy(state.combat);
++  wirePlayerFieldsProxy(state.combat);
+   // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
+   // creature once actually fought — dynamic creatures (enemy mages) have
+   // no fixed BESTIARY id/species to log, so they're excluded; every real

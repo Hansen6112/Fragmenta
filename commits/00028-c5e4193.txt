@@ -1,0 +1,40 @@
+range: f3fe1cb0928549b2978a92ddc2902d5c99b9228e..c5e4193327569923afaea1f05f11d7eb76113e3c
+=== c5e4193327569923afaea1f05f11d7eb76113e3c 2026-11-09 14:45:04 +0000
+1e §3.3: move 31 player-owned combat fields off flat state.combat.*
+The handoff's own 34-field list flagged burn and creatureObj as possibly
+enemy-owned; cross-referencing against PER_ENEMY_FIELDS confirms both are,
+plus a third the handoff didn't flag (hamstringApplied) — narrowing the
+real move to 31 fields.
+
+Real storage now lives in a private store closed over by a new
+wirePlayerFieldsProxy(combat), wired alongside wireActiveEnemyProxy at
+startCombat. state.combat.<field> stays a transparent get/set alias on
+top of it — same pattern already used for PER_ENEMY_FIELDS — so every
+existing call site (migrated or not) keeps working unchanged until step
+1h removes the alias.
+
+Verified zero behavior change: full regression suite (348/348) and both
+Layer 2 harnesses (boss_sweep, plus3_run) bit-for-bit identical to the
+1e-iii baseline. A deliberate sanity-break (dropping writes through the
+new alias for nextAttackBonus) was caught by
+phase1_step1e_i_player_attack_pipeline_parity.js, confirming the suite
+discriminates.
+
+Field ledger note: like the existing PER_ENEMY_FIELDS proxy, this alias
+makes the ownership move real but doesn't by itself move the field
+ledger's tracked-field count — the ledger's "closed" state is a literal
+text-scan for the `combat.<field>` spelling inside step-tracked
+functions, and most of these 31 fields are still read/written that way
+by small shared helpers (applyEndlessStudy, the checkAvatarOfX family,
+applyOpeningReach, ...) called from several 1e-tagged orchestrators.
+Rewriting those call sites off the alias spelling is a materially
+larger, separate pass better scoped with step 1h's own cleanup (where
+the alias is removed entirely) than bundled into this field-ownership
+move — confirmed by regenerating the ledger (148/148 open, unchanged).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 46 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 46 insertions(+)
