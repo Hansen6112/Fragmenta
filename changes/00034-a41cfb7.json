@@ -1,0 +1,7 @@
+[
+ {
+  "reg": "PIPELINE_HOOKS",
+  "id": "staggerOnHit",
+  "type": "added"
+ }
+]

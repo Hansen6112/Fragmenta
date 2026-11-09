@@ -1,0 +1,35 @@
+range: d177166787c538c334fbee8b1ee36eaed318e16d..a41cfb78cbc64b06e11f18aeca98aab97272734d
+=== a41cfb78cbc64b06e11f18aeca98aab97272734d 2026-11-09 19:43:57 +0000
+1e completion: generic onHitChanceEffect hook (schema completion for §4)
+None of the 17 real player actions need a probabilistic on-hit status
+effect, so this wasn't built in the earlier schema/hooks commits. The
+step 1e completion handoff's own test-strike proof (next commit) needs
+one -- "applies stagger at 50%" -- and its own instruction is that the
+proof's commit may add ONLY the test_strike definition, no pipeline.js/
+combat.js/hook changes. That requires the generic mechanism to already
+exist before the proof is written, so it's split into its own commit
+here, disclosed as schema completion rather than folded silently into
+the "definition only" one.
+
+Added: `action.onHitChanceEffect: { chance, hookName }`, read generically
+in applyAndReactPlayerActor (a chance roll + a hook lookup by name, never
+by action identity) and a new `staggerOnHit` hook. "Stagger" has no
+existing generic status concept in this engine -- Fire/Acid/Force's own
+on-hit effects (burn/corrode/stun) are each a dedicated per-enemy field/
+function, not a shared status bag the way combat.playerStatuses is for
+the player (confirmed against PER_ENEMY_FIELDS) -- so staggerOnHit
+reuses the existing stun mechanism (tryApplyEnemyStun) under the test's
+own name rather than inventing a real new status system, which is out
+of scope for a test-only action. Disclosed here rather than assumed.
+
+No existing action declares onHitChanceEffect, so this is a no-op for
+real gameplay: full suite 358/358 unchanged, boss_sweep bit-for-bit
+identical.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js    | 12 ++++++++++++
+ js/engine/pipeline.js |  9 +++++++++
+ 2 files changed, 21 insertions(+)
