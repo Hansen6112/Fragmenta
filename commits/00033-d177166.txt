@@ -1,0 +1,58 @@
+range: 84249a515447b8341b46ef6dbfdbc9533e6a2f72..d177166787c538c334fbee8b1ee36eaed318e16d
+=== d177166787c538c334fbee8b1ee36eaed318e16d 2026-11-09 19:40:10 +0000
+1e completion: remove Hadrian's ability.id identity checks
+calculateDamageAllyActor (pipeline.js) had one: `action.ascended &&
+ability.id === "crushing_blow"` for Unbroken Momentum's extra Defense-
+ignore. Replaced with `ability.ascendedDefIgnoreBonus` -- a new field on
+crushing_blow's own data/hadrian.js entry (0.1) -- read generically
+("this ability's own data says how much ascended bonus it gets, if
+any"), not by checking which specific ability this is. Groundbreaker's
+own ascended splash bonus already worked this way (gated on
+`ability.splashAtkMult != null`, not an id check) -- crushing_blow's was
+the one holdout.
+
+useHadrianActive (companion.js) had three: `ability.id ===
+"shielding_presence" || "champions_challenge" || "last_bastion"` /
+`"unyielding_advance"` / `"arena_incarnate"`, each applying a different
+non-damage effect bundle. Replaced with three generic `if
+(ability.<field>)` checks (tauntTurns / healPct / ultimateTurns) -- each
+field is already unique to the right group of abilities in
+data/hadrian.js, so this applies "whichever fields this ability's own
+data declares" instead of branching on which ability it is. The shared
+flavor line all three taunt-shaped actives used verbatim is now declared
+per-ability as `flavorLine` on each one's own data entry (duplicated
+text, not a code branch); Unyielding Advance's Champion's Grip ascended
+Empowered-Strike bonus (+15%) is now `ascendedEmpoweredStrikeBonus` on
+its own entry, same convention as crushing_blow's.
+
+action.kit (plain ally vs kit-bearing) and action.ability (basic swing
+vs a named active) are left as they are -- these dispatch on ACTOR/
+ACTION shape (which ally, whether a specific skill was used at all), the
+same kind of thing actor.kind already legitimately dispatches on
+elsewhere in this file, not on which specific skill it is. Groundbreaker's
+splash loop (companion.js's useHadrianActive) also stays outside the
+five-step pipeline, as disclosed in this file's own header -- splash
+isn't a second pipeline target today, and building real multi-target
+support is explicitly a later-step concern (chooseTargets' own comment).
+
+Verified: useHadrianActiveLegacy (the original, pre-1d function, kept as
+oracle) has the identical ability.id dispatch I just removed from the
+live useHadrianActive, so it still serves as a valid comparison target.
+Added 2 new parity cases (P1D-HA-CHAMPS-01, P1D-HA-BASTION-01) -- the
+existing step 1d test file only covered 3 of the 5 non-damage actives
+(Shielding Presence/Unyielding Advance/Arena Incarnate), leaving Champion's
+Challenge's bonusDef and Last Bastion's retaliatePct sub-branches, inside
+the SAME new generic dispatch, previously unexercised. Full suite:
+358/358. Deliberate sanity-break (bumping Champion's Challenge's bonusDef
+by 1) caught by the new P1D-HA-CHAMPS-01 case; restored clean. Both
+Layer 2 harnesses bit-for-bit identical to the pre-change baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/hadrian.js                                 | 15 ++++++++++++++
+ js/engine/companion.js                             | 24 ++++++++++++++--------
+ js/engine/pipeline.js                              |  7 +++++--
+ .../phase1_step1d_ally_attack_pipeline_parity.js   | 15 ++++++++++++++
+ 4 files changed, 51 insertions(+), 10 deletions(-)
