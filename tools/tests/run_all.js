@@ -54,6 +54,7 @@ const LEDGERS = [
   "phase1_step1e_ii_tactics_pipeline_parity.js",
   "phase1_step1e_iii_elements_pipeline_parity.js",
   "apothecary_action_tracking_ledger.js",
+  "test_strike_proof_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
