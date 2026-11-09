@@ -590,16 +590,23 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   const lines = [];
   const veteranPct = veteranBonusPct(ally, kit);
 
-  if (ability.id === "shielding_presence" || ability.id === "champions_challenge" || ability.id === "last_bastion") {
+  // Step 1e completion handoff (9 Nov 2026 follow-up): each non-damage
+  // active applies whichever of these fields its OWN data (data/hadrian.js)
+  // actually declares -- never an `ability.id === ...` check. The three
+  // field groups below are mutually exclusive by construction (no active
+  // declares fields from more than one group), so dispatch order doesn't
+  // matter; this replaces what used to be three separate
+  // `ability.id === "..."` blocks, one per group.
+  if (ability.tauntTurns) {
     ally.tauntTurnsLeft = ability.tauntTurns;
     if (ability.dmgReductionPct) { ally.dmgReductionPct = ability.dmgReductionPct; ally.dmgReductionTurnsLeft = ability.dmgReductionTurns; }
     if (ability.bonusDef) { ally.bonusDefAmount = ability.bonusDef; ally.bonusDefTurnsLeft = ability.bonusDefTurns; }
     if (ability.retaliatePct) { ally.retaliatePct = ability.retaliatePct; ally.retaliateTurnsLeft = ability.retaliateTurns; }
-    lines.push(`${ally.name} plants himself between the party and the fight, daring every enemy present to come through him instead.`);
+    lines.push(ability.flavorLine(ally));
     return lines;
   }
 
-  if (ability.id === "unyielding_advance") {
+  if (ability.healPct) {
     const healAmount = Math.round(ally.maxHealth * ability.healPct);
     ally.health = Math.min(ally.maxHealth, ally.health + healAmount);
     // "Removes all negative status effects" is a no-op here — no ally
@@ -609,18 +616,19 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
     // anything resembling a negative status; clearing it would let
     // those re-trigger mid-fight, which isn't the intent.
     // Champion's Grip (ascended Gauntlets): Empowered Strike's bonus
-    // rises from +30% to +45%.
-    ally.empoweredStrikePct = hasAscendedRegalia(ally) ? ability.empoweredStrikePct + 0.15 : ability.empoweredStrikePct;
+    // rises from +30% to +45% -- read off ability.ascendedEmpoweredStrikeBonus's
+    // own presence (data/hadrian.js declares it only on this active).
+    ally.empoweredStrikePct = hasAscendedRegalia(ally) ? ability.empoweredStrikePct + (ability.ascendedEmpoweredStrikeBonus || 0) : ability.empoweredStrikePct;
     ally.empoweredStrikeTurnsLeft = ability.empoweredStrikeTurns;
-    lines.push(`${ally.name} plants his maul and steadies himself, mending for ${healAmount} health.`);
+    lines.push(ability.flavorLine(ally, { healAmount }));
     return lines;
   }
 
-  if (ability.id === "arena_incarnate") {
+  if (ability.ultimateTurns) {
     ally.ultimateTurnsLeft = ability.ultimateTurns;
     ally.ultimateAtkPct = ability.ultimateAtkPct;
     ally.ultimateDefPct = ability.ultimateDefPct;
-    lines.push(`${ally.name} plants his feet — for a moment he fights like the Ovum's undefeated Champion all over again.`);
+    lines.push(ability.flavorLine(ally));
     return lines;
   }
 

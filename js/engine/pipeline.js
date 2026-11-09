@@ -885,8 +885,11 @@ function calculateDamageAllyActor(actor, target, action, ctx, hitInfo) {
     if (empowered) { ally.empoweredStrikePct = 0; ally.empoweredStrikeTurnsLeft = 0; }
     const baseAtk = (ally.atk + hadrianFlatAtkBonus(ally)) * atkBonus * empoweredMult;
     // Unbroken Momentum (ascended Maul): Crushing Blow's Defense-ignore
-    // rises from 20% to 30%; Groundbreaker's splash rises from 60% to 75%.
-    const defIgnore = (ability.defIgnorePct || 0) + (action.ascended && ability.id === "crushing_blow" ? 0.1 : 0);
+    // rises from 20% to 30%; Groundbreaker's splash rises from 60% to 75%
+    // (below). Read off ability.ascendedDefIgnoreBonus's own presence --
+    // data/hadrian.js declares it only on crushing_blow -- rather than an
+    // `ability.id === "crushing_blow"` identity check.
+    const defIgnore = (ability.defIgnorePct || 0) + (action.ascended ? (ability.ascendedDefIgnoreBonus || 0) : 0);
     const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (action.ascended ? 0.15 : 0) : 0;
     let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, (stat(state, target, "def") + bankedDefKit) * (1 - defIgnore)) * sangMitKit));
     edmg = applyHadrianOutgoingDamageBonuses(ally, edmg, creature);

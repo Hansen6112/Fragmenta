@@ -257,6 +257,21 @@ const { chromium } = require('playwright');
     const arenaArgs = (s, kessa, hadrian, kit, enemies) => [s, hadrian, kit, arenaAbility(kit), enemies];
     checkParity('P1D-HA-ULT-01', 'Hadrian Arena Incarnate: self-buff window, no damage', useHadrianActiveLegacy, useHadrianActive, arenaArgs, { seq: MID });
 
+    // Step 1e completion handoff (9 Nov 2026 follow-up): useHadrianActive's
+    // three `ability.id === "..."` non-damage blocks were replaced with a
+    // generic "apply whichever fields this ability's own data declares"
+    // dispatch. Shielding Presence/Unyielding Advance/Arena Incarnate
+    // above already re-verify that generic dispatch for their own field
+    // subsets -- these two add the subsets ONLY Champion's Challenge
+    // (bonusDef) and Last Bastion (retaliatePct) exercise within the same
+    // tauntTurns-gated branch, previously untested.
+    const champsAbility = (kit) => kit.actives.find((a) => a.id === 'champions_challenge');
+    const champsArgs = (s, kessa, hadrian, kit, enemies) => [s, hadrian, kit, champsAbility(kit), enemies];
+    checkParity('P1D-HA-CHAMPS-01', "Hadrian Champion's Challenge: taunt + bonusDef, no damage", useHadrianActiveLegacy, useHadrianActive, champsArgs, { seq: MID });
+    const bastionAbility = (kit) => kit.actives.find((a) => a.id === 'last_bastion');
+    const bastionArgs = (s, kessa, hadrian, kit, enemies) => [s, hadrian, kit, bastionAbility(kit), enemies];
+    checkParity('P1D-HA-BASTION-01', 'Hadrian Last Bastion: taunt + dmgReduction + retaliatePct, no damage', useHadrianActiveLegacy, useHadrianActive, bastionArgs, { seq: MID });
+
     const summary = { total: ledger.length, passed: ledger.filter((l) => l.pass).length, failed: ledger.filter((l) => !l.pass) };
     return { ledger, summary };
   });

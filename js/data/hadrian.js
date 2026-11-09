@@ -138,10 +138,17 @@ const HADRIAN = {
       atkMult: 1.6, defIgnorePct: 0.2,
       // Consumes Empowered Strike (Unyielding Advance) if active.
       consumesEmpoweredStrike: true,
+      // Unbroken Momentum (ascended Maul): Defense-ignore rises 20% -> 30%.
+      // Read generically off THIS field's presence (companion.js's
+      // resolveHadrianActiveDamage caller) -- not an `ability.id ===
+      // "crushing_blow"` check, since defIgnorePct is already unique to
+      // this active among the kit.
+      ascendedDefIgnoreBonus: 0.1,
     },
     {
       id: "shielding_presence", name: "Shielding Presence", level: 1, cooldown: 4,
       tauntTurns: 2, dmgReductionPct: 0.2, dmgReductionTurns: 2,
+      flavorLine: (ally) => `${ally.name} plants himself between the party and the fight, daring every enemy present to come through him instead.`,
     },
     {
       id: "groundbreaker", name: "Groundbreaker", level: 5, cooldown: 4,
@@ -152,20 +159,28 @@ const HADRIAN = {
     {
       id: "unyielding_advance", name: "Unyielding Advance", level: 10, cooldown: 5,
       cleanse: true, healPct: 0.15, empoweredStrikePct: 0.3, empoweredStrikeTurns: 2,
+      // Champion's Grip (ascended Gauntlets): Empowered Strike's bonus
+      // rises +30% -> +45%. Same "read off this active's own field"
+      // convention as crushing_blow's ascendedDefIgnoreBonus above.
+      ascendedEmpoweredStrikeBonus: 0.15,
+      flavorLine: (ally, extra) => `${ally.name} plants his maul and steadies himself, mending for ${extra.healAmount} health.`,
     },
     {
       id: "champions_challenge", name: "Champion's Challenge", level: 15, cooldown: 5,
       tauntTurns: 1, bonusDef: 3, bonusDefTurns: 2,
+      flavorLine: (ally) => `${ally.name} plants himself between the party and the fight, daring every enemy present to come through him instead.`,
     },
     {
       id: "last_bastion", name: "Last Bastion", level: 20, cooldown: 8,
       tauntTurns: 3, dmgReductionPct: 0.35, dmgReductionTurns: 3,
       retaliatePct: 0.8, retaliateTurns: 3,
+      flavorLine: (ally) => `${ally.name} plants himself between the party and the fight, daring every enemy present to come through him instead.`,
     },
     {
       id: "arena_incarnate", name: "Arena Incarnate", level: 25, cooldown: 10,
       ultimateTurns: 3, ultimateAtkPct: 0.25, ultimateDefPct: 0.25,
       cdrOnHit: 1, halvesVulnerabilityDamage: true,
+      flavorLine: (ally) => `${ally.name} plants his feet — for a moment he fights like the Ovum's undefeated Champion all over again.`,
     },
   ],
   passives: [
