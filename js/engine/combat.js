@@ -7797,6 +7797,21 @@ function useApothecaryAbility(state, key, targetArg) {
   // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
   // already null.
   if (!state.combat || state.health <= 0) return out;
+  // Step 1e §4 gap fix: useApothecaryAbility never called applyEndlessStudy/
+  // applyWanderersReward/applyActionTypeTracking at all, unlike every other
+  // player action (playerAttack/useDecoy/useAmbush/useDisarm/
+  // useElementAbility all call this same trio right here, before
+  // consumeTrailblazer). applyPerfectMemory is deliberately NOT added --
+  // its own header scopes it to Tactics/Elemental Abilities only, never
+  // Attack, and by that same exclusion, never Apothecary either.
+  // applyActionTypeTracking's own 3rd argument is documented as one of
+  // exactly "attack"/"tactic"/"elemental" -- apothecary abilities don't fit
+  // any of those, so this introduces a 4th category, "apothecary", which
+  // now feeds Momentum Unbound's rhythm-shift check and Ever Forward's
+  // 3-distinct-types window as its own distinct signal. That's an
+  // interpretation call (the alternative would be folding it into
+  // "tactic"), flagged here rather than guessed silently.
+  out.push(...applyEndlessStudy(state, key), ...applyWanderersReward(state, key), ...applyActionTypeTracking(state, "apothecary"));
   consumeTrailblazer(state);
   state.combat.cooldowns[key] = a.cooldown;
   out.push(...applyApothecaryAbilityEffect(state, a, ally));

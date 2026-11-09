@@ -53,6 +53,7 @@ const LEDGERS = [
   "phase1_step1e_i_player_attack_pipeline_parity.js",
   "phase1_step1e_ii_tactics_pipeline_parity.js",
   "phase1_step1e_iii_elements_pipeline_parity.js",
+  "apothecary_action_tracking_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
