@@ -1,0 +1,47 @@
+range: a41cfb78cbc64b06e11f18aeca98aab97272734d..7667c246a4b19f6f0f712a1219d840d25f156060
+=== 7667c246a4b19f6f0f712a1219d840d25f156060 2026-11-09 19:48:36 +0000
+1e completion §4: the test-strike proof
+Adds js/engine/resolver.js's usePlayerAction(state, actionId): a
+generic orchestrator for any "standard-shaped" player action
+definition (gate checks, beginTurn/kill-check/resolveSpeedInitiative,
+the tracking trio+quad, the shared cooldown chain, the five-step
+pipeline, the standard tail). It does NOT replace the five existing
+orchestrators (playerAttack/useDecoy/useAmbush/useDisarm/
+useElementAbility) -- each still has its own already-verified body,
+including shape quirks this generic version doesn't cover
+(excludeIndex exclusion, Earth's no-pipeline self-buff, the elements'
+kill-after-synergy ordering). It exists specifically so a brand-new
+action can be driven end to end with no new orchestrator code at all --
+which is what this handoff's own test-strike proof needs to show.
+
+tools/tests/test_strike_proof_ledger.js registers a test-only
+test_strike definition (physical single-target, x1.25, applies
+"stagger" via the onHitChanceEffect hook committed separately in
+a41cfb7) at RUNTIME, inside the test's own page.evaluate -- never
+written to any file on disk, so it never reaches the real game. Five
+checks: runs through all five pipeline steps; deals damage via the
+shared playerCore formula (verified as exactly 1.25x basic_attack's own
+core damage on an identical forced roll); applies its declared on-hit
+effect (confirmed via the enemy skipping its own counter that round --
+the stored stun-charge count itself nets back to 0 within the same
+call, since the gate check-and-consume happens later in the same turn,
+so the "doesn't attack" line is the real observable, not the charge
+count); respects its own cooldown (second use before it expires is
+blocked by the generic resolver's own gate); and counts toward action
+tracking (lastActionType records "attack", test_strike's own declared
+actionType).
+
+Verified: 5/5, and a deliberate sanity-break (test_strike's own
+1.25x reverted to 1.0x, in the test's own temp copy) caught by
+TESTSTRIKE-SHARED-FORMULA, restored clean. Full suite: 363/363.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ index.html                              |   1 +
+ js/engine/resolver.js                   | 116 +++++++++++++++++++++
+ tools/tests/README.md                   |   1 +
+ tools/tests/run_all.js                  |   1 +
+ tools/tests/test_strike_proof_ledger.js | 177 ++++++++++++++++++++++++++++++++
+ 5 files changed, 296 insertions(+)
