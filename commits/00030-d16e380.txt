@@ -1,0 +1,86 @@
+range: fc19ec335a907b2535b2a04eaa79ca78ba355415..d16e380fcd0f2460b04befe120ed922795bce6ac
+=== d16e380fcd0f2460b04befe120ed922795bce6ac 2026-11-09 15:04:03 +0000
+1e §4: apothecary abilities now run action-tracking trio
+useApothecaryAbility never called applyEndlessStudy/applyWanderersReward/
+applyActionTypeTracking at all, unlike every other player action
+(playerAttack/useDecoy/useAmbush/useDisarm/useElementAbility all call
+this same trio, in the same spot, right after resolveSpeedInitiative and
+before consumeTrailblazer) -- a disclosed oversight from the step 1e
+handoff's own §4 list, now fixed.
+
+applyPerfectMemory is deliberately NOT added here: its own header scopes
+it to Tactics/Elemental Abilities only, never the plain Attack, and by
+that same exclusion, never Apothecary either.
+
+Interpretation call: applyActionTypeTracking's own 3rd argument is
+documented as one of exactly "attack"/"tactic"/"elemental" -- apothecary
+abilities fit none of those, so this introduces a 4th category,
+"apothecary", feeding Momentum Unbound's rhythm-shift detection and Ever
+Forward's 3-distinct-types window as its own distinct signal rather than
+folding it into "tactic". Flagged here rather than guessed silently; a
+one-line change if "tactic" was actually intended.
+
+New ledger (tools/tests/apothecary_action_tracking_ledger.js, 5 cases):
+confirms Endless Study/Wanderer's Reward actually fire and record the
+right key, the new "apothecary" category gets recorded, and Momentum
+Unbound's shift-detection treats it as genuinely distinct from a prior
+attack. Not a checkParity comparison -- apothecary abilities have no
+pipeline shape (no target/hit-roll/damage), so there's no Legacy/new
+split to compare, just a direct before/after assertion. A deliberate
+sanity-break (reverting the three calls) made all 5 cases fail,
+confirming the suite discriminates. Full suite: 356/356.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                              |  15 +++
+ tools/tests/README.md                            |   1 +
+ tools/tests/apothecary_action_tracking_ledger.js | 125 +++++++++++++++++++++++
+ tools/tests/run_all.js                           |   1 +
+ 4 files changed, 142 insertions(+)
+=== f746464f5b8eda14cc935684673dfb6f9f0ab8d0 2026-11-09 15:03:27 +0000
+1e §4: fix Decoy/Ambush's missing low-health + dodge/Riposte follow-ups
+Decoy and Ambush's own original code (useDecoyLegacy/useAmbushLegacy)
+never called lowHealthTriggerChecks at all; Ambush's original also never
+called applyDodgeBlockNegateBonuses/maybeRiposte/the evasion-bonus trio.
+Every other player action (playerAttack/useDisarm/useElementAbility)
+calls all of these. Both gaps were already disclosed in pipeline.js's
+own comments from the 1e-ii/1e-iii work; this closes them.
+
+Decoy gets just the missing lowHealthTriggerChecks call, placed in the
+same position every other action uses it, leaving Decoy's own existing
+unconditional dodge/Riposte follow-up call untouched.
+
+Ambush gets the full block, but in Decoy's UNCONDITIONAL form, not
+playerAttack/useDisarm's gated "retaliation.damage === 0" form: Ambush
+(like Decoy) excludes its own target from this round's remaining
+initiative via resolveRemainingInitiativeActions' excludeIndex, which is
+always the same enemy that function captures as its own
+callerActiveIndex at entry -- so that enemy's damage is the ONLY damage
+the function would ever attribute to retaliation.damage, and it's
+excluded. retaliation.damage is therefore always null, never 0, making
+the gated form silent dead code for an excludeIndex-shaped action --
+confirmed by the new P1E-II-A-DODGEBLOCK-FIX-01 test actually failing
+against the gated form before this was caught and switched to Decoy's
+shape.
+
+Verified: both gaps added new, non-parity tests (P1E-II-D-LOWHEALTH-FIX-01,
+P1E-II-A-LOWHEALTH-FIX-01, P1E-II-A-DODGEBLOCK-FIX-01) that directly
+confirm the new behavior fires on the new code and is confirmed absent on
+the untouched Legacy oracle -- not a checkParity comparison, since the
+whole point is that these two now differ from Legacy on purpose. A
+deliberate sanity-break (reverting each call) was caught by each new
+test. Layer 2 (boss_sweep/plus3_run) shows the expected small, real
+balance shift at two cells that actually exercise these effects
+(dregnar/warrior/normal, arbitarius/warrior/normal): win rate and
+down-frequency move a few points, nothing near a double-digit swing.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js                              | 30 +++++++++++++++++---
+ tools/tests/README.md                              |  2 +-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    | 32 ++++++++++++++++++++++
+ 3 files changed, 59 insertions(+), 5 deletions(-)
