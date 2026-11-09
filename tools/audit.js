@@ -228,6 +228,66 @@ for (const [n, d] of Object.entries(ITEM_DEFS)) {
 if (r2.length) err("item-source", `R2: ${r2.length} item(s) with a live source nothing actually reaches: ${r2.join(", ")}`);
 const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 
+// ---- action definitions (Combat Rebuild Phase 1, step 1e completion
+// handoff, 9 Nov 2026 follow-up: P2/P4) ----
+// P2: every action definition (js/data/actions.js's PLAYER_ACTION_DEFS,
+// plus TACTICS/APOTHECARY_ABILITIES/ELEMENT_ABILITIES' own `action`
+// blocks) is complete -- targeting/toHit/actionType declared, damage (or
+// null) consistent with toHit, and every formula/hook it names actually
+// exists. test_strike is deliberately absent from this list: its own
+// proof registers that definition at runtime, specifically so it never
+// appears in the real game's data tables (and therefore never reaches
+// this audit either).
+const PIPELINE_HOOK_NAMES = new Set(Object.keys(G("PIPELINE_HOOKS")));
+const PIPELINE_FORMULA_NAMES = new Set(Object.keys(G("PIPELINE_FORMULAS")));
+const ACTION_TABLE_NAMES = ["PLAYER_ACTION_DEFS", "TACTICS", "APOTHECARY_ABILITIES", "ELEMENT_ABILITIES"];
+for (const tableName of ACTION_TABLE_NAMES) {
+  const table = G(tableName);
+  for (const id of Object.keys(table)) {
+    const def = G(`getActionDef(${JSON.stringify(id)})`);
+    if (!def.targeting) { err("action-def", `"${id}" (${tableName}) has no \`targeting\` declared (P2)`); continue; }
+    if (def.toHit !== "roll" && def.toHit !== "none") { err("action-def", `"${id}" (${tableName}) has toHit "${def.toHit}" -- must be "roll" or "none" (P2)`); continue; }
+    if (!def.actionType) { err("action-def", `"${id}" (${tableName}) has no \`actionType\` declared (P2)`); continue; }
+    if (def.toHit === "roll") {
+      if (typeof def.formula !== "string" || !PIPELINE_FORMULA_NAMES.has(def.formula)) {
+        err("action-def", `"${id}" (${tableName}) has toHit:"roll" but formula "${def.formula}" is not a PIPELINE_FORMULAS key (P2)`);
+      }
+      if (def.elementOnHit && !PIPELINE_HOOK_NAMES.has(def.elementOnHit)) {
+        err("action-def", `"${id}" (${tableName}) names elementOnHit hook "${def.elementOnHit}", not a PIPELINE_HOOKS key (P2)`);
+      }
+    } else if (def.damage !== null) {
+      err("action-def", `"${id}" (${tableName}) has toHit:"none" but damage is "${def.damage}", not declared null (P2)`);
+    }
+  }
+}
+// P4: no checks on action identity in the step functions or hooks --
+// `action.id ===`/`!==`, a `switch` on `action.id`, OR (broader than the
+// handoff's own literal wording, since this audit's own research found
+// it necessary) `.includes(action.id)`, which is functionally the same
+// kind of identity check and would otherwise slip past a narrower regex.
+// Scoped to js/engine/pipeline.js (the five step functions) and
+// js/data/actions.js (where PIPELINE_HOOKS actually lives in this
+// codebase) -- not the whole engine, since action.id is legitimately
+// read (not branched on) by orchestrators building the runtime action
+// object (e.g. `getActionDef(elementKey)`).
+const P4_FILES = ["js/engine/pipeline.js", "js/data/actions.js"];
+const P4_PATTERN = /action\.id\s*(?:===|!==)|\.includes\(\s*action\.id\s*\)|switch\s*\(\s*action\.id\s*\)/g;
+let p4Hits = 0;
+for (const f of P4_FILES) {
+  const src = sources[f];
+  if (!src) continue;
+  // Strip block comments, then line comments, before scanning -- this
+  // audit's own prose (this very file's header, and js/data/actions.js's
+  // schema doc) legitimately MENTIONS "action.id ===" as documentation;
+  // only real code should trip P4. A line's own `//` is never inside a
+  // string in this codebase's style, so a naive split is safe here.
+  const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]);
+  for (let i = 0; i < codeOnly.length; i++) {
+    if (P4_PATTERN.test(codeOnly[i])) { err("action-identity", `${f}:${i + 1} checks action identity directly -- "${codeOnly[i].trim()}" (P4)`); p4Hits++; }
+    P4_PATTERN.lastIndex = 0;
+  }
+}
+
 // ---- save coverage ----
 const fresh = G("new GameState()");
 const saved = Object.keys(fresh.toJSON());
@@ -243,5 +303,6 @@ const print = (title, list) => {
 print("ERRORS", errors);
 print("WARNINGS", warnings);
 process.stdout.write(`\n[items] live-reachable: ${liveReachable}/${Object.keys(ITEM_DEFS).length}; reserved: ${reservedTotal} (${JSON.stringify(reservedCounts)}); R2 violations: ${r2.length}\n`);
+process.stdout.write(`[actions] P4 action-identity checks found: ${p4Hits} (must be 0)\n`);
 process.stdout.write(`\n${errors.length} error(s), ${warnings.length} warning(s) across ${scripts.length} scripts.\n`);
 process.exit(errors.length || (strict && warnings.length) ? 1 : 0);

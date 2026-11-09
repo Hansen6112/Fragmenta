@@ -20,7 +20,7 @@
 function pipelinedElementAction(missLine, elementOnHit, extra) {
   return Object.assign({
     actorKinds: ["player"], actionType: "elemental", usesPerfectMemory: true, consumesTrailblazer: true,
-    toHit: "roll", formula: "playerCore", usesOrchestratorDmgMult: true, reportPhysical: "always",
+    targeting: "singleEnemy", toHit: "roll", formula: "playerCore", usesOrchestratorDmgMult: true, reportPhysical: "always",
     missLine: (state, creature) => [missLine(creature)],
     elementOnHit,
   }, extra || {});
@@ -49,7 +49,7 @@ const ELEMENT_ABILITIES = {
     // No-target, no-damage self-buff -- see useElementAbility's own
     // header. Handled by the "toHit: none" buff-shaped resolver branch,
     // not the pipelinedElementAction shape above.
-    action: { actorKinds: ["player"], actionType: "elemental", usesPerfectMemory: true, consumesTrailblazer: true, toHit: "none" },
+    action: { actorKinds: ["player"], actionType: "elemental", targeting: "self", usesPerfectMemory: true, consumesTrailblazer: true, toHit: "none", damage: null },
   },
   lightning: {
     name: "Flurry",

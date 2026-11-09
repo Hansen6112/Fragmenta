@@ -24,6 +24,13 @@ const TACTICS = {
     knowledgeReq: 5,
     cooldown: 2,
     description: "Sacrifice this turn's attack to guarantee your next strike lands hard. The enemy still gets its counter this turn.",
+    // No target, no hit roll, no damage -- useFeint (combat.js) already
+    // dispatches generically off this very table (knowledgeReq/cooldown),
+    // with no action-identity branching to remove. This block declares
+    // the shape for the audit (P2) and the coverage table; the mechanic
+    // itself (sets state.combat.nextAttackBonus, consumed by
+    // basic_attack's own consumesFeintBonus field) stays in useFeint.
+    action: { actorKinds: ["player"], actionType: "tactic", targeting: "self", toHit: "none", damage: null },
   },
   decoy: {
     name: "Decoy",
@@ -32,7 +39,7 @@ const TACTICS = {
     description: "Draw the enemy's attack into a decoy — you take no retaliation this turn, and still attack normally.",
     action: {
       actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
-      toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
+      targeting: "singleEnemy", toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
       missLine: (state, creature) => [`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`],
       openingReach: "unconditional", reportPhysical: "always",
       flavorLine: (state, creature, edmg) => [`${attackFlavorLine(state, creature, edmg)} (while it's distracted)`],
@@ -46,7 +53,7 @@ const TACTICS = {
     description: "A free opening strike — usable only before you've taken any other action this fight. Bonus damage, no counter.",
     action: {
       actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
-      toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
+      targeting: "singleEnemy", toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
       missLine: (state, creature) => [`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`],
       extraDamageMultiplierFn: (state) => ambushMultiplier(state), borrowedSecondsBonusInDamage: true,
       reportPhysical: "always",
@@ -61,7 +68,7 @@ const TACTICS = {
     description: "Knock the fight out of your opponent, reducing their attack for the rest of the encounter. Lands once per target, ever, in a fight.",
     action: {
       actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
-      toHit: "roll", formula: "playerCore",
+      targeting: "singleEnemy", toHit: "roll", formula: "playerCore",
       missLine: () => [`The follow-up strike doesn't land, but the disarm holds.`],
       extraDamageMultiplierFn: () => 0.7, openingReach: "unconditional", reportPhysical: "always",
       flavorLine: (state, creature, edmg) => [`You still land a hit for ${edmg} damage.`],
@@ -83,6 +90,14 @@ function unlockedTactics(state) {
 // self-cast one — Fleet Step's Speed has no ally consumer at all (allies
 // have no speed-based turn order in this engine), so cast on an ally it
 // grants Agility instead, for survivability rather than a no-op.
+// Every Apothecary ability's own shape -- no target, no hit roll, no
+// damage, castable on self or a living ally. useApothecaryAbility
+// (combat.js) already dispatches generically off this very table
+// (knowledgeReq/cooldown/stat/allyStat/cleanse), with no per-ability
+// branching to remove -- this declares the shape for the audit (P2) and
+// the coverage table.
+const APOTHECARY_ACTION_SHAPE = { actorKinds: ["player"], actionType: "apothecary", targeting: "selfOrAlly", toHit: "none", damage: null };
+
 const APOTHECARY_ABILITIES = {
   rousing_tonic: {
     name: "Rousing Tonic",
@@ -90,6 +105,7 @@ const APOTHECARY_ABILITIES = {
     cooldown: 3,
     stat: "atk",
     description: "A bitter draught that quickens the blood — +Attack (scales with Knowledge) for 3 turns, cast on yourself or an ally.",
+    action: APOTHECARY_ACTION_SHAPE,
   },
   field_triage: {
     name: "Field Triage",
@@ -98,6 +114,7 @@ const APOTHECARY_ABILITIES = {
     stat: null,
     cleanse: true,
     description: "Fast, practiced hands clear whatever's clinging to you or an ally, mid-fight — cleanses all active statuses on the target.",
+    action: APOTHECARY_ACTION_SHAPE,
   },
   fortify: {
     name: "Fortify",
@@ -105,6 +122,7 @@ const APOTHECARY_ABILITIES = {
     cooldown: 3,
     stat: "def",
     description: "Brace yourself or an ally with a surge of applied know-how — +Defense (scales with Knowledge) for 3 turns.",
+    action: APOTHECARY_ACTION_SHAPE,
   },
   clear_focus: {
     name: "Clear Focus",
@@ -112,6 +130,7 @@ const APOTHECARY_ABILITIES = {
     cooldown: 3,
     stat: "acc",
     description: "Steady the hands and sharpen the eye — +Accuracy (scales with Knowledge) for 3 turns, cast on yourself or an ally.",
+    action: APOTHECARY_ACTION_SHAPE,
   },
   fleet_step: {
     name: "Fleet Step",
@@ -120,6 +139,7 @@ const APOTHECARY_ABILITIES = {
     stat: "spd",
     allyStat: "agi",
     description: "A tonic that lightens the feet — +Speed (scales with Knowledge) for 3 turns cast on yourself, or +Agility cast on an ally, who has no use for the former.",
+    action: APOTHECARY_ACTION_SHAPE,
   },
   steady_grip: {
     name: "Steady Grip",
@@ -127,6 +147,7 @@ const APOTHECARY_ABILITIES = {
     cooldown: 3,
     stat: "agi",
     description: "Calms the nerves, firms the footing — +Agility (scales with Knowledge) for 3 turns, cast on yourself or an ally.",
+    action: APOTHECARY_ACTION_SHAPE,
   },
 };
 

@@ -101,6 +101,7 @@ const PLAYER_ACTION_DEFS = {
     name: "Attack",
     actorKinds: ["player"],
     actionType: "attack",
+    targeting: "singleEnemy",
     toHit: "roll",
     missLine: (state, creature) => [`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`, ...riposteCounterOnPlayer(state, creature)],
     missProvokesRiposte: true,
