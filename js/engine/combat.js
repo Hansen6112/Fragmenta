@@ -7812,7 +7812,13 @@ function applyApothecaryAbilityEffect(state, a, ally) {
 
 // ---- Elemental abilities (mage only — one per element, replaces tactics) ----
 
-function useElementAbility(state, elementKey) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1e-iii): the real call site
+// now calls useElementAbility (js/engine/pipeline.js) instead, which runs
+// the same math through the five-step pipeline for 7 of the 8 elements
+// (Stoneskin/earth has no attack roll, so it's handled inline there,
+// same as this function's own switch branch). Kept here byte-identical
+// as the Layer 1 parity oracle.
+function useElementAbilityLegacy(state, elementKey) {
   const a = ELEMENT_ABILITIES[elementKey];
   if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
   let creature = getCombatCreature(state);
