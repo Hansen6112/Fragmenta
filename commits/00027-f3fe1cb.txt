@@ -1,0 +1,71 @@
+range: d856c0a6b6ab5e5de3aaf1d973167cdef073f785..f3fe1cb0928549b2978a92ddc2902d5c99b9228e
+=== f3fe1cb0928549b2978a92ddc2902d5c99b9228e 2026-11-09 14:26:25 +0000
+Combat Rebuild Phase 1, step 1e-iii: migrate element abilities onto the pipeline
+useElementAbility (combat.js) is kept as useElementAbilityLegacy (byte-
+identical, the Layer 1 parity oracle); the live call site (parser.js's
+element verbs) now resolves to a pipeline-backed definition. Stoneskin
+(earth) is NOT migrated: a pure self-buff with no target roll at all,
+same shape as Feint (step 1e-ii) -- handled inline in the orchestrator,
+re-verified for regression safety.
+
+The other seven elements (fire/water/lightning/acid/force/
+transportation/air) share rollToHitPlayerActor/calculateDamagePlayerActor/
+applyAndReactPlayerActor's existing dispatch (extended with a new
+action.id branch each), reusing one factored-out copy of rollPlayerDamage's
+core formula (rollPlayerDamageCoreForPipeline) with 1e-i's own two
+stat()-purity peek/defer splits, plus each element's own damage
+multiplier and side effect (fire's burn, water's heal + First Sword's
+Regalia 10pc, acid's corrode + Defense penalty, force's stun, air's
+evasion window, transportation's baked-in 1.3x). None of the seven ever
+call applyPhysicalOnHitEffects, riposteCounterOnPlayer, or
+arenaRiposteCounterOnPlayer -- a real, pre-existing gap the original
+switch never had, preserved exactly.
+
+One real shape difference from every other migrated player action:
+useElementAbilityLegacy's own kill check happens AFTER its synergy
+bonus and Spell Echo, both OUTSIDE its switch -- so
+applyAndReactPlayerActor's element branch does not resolve the kill
+itself; the orchestrator does, once, after synergy and Spell Echo have
+both run, matching the original's exact sequencing. A miss also still
+runs synergy/Spell Echo/the kill check (useElementAbilityLegacy's own
+`break` out of the switch falls through to that same unconditional
+tail, unlike every other action's early-return miss branch).
+
+Lightning (Flurry) rolls its own formula twice, fully independently --
+own crit roll, own Avatar of Creation stack bump, everything -- exactly
+like the original's two back-to-back rollPlayerDamage calls. The SECOND
+roll only happens in applyAndReactPlayerActor (step 5), gated on the
+enemy still being alive after the first hit lands, not precomputed in
+step 4: an earlier draft computed it unconditionally in step 4, which
+silently inflated state.combat.hitsTakenFromPlayer by one unused count
+whenever the first hit was already lethal. Layer 1's own
+LIGHTNING-KILL-01 scenario didn't catch this -- a single-enemy fight,
+where the kill ends combat and nulls state.combat before the extra
+count could be observed -- but this step's Layer 2 check did: one boss-
+sweep cell stopped matching exactly, bisected by seed to precisely this
+case. Fixed, and the Layer 1 ledger's own setup switched to a two-enemy
+fight so this class of bug can't hide behind a combat-ending kill
+again.
+
+Verification: 19 forced-roll scenarios (one hit/miss per element,
+Lightning's double-roll and its kill-gated second hit, the shared
+purity fixes, the synergy/Spell-Echo-before-kill-check ordering),
+confirmed to actually discriminate via two deliberate sanity breaks
+(reverted). Full suite: 348/348, audit 0 errors. Field ledger: 148/148
+still open (pure control-flow restructure moves no fields). Layer 2:
+boss sweep and the Dregnar/Arbitarius legal-party cells are an exact
+bit-for-bit match against step 1d's own baseline, re-verified after the
+Lightning fix above -- and genuinely exercised, since the tactical AI
+actually casts every element in these sweeps.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |   8 +-
+ js/engine/pipeline.js                              | 330 ++++++++++++++++++++-
+ tools/combat_field_ledger.md                       |   4 +-
+ tools/tests/README.md                              |   1 +
+ .../phase1_step1e_iii_elements_pipeline_parity.js  | 191 ++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 6 files changed, 522 insertions(+), 13 deletions(-)

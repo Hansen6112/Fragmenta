@@ -1,0 +1,396 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 1613cfe..5204e0d 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -7812,7 +7812,13 @@ function applyApothecaryAbilityEffect(state, a, ally) {
+ 
+ // ---- Elemental abilities (mage only — one per element, replaces tactics) ----
+ 
+-function useElementAbility(state, elementKey) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1e-iii): the real call site
++// now calls useElementAbility (js/engine/pipeline.js) instead, which runs
++// the same math through the five-step pipeline for 7 of the 8 elements
++// (Stoneskin/earth has no attack roll, so it's handled inline there,
++// same as this function's own switch branch). Kept here byte-identical
++// as the Layer 1 parity oracle.
++function useElementAbilityLegacy(state, elementKey) {
+   const a = ELEMENT_ABILITIES[elementKey];
+   if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
+   let creature = getCombatCreature(state);
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index c721d49..6ca2e71 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1158,6 +1158,19 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
+       decoy: [`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`],
+       ambush: [`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`],
+       disarm: [`The follow-up strike doesn't land, but the disarm holds.`],
++      // Step 1e-iii: none of the seven pipeline-migrated elements
++      // provoke riposteCounterOnPlayer either -- useElementAbilityLegacy's
++      // switch's own miss lines never called it, same as Decoy/Ambush/
++      // Disarm above. Earth (Stoneskin) never reaches this check at all
++      // -- its own "spellHits" is unconditionally true (see
++      // useElementAbility's own header).
++      fire: [`${ELEMENTS.fire.name}'s lance goes wide, the flame guttering out short of ${withThe(creature.name, false)}.`],
++      water: [`The wave crashes past ${withThe(creature.name, false)}, missing entirely.`],
++      lightning: [`The bolt arcs past ${withThe(creature.name, false)} without connecting.`],
++      acid: [`The acid splashes wide, missing ${withThe(creature.name, false)} entirely.`],
++      force: [`The wall of force passes ${withThe(creature.name, false)} by.`],
++      transportation: [`You reappear a beat too far from ${withThe(creature.name, false)} to land the strike.`],
++      air: [`The gust tears past ${withThe(creature.name, false)}, missing.`],
+     };
+     return { hit: false, result: { lines: missLines[action.id], damage: null } };
+   }
+@@ -1201,14 +1214,20 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
+ // peek/defer gate below are UNAFFECTED by any of this — they track the
+ // core formula's own true internal branch for all four actions, exactly
+ // as rollPlayerDamage's single shared implementation always has.
+-function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
++// The shared core formula (rollPlayerDamage's own body, combat.js),
++// factored out so step 1e-iii's Lightning branch can run it TWICE,
++// independently -- the original calls rollPlayerDamage(state, creature,
++// "lightning") twice in a row (its own crit roll, its own
++// Avatar-of-Creation stack bump, everything), not once with the result
++// doubled. Every other action calls this exactly once. See
++// calculateDamagePlayerActor's own header for the two stat()-purity
++// peek/defer splits (banked Defense, the player's own Attack via
++// stat()) that make this differ from rollPlayerDamage itself.
++function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
+   const state = ctx.state;
+   const enemySlot = target.store;
+   const creature = enemySlot.creatureObj;
+-  const activeElement = action.id === "basic_attack" ? action.activeElement : undefined;
+ 
+-  // ---- rollPlayerDamage's own body (combat.js), copied -- see this
+-  // section's header for exactly what moved and what didn't. ----
+   const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
+   const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
+   // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
+@@ -1308,12 +1327,27 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
+   }
+   if (state.combat) state.combat.hitsTakenFromPlayer = (state.combat.hitsTakenFromPlayer || 0) + 1;
+ 
+-  // physicalBranch: the core formula's TRUE internal branch (did THIS
+-  // hit read the player's own Attack stat, i.e. is it the Siege Corps
+-  // charge / Sure Foundation gate), for every action -- not necessarily
+-  // what gets REPORTED externally (reportPhysical, below), which three
+-  // of the four actions always force to true regardless.
+-  const physicalBranch = !isSpell;
++  return { dmg, physicalBranch: !isSpell };
++}
++
++// Every element id this step migrates onto the pipeline -- "earth"
++// (Stoneskin) deliberately excluded: it's a no-target, no-damage self-
++// buff, same shape as Feint, so it never reaches rollToHit/
++// calculateDamage/applyAndReact at all (see useElementAbility's own
++// header in this file).
++const PIPELINE_ELEMENT_IDS = ["fire", "water", "lightning", "acid", "force", "transportation", "air"];
++
++function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
++  const state = ctx.state;
++  const enemySlot = target.store;
++  const creature = enemySlot.creatureObj;
++  const isElement = PIPELINE_ELEMENT_IDS.includes(action.id);
++  const activeElement = isElement ? action.id : action.activeElement;
++
++  const core = rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement);
++  let dmg = core.dmg;
++  const physicalBranch = core.physicalBranch;
++
+   let feintBonusApplied = false;
+   let reportPhysical;
+   // ---- per-action post-processing, from each action's own ORIGINAL
+@@ -1340,6 +1374,38 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
+     dmg = Math.round(dmg * 0.7);
+     dmg = applyOpeningReach(state, dmg);
+     reportPhysical = true;
++  } else if (action.id === "transportation") {
++    dmg = Math.round(dmg * 1.3 * action.dmgMult);
++    reportPhysical = true;
++  } else if (action.id === "lightning") {
++    // Only the FIRST of Flurry's two independent rolls happens here.
++    // useElementAbilityLegacy's own second rollPlayerDamage(state,
++    // creature, "lightning") call only happens AT ALL if the first hit
++    // didn't already kill ("if (state.combat.hp > 0)") -- rolling it
++    // unconditionally here, in step 4, before step 5 has even applied
++    // the first hit, would call rollPlayerDamageCoreForPipeline (and
++    // its own state.combat.hitsTakenFromPlayer += 1, among other things)
++    // an extra time the original never does whenever the first hit is
++    // lethal. So the second roll -- own crit roll, own Avatar of
++    // Creation stack bump, everything, same as the first -- happens in
++    // applyAndReactPlayerActor instead, AFTER the first hit's damage is
++    // actually applied there, gated on the enemy still being alive.
++    // Caught by this step's own Layer 2 check (a boss-sweep cell that
++    // stopped matching exactly, bisected to a lightning-kills-on-first-
++    // hit case inflating hitsTakenFromPlayer by one extra, unused
++    // count) — not by Layer 1, whose own LIGHTNING-KILL-01 scenario
++    // happened to be a single-enemy fight, where the kill ends combat
++    // and wipes state.combat before the extra count could be observed.
++    dmg = Math.round(dmg * action.dmgMult);
++    reportPhysical = true;
++  } else if (PIPELINE_ELEMENT_IDS.includes(action.id)) {
++    // fire/water/acid/force/air: a flat elementalDmgMult (synergy +
++    // Elemental Focus/Surging Conduit, computed once by the orchestrator
++    // before this step runs and carried on the action object), no other
++    // post-processing -- none of the seven call applyOpeningReach or
++    // Borrowed Seconds or read the Feint flag.
++    dmg = Math.round(dmg * action.dmgMult);
++    reportPhysical = true;
+   }
+ 
+   return { shortCircuit: false, edmg: dmg, kind: "enemy", isPhysical: physicalBranch, reportPhysical, feintBonusApplied, activeElement };
+@@ -1373,6 +1439,61 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
+     }
+   }
+ 
++  const isElement = PIPELINE_ELEMENT_IDS.includes(action.id);
++
++  // Step 1e-iii: elements set lastDamageType to the ELEMENT ITSELF
++  // (useElementAbilityLegacy's own unconditional
++  // `state.combat.lastDamageType = elementKey;`, set once before its
++  // whole switch runs — never "physical", unlike every other player
++  // action), and never call applyPhysicalOnHitEffects at all. Kill
++  // resolution is NOT done here: useElementAbilityLegacy's own kill
++  // check happens AFTER synergy and Spell Echo, both OUTSIDE this
++  // function's shape — the orchestrator (useElementAbility, this file)
++  // does it instead, once, after calling this, using castDamageDealt
++  // below. This is the one player action shape where applyAndReact does
++  // not resolve the kill itself.
++  if (isElement) {
++    enemySlot.lastDamageType = action.id;
++    enemySlot.hp -= edmg;
++    let castDamageDealt = edmg;
++    const lines = [];
++    if (action.id === "fire") {
++      lines.push(`${ELEMENTS.fire.verb(withThe(creature.name, false))} for ${edmg} damage, and the flame catches.`);
++      state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 4)) };
++    } else if (action.id === "water") {
++      const heal = Math.round(edmg * waterHealPct(state));
++      const { healed, lines: healLines } = applyHeal(state, heal);
++      lines.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${edmg} damage, and the backwash mends you for ${healed}.`, ...healLines);
++      if (hasSetTier(state, "First Sword's Regalia", 10)) state.combat.sovereigntyTurnsLeft = 2;
++    } else if (action.id === "lightning") {
++      lines.push(`${ELEMENTS.lightning.verb(withThe(creature.name, false))} for ${edmg} damage —`);
++      // The second roll: only computed AT ALL if the first hit didn't
++      // already kill -- see calculateDamagePlayerActor's own comment on
++      // why this can't be precomputed in step 4 (it would increment
++      // state.combat.hitsTakenFromPlayer an extra, unused time whenever
++      // the first hit is lethal).
++      if (enemySlot.hp > 0) {
++        const core2 = rollPlayerDamageCoreForPipeline(actor, target, ctx, dmgInfo.activeElement);
++        const secondHitDmg = Math.round(core2.dmg * action.dmgMult);
++        enemySlot.hp -= secondHitDmg;
++        castDamageDealt += secondHitDmg;
++        lines.push(`— and again, for ${secondHitDmg} more before it can react.`);
++      }
++    } else if (action.id === "acid") {
++      state.combat.corroded = true;
++      state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 4;
++      lines.push(`${ELEMENTS.acid.verb(withThe(creature.name, false))} for ${edmg} damage — its defenses will be weaker against you for the rest of this fight.`);
++    } else if (action.id === "force") {
++      lines.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${edmg} damage — it reels, stunned.`, ...tryApplyEnemyStun(state, creature));
++    } else if (action.id === "transportation") {
++      lines.push(`${ELEMENTS.transportation.verb(withThe(creature.name, false))} for ${edmg} damage before it can track where you went.`);
++    } else if (action.id === "air") {
++      state.combat.evasionTurns = 2;
++      lines.push(`${ELEMENTS.air.verb(withThe(creature.name, false))} for ${edmg} damage, leaving you lighter on your feet.`);
++    }
++    return { lines, damage: edmg, killed: false, isPhysicalHit: isPhysical, castDamageDealt };
++  }
++
+   // reportPhysical: what gets REPORTED (lastDamageType, whether
+   // on-hit-effects run) -- basic_attack reports the true internal
+   // branch; Decoy/Ambush/Disarm always report "physical" regardless
+@@ -1764,3 +1885,192 @@ function useDisarm(state) {
+   if (tl) out.push(tl);
+   return checkReflectDeath(state, out);
+ }
++
++// ---- Orchestrator: element abilities (combat.js's "ignite"/"drench"/
++// "stoneskin"/"shock"/"corrode"/"force"/"blink"/"windcut" verbs --
++// elementKey "fire"/"water"/"earth"/"lightning"/"acid"/"force"/
++// "transportation"/"air" -- step 1e-iii). Stoneskin (earth) is a no-
++// target, no-damage self-buff -- same shape as Feint (step 1e-ii), so
++// it never reaches the pipeline, handled inline below exactly as
++// useElementAbilityLegacy's own switch branch. The other seven go
++// through chooseAction -> chooseTargets -> rollToHit -> calculateDamage
++// -> applyAndReact (rollToHitPlayerActor/calculateDamagePlayerActor/
++// applyAndReactPlayerActor, above), dispatching on action.id === the
++// elementKey.
++//
++// One real shape difference from every other migrated player action:
++// useElementAbilityLegacy's own kill check happens AFTER its synergy
++// bonus and Spell Echo, both of which sit OUTSIDE the switch — so
++// applyAndReactPlayerActor's element branch does NOT resolve the kill
++// itself (see that function's own comment); this orchestrator does,
++// once, after synergy and Spell Echo have both run, exactly matching
++// the original's own sequencing. A miss ALSO still runs synergy/Spell
++// Echo/the kill check here (castDamageDealt stays 0, so Spell Echo and
++// the post-kill-check checkCounteringGuard/checkEnemyLowHealthTriggers
++// branch are no-ops on a miss) -- useElementAbilityLegacy's own
++// `break` out of the switch on a miss falls through to that same
++// unconditional tail, it doesn't return early the way every other
++// action's own miss branch does.
++function useElementAbility(state, elementKey) {
++  const a = ELEMENT_ABILITIES[elementKey];
++  if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
++  let creature = getCombatCreature(state);
++  if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. Save it.`];
++  const worldWalkerBypass = elementKey === "transportation" && hasEffect(state, "world_walker");
++  const elementalBypass = activationRestrictionsBypassed(state);
++  if (!worldWalkerBypass && !elementalBypass && elementKey !== state.primaryElement && elementKey !== state.secondaryElement && elementKey !== state.tertiaryElement) {
++    return [`You haven't opened yourself to ${ELEMENTS[elementKey].name}.`];
++  }
++  if (state.knowledge < a.knowledgeReq && !elementalBypass) return [`You don't have the Knowledge for that yet. (needs Knowledge ${a.knowledgeReq}+)`];
++  if (elementKey === "acid" && state.combat.corroded && !elementalBypass) return [`It's already lost whatever defenses you could corrode.`];
++  if ((state.combat.cooldowns[elementKey] || 0) > 0) return [`${a.name} is still recovering — ${state.combat.cooldowns[elementKey]} more turn(s).`];
++
++  const out = beginTurn(state);
++  if (!state.combat) return out;
++  state.combat.turnTaken = true;
++  if (state.combat.hp <= 0) {
++    out.push(...resolveKill(state, creature));
++    if (!state.combat || state.health <= 0) return out;
++    creature = getCombatCreature(state);
++  }
++  out.push(...resolveSpeedInitiative(state, creature));
++  if (!state.combat || state.health <= 0) return out;
++  state.combat.spellCastCounter = (state.combat.spellCastCounter || 0) + 1;
++  if (hasEffect(state, "seedbearer") && state.combat.spellCastCounter % 3 === 0) {
++    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
++    if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
++  }
++  out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"), ...applyPerfectMemory(state, elementKey));
++  consumeTrailblazer(state);
++  let cooldown = a.cooldown;
++  if (hasEffect(state, "conduit_mastery")) cooldown = Math.max(1, cooldown - 1);
++  if ((hasSetTier(state, "Novitiate", 6) || hasEffect(state, "rivers_favor")) && !state.combat.noviceFreeCastUsed) {
++    state.combat.noviceFreeCastUsed = true;
++    cooldown = 0;
++    out.push(`First casting's free — the conduit hasn't tired yet.`);
++  } else if (hasEffect(state, "conduit_ease") && Math.random() < conduitEaseChance(state)) {
++    cooldown = Math.max(1, cooldown - 1);
++    out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
++  }
++  if (hasEffect(state, "eureka") && state.combat.spellCastCounter % 4 === 0) {
++    cooldown = 0;
++    out.push(`Eureka — the insight arrives before the cost does.`);
++  }
++  if (state.combat.avatarOfKnowledgeTurns > 0) cooldown = 0;
++  if (state.combat.avatarOfTimeTurns > 0) cooldown = 0;
++  if (state.combat.swiftPassageReady) {
++    state.combat.swiftPassageReady = false;
++    cooldown = 0;
++  }
++  if (state.combat.hourglassReserveReady) {
++    state.combat.hourglassReserveReady = false;
++    cooldown = 0;
++  }
++  if (borrowedSecondsActive(state) && cooldown > 0) {
++    cooldown = Math.round(cooldown / 2);
++  }
++  state.combat.cooldowns[elementKey] = cooldown;
++  if (hasSetTier(state, "Regalia of the Endless Archive", 4)) {
++    const otherKnown = [state.primaryElement, state.secondaryElement, state.tertiaryElement]
++      .filter((el) => el && el !== elementKey && (state.combat.cooldowns[el] || 0) > 0);
++    if (otherKnown.length) {
++      const pick = otherKnown[Math.floor(Math.random() * otherKnown.length)];
++      state.combat.cooldowns[pick] = Math.max(0, state.combat.cooldowns[pick] - 2);
++      out.push(`Universal Understanding — the insight carries over; ${ELEMENT_ABILITIES[pick].name}'s cooldown eases.`);
++    }
++  }
++
++  const synergy = getSynergy(state, elementKey);
++  let dmgMult = synergy ? synergy.dmgMultiplier : 1;
++  if (hasEffect(state, "twin_rivers") && state.combat.lastElementUsed) dmgMult *= 1.4;
++  state.combat.lastElementUsed = elementKey;
++
++  const focusActive = hasEffect(state, "elemental_focus");
++  const focusMult = elementalFocusMultiplier(state);
++  const surgeActive = hasEffect(state, "surging_conduit") && state.combat.surgingConduitUsesLeft > 0;
++  if (surgeActive) state.combat.surgingConduitUsesLeft -= 1;
++  let elementalDmgMult = dmgMult;
++  if (focusActive) elementalDmgMult *= focusMult;
++  if (surgeActive) elementalDmgMult *= 1.2;
++
++  // useElementAbilityLegacy's own `state.combat.lastDamageType =
++  // elementKey;` -- set UNCONDITIONALLY here, before spellHits is even
++  // checked, for every element including Earth and a miss (Spell Echo
++  // reduces combat.hp too, but never attributes a kill to it either
++  // way, so setting this even for Earth/a miss is harmless -- same
++  // comment the original carries). applyAndReactPlayerActor's own
++  // element branch also sets it on a confirmed hit, to the same value,
++  // so this line is the one that actually covers Earth and a miss.
++  state.combat.lastDamageType = elementKey;
++
++  let castDamageDealt = 0;
++
++  if (elementKey === "earth") {
++    // Stoneskin: a pure self-buff, no target roll at all -- see this
++    // function's own header.
++    let defBonus = Math.max(flatStat(3), Math.round((state.magic / 3) * dmgMult));
++    if (focusActive) defBonus += flatStat(1);
++    if (surgeActive) defBonus += flatStat(3);
++    state.combat.defBuffTurns = 3;
++    state.combat.defBuffAmount = defBonus;
++    out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
++    if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
++      state.combat.siegeCorpsAtkCharge = 2;
++    }
++  } else {
++    const enemySlot = {
++      creatureObj: creature,
++      get hp() { return state.combat.hp; },
++      set hp(v) { state.combat.hp = v; },
++      get maxHp() { return state.combat.maxHp; },
++      get lastDamageType() { return state.combat.lastDamageType; },
++      set lastDamageType(v) { state.combat.lastDamageType = v; },
++    };
++    const actor = makePlayerCombatant(state);
++    const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
++    const action = { id: elementKey, dmgMult: elementalDmgMult };
++    const ctx = { state, pendingAction: action, target };
++    const chosen = chooseAction(actor, ctx);
++    const targets = chooseTargets(actor, chosen, ctx);
++    const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++    if (!hitInfo.hit) {
++      out.push(...hitInfo.result.lines);
++    } else {
++      const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++      const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++      out.push(...result.lines);
++      castDamageDealt = result.castDamageDealt || 0;
++    }
++  }
++
++  if (synergy) {
++    if (synergy.extraEffect) synergy.extraEffect(state, creature);
++    out.push(synergy.message(withThe(creature.name, false)));
++  }
++
++  const spellEchoChance = masterOfArmsDoubles(state, "spell_echo") ? 0.4 : 0.2;
++  if (state.combat.hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < spellEchoChance) {
++    const echoDmg = Math.max(1, Math.round(castDamageDealt * 0.5));
++    state.combat.hp -= echoDmg;
++    out.push(`The spell echoes — a second casting lands for ${echoDmg} damage.`);
++  }
++
++  if (state.combat.hp <= 0) {
++    out.push(...resolveKill(state, creature));
++    if (!state.combat || state.health <= 0) return out;
++    creature = getCombatCreature(state);
++  } else if (castDamageDealt > 0) {
++    out.push(...checkCounteringGuard(state, creature));
++    out.push(...checkEnemyLowHealthTriggers(state, creature));
++  }
++
++  let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
++  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
++  out.push(...retaliation.lines);
++  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
++  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
++  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
++  const tl = tacticsLine(state);
++  if (tl) out.push(tl);
++  return checkReflectDeath(state, out);
++}
