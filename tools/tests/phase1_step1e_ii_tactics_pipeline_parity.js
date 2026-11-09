@@ -148,6 +148,18 @@ const { chromium } = require('playwright');
     checkParity('P1E-II-D-PHYSONHIT-01', 'Decoy: a non-kill hit runs applyPhysicalOnHitEffects unconditionally', useDecoyLegacy, useDecoy, {
       effects: ['hamstring'], seq: LOW,
     });
+    // Step 1e §4 gap fix (not a parity check -- useDecoyLegacy is EXPECTED
+    // to differ here, since it never called lowHealthTriggerChecks at all;
+    // this confirms the fix actually closed that gap rather than silently
+    // no-op'ing).
+    record('P1E-II-D-LOWHEALTH-FIX-01', 'Decoy now runs lowHealthTriggerChecks (Rally the Line fires on the new useDecoy, confirmed absent on useDecoyLegacy)', () => {
+      const scenario = { seq: LOW, effects: ['rally_the_line'], mutate: (s) => { s.health = Math.max(1, Math.floor(s.maxHealth * 0.1)); s.combat.enemies[0].hp = 100000; s.combat.enemies[0].maxHp = 100000; } };
+      const oldRun = runOne(useDecoyLegacy, scenario);
+      const newRun = runOne(useDecoy, scenario);
+      const oldFired = /Rally the Line/.test(oldRun.result.join(' '));
+      const newFired = /Rally the Line/.test(newRun.result.join(' '));
+      return { pass: !oldFired && newFired, oldFired, newFired, oldResult: oldRun.result, newResult: newRun.result };
+    });
 
     // ============ Ambush ============
     checkParity('P1E-II-A-HIT-01', 'Ambush: plain hit, low-range rolls', useAmbushLegacy, useAmbush, { seq: LOW });
@@ -174,6 +186,26 @@ const { chromium } = require('playwright');
     });
     checkParity('P1E-II-A-EVASIVERELEASE-01', 'Ambush: Evasive Release grants an evasion charge on a non-kill hit', useAmbushLegacy, useAmbush, {
       effects: ['evasive_release'], seq: LOW, mutate: survivable,
+    });
+    // Step 1e §4 gap fix (not a parity check -- useAmbushLegacy is
+    // EXPECTED to differ here, since it never called lowHealthTriggerChecks/
+    // applyDodgeBlockNegateBonuses/maybeRiposte at all; these confirm the
+    // fix actually closed that gap).
+    record('P1E-II-A-LOWHEALTH-FIX-01', 'Ambush now runs lowHealthTriggerChecks (Rally the Line fires on the new useAmbush, confirmed absent on useAmbushLegacy)', () => {
+      const scenario = { seq: LOW, effects: ['rally_the_line'], mutate: (s) => { s.health = Math.max(1, Math.floor(s.maxHealth * 0.1)); s.combat.enemies[0].hp = 100000; s.combat.enemies[0].maxHp = 100000; } };
+      const oldRun = runOne(useAmbushLegacy, scenario);
+      const newRun = runOne(useAmbush, scenario);
+      const oldFired = /Rally the Line/.test(oldRun.result.join(' '));
+      const newFired = /Rally the Line/.test(newRun.result.join(' '));
+      return { pass: !oldFired && newFired, oldFired, newFired, oldResult: oldRun.result, newResult: newRun.result };
+    });
+    record('P1E-II-A-DODGEBLOCK-FIX-01', "Ambush now runs applyDodgeBlockNegateBonuses when the round's retaliation deals 0 damage (Every Choice Matters fires on the new useAmbush, confirmed absent on useAmbushLegacy)", () => {
+      const scenario = { seq: LOW, effects: ['every_choice_matters'], mutate: survivable };
+      const oldRun = runOne(useAmbushLegacy, scenario);
+      const newRun = runOne(useAmbush, scenario);
+      const oldFired = /Every Choice Matters/.test(oldRun.result.join(' '));
+      const newFired = /Every Choice Matters/.test(newRun.result.join(' '));
+      return { pass: !oldFired && newFired, oldFired, newFired, oldResult: oldRun.result, newResult: newRun.result };
     });
 
     // ============ Disarm ============

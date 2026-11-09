@@ -1728,6 +1728,13 @@ function useDecoy(state) {
   }
   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, decoyedIndex);
   out.push(...retaliation.lines);
+  // Step 1e §4 gap fix: useDecoyLegacy never called lowHealthTriggerChecks
+  // at all -- every other migrated player action does (playerAttack/
+  // useDisarm/useElementAbility all gate it on state.health > 0, right
+  // here, before their own dodge/Riposte follow-ups). Decoy's own
+  // unconditional dodge/Riposte follow-up call just below is untouched --
+  // only the missing lowHealthTriggerChecks call is being added.
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
@@ -1785,12 +1792,27 @@ function useAmbush(state) {
     }
   }
 
-  // Ambush's own original never calls lowHealthTriggerChecks/
-  // applyDodgeBlockNegateBonuses/maybeRiposte/the evasion-bonus trio at
-  // all -- the handoff's own listed-change gap (§4: "Ambush skips
-  // dodge and Riposte follow-ups"), preserved here exactly, fixed later.
+  // Step 1e §4 gap fix: Ambush's own original never called
+  // lowHealthTriggerChecks/applyDodgeBlockNegateBonuses/maybeRiposte/the
+  // evasion-bonus trio at all -- now added. Using Decoy's own UNCONDITIONAL
+  // form here, not playerAttack/useDisarm's gated
+  // "retaliation.damage === 0" form: Ambush (like Decoy) passes
+  // ambushedIndex as resolveRemainingInitiativeActions' excludeIndex, which
+  // is ALWAYS the same enemy resolveRemainingInitiativeActions captured as
+  // its own callerActiveIndex at entry (nothing moves activeIndex between
+  // the two on a non-kill hit) -- so that enemy is excluded from acting
+  // AND is the only one whose damage the function would ever attribute to
+  // `retaliation.damage` (see its own `if (i === callerActiveIndex)
+  // activeDamage = result.damage` line). retaliation.damage is therefore
+  // always null, never 0, for an excludeIndex-shaped action -- the gated
+  // form would be silent dead code here, confirmed by this step's own
+  // P1E-II-A-DODGEBLOCK-FIX-01 test failing against it before this was
+  // caught. playerAttack/useDisarm don't pass an excludeIndex, so the
+  // gated form stays meaningful for them.
   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, ambushedIndex);
   out.push(...retaliation.lines);
+  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
+  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return checkReflectDeath(state, out);
