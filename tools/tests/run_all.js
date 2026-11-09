@@ -48,6 +48,7 @@ const LEDGERS = [
   "phase1_step1b_pipeline_parity.js",
   "phase1_step1c_ally_pipeline_parity.js",
   "d1_stun_fix_ledger.js",
+  "combat_unify_switches_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
