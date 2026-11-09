@@ -1,0 +1,39 @@
+range: d61baddd9f6fd5caa7f4b187ecfb382f28993b30..1b38ce419a47ca5fb09718a256f966feaf93a952
+=== 1b38ce419a47ca5fb09718a256f966feaf93a952 2026-11-09 11:19:26 +0000
+Combat Rebuild Phase 1, step 1e handoff §0: sort the Hadrian-vs-Kessa carry-over
+Step 1d's report flagged five things Hadrian's kit-bearing attack is
+missing that the plain ally's (Kessa) attack has. Sorted all five into
+the asymmetry register per the step 1e handoff:
+
+- Banked Defense (Brace/Guarded Strike/Sure Foundation), Smuggler's
+  Guard/Commander's Poise mitigation, and Riposte-on-miss are all the
+  ENEMY's own kit -- same D2 principle as the rest of U3 ("an enemy's
+  kit applies to whatever it hits" extends to "and whatever hits it").
+  Each now has a U3 switch (U3e/U3f/U3g, off by default, same
+  convention as U3a-d): calculateDamageAllyActor's/rollToHitAllyActor's/
+  applyAndReactAllyActor's kit branches in pipeline.js.
+
+- Opening Reach and the Executioner multiplier are the ATTACKING ally's
+  OWN gear bonus, not an enemy rule -- they don't fit U3's shape. Added
+  a new register kind, D ("ally kit difference"), deferred to Phase 2
+  alongside kind B. Moot in practice today: Hadrian's gear is lore-fixed
+  named equipment (js/data/hadrian.js), not generic hasEffect-tagged
+  gear, so this only matters if his deferred Legendary ascension ever
+  adds one of these effect ids.
+
+Verification: 3 new scenarios (U3E-ON-01/U3F-ON-01/U3G-ON-01) added to
+combat_unify_switches_ledger.js, each proving the switch changes
+something against a built-to-trigger setup. Full suite: 271/271, audit
+0 errors. Layer 2: boss sweep and the Dregnar/Arbitarius legal-party
+cells are an exact bit-for-bit match against step 1d's own baseline,
+confirming the three new switches truly change nothing while off.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js                       | 89 ++++++++++++++++++++++++-----
+ tools/combat_asymmetry_register.md          | 46 ++++++++++++++-
+ tools/tests/README.md                       |  2 +-
+ tools/tests/combat_unify_switches_ledger.js | 70 +++++++++++++++++++++++
+ 4 files changed, 189 insertions(+), 18 deletions(-)

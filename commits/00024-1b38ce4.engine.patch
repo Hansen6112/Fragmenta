@@ -1,0 +1,146 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index e8c3eb1..fa808b2 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -126,6 +126,24 @@ const COMBAT_UNIFY = {
+   // the player) carries the Sanguivorum poison status — reads
+   // ally.statuses["sang_iag_poison"], same per-ally status bag as U3c.
+   U3d: false,
++  // Step 1e handoff §0 (9 Nov follow-up): three more kind-A rows added to
++  // the register while reconciling Hadrian's attack against Kessa's —
++  // all three are an ENEMY's own kit mitigating/countering damage, same
++  // D2 principle as the rest of U3 ("an enemy's kit applies to whatever
++  // it hits" extends to "and whatever hits it"), just never wired for
++  // Hadrian's kit-bearing attack branch (action.kit in
++  // calculateDamageAllyActor/rollToHitAllyActor/applyAndReactAllyActor).
++  //
++  // The enemy's banked Defense bonus (Brace/Guarded Strike/Sure
++  // Foundation) protects it from a plain ally's hit but not Hadrian's.
++  U3e: false,
++  // Smuggler's Guard / Commander's Poise (sangCuDefenderMitigation): the
++  // enemy's own flat damage-reduction item effects fire against a plain
++  // ally's hit but not Hadrian's.
++  U3f: false,
++  // Riposte-on-miss: the enemy's own Riposte effect counters a plain
++  // ally's miss (riposteCounterByEnemyOnAlly) but not Hadrian's.
++  U3g: false,
+ };
+ 
+ // ---- Step 1: choose action ----
+@@ -743,12 +761,22 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
+  *   - Kit-bearing ally: basicCompanionAttackLegacy's fallback swing
+  *     (action.ability === null) and useHadrianActive's Crushing Blow/
+  *     Groundbreaker direct-damage branch (action.ability set), both
+- *     moved here from companion.js. Neither has ANY of the five things
+- *     the plain-ally path has above — not Opening Reach, not banked-
+- *     Defense, not sangCuDefenderMitigation, not Riposte-on-miss. A
+- *     real, pre-existing asymmetry between the two ally-attack shapes,
+- *     preserved exactly rather than unified — see
+- *     tools/combat_asymmetry_register.md.
++ *     moved here from companion.js. By default this path still has NONE
++ *     of the five things the plain-ally path has above — not Opening
++ *     Reach, not banked-Defense, not sangCuDefenderMitigation, not
++ *     Riposte-on-miss. A real, pre-existing asymmetry between the two
++ *     ally-attack shapes, preserved exactly by default rather than
++ *     unified — see tools/combat_asymmetry_register.md.
++ *
++ *     Step 1e handoff §0 (9 Nov follow-up): three of those five are an
++ *     ENEMY's own kit (banked Defense, Smuggler's Guard/Commander's
++ *     Poise, Riposte), so each now has a U3 switch (U3e/U3f/U3g, off by
++ *     default) that extends it to Hadrian's kit path too, same as the
++ *     rest of U3. The other two — Opening Reach and the Executioner
++ *     multiplier — are the ATTACKING ally's OWN gear bonus, not an enemy
++ *     rule, so they don't fit U3's "enemy kind A" shape; the register
++ *     tracks them as a new kind instead (kind D, "ally kit difference"),
++ *     deferred to Phase 2 alongside kind B.
+  *
+  * Enemy Defense, stat()-purity (combatant.js's hard rule): stat(state,
+  * target, "def") returns the PURE creature.def only. The plain-ally
+@@ -781,13 +809,15 @@ function rollToHitAllyActor(actor, target, action, ctx) {
+   if (action.kit) {
+     if (!attackConnects(ally.accuracy, creature.agi, action.veteranPct)) {
+       // basicCompanionAttackLegacy's miss line (no ability) vs
+-      // useHadrianActive's (a named active) — genuinely different text,
+-      // and neither provokes riposteCounterByEnemyOnAlly the way the
+-      // plain-ally miss below does.
++      // useHadrianActive's (a named active) — genuinely different text.
++      // U3g (off by default, handoff §0): with it on, a miss here also
++      // provokes the enemy's own Riposte effect, same as the plain-ally
++      // miss below.
+       const missLine = action.ability
+         ? `${ally.name} swings ${action.ability.name} and misses.`
+         : `${ally.name} lunges at ${withThe(creature.name, false)} and misses.`;
+-      return { hit: false, result: { lines: [missLine], damage: null } };
++      const riposteLines = COMBAT_UNIFY.U3g ? riposteCounterByEnemyOnAlly(state, enemySlot, ally) : [];
++      return { hit: false, result: { lines: [missLine, ...riposteLines], damage: null } };
+     }
+     return { hit: true };
+   }
+@@ -806,12 +836,27 @@ function calculateDamageAllyActor(actor, target, action, ctx, hitInfo) {
+   const creature = enemySlot.creatureObj;
+ 
+   if (action.kit) {
++    // U3e (off by default, handoff §0): peek the enemy's banked Defense
++    // bonus (Brace/Guarded Strike/Sure Foundation) the same way the
++    // plain-ally path below does — PEEKED here, consumed in
++    // applyAndReactAllyActor (step 5), same stat()-purity reasoning as
++    // the plain-ally path's own header comment.
++    const bankedDefKit = COMBAT_UNIFY.U3e
++      ? (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0)
++      : 0;
++    // U3f (off by default, handoff §0): the enemy's own Smuggler's Guard/
++    // Commander's Poise mitigation, same as the plain-ally path below.
++    // sangCuDefenderMitigation has its own one-shot/cooldown consumption
++    // built in (smugglersGuardCooldown, commandersPoiseUsed) — calling it
++    // only when U3f is on keeps that consumption from ever firing while
++    // the switch is off, matching every other U3's "off means untouched".
++    const sangMitKit = COMBAT_UNIFY.U3f ? sangCuDefenderMitigation(creature) : 1;
+     if (!action.ability) {
+       // basicCompanionAttackLegacy.
+       const atk = ally.atk + hadrianFlatAtkBonus(ally);
+-      let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), stat(state, target, "def"))));
++      let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), stat(state, target, "def") + bankedDefKit) * sangMitKit));
+       edmg = applyHadrianOutgoingDamageBonuses(ally, edmg, creature);
+-      return { shortCircuit: false, edmg, kind: "ally" };
++      return { shortCircuit: false, edmg, kind: "ally", bankedDefKit };
+     }
+     // Crushing Blow / Groundbreaker — useHadrianActive's direct-damage
+     // branch. Empowered Strike is a one-shot ATTACKER resource (not
+@@ -828,12 +873,12 @@ function calculateDamageAllyActor(actor, target, action, ctx, hitInfo) {
+     // rises from 20% to 30%; Groundbreaker's splash rises from 60% to 75%.
+     const defIgnore = (ability.defIgnorePct || 0) + (action.ascended && ability.id === "crushing_blow" ? 0.1 : 0);
+     const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (action.ascended ? 0.15 : 0) : 0;
+-    let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, stat(state, target, "def") * (1 - defIgnore))));
++    let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, (stat(state, target, "def") + bankedDefKit) * (1 - defIgnore)) * sangMitKit));
+     edmg = applyHadrianOutgoingDamageBonuses(ally, edmg, creature);
+     // baseAtk/splashAtkMult ride along for resolveHadrianActiveDamage's
+     // caller (useHadrianActive) to apply Groundbreaker's splash with —
+     // see this file's header on why splash isn't a second pipeline target.
+-    return { shortCircuit: false, edmg, kind: "ally", baseAtk, splashAtkMult };
++    return { shortCircuit: false, edmg, kind: "ally", baseAtk, splashAtkMult, bankedDefKit };
+   }
+ 
+   // Plain ally (no kit) — allyAggressiveActionLegacy.
+@@ -860,6 +905,22 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
+ 
+   if (action.kit) {
+     const kit = action.kit;
++    // U3e (off by default, handoff §0): consume the peeked banked
++    // Defense bonus the same way the plain-ally path below does, only
++    // once a hit actually lands — same stat()-purity timing. Guarded on
++    // the switch itself (not just on bankedDefKit being nonzero), so
++    // with U3e off this block never runs at all — no zero, no Sure
++    // Foundation re-grant — matching today's untouched behavior exactly.
++    if (COMBAT_UNIFY.U3e) {
++      creature.braceBonusDef = 0;
++      creature.guardedStrikeBonusDef = 0;
++      creature.sureFoundationBonusDef = 0;
++      creature.sureFoundationBonusDefTurnsLeft = 0;
++      if (hasEffect(creature, "dra_e05_sure_foundation")) {
++        creature.sureFoundationBonusDef = 2;
++        creature.sureFoundationBonusDefTurnsLeft = 2;
++      }
++    }
+     enemySlot.hp -= edmg;
+     enemySlot.lastDamageType = "physical";
+     const lines = action.ability
