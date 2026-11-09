@@ -150,3 +150,55 @@ exercised by a dedicated scenario before this step either (no earlier step's
 test suite touches the player's own outgoing-attack gear), so this is a
 pre-existing coverage gap step 1e didn't introduce and didn't close, not a
 new risk. Flagged here rather than left unstated.
+
+## Addendum: step 1e completion handoff (9 Nov 2026 follow-up)
+
+Everything tabulated above still holds — every check it lists still
+exists, still gated the same way, still covered by the same test. None
+of it moved logic, only WHERE each per-action difference is decided:
+`rollToHitPlayerActor`/`calculateDamagePlayerActor`/
+`applyAndReactPlayerActor` now read declared fields on the action
+definition (`js/data/actions.js`'s `PLAYER_ACTION_DEFS`, or the `action`
+block on `TACTICS`/`APOTHECARY_ABILITIES`/`ELEMENT_ABILITIES`/
+`js/data/hadrian.js`'s own entries) instead of branching on `action.id`.
+Zero `action.id ===`/`!==`/`.includes(action.id)` remain in
+`pipeline.js` or `PIPELINE_HOOKS` — enforced going forward by
+`tools/audit.js`'s new P4 rule, with P2 checking every definition's own
+completeness (targeting/toHit/actionType declared, a real formula or an
+explicit `damage: null`). These two audit rules are themselves a form
+of coverage this table didn't have before: a definition that's missing
+a field, or a step function that drifts back into an identity check, is
+now caught mechanically, not just by a human reading a diff.
+
+New rows, for what this handoff actually added:
+
+| Check | Gates | Test(s) |
+|---|---|---|
+| `action.onHitChanceEffect` (generic chance roll + named-hook dispatch) | a probabilistic on-hit effect, declared per-action (`{chance, hookName}`) | `TESTSTRIKE-APPLIES-STATUS` (`tools/tests/test_strike_proof_ledger.js`) — no real action uses this yet; test_strike is the only exerciser |
+| `staggerOnHit` hook (`PIPELINE_HOOKS`) | reuses `tryApplyEnemyStun` under test_strike's own name — disclosed as a reuse, not a new status system | same |
+| `ability.ascendedDefIgnoreBonus` (Crushing Blow) | Unbroken Momentum's extra Defense-ignore, read generically instead of `ability.id === "crushing_blow"` | `P1D-HA-CB-ASCENDED-01` (`tools/tests/phase1_step1d_ally_attack_pipeline_parity.js`) |
+| `ability.ascendedEmpoweredStrikeBonus` (Unyielding Advance) | Champion's Grip's extra Empowered Strike bonus | `P1D-HA-HEAL-01` |
+| `ability.tauntTurns`/`.healPct`/`.ultimateTurns` presence (companion.js's `useHadrianActive`, replacing 3 `ability.id === "..."` blocks) | which non-damage effect bundle an active applies | `P1D-HA-TAUNT-01`, `P1D-HA-HEAL-01`, `P1D-HA-ULT-01` (pre-existing) plus `P1D-HA-CHAMPS-01`/`P1D-HA-BASTION-01` (new — the `bonusDef`/`retaliatePct` sub-branches inside the same `tauntTurns` group, previously untested) |
+| `ability.flavorLine(ally, extra)` (each active's own data) | the line text for a non-damage active, replacing a hardcoded string per `ability.id` branch | same five |
+| `js/engine/resolver.js`'s generic `usePlayerAction` | the standard gate/cooldown/tracking/pipeline/tail sequence, driven entirely by a definition's declared fields, for ANY action with the standard shape | all 5 `test_strike_proof_ledger.js` cases |
+
+Feint and the 6 Apothecary abilities' own `action` blocks (declared in
+the earlier "add action blocks" commit) add no new row here: they
+document an already-generic implementation (`useFeint`/
+`useApothecaryAbility` dispatch off their own data table already, with
+no identity branch to remove), verified by the pre-existing
+`apothecary_action_tracking_ledger.js` and by reading both functions in
+full — nothing new to cover.
+
+Not converted by this handoff, disclosed rather than silently left out:
+Kessa's plain-ally attack and Hadrian's basic fallback swing/Crushing
+Blow/Groundbreaker's own direct-damage formula still dispatch via
+`action.kit` (truthy/falsy) and `action.ability` (null vs. a specific
+object) in `calculateDamageAllyActor`/`applyAndReactAllyActor` — judged
+analogous to `actor.kind`'s own legitimate dispatch (which ALLY is
+acting, not which skill), not the per-skill identity branching P4
+targets, so left as-is. Groundbreaker's splash loop
+(`companion.js`'s `useHadrianActive`) also stays outside the five-step
+pipeline, as pipeline.js's own header already discloses — splash isn't
+a second pipeline target today, and real multi-target support is a
+later-step concern per that same comment.
