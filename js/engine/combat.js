@@ -7434,7 +7434,11 @@ function useFeint(state) {
   return checkReflectDeath(state, out);
 }
 
-function useDecoy(state) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
+// now calls useDecoy (js/engine/pipeline.js) instead, which runs the
+// same math through the five-step pipeline. Kept here byte-identical
+// as the Layer 1 parity oracle.
+function useDecoyLegacy(state) {
   if (!state.combat) return ["There's nothing here to use that on."];
   if (!classHasTactics(state)) return ["Decoys aren't how your training works. Try your class's own ability instead."];
   let creature = getCombatCreature(state);
@@ -7531,7 +7535,11 @@ function useDecoy(state) {
   return checkReflectDeath(state, out);
 }
 
-function useAmbush(state) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
+// now calls useAmbush (js/engine/pipeline.js) instead, which runs the
+// same math through the five-step pipeline. Kept here byte-identical
+// as the Layer 1 parity oracle.
+function useAmbushLegacy(state) {
   if (!state.combat) return ["There's nothing here to ambush."];
   if (!classHasTactics(state)) return ["Ambush isn't how your training works. Try your class's own ability instead."];
   let creature = getCombatCreature(state);
@@ -7604,7 +7612,11 @@ function useAmbush(state) {
   return checkReflectDeath(state, out);
 }
 
-function useDisarm(state) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
+// now calls useDisarm (js/engine/pipeline.js) instead, which runs the
+// same math through the five-step pipeline. Kept here byte-identical
+// as the Layer 1 parity oracle.
+function useDisarmLegacy(state) {
   if (!state.combat) return ["There's nothing here to disarm."];
   if (!classHasTactics(state)) return ["Disarm isn't how your training works. Try your class's own ability instead."];
   let creature = getCombatCreature(state);

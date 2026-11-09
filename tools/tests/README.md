@@ -39,6 +39,7 @@ balance.
 | `combat_unify_switches_ledger.js` | Handoff §2 (9 Nov) + step 1e §0 follow-up: COMBAT_UNIFY switches (U1/U2/U3a-g) in pipeline.js -- each one, forced on, changes something on a built-to-trigger scenario; off (the default) is covered by phase1_step1c_ally_pipeline_parity.js (U1-U3d) and phase1_step1d_ally_attack_pipeline_parity.js (U3e-g) still passing unchanged |
 | `phase1_step1d_ally_attack_pipeline_parity.js` | Combat Rebuild Phase 1 step 1d: the ally-to-enemy path (plain ally, Hadrian's basic fallback, and his Crushing Blow/Groundbreaker actives) vs their three kept oracles -- forced-roll unit parity, the "effect changed something" control check, and the Kessa/Hadrian asymmetries preserved on purpose |
 | `phase1_step1e_i_player_attack_pipeline_parity.js` | Combat Rebuild Phase 1 step 1e-i: the player's basic attack vs playerAttackLegacy -- forced-roll unit parity (both damage branches, banked Defense, Siege Corps purity fix, Opening Reach/Borrowed Seconds/Feint, kill/non-kill reactions, gear multipliers), the "effect changed something" control check |
+| `phase1_step1e_ii_tactics_pipeline_parity.js` | Combat Rebuild Phase 1 step 1e-ii: Decoy/Ambush/Disarm vs their three kept oracles -- forced-roll unit parity and the asymmetries preserved on purpose (no riposteCounterOnPlayer/Arena Riposte, unconditional Opening Reach and on-hit effects, always-"physical" reporting even on a mage's hit). Feint is not migrated (no attack roll at all) |
 
 ## Adding a ledger
 
