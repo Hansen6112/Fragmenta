@@ -1,0 +1,70 @@
+range: d16e380fcd0f2460b04befe120ed922795bce6ac..e77247036f56c81c378b18e52f2fbce3f960f9e0
+=== e77247036f56c81c378b18e52f2fbce3f960f9e0 2026-11-09 19:16:36 +0000
+1e completion: action definitions for the 11 attack-shaped player actions
+Step 1e's own restructure matched today's results exactly, but HOW each
+action behaves was still written as action.id branches inside the five
+pipeline step functions (confirmed exactly 20 `action.id ===`/`!==`
+checks plus 3 more `.includes(action.id)` checks -- a naive audit regex
+on just `===`/`!==` would miss those 3). Adding a new skill meant editing
+combat code regardless of how similar it was to an existing one.
+
+This converts the 11 attack-shaped player actions (basic_attack, Decoy/
+Ambush/Disarm, the 7 pipelined elements) onto real action definitions:
+
+- js/data/actions.js: the schema (documented in its own header), the
+  PLAYER_ACTION_DEFS table (basic_attack -- the one action with no
+  existing data table), PIPELINE_HOOKS (the element on-hit effects:
+  burn/heal/corrode/stun/evasion/Flurry's second roll -- genuinely
+  bespoke per element, so each gets a named hook rather than a flag),
+  PIPELINE_FORMULAS (today's one player-side core formula, no new math),
+  and getActionDef(id) merging a table entry with its own `action` block.
+- js/data/tactics.js / js/data/elementabilities.js: each entry gets an
+  `action` block declaring its real behavior (openingReach, Siege Corps/
+  Borrowed Seconds/Feint eligibility, miss lines, flavor lines, on-hit-
+  effects form, follow-up form, ...) as data, not a branch.
+- js/engine/pipeline.js: rollToHitPlayerActor/calculateDamagePlayerActor/
+  applyAndReactPlayerActor now read ONLY these declared fields and named
+  hooks. Zero `action.id` checks remain in any of the three. The five
+  existing orchestrators (playerAttack/useDecoy/useAmbush/useDisarm/
+  useElementAbility) are untouched except for how they build the runtime
+  `action` object -- now `getActionDef(id)` merged with runtime-only
+  fields (isPhysical/activeElement/dmgMult), not a hardcoded literal.
+
+One real bug caught by this rewrite's own transcription, before it ever
+reached the test suite: Disarm's original order is multiply-by-0.7 THEN
+Opening Reach -- not interchangeable with my first draft's
+opening-Reach-then-multiply, since Math.round makes multiplication order
+non-associative. Fixed to match the original's order exactly (verified:
+reverting the fix doesn't currently fail the Layer 1 suite's own fixed
+rolls, since none of them happen to land where the two orders diverge --
+kept anyway, since it's strictly safer and matches the original by
+construction rather than by luck).
+
+Scope note: this is the first of several planned commits for the full
+"Step 1e Completion" handoff. The 5 orchestrator functions above are
+NOT yet unified into one generic resolver (still 5 separate functions,
+each building its own `action` object) -- that's next, alongside
+migrating Feint and the 6 Apothecary abilities (which have no pipeline
+shape at all -- buffs/heals/cleanses, not attacks) onto the same
+definitions. Ally/Hadrian-side action.kit/action.ability/ability.id
+branches, the test-strike proof, audit P2/P4, the field-ledger
+correction, and the §6 before/after tables are also still pending.
+
+Verified: full suite 356/356 (every scenario, including the Layer-1
+gap-fix checks added for f746464/d16e380, passes unchanged). Both Layer
+2 harnesses (boss_sweep, plus3_run) bit-for-bit identical to the
+pre-rewrite baseline. Sanity-break on fireOnHit's burn duration caught
+by the elements test (resultMatch stayed true since burn's own line
+text doesn't print its duration, but snapMatch correctly caught the
+state divergence) -- restored before this commit.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ index.html                  |   1 +
+ js/data/actions.js          | 189 +++++++++++++++++++++++++++++++++
+ js/data/elementabilities.js |  25 +++++
+ js/data/tactics.js          |  25 +++++
+ js/engine/pipeline.js       | 247 +++++++++++++++-----------------------------
+ 5 files changed, 325 insertions(+), 162 deletions(-)
