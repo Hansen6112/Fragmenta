@@ -126,7 +126,16 @@ function notYetMigrated(kind, key) {
 function stat(state, combatant, key) {
   if (combatant.kind === "player") {
     switch (key) {
-      case "atk": return effectivePlayerAtk(state);
+      // atk: peekPlayerAtk (combat.js), not effectivePlayerAtk -- step 1e
+      // handoff §3.2 purity fix. effectivePlayerAtk itself is unchanged
+      // and still consumes the Siege Corps one-shot charge on every call
+      // (every not-yet-migrated caller -- rollPlayerDamage, and
+      // everything that still calls it -- needs that); stat() is the
+      // NEW, generic accessor the pipeline uses, and reading a stat must
+      // never mutate state (this function's own hard rule) — the
+      // pipeline's applyAndReactPlayerActor (pipeline.js) is what
+      // actually spends the charge now, once, after a resolved hit.
+      case "atk": return peekPlayerAtk(state);
       case "def": return effectivePlayerDef(state);
       case "agi": return effectivePlayerAgility(state);
       case "acc": return effectivePlayerAccuracy(state);

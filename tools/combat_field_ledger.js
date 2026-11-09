@@ -53,11 +53,11 @@ const FILES = ["js/engine/combat.js", "js/engine/combatant.js", "js/engine/pipel
 // through it alone. The same removal happens for every other superseded
 // per-pair function as its own step lands.
 const FUNCTION_STEP = {
-  chooseAction: ["1b", "1c", "1d"],
-  chooseTargets: ["1b", "1c", "1d"],
-  rollToHit: ["1b", "1c", "1d"],
-  calculateDamage: ["1b", "1c", "1d"],
-  applyAndReact: ["1b", "1c", "1d"],
+  chooseAction: ["1b", "1c", "1d", "1e"],
+  chooseTargets: ["1b", "1c", "1d", "1e"],
+  rollToHit: ["1b", "1c", "1d", "1e"],
+  calculateDamage: ["1b", "1c", "1d", "1e"],
+  applyAndReact: ["1b", "1c", "1d", "1e"],
   resolveEnemyAttackOnPlayer: ["1b"],
   resolveEnemyAttackOnAlly: ["1c"],
   resolveCompanionAction: ["1d"],
@@ -70,6 +70,9 @@ const FUNCTION_STEP = {
   applyAndReactAllyActor: ["1d"],
   resolveHadrianActiveDamage: ["1d"],
   playerAttack: ["1e"],
+  rollToHitPlayerActor: ["1e"],
+  calculateDamagePlayerActor: ["1e"],
+  applyAndReactPlayerActor: ["1e"],
   rollPlayerDamage: ["1e"],
   useFeint: ["1e"],
   useDecoy: ["1e"],

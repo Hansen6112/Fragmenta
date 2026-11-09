@@ -128,6 +128,29 @@ const { chromium } = require('playwright');
       const after = stat(s, c, 'hp');
       return { pass: after === before - 10 && stat(s, c, 'maxHp') === s.maxHealth, before, after };
     });
+    // Step 1e handoff §3.2: effectivePlayerAtk's own Siege Corps charge
+    // consumption made stat(player, "atk") impure the moment stat()'s
+    // "atk" case started calling it directly in step 1a -- unnoticed
+    // until now, since nothing had called stat(player, "atk") more than
+    // once per hit, or for any reason other than resolving one. Fixed by
+    // routing stat() through peekPlayerAtk (combat.js) instead;
+    // effectivePlayerAtk itself is untouched, still consumed directly by
+    // every not-yet-migrated player action.
+    record('PARITY-PLAYER-07', 'stat(atk) peeks the Siege Corps one-shot charge without consuming it -- two reads see the same boosted value, and the charge survives both; effectivePlayerAtk (the legacy, still-consuming formula) produces the IDENTICAL number on its own first call, then actually spends it', () => {
+      const s = makeState(25);
+      startCombat(s, 'stoneback_beetle', 20);
+      s.combat.siegeCorpsAtkCharge = 2;
+      const c = makePlayerCombatant(s);
+      const first = stat(s, c, 'atk');
+      const second = stat(s, c, 'atk');
+      const chargeSurvivedBothReads = s.combat.siegeCorpsAtkCharge === 2;
+      const consumed = effectivePlayerAtk(s);
+      const chargeGoneAfterConsume = s.combat.siegeCorpsAtkCharge === 0;
+      return {
+        pass: first === second && chargeSurvivedBothReads && consumed === first && chargeGoneAfterConsume,
+        first, second, chargeSurvivedBothReads, consumed, chargeGoneAfterConsume,
+      };
+    });
 
     // ---- stat(): ally branch — only the already-centralized keys should work ----
     record('PARITY-ALLY-01', 'stat(spd) === effectiveAllySpeed for an ally, including a speed debuff', () => {

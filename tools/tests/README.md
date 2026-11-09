@@ -38,6 +38,7 @@ balance.
 | `d1_stun_fix_ledger.js` | Listed change D1 (9 Nov): a stunned enemy skips its whole action regardless of target/ability/summon, checked per action slot (including Flurry); Dregnar's own bespoke stun handling is unaffected |
 | `combat_unify_switches_ledger.js` | Handoff §2 (9 Nov) + step 1e §0 follow-up: COMBAT_UNIFY switches (U1/U2/U3a-g) in pipeline.js -- each one, forced on, changes something on a built-to-trigger scenario; off (the default) is covered by phase1_step1c_ally_pipeline_parity.js (U1-U3d) and phase1_step1d_ally_attack_pipeline_parity.js (U3e-g) still passing unchanged |
 | `phase1_step1d_ally_attack_pipeline_parity.js` | Combat Rebuild Phase 1 step 1d: the ally-to-enemy path (plain ally, Hadrian's basic fallback, and his Crushing Blow/Groundbreaker actives) vs their three kept oracles -- forced-roll unit parity, the "effect changed something" control check, and the Kessa/Hadrian asymmetries preserved on purpose |
+| `phase1_step1e_i_player_attack_pipeline_parity.js` | Combat Rebuild Phase 1 step 1e-i: the player's basic attack vs playerAttackLegacy -- forced-roll unit parity (both damage branches, banked Defense, Siege Corps purity fix, Opening Reach/Borrowed Seconds/Feint, kill/non-kill reactions, gear multipliers), the "effect changed something" control check |
 
 ## Adding a ledger
 

@@ -318,14 +318,12 @@ function effectivePlayerAccuracy(state) {
   const base = state.accuracy + playerStatusStatTotal(state, "acc") + playerBuffStatTotal(state, "acc");
   return Math.max(0, Math.round(base * dungeonTorchRationMultiplier(state, "accuracy") * sovereigntyMultiplier(state)));
 }
-function effectivePlayerAtk(state) {
-  // Same formula rollPlayerDamage's physical branch has always inlined —
-  // pulled out here so Dungeon Delve's rationless debuff (and anything
-  // else later) has one place to read/scale, rather than re-deriving it.
-  // Calls consumeSiegeCorpsAtkCharge exactly once, same as before this
-  // was extracted — its charge-consuming side effect must not fire twice
-  // in the same damage roll (see rollPlayerDamage, which now calls this
-  // once and reuses the result for crushMult/craftsmanMult too).
+// Shared core of effectivePlayerAtk/peekPlayerAtk below — every term
+// except the Siege Corps charge, which the two callers supply differently
+// (one consumes it, one peeks it). Splitting it out means the formula
+// itself can never drift between the two — same reasoning combatant.js's
+// stat()-purity rule exists for in the first place (step 1e handoff §3.2).
+function computeEffectivePlayerAtk(state, siegeCorpsTerm) {
   const combat = state.combat;
   const atkBuff = combat.atkBuffTurns > 0 ? combat.atkBuffAmount || 0 : 0;
   const everyChoiceAtk = combat.everyChoiceAtkStacks || 0;
@@ -334,7 +332,7 @@ function effectivePlayerAtk(state) {
   // stat points, so the sum goes through flatStat (PLAYER_STAT_SCALE).
   // atkBuff and playerBuffs are already scaled where they're granted.
   const flatStacks =
-    consumeSiegeCorpsAtkCharge(state) +
+    siegeCorpsTerm +
     perfectBalanceBonus(state) +
     (combat.lastStandAtkBonus || 0) +
     (combat.livingSteelBonus || 0) +
@@ -347,6 +345,40 @@ function effectivePlayerAtk(state) {
     (combat.avatarOfCreationAtkStacks || 0);
   const atk = state.atk + flatStat(flatStacks) + atkBuff + playerBuffStatTotal(state, "atk");
   return Math.round(atk * dungeonTorchRationMultiplier(state, "atk") * sovereigntyMultiplier(state));
+}
+function effectivePlayerAtk(state) {
+  // Same formula rollPlayerDamage's physical branch has always inlined —
+  // pulled out here so Dungeon Delve's rationless debuff (and anything
+  // else later) has one place to read/scale, rather than re-deriving it.
+  // Calls consumeSiegeCorpsAtkCharge exactly once, same as before this
+  // was extracted — its charge-consuming side effect must not fire twice
+  // in the same damage roll (see rollPlayerDamage, which now calls this
+  // once and reuses the result for crushMult/craftsmanMult too).
+  //
+  // UNCHANGED by the step 1e handoff §3.2 purity fix below — this is the
+  // function every not-yet-migrated player action (rollPlayerDamage, and
+  // everything that still calls it: Decoy/Ambush/Disarm/element abilities)
+  // keeps calling directly, so its consuming behavior must stay exactly
+  // as it's always been until each of those is migrated in turn.
+  return computeEffectivePlayerAtk(state, consumeSiegeCorpsAtkCharge(state));
+}
+// Pure twin of effectivePlayerAtk, for the new pipeline's own stat()
+// accessor (combatant.js) and the step 1e basic-attack path
+// (pipeline.js's calculateDamagePlayerActor): PEEKS the Siege Corps
+// charge instead of consuming it. Reading a stat must never mutate state
+// (combatant.js's hard rule) — effectivePlayerAtk violated that the
+// moment stat()'s "atk" case started calling it directly (unnoticed until
+// now, since nothing had yet called stat(player, "atk") more than once
+// per hit, or outside of resolving a hit at all). The pipeline's own
+// applyAndReactPlayerActor (step 5) is what actually spends the charge
+// now, once, after a physical hit resolves — see that function's own
+// comment in pipeline.js. Produces the IDENTICAL number as
+// effectivePlayerAtk on any single call (same formula, same charge value
+// read either way) — only WHEN the charge is spent moved, never what the
+// roll comes out to; phase1_step1a_combatant_ledger.js's PARITY-PLAYER-07
+// proves both halves of that directly.
+function peekPlayerAtk(state) {
+  return computeEffectivePlayerAtk(state, peekSiegeCorpsAtkCharge(state));
 }
 function effectivePlayerSpeedForInitiative(state) {
   const pct = playerStatusStatPctTotal(state, "spdPct");
@@ -1148,6 +1180,13 @@ function consumeSiegeCorpsAtkCharge(state) {
   if (!state.combat || !state.combat.siegeCorpsAtkCharge) return 0;
   state.combat.siegeCorpsAtkCharge = 0;
   return 2;
+}
+// Pure read of the same charge, for peekPlayerAtk (step 1e handoff §3.2)
+// — never zeroes it. The pipeline's applyAndReactPlayerActor calls
+// consumeSiegeCorpsAtkCharge above directly when it actually needs to
+// spend the charge; this one is for a stat() read that must not.
+function peekSiegeCorpsAtkCharge(state) {
+  return (state.combat && state.combat.siegeCorpsAtkCharge) ? 2 : 0;
 }
 
 // Foreseen Strike (Divine Regalia — Loom of Destinies): every 3rd action
@@ -7037,7 +7076,12 @@ Events.on("enemy.killed", ({ state }) => {
   }
 });
 
-function playerAttack(state) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1e-i): the real call site
+// (parser.js's "fight" verb) now calls playerAttack (js/engine/pipeline.js)
+// instead, which runs the same math through the five-step pipeline. Kept
+// here byte-identical as the Layer 1 parity oracle -- see
+// tools/tests/phase1_step1e_i_player_attack_pipeline_parity.js.
+function playerAttackLegacy(state) {
   if (!state.combat) return ["There's nothing here to fight."];
   let creature = getCombatCreature(state);
   if (creature.friendly) {
@@ -7137,6 +7181,7 @@ function playerAttack(state) {
   if (tl) out.push(tl);
   return checkReflectDeath(state, out);
 }
+
 
 // The player's own round when downed (resolvePlayerDefeatOrDowned) — no
 // player action at all, just the same beginTurn/resolveKill bookkeeping
