@@ -1,0 +1,80 @@
+range: 1b38ce419a47ca5fb09718a256f966feaf93a952..d8e0ceded6057f00d08af94ad3b23bd03399e34a
+=== d8e0ceded6057f00d08af94ad3b23bd03399e34a 2026-11-09 11:50:02 +0000
+Combat Rebuild Phase 1, step 1e-i: migrate the player's basic attack onto the pipeline
+playerAttack (combat.js) is kept as playerAttackLegacy (byte-identical,
+the Layer 1 parity oracle); the live call site (parser.js's "fight"
+verb) now resolves to a new pipeline-backed playerAttack (pipeline.js)
+that runs the attack roll/damage/application through the five-step
+pipeline. rollPlayerDamage/attackFlavorLine/critMultiplier themselves
+are UNCHANGED and still shared by every not-yet-migrated player action
+(Decoy/Ambush/Disarm/element abilities, steps 1e-ii/iii) --
+calculateDamagePlayerActor is its own copy of rollPlayerDamage's full
+formula, not a call to it, since it needs two things rollPlayerDamage
+eagerly consumes to instead be PEEKED in step 4 and consumed in step 5
+(stat()-purity, combatant.js's hard rule):
+
+- The enemy's banked Brace/Guarded Strike/Sure Foundation Defense bonus
+  -- same split 1d already made for the ally-attack path on this exact
+  creature object.
+- The player's own Attack stat (handoff §3.2's purity fix):
+  combatant.js's stat() dispatcher for player "atk" called
+  effectivePlayerAtk directly since step 1a, silently consuming a Siege
+  Corps one-shot +2 charge on every read -- an unnoticed stat()-purity
+  violation nothing had gone looking for until this step's own test
+  did. Fixed at the root: stat()'s "atk" case now calls peekPlayerAtk,
+  a pure twin sharing effectivePlayerAtk's own formula (factored out
+  into computeEffectivePlayerAtk) via a peeked charge instead of a
+  consumed one. effectivePlayerAtk itself is untouched -- every
+  not-yet-migrated player action still calls it directly and still
+  needs it to consume on every call.
+  phase1_step1a_combatant_ledger.js's new PARITY-PLAYER-07 proves two
+  reads through stat() see the identical, unconsumed charge, and that
+  effectivePlayerAtk's own (still-consuming) formula produces the
+  IDENTICAL number on its first call before finally spending it.
+
+One real discrepancy surfaced by this step's own Layer 2 check (not by
+Layer 1, which never exercises a mid-round retarget): playerAttackLegacy
+captures its `creature` reference ONCE, before resolveSpeedInitiative
+runs, and never refreshes it even though a faster enemy's pre-emptive
+strike can itself kill the active enemy and move state.combat.activeIndex
+on. Every stat read for the rest of that turn (Agility, Defense,
+dmgReduction, banked bonuses, passives, element) keeps reading the
+NOW-STALE creature, while the HP write and resolveKill go through
+state.combat's own live proxy -- "whichever enemy is active right now."
+A real, narrow, pre-existing engine quirk: a kill during the pre-emptive
+phase can make the player's own attack compute damage off one creature's
+defenses while the hit lands on a different one. My first draft built
+the pipeline's target combatant fresh (post-pre-emptive-phase), which
+read correctly instead -- an unintended fix, not a restructure, caught
+when the boss sweep stopped matching exactly (one cell, one point of
+average ally damage taken, isolated to a single seed via per-seed
+bisection). Reproduced the quirk deliberately: the orchestrator now
+builds a thin shim ("enemySlot") whose creatureObj is fixed to the
+stale `creature` while its mutable fields (hp/maxHp/lastDamageType)
+forward live to state.combat's own proxy -- bug-for-bug, not fixed here.
+
+Verification: 26 new forced-roll scenarios (both damage branches, the
+two peek/defer purity fixes with their own "effect changed something"
+controls, crit, Opening Reach/Borrowed Seconds/Feint, kill/non-kill
+reactions, gear multipliers), each confirmed to actually discriminate
+via two deliberate sanity breaks (reverted). Full suite: 298/298, audit
+0 errors. Field ledger: 148/148 still open (a pure control-flow
+restructure moves no fields; §3.3's 34-field move is separate, later
+work). Layer 2: boss sweep and the Dregnar/Arbitarius legal-party cells
+are an exact bit-for-bit match against step 1d's own baseline, after
+fixing the stale-creature regression above.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |  65 +++-
+ js/engine/combatant.js                             |  11 +-
+ js/engine/pipeline.js                              | 380 +++++++++++++++++++++
+ tools/combat_field_ledger.js                       |  13 +-
+ tools/combat_field_ledger.md                       |  72 ++--
+ tools/tests/README.md                              |   1 +
+ tools/tests/phase1_step1a_combatant_ledger.js      |  23 ++
+ ...hase1_step1e_i_player_attack_pipeline_parity.js | 262 ++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 9 files changed, 776 insertions(+), 52 deletions(-)

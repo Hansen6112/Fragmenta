@@ -1,0 +1,556 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index ba2b9a9..d91d2fd 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -318,14 +318,12 @@ function effectivePlayerAccuracy(state) {
+   const base = state.accuracy + playerStatusStatTotal(state, "acc") + playerBuffStatTotal(state, "acc");
+   return Math.max(0, Math.round(base * dungeonTorchRationMultiplier(state, "accuracy") * sovereigntyMultiplier(state)));
+ }
+-function effectivePlayerAtk(state) {
+-  // Same formula rollPlayerDamage's physical branch has always inlined —
+-  // pulled out here so Dungeon Delve's rationless debuff (and anything
+-  // else later) has one place to read/scale, rather than re-deriving it.
+-  // Calls consumeSiegeCorpsAtkCharge exactly once, same as before this
+-  // was extracted — its charge-consuming side effect must not fire twice
+-  // in the same damage roll (see rollPlayerDamage, which now calls this
+-  // once and reuses the result for crushMult/craftsmanMult too).
++// Shared core of effectivePlayerAtk/peekPlayerAtk below — every term
++// except the Siege Corps charge, which the two callers supply differently
++// (one consumes it, one peeks it). Splitting it out means the formula
++// itself can never drift between the two — same reasoning combatant.js's
++// stat()-purity rule exists for in the first place (step 1e handoff §3.2).
++function computeEffectivePlayerAtk(state, siegeCorpsTerm) {
+   const combat = state.combat;
+   const atkBuff = combat.atkBuffTurns > 0 ? combat.atkBuffAmount || 0 : 0;
+   const everyChoiceAtk = combat.everyChoiceAtkStacks || 0;
+@@ -334,7 +332,7 @@ function effectivePlayerAtk(state) {
+   // stat points, so the sum goes through flatStat (PLAYER_STAT_SCALE).
+   // atkBuff and playerBuffs are already scaled where they're granted.
+   const flatStacks =
+-    consumeSiegeCorpsAtkCharge(state) +
++    siegeCorpsTerm +
+     perfectBalanceBonus(state) +
+     (combat.lastStandAtkBonus || 0) +
+     (combat.livingSteelBonus || 0) +
+@@ -348,6 +346,40 @@ function effectivePlayerAtk(state) {
+   const atk = state.atk + flatStat(flatStacks) + atkBuff + playerBuffStatTotal(state, "atk");
+   return Math.round(atk * dungeonTorchRationMultiplier(state, "atk") * sovereigntyMultiplier(state));
+ }
++function effectivePlayerAtk(state) {
++  // Same formula rollPlayerDamage's physical branch has always inlined —
++  // pulled out here so Dungeon Delve's rationless debuff (and anything
++  // else later) has one place to read/scale, rather than re-deriving it.
++  // Calls consumeSiegeCorpsAtkCharge exactly once, same as before this
++  // was extracted — its charge-consuming side effect must not fire twice
++  // in the same damage roll (see rollPlayerDamage, which now calls this
++  // once and reuses the result for crushMult/craftsmanMult too).
++  //
++  // UNCHANGED by the step 1e handoff §3.2 purity fix below — this is the
++  // function every not-yet-migrated player action (rollPlayerDamage, and
++  // everything that still calls it: Decoy/Ambush/Disarm/element abilities)
++  // keeps calling directly, so its consuming behavior must stay exactly
++  // as it's always been until each of those is migrated in turn.
++  return computeEffectivePlayerAtk(state, consumeSiegeCorpsAtkCharge(state));
++}
++// Pure twin of effectivePlayerAtk, for the new pipeline's own stat()
++// accessor (combatant.js) and the step 1e basic-attack path
++// (pipeline.js's calculateDamagePlayerActor): PEEKS the Siege Corps
++// charge instead of consuming it. Reading a stat must never mutate state
++// (combatant.js's hard rule) — effectivePlayerAtk violated that the
++// moment stat()'s "atk" case started calling it directly (unnoticed until
++// now, since nothing had yet called stat(player, "atk") more than once
++// per hit, or outside of resolving a hit at all). The pipeline's own
++// applyAndReactPlayerActor (step 5) is what actually spends the charge
++// now, once, after a physical hit resolves — see that function's own
++// comment in pipeline.js. Produces the IDENTICAL number as
++// effectivePlayerAtk on any single call (same formula, same charge value
++// read either way) — only WHEN the charge is spent moved, never what the
++// roll comes out to; phase1_step1a_combatant_ledger.js's PARITY-PLAYER-07
++// proves both halves of that directly.
++function peekPlayerAtk(state) {
++  return computeEffectivePlayerAtk(state, peekSiegeCorpsAtkCharge(state));
++}
+ function effectivePlayerSpeedForInitiative(state) {
+   const pct = playerStatusStatPctTotal(state, "spdPct");
+   const base = state.speed + playerStatusStatTotal(state, "spd") + playerBuffStatTotal(state, "spd");
+@@ -1149,6 +1181,13 @@ function consumeSiegeCorpsAtkCharge(state) {
+   state.combat.siegeCorpsAtkCharge = 0;
+   return 2;
+ }
++// Pure read of the same charge, for peekPlayerAtk (step 1e handoff §3.2)
++// — never zeroes it. The pipeline's applyAndReactPlayerActor calls
++// consumeSiegeCorpsAtkCharge above directly when it actually needs to
++// spend the charge; this one is for a stat() read that must not.
++function peekSiegeCorpsAtkCharge(state) {
++  return (state.combat && state.combat.siegeCorpsAtkCharge) ? 2 : 0;
++}
+ 
+ // Foreseen Strike (Divine Regalia — Loom of Destinies): every 3rd action
+ // (any physical attack or elemental cast — shares combat.actionCounter,
+@@ -7037,7 +7076,12 @@ Events.on("enemy.killed", ({ state }) => {
+   }
+ });
+ 
+-function playerAttack(state) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1e-i): the real call site
++// (parser.js's "fight" verb) now calls playerAttack (js/engine/pipeline.js)
++// instead, which runs the same math through the five-step pipeline. Kept
++// here byte-identical as the Layer 1 parity oracle -- see
++// tools/tests/phase1_step1e_i_player_attack_pipeline_parity.js.
++function playerAttackLegacy(state) {
+   if (!state.combat) return ["There's nothing here to fight."];
+   let creature = getCombatCreature(state);
+   if (creature.friendly) {
+@@ -7138,6 +7182,7 @@ function playerAttack(state) {
+   return checkReflectDeath(state, out);
+ }
+ 
++
+ // The player's own round when downed (resolvePlayerDefeatOrDowned) — no
+ // player action at all, just the same beginTurn/resolveKill bookkeeping
+ // every other action function runs, then the FULL initiative order for
+diff --git a/js/engine/combatant.js b/js/engine/combatant.js
+index 141764b..9f9257e 100644
+--- a/js/engine/combatant.js
++++ b/js/engine/combatant.js
+@@ -126,7 +126,16 @@ function notYetMigrated(kind, key) {
+ function stat(state, combatant, key) {
+   if (combatant.kind === "player") {
+     switch (key) {
+-      case "atk": return effectivePlayerAtk(state);
++      // atk: peekPlayerAtk (combat.js), not effectivePlayerAtk -- step 1e
++      // handoff §3.2 purity fix. effectivePlayerAtk itself is unchanged
++      // and still consumes the Siege Corps one-shot charge on every call
++      // (every not-yet-migrated caller -- rollPlayerDamage, and
++      // everything that still calls it -- needs that); stat() is the
++      // NEW, generic accessor the pipeline uses, and reading a stat must
++      // never mutate state (this function's own hard rule) — the
++      // pipeline's applyAndReactPlayerActor (pipeline.js) is what
++      // actually spends the charge now, once, after a resolved hit.
++      case "atk": return peekPlayerAtk(state);
+       case "def": return effectivePlayerDef(state);
+       case "agi": return effectivePlayerAgility(state);
+       case "acc": return effectivePlayerAccuracy(state);
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index fa808b2..f59b844 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -193,6 +193,14 @@ function chooseAction(actor, ctx) {
+   // action once chosen (no ally stun exists), so this is always a plain
+   // pass-through.
+   if (actor.kind === "ally") return ctx.pendingAction;
++  // Step 1e-i: the player's turn. Same shape as the ally branch above —
++  // which action (basic attack today; tactics/elements/apothecary in
++  // 1e-ii/iii/iv) and which target were already decided by the
++  // orchestrator (playerAttack, combat.js) before the pipeline ever
++  // runs, mirroring resolveEnemyAction/resolveOneAllyAction's own
++  // convention. No mechanic stops a chosen player action once picked
++  // (unlike a stunned enemy), so this is always a plain pass-through.
++  if (actor.kind === "player") return ctx.pendingAction;
+   throw new Error(`chooseAction(): actor kind "${actor.kind}" is not migrated into the pipeline yet.`);
+ }
+ 
+@@ -214,6 +222,10 @@ function chooseTargets(actor, action, ctx) {
+   // with no separate hit roll, so it's applied in a loop around this
+   // single-target pipeline call instead — see resolveHadrianActiveDamage.
+   if (actor.kind === "ally" && ctx.target && ctx.target.kind === "enemy") return [ctx.target];
++  // Step 1e-i: the player's target (whichever enemy is currently active,
++  // state.combat.activeIndex) was already picked outside the pipeline by
++  // the orchestrator — same no-op shape as the ally branch above.
++  if (actor.kind === "player" && ctx.target && ctx.target.kind === "enemy") return [ctx.target];
+   throw new Error(`chooseTargets(): actor "${actor.kind}" -> target not migrated yet.`);
+ }
+ 
+@@ -223,6 +235,7 @@ function chooseTargets(actor, action, ctx) {
+ // result (a miss, or one of the several named full-negation effects).
+ function rollToHit(actor, target, action, ctx) {
+   if (actor.kind === "ally" && target.kind === "enemy") return rollToHitAllyActor(actor, target, action, ctx);
++  if (actor.kind === "player" && target.kind === "enemy") return rollToHitPlayerActor(actor, target, action, ctx);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+     throw new Error(`rollToHit(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+   }
+@@ -336,6 +349,7 @@ function rollToHit(actor, target, action, ctx) {
+ // mitigateAndApplyHitOnPlayer in the original.
+ function calculateDamage(actor, target, action, ctx, hitInfo) {
+   if (actor.kind === "ally" && target.kind === "enemy") return calculateDamageAllyActor(actor, target, action, ctx, hitInfo);
++  if (actor.kind === "player" && target.kind === "enemy") return calculateDamagePlayerActor(actor, target, action, ctx, hitInfo);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+     throw new Error(`calculateDamage(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+   }
+@@ -559,6 +573,7 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+ // this is the only place state.health changes for this path.
+ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+   if (actor.kind === "ally" && target.kind === "enemy") return applyAndReactAllyActor(actor, target, dmgInfo, ctx, action);
++  if (actor.kind === "player" && target.kind === "enemy") return applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+     throw new Error(`applyAndReact(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+   }
+@@ -1038,3 +1053,368 @@ function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veter
+   const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+   return { lines: result.lines, hit: true, killedPrimary: result.killedPrimary, baseAtk: result.baseAtk, splashAtkMult: result.splashAtkMult };
+ }
++
++/*
++ * ---- Step 1e-i: player attacking an enemy (the basic attack) ----
++ *
++ * The first of four sub-steps moving the player's own actions onto the
++ * pipeline (spec §4's ordering: basic attack first, since every other
++ * player action's damage math builds on rollPlayerDamage's own formula).
++ * Only playerAttack (combat.js) is migrated here — Decoy/Ambush/Disarm/
++ * element abilities/apothecary abilities (1e-ii/iii/iv) all still call
++ * the ORIGINAL, untouched rollPlayerDamage/attackFlavorLine/
++ * critMultiplier directly; this section does not touch any of those
++ * three shared functions, and does not rename or alter them. playerAttack
++ * itself is kept as playerAttackLegacy (combat.js, byte-identical, the
++ * Layer 1 parity oracle) — the live call site (parser.js's "fight" verb)
++ * now resolves to the pipeline-backed definition below.
++ *
++ * calculateDamagePlayerActor is its OWN copy of rollPlayerDamage's full
++ * formula (both branches, every multiplier, in the same order, calling
++ * the same helper functions) — NOT a call to the shared rollPlayerDamage,
++ * because that function eagerly consumes two things this pipeline must
++ * instead PEEK in step 4 and consume in step 5 (stat()-purity,
++ * combatant.js's hard rule):
++ *
++ *   - The enemy's banked Brace/Guarded Strike/Sure Foundation Defense
++ *     bonus — same split 1d already made for the ally-attack path on
++ *     this exact creature object (see pipeline.js's step-1d header).
++ *     Brace/Guarded Strike are peeked and added to the pure
++ *     stat(state, target, "def") in step 4; zeroed in step 5,
++ *     unconditionally (spell or physical), matching rollPlayerDamage's
++ *     own original timing exactly. Sure Foundation is peeked the same
++ *     way, added to effDef ONLY in the physical branch (it's physical-
++ *     only, "magic bypasses it" — rollPlayerDamage's own comment), and
++ *     its zero + immediate re-grant (if the enemy still wears
++ *     dra_e05_sure_foundation) also moves to step 5, gated on the SAME
++ *     physical-branch flag — a magic hit still never touches it, exactly
++ *     as before.
++ *   - The player's own Attack stat (step 1e handoff §3.2): rollPlayerDamage's
++ *     physical branch reads it via effectivePlayerAtk(state), which
++ *     consumes a Siege Corps one-shot +2 charge as a side effect of the
++ *     read. combatant.js's stat() dispatcher for player "atk" already
++ *     called effectivePlayerAtk directly (since step 1a) — an unnoticed
++ *     stat()-purity violation, since nothing had yet called stat(player,
++ *     "atk") more than once, or for anything but resolving one hit, until
++ *     this step's own test (phase1_step1a_combatant_ledger.js's
++ *     PARITY-PLAYER-07) went looking. Fixed at the root: stat()'s "atk"
++ *     case now calls peekPlayerAtk (combat.js), a pure twin that PEEKS
++ *     the charge via peekSiegeCorpsAtkCharge instead of consuming it.
++ *     effectivePlayerAtk ITSELF is untouched — still consumes on every
++ *     call, exactly as before — because every not-yet-migrated player
++ *     action still calls it directly and must keep doing so unchanged.
++ *     This pipeline's own calculateDamagePlayerActor reads
++ *     stat(state, actor, "atk") (now pure); applyAndReactPlayerActor
++ *     (step 5) calls consumeSiegeCorpsAtkCharge(state) directly, once,
++ *     only when the physical branch actually ran — the SAME one-shot
++ *     spend rollPlayerDamage's single effectivePlayerAtk call always
++ *     produced, just moved one pipeline step later. Nothing re-reads the
++ *     charge in between, so the roll's own number is provably identical
++ *     either way — PARITY-PLAYER-07 checks exactly that.
++ *
++ * Every OTHER mutation inside rollPlayerDamage's body (Tempered Steel's
++ * stack growth, Momentum/Worthy Challenge stacks, Blessing of Fortune's
++ * crit-chance stacks, Avatar of Chaos's random stat bump, Avatar of
++ * War/Passing's silent heals, Soul Leech's heal, the Enemy Ability
++ * Engine's flat reduction + onHitTaken reflect/status/counter passives,
++ * sangCuDefenderMitigation's own cooldown/used-flag consumption, the
++ * per-enemy hitsTakenFromPlayer counter, Avatar of Creation's permanent
++ * stat stacks) is copied into calculateDamagePlayerActor UNCHANGED, at
++ * the exact same point, mutating the exact same fields — none of these
++ * are read through stat() or have an existing peek/defer precedent (the
++ * closest analog, sangCuDefenderMitigation, is ALREADY called eagerly
++ * inline in calculateDamageAllyActor's own plain-ally branch, step 1d —
++ * so leaving these inline here is consistent, not a shortcut). Moving
++ * WHEN only the two items above happen is the full, deliberate scope of
++ * this step's purity fix; nothing else about rollPlayerDamage's timing
++ * changes.
++ *
++ * applyOpeningReach/borrowedSecondsActive/the Feint nextAttackBonus
++ * check (playerAttack's own post-rollPlayerDamage modifiers, applied to
++ * the returned dmg before the HP write) move into calculateDamagePlayerActor
++ * too, in their original order, immediately after the rollPlayerDamage-
++ * equivalent block — they're part of computing the FINAL damage number,
++ * which step 4 owns. The Feint flag's own zeroing stays inline (not
++ * deferred): it isn't Defense-shaped, and nothing establishes a
++ * precedent for splitting it. Its "Your feint pays off —" line is
++ * threaded through dmgInfo.feintBonusApplied for applyAndReactPlayerActor
++ * to prepend, since calculateDamage doesn't build lines directly anywhere
++ * in this file.
++ */
++function rollToHitPlayerActor(actor, target, action, ctx) {
++  const state = ctx.state;
++  const enemySlot = target.store;
++  const creature = enemySlot.creatureObj;
++  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
++    return {
++      hit: false,
++      result: {
++        lines: [`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`, ...riposteCounterOnPlayer(state, creature)],
++        damage: null,
++      },
++    };
++  }
++  return { hit: true };
++}
++
++function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
++  const state = ctx.state;
++  const enemySlot = target.store;
++  const creature = enemySlot.creatureObj;
++  const { isPhysical, activeElement } = action;
++
++  // ---- rollPlayerDamage's own body (combat.js), copied -- see this
++  // section's header for exactly what moved and what didn't. ----
++  const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
++  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
++  // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
++  // this section's header. Consumption moves to applyAndReactPlayerActor
++  // (step 5).
++  const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
++  const sureFoundationDef = creature.sureFoundationBonusDef || 0;
++  const execMult = executionerMultiplier(state);
++  const dragonMult = dragonslayerMultiplier(state, creature);
++  const bleedMult = bleedExploitationMultiplier(state);
++  const kingMult = kingslayerMultiplier(state, creature);
++  const instinctMult = huntersInstinctMultiplier(state);
++  const momentumMult = momentumMultiplier(state);
++  const executionMult = executionProtocolMultiplier(state);
++  const echoMult = temporalEchoMultiplier(state);
++  const foreseenDefMult = foreseenStrikeDefMultiplier(state);
++  const isSpell = !!(state.flags.isMage && state.primaryElement);
++  const critMult = critMultiplier(state, isSpell);
++  const threadsMult = state.combat && state.combat.threadsOfConsequencePending ? 1.4 : 1;
++  const stonesPatienceMult = state.combat && state.combat.enemyActedFirstThisRound && hasEffect(state, "stones_patience") ? 1.3 : 1;
++  const worthyMult = worthyChallengeMultiplier(state);
++  const valorMult = blessingOfValorMultiplier(state);
++  const commandingDefMult = commandingPresenceDefMultiplier(state);
++  const loadedDiceMult = loadedDiceMultiplier(state);
++  const chaosMult = avatarOfChaosDamageMultiplier(state);
++  const momentumUnboundMult = momentumUnboundMultiplier(state);
++  const temperedSteelMult = temperedSteelMultiplier(state);
++  const avatarOfTimeMult = state.combat && state.combat.avatarOfTimeTurns > 0 ? 1.25 : 1;
++  let dmg;
++  if (isSpell) {
++    const magic = effectiveMagic(state);
++    let base = randInt(magic - 2, magic + 2);
++    if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
++    const multiplier = 1 + magic / 60;
++    const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
++    const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
++    const overflowMult = arcaneOverflowMultiplier(state);
++    const spellPower = base * multiplier;
++    const preMitigation = Math.round(mitigate(spellPower, effDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
++    dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
++    if (state.combat.avatarOfCreationTurns > 0) {
++      state.combat.avatarOfCreationMagicStacks = (state.combat.avatarOfCreationMagicStacks || 0) + 2;
++    }
++  } else {
++    const armorCrack = armorCrackAmount(state);
++    const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus + sureFoundationDef - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
++    // atk: peeked via stat() (pure) -- see this section's header on the
++    // Siege Corps purity fix. Produces the identical number as
++    // effectivePlayerAtk would have on this same single read.
++    const atk = stat(state, actor, "atk");
++    const crushBase = crushingImpactMultiplier(state);
++    const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
++    const craftsmanMult = hasEffect(state, "master_craftsman") ? masterCraftsmanMultiplier(atk, creature) : 1;
++    const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), effDef);
++    state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
++    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
++    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0)) * sangMit));
++    if (state.combat.avatarOfCreationTurns > 0) {
++      state.combat.avatarOfCreationAtkStacks = (state.combat.avatarOfCreationAtkStacks || 0) + 2;
++    }
++  }
++  if (hasEffect(state, "tempered_steel")) {
++    state.combat.temperedSteelStacks = Math.min(15, (state.combat.temperedSteelStacks || 0) + 1);
++  }
++  state.combat.threadsOfConsequencePending = false;
++  state.combat.enemyActedFirstThisRound = false;
++  if (hasEffect(state, "momentum")) {
++    state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
++  }
++  if (hasEffect(state, "worthy_challenge")) {
++    state.combat.worthyChallengeStacks = Math.min(10, (state.combat.worthyChallengeStacks || 0) + 1);
++  }
++  if (critMult > 1) {
++    if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
++      state.combat.blessingOfFortuneCritStacks = Math.min(5, (state.combat.blessingOfFortuneCritStacks || 0) + 1);
++    }
++    if (state.combat.avatarOfChaosTurns > 0) {
++      const statName = ["Atk", "Def", "Magic", "Knowledge"][Math.floor(Math.random() * 4)];
++      const field = "avatarOfChaos" + statName + "Bonus";
++      state.combat[field] = Math.min(30, (state.combat[field] || 0) + 10);
++    }
++  }
++  if (state.combat && state.combat.avatarOfWarTurns > 0) {
++    applyHeal(state, Math.round(dmg * 0.1));
++  }
++  if (hasEffect(state, "soul_leech") && state.health < state.maxHealth) {
++    const leechPct = masterOfArmsDoubles(state, "soul_leech") ? 0.2 : 0.1;
++    const leech = Math.round(dmg * leechPct);
++    applyHeal(state, leech);
++  }
++  if (state.combat && state.combat.avatarOfPassingTurns > 0) {
++    applyHeal(state, Math.round(dmg * 0.3));
++  }
++  if (state.combat && creature.passives && creature.passives.length) {
++    dmg = applyEnemyFlatDamageReduction(dmg, creature);
++    applyEnemyOnHitTakenPassives(state, creature, dmg);
++  }
++  if (state.combat) state.combat.hitsTakenFromPlayer = (state.combat.hitsTakenFromPlayer || 0) + 1;
++
++  // ---- playerAttack's own post-rollPlayerDamage modifiers (combat.js) ----
++  if (isPhysical) dmg = applyOpeningReach(state, dmg);
++  if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
++  let feintBonusApplied = false;
++  if (state.combat.nextAttackBonus) {
++    const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
++    dmg = Math.round(dmg * feintMult);
++    state.combat.nextAttackBonus = false;
++    feintBonusApplied = true;
++  }
++
++  return { shortCircuit: false, edmg: dmg, kind: "enemy", isPhysical, feintBonusApplied };
++}
++
++function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
++  const state = ctx.state;
++  const enemySlot = target.store;
++  const creature = enemySlot.creatureObj;
++  const edmg = dmgInfo.edmg;
++  const isPhysical = dmgInfo.isPhysical;
++
++  // Siege Corps atk charge (step 1e handoff §3.2 purity fix): peeked in
++  // step 4 via stat(state, actor, "atk") -- consumed here, once, only
++  // when the physical branch actually read it (effectivePlayerAtk, which
++  // this charge used to ride through, is only ever called from the
++  // physical branch — see this section's own header).
++  if (isPhysical) consumeSiegeCorpsAtkCharge(state);
++
++  // Brace/Guarded Strike/Sure Foundation: consumed here -- see this
++  // section's own header for why (stat()-purity, same split 1d made for
++  // the ally-attack path on this exact creature object).
++  creature.braceBonusDef = 0;
++  creature.guardedStrikeBonusDef = 0;
++  if (isPhysical) {
++    creature.sureFoundationBonusDef = 0;
++    creature.sureFoundationBonusDefTurnsLeft = 0;
++    if (hasEffect(creature, "dra_e05_sure_foundation")) {
++      creature.sureFoundationBonusDef = 2;
++      creature.sureFoundationBonusDefTurnsLeft = 2;
++    }
++  }
++
++  enemySlot.hp -= edmg;
++  enemySlot.lastDamageType = isPhysical ? "physical" : action.activeElement;
++  const lines = [];
++  if (dmgInfo.feintBonusApplied) lines.push("Your feint pays off —");
++  lines.push(attackFlavorLine(state, creature, edmg, action.activeElement));
++
++  // No "&& enemySlot.alive" guard here, unlike the ally-actor branches
++  // above -- playerAttackLegacy's own kill check is the bare
++  // `state.combat.hp <= 0`, and enemySlot here is the stale-creature
++  // shim built in the orchestrator (see playerAttack's own comment),
++  // which has no independent .alive tracking of its own to check.
++  if (enemySlot.hp <= 0) {
++    lines.push(...resolveKill(state, creature));
++    return { lines, damage: edmg, killed: true, isPhysicalHit: isPhysical };
++  }
++  if (isPhysical) lines.push(...applyPhysicalOnHitEffects(state, creature));
++  if (edmg > 0) lines.push(...arenaRiposteCounterOnPlayer(state, creature));
++  return { lines, damage: edmg, killed: false, isPhysicalHit: isPhysical };
++}
++
++// ---- Orchestrator: the player's basic attack (combat.js's "fight" verb,
++// step 1e-i). Everything NOT part of the five-step pipeline itself (turn
++// bookkeeping, speed initiative, action-type tracking, the rest of the
++// round's initiative order, low-health/evasion/Riposte checks, the
++// tactics line, Reflect Death) stays exactly where playerAttackLegacy had
++// it — only the attack roll/damage/application in the middle is now
++// pipeline-driven. See this file's own step 1e-i header, above, for what
++// moved into calculateDamagePlayerActor and why.
++function playerAttack(state) {
++  if (!state.combat) return ["There's nothing here to fight."];
++  let creature = getCombatCreature(state);
++  if (creature.friendly) {
++    return [`${withThe(creature.name, true)} has done you no harm. Attacking it seems both unwise and unkind.`];
++  }
++
++  const out = beginTurn(state);
++  if (!state.combat) return out;
++  state.combat.turnTaken = true;
++  if (state.combat.hp <= 0) {
++    out.push(...resolveKill(state, creature));
++    if (!state.combat || state.health <= 0) return out;
++    creature = getCombatCreature(state);
++  }
++  out.push(...resolveSpeedInitiative(state, creature));
++  if (!state.combat || state.health <= 0) return out;
++  out.push(...applyEndlessStudy(state, "attack"), ...applyWanderersReward(state, "attack"), ...applyActionTypeTracking(state, "attack"));
++
++  const isPhysical = !(state.flags.isMage && state.primaryElement);
++  const activeElement = isPhysical ? null : pickElement(state);
++
++  // `creature` is deliberately NOT re-fetched here, even though
++  // resolveSpeedInitiative just above can itself kill the active enemy
++  // (a faster enemy's pre-emptive strike provoking a companion's own
++  // retaliation, say) and move state.combat.activeIndex on —
++  // playerAttackLegacy's own behavior, exactly: every stat read below
++  // (Agility, Defense, dmgReduction, banked Defense bonuses, passives,
++  // element) reads off THIS creature reference, while the HP write and
++  // resolveKill (inside applyAndReactPlayerActor) go through
++  // state.combat's own live proxy, which always means "whichever enemy
++  // is active right now" — so a kill during the pre-emptive phase can
++  // make this attack's own damage math read one creature's defenses
++  // while the hit actually lands on a different one. A real, narrow,
++  // pre-existing engine quirk, confirmed by diffing a Layer 2 sweep cell
++  // against step 1d's own baseline during this step's own verification
++  // — not something this step's pure restructure is allowed to fix
++  // (that would be a real behavior change, not a restructure); flagged
++  // here and in the step's own report instead of silently corrected.
++  // enemySlot below is a thin shim, NOT a real per-fight record: its
++  // creatureObj is fixed to this same stale `creature`, while its
++  // mutable fields (hp/maxHp/lastDamageType) forward to state.combat's
++  // own proxy, reproducing exactly which parts of the original read
++  // stale and which stay live.
++  const enemySlot = {
++    creatureObj: creature,
++    get hp() { return state.combat.hp; },
++    set hp(v) { state.combat.hp = v; },
++    get maxHp() { return state.combat.maxHp; },
++    get lastDamageType() { return state.combat.lastDamageType; },
++    set lastDamageType(v) { state.combat.lastDamageType = v; },
++  };
++  const actor = makePlayerCombatant(state);
++  const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
++  const action = { id: "basic_attack", isPhysical, activeElement };
++  const ctx = { state, pendingAction: action, target };
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++
++  let isPhysicalHit = false;
++  if (!hitInfo.hit) {
++    out.push(...hitInfo.result.lines);
++  } else {
++    const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++    const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++    out.push(...result.lines);
++    isPhysicalHit = result.isPhysicalHit;
++    if (result.killed) {
++      if (!state.combat || state.health <= 0) return out;
++      creature = getCombatCreature(state);
++    }
++  }
++
++  const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
++  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
++  out.push(...retaliation.lines);
++  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
++  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
++  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
++  const tl = tacticsLine(state);
++  if (tl) out.push(tl);
++  return checkReflectDeath(state, out);
++}
