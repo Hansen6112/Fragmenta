@@ -1,0 +1,568 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 2c192da..ba2b9a9 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -3763,7 +3763,13 @@ function sangCuDefenderMitigation(creature) {
+   }
+   return mult;
+ }
+-function allyAggressiveAction(state, ally) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1d): the real call site
++// (resolveOneAllyAction, above) now calls allyAggressiveAction
++// (js/engine/pipeline.js) instead, which runs this exact same logic
++// through the five-step pipeline. This copy is kept, unchanged, only as
++// the step 1d forced-roll parity oracle — delete it in step 1h alongside
++// the other superseded per-pair functions.
++function allyAggressiveActionLegacy(state, ally) {
+   const combat = state.combat;
+   const target = combat.enemies[combat.activeIndex];
+   if (!target || !target.alive) return [];
+diff --git a/js/engine/combatant.js b/js/engine/combatant.js
+index 3338e9d..141764b 100644
+--- a/js/engine/combatant.js
++++ b/js/engine/combatant.js
+@@ -150,13 +150,21 @@ function stat(state, combatant, key) {
+       // this file.
+       case "def": return effectiveAllyDef(ally);
+       case "agi": return effectiveAllyAgility(ally);
++      // atk/acc: centralized in step 1d, the step that reaches the
++      // plain-ally (no abilityKit) attack call site
++      // (allyAggressiveActionLegacy's old body, now pipeline.js). This is
++      // ONLY the plain-ally formula — a kit-bearing ally's own attack/
++      // accuracy (companion.js's basicCompanionAttack/useHadrianActive)
++      // stays a separate, kit-specific calculation the pipeline's ally-
++      // actor branches call directly, never through stat() — see
++      // effectiveAllyAtk's own comment (companion.js) for why unifying
++      // them would be an undisclosed balance change.
++      case "atk": return effectiveAllyAtk(ally);
++      case "acc": return effectiveAllyAcc(ally);
+       case "magic": return ally.magic;
+       case "knowledge": return ally.knowledge;
+       case "maxHp": return ally.maxHealth;
+       case "hp": return ally.health;
+-      // atk/acc: still computed inline at each ally ATTACK call site
+-      // today (allyAggressiveAction, companion.js's basicCompanionAttack),
+-      // not centralized. Migrated in 1d, the step that reaches those.
+       default: return notYetMigrated("ally", key);
+     }
+   }
+@@ -170,9 +178,18 @@ function stat(state, combatant, key) {
+       case "magic": return creature.magic;
+       case "maxHp": return combatant.ref.maxHp;
+       case "hp": return combatant.ref.hp;
+-      // def: see header — read as creature.def + whatever banked bonuses
+-      // are live, inline at each attacker's call site, with those bonuses
+-      // consumed (zeroed) as a side effect of that one hit. Migrated in 1d/1e.
++      // def: the PURE part only (creature.def, no banked bonus) — step
++      // 1d. Brace/Guarded Strike/Sure Foundation's live banked bonus is
++      // read SEPARATELY at the pipeline's ally-actor calculateDamage call
++      // site (pipeline.js), summed with this value, exactly like the
++      // ally-as-target branch already does for ally.braceBonusDef/
++      // guardedStrikeBonusDef (step 1c) — never folded in here, per the
++      // stat()-purity rule. The actual one-shot zeroing (+ Sure
++      // Foundation's immediate re-grant) happens once, in applyAndReact
++      // (step 5), moved there from allyAggressiveActionLegacy's old
++      // pre-damage-calc timing — see pipeline.js's own comment on why
++      // that reorder is safe.
++      case "def": return creature.def || 0;
+       default: return notYetMigrated("enemy", key);
+     }
+   }
+diff --git a/js/engine/companion.js b/js/engine/companion.js
+index d8bdf4d..944252f 100644
+--- a/js/engine/companion.js
++++ b/js/engine/companion.js
+@@ -272,6 +272,27 @@ function effectiveAllyAgility(ally) {
+   return Math.max(0, Math.round(base * (1 + pct)));
+ }
+ 
++// Extracted from allyAggressiveActionLegacy's own inline calc (Combat
++// Rebuild Phase 1, step 1d) — zero behavior change, same shape as
++// effectiveAllyAgility above. This is the PLAIN-ally (no abilityKit —
++// Kessa today) formula only. A kit-bearing ally's own attack/accuracy
++// (basicCompanionAttack/useHadrianActive) use a DIFFERENT, kit-specific
++// formula today (ally.atk + hadrianFlatAtkBonus(ally), and a three-
++// argument attackConnects call with veteranBonusPct) that never included
++// allyBuffStatTotal/allyStatusStatTotal/atkPct at all — folding those in
++// for a kit-bearing ally would be an undisclosed balance change, not a
++// Phase 1 reshuffle, so stat()'s ally "atk"/"acc" cases (combatant.js)
++// call THIS function unconditionally; the pipeline's ally-actor branches
++// (pipeline.js) only reach it via stat() on the no-kit path and keep the
++// kit path's own formula fully separate and inline, same as before.
++function effectiveAllyAtk(ally) {
++  const base = ally.atk + allyBuffStatTotal(ally, "atk") + allyStatusStatTotal(ally, "atk");
++  return Math.max(0, Math.round(base * (1 + allyStatusStatPctTotal(ally, "atkPct"))));
++}
++function effectiveAllyAcc(ally) {
++  return ally.accuracy + allyBuffStatTotal(ally, "acc") + allyStatusStatTotal(ally, "acc");
++}
++
+ // Buffs given to an ally — either a crafted potion out of combat
+ // (engine/combat.js's applyConsumableEffectToAlly) or an Apothecary
+ // ability cast on them mid-fight (useApothecaryAbility). ally.buffs lives
+@@ -410,10 +431,20 @@ function resolveCompanionAction(state, ally) {
+   return basicCompanionAttack(state, ally, enemies);
+ }
+ 
+-// Fallback when nothing is off cooldown — the same plain-attack formula
+-// allyAggressiveAction already uses for Kessa, targeting the same
+-// highest-tier/closest-to-death enemy Hadrian's kit always prefers.
+-function basicCompanionAttack(state, ally, enemies) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1d): the real call site
++// (resolveCompanionAction, above) now calls basicCompanionAttack
++// (js/engine/pipeline.js) instead, which runs this exact same logic
++// through the five-step pipeline. This copy is kept, unchanged, only as
++// the step 1d forced-roll parity oracle — delete it in step 1h.
++//
++// Fallback when nothing is off cooldown — NOT the same formula as
++// allyAggressiveAction/Kessa despite the similar shape: no banked-
++// Defense consumption (Brace/Guarded Strike/Sure Foundation), no
++// Opening Reach/Executioner multiplier, and a miss here never provokes
++// the enemy's own Riposte the way Kessa's does. A real, pre-existing
++// asymmetry between the two ally-attack shapes, preserved exactly — see
++// tools/combat_asymmetry_register.md.
++function basicCompanionAttackLegacy(state, ally, enemies) {
+   const kit = ALLY_DEFS[ally.defId].abilityKit;
+   const target = pickHadrianTarget(enemies);
+   if (!attackConnects(ally.accuracy, target.creatureObj.agi, veteranBonusPct(ally, kit))) {
+@@ -446,10 +477,15 @@ function killEnemyAsAlly(state, target) {
+   return lines;
+ }
+ 
+-// Executes one of Hadrian's Active abilities — damage math, cooldowns,
+-// and the handful of stateful side effects (taunt windows, Empowered
+-// Strike, self-heal/cleanse) his kit actually needs.
+-function useHadrianActive(state, ally, kit, ability, enemies) {
++// PARTIALLY SUPERSEDED (Combat Rebuild Phase 1, step 1d): kept, byte-
++// identical to the live useHadrianActive below as of 1d landing, ONLY
++// as the forced-roll parity oracle for that function's Crushing Blow/
++// Groundbreaker direct-damage tail — the taunt/heal/ultimate branches
++// above it were never migrated (they deal no damage, so they're outside
++// the pipeline's scope) and the live function still runs that same code
++// unchanged; only its damage tail now calls resolveHadrianActiveDamage
++// (js/engine/pipeline.js) instead. Delete this copy in step 1h.
++function useHadrianActiveLegacy(state, ally, kit, ability, enemies) {
+   // "The Unbroken Champion" 4pc: abilities used while Defensive or
+   // Support have their cooldown reduced by 1 turn.
+   const cdrActive = hasAscendedRegalia(ally) && (ally.stance === "defensive" || ally.stance === "support");
+@@ -478,14 +514,6 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
+   if (ability.id === "unyielding_advance") {
+     const healAmount = Math.round(ally.maxHealth * ability.healPct);
+     ally.health = Math.min(ally.maxHealth, ally.health + healAmount);
+-    // "Removes all negative status effects" is a no-op here — no ally
+-    // status system exists yet (see file header) — deliberately NOT
+-    // clearing ally.passiveOnceFlags, which gates once-per-combat safety
+-    // nets (Champion's Resolve, Honor Beyond Death, ...) rather than
+-    // anything resembling a negative status; clearing it would let
+-    // those re-trigger mid-fight, which isn't the intent.
+-    // Champion's Grip (ascended Gauntlets): Empowered Strike's bonus
+-    // rises from +30% to +45%.
+     ally.empoweredStrikePct = hasAscendedRegalia(ally) ? ability.empoweredStrikePct + 0.15 : ability.empoweredStrikePct;
+     ally.empoweredStrikeTurnsLeft = ability.empoweredStrikeTurns;
+     lines.push(`${ally.name} plants his maul and steadies himself, mending for ${healAmount} health.`);
+@@ -542,6 +570,92 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
+   return lines;
+ }
+ 
++// Executes one of Hadrian's Active abilities — damage math, cooldowns,
++// and the handful of stateful side effects (taunt windows, Empowered
++// Strike, self-heal/cleanse) his kit actually needs.
++function useHadrianActive(state, ally, kit, ability, enemies) {
++  // "The Unbroken Champion" 4pc: abilities used while Defensive or
++  // Support have their cooldown reduced by 1 turn.
++  const cdrActive = hasAscendedRegalia(ally) && (ally.stance === "defensive" || ally.stance === "support");
++  // Feinting Edge/Tactical Memory, generalized (see resolveEnemyActiveAbility
++  // in engine/combat.js for the fuller comment): the same proportional -1
++  // equivalent, for a companion's own kit cooldowns.
++  let hadrianCooldown = Math.max(0, ability.cooldown - (cdrActive ? 1 : 0));
++  if (hadrianCooldown && hasEffect(ally, "feinting_edge")) hadrianCooldown = Math.max(0, hadrianCooldown - 1);
++  if (hadrianCooldown && !ally.tacticalMemoryUsed && hasEffect(ally, "tactical_memory") && Math.random() < 0.2) {
++    ally.tacticalMemoryUsed = true;
++    hadrianCooldown = Math.max(0, hadrianCooldown - 1);
++  }
++  ally.abilityCooldowns[ability.id] = hadrianCooldown;
++  const lines = [];
++  const veteranPct = veteranBonusPct(ally, kit);
++
++  if (ability.id === "shielding_presence" || ability.id === "champions_challenge" || ability.id === "last_bastion") {
++    ally.tauntTurnsLeft = ability.tauntTurns;
++    if (ability.dmgReductionPct) { ally.dmgReductionPct = ability.dmgReductionPct; ally.dmgReductionTurnsLeft = ability.dmgReductionTurns; }
++    if (ability.bonusDef) { ally.bonusDefAmount = ability.bonusDef; ally.bonusDefTurnsLeft = ability.bonusDefTurns; }
++    if (ability.retaliatePct) { ally.retaliatePct = ability.retaliatePct; ally.retaliateTurnsLeft = ability.retaliateTurns; }
++    lines.push(`${ally.name} plants himself between the party and the fight, daring every enemy present to come through him instead.`);
++    return lines;
++  }
++
++  if (ability.id === "unyielding_advance") {
++    const healAmount = Math.round(ally.maxHealth * ability.healPct);
++    ally.health = Math.min(ally.maxHealth, ally.health + healAmount);
++    // "Removes all negative status effects" is a no-op here — no ally
++    // status system exists yet (see file header) — deliberately NOT
++    // clearing ally.passiveOnceFlags, which gates once-per-combat safety
++    // nets (Champion's Resolve, Honor Beyond Death, ...) rather than
++    // anything resembling a negative status; clearing it would let
++    // those re-trigger mid-fight, which isn't the intent.
++    // Champion's Grip (ascended Gauntlets): Empowered Strike's bonus
++    // rises from +30% to +45%.
++    ally.empoweredStrikePct = hasAscendedRegalia(ally) ? ability.empoweredStrikePct + 0.15 : ability.empoweredStrikePct;
++    ally.empoweredStrikeTurnsLeft = ability.empoweredStrikeTurns;
++    lines.push(`${ally.name} plants his maul and steadies himself, mending for ${healAmount} health.`);
++    return lines;
++  }
++
++  if (ability.id === "arena_incarnate") {
++    ally.ultimateTurnsLeft = ability.ultimateTurns;
++    ally.ultimateAtkPct = ability.ultimateAtkPct;
++    ally.ultimateDefPct = ability.ultimateDefPct;
++    lines.push(`${ally.name} plants his feet — for a moment he fights like the Ovum's undefeated Champion all over again.`);
++    return lines;
++  }
++
++  // Crushing Blow / Groundbreaker — direct damage. Moved onto the
++  // pipeline (Combat Rebuild Phase 1, step 1d): resolveHadrianActiveDamage
++  // (pipeline.js) runs the PRIMARY target through chooseAction->
++  // applyAndReact. Splash stays here, unchanged — it reuses the primary
++  // hit's own baseAtk/splashAtkMult (no separate hit roll of its own),
++  // so it isn't a second pipeline target; see pipeline.js's chooseTargets
++  // comment for why.
++  const ascended = hasAscendedRegalia(ally);
++  const target = pickHadrianTarget(enemies);
++  const primary = resolveHadrianActiveDamage(state, ally, kit, ability, target, veteranPct, ascended);
++  lines.push(...primary.lines);
++  if (!primary.hit) return lines;
++
++  let killedAny = primary.killedPrimary;
++  if (ability.splashAll) {
++    for (const e of enemies) {
++      if (e === target || !e.alive) continue;
++      let splashDmg = Math.max(1, Math.round(mitigate(primary.baseAtk * primary.splashAtkMult, e.creatureObj.def))); // v0.11 shared ratio mitigation
++      splashDmg = applyHadrianOutgoingDamageBonuses(ally, splashDmg, e.creatureObj);
++      e.hp -= splashDmg;
++      e.lastDamageType = "physical";
++      lines.push(`The blow's shockwave catches ${withThe(e.creatureObj.name, false)} for ${splashDmg} damage.`);
++      if (ability.accuracyDebuff) applyGroundbreakerAccuracyDebuff(state, e, ability.accuracyDebuff, ability.accuracyDebuffTurns);
++      if (e.hp <= 0 && e.alive) { lines.push(...killEnemyAsAlly(state, e)); killedAny = true; }
++    }
++    if (ability.accuracyDebuff && target.alive) applyGroundbreakerAccuracyDebuff(state, target, ability.accuracyDebuff, ability.accuracyDebuffTurns);
++  }
++
++  if (killedAny) onHadrianKill(state, ally, kit);
++  return lines;
++}
++
+ // On any kill Hadrian lands, by any means (an Active, his basic fallback
+ // attack, or Last Bastion's retaliation): Bloodbound Paragon (Section
+ // 8.4) as before, plus Paid in Blood (ascended Sash passive) — +1 Attack
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index f2106f1..e8c3eb1 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -166,6 +166,15 @@ function chooseAction(actor, ctx) {
+     }
+     return ctx.pendingAction;
+   }
++  // Step 1d: an ally's turn. Whether to attack at all, which stance/kit
++  // action to use, and who to target are ALL decided outside the
++  // pipeline today (resolveOneAllyAction's stance dispatch, or
++  // resolveCompanionAction's own AI tree for a kit-bearing ally) — same
++  // shape as resolveEnemyAction deciding the enemy's ability/target
++  // before ever calling the pipeline. No ally-side mechanic stops an
++  // action once chosen (no ally stun exists), so this is always a plain
++  // pass-through.
++  if (actor.kind === "ally") return ctx.pendingAction;
+   throw new Error(`chooseAction(): actor kind "${actor.kind}" is not migrated into the pipeline yet.`);
+ }
+ 
+@@ -179,6 +188,14 @@ function chooseTargets(actor, action, ctx) {
+   if (actor.kind === "enemy" && ctx.target && (ctx.target.kind === "player" || ctx.target.kind === "ally")) {
+     return [ctx.target];
+   }
++  // Step 1d: the ally's target was already picked outside the pipeline
++  // (combat.activeIndex for a plain ally, pickHadrianTarget for a kit-
++  // bearing one) — same no-op shape as the enemy branch above. Splash
++  // damage to OTHER enemies (Groundbreaker) is NOT a second pipeline
++  // target: it reuses the primary hit's own already-computed baseAtk
++  // with no separate hit roll, so it's applied in a loop around this
++  // single-target pipeline call instead — see resolveHadrianActiveDamage.
++  if (actor.kind === "ally" && ctx.target && ctx.target.kind === "enemy") return [ctx.target];
+   throw new Error(`chooseTargets(): actor "${actor.kind}" -> target not migrated yet.`);
+ }
+ 
+@@ -187,6 +204,7 @@ function chooseTargets(actor, action, ctx) {
+ // { hit: false, result: {lines, damage} } to short-circuit with a final
+ // result (a miss, or one of the several named full-negation effects).
+ function rollToHit(actor, target, action, ctx) {
++  if (actor.kind === "ally" && target.kind === "enemy") return rollToHitAllyActor(actor, target, action, ctx);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+     throw new Error(`rollToHit(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+   }
+@@ -299,6 +317,7 @@ function rollToHit(actor, target, action, ctx) {
+ // matching exactly where resolveEnemyRetaliation called
+ // mitigateAndApplyHitOnPlayer in the original.
+ function calculateDamage(actor, target, action, ctx, hitInfo) {
++  if (actor.kind === "ally" && target.kind === "enemy") return calculateDamageAllyActor(actor, target, action, ctx, hitInfo);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+     throw new Error(`calculateDamage(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+   }
+@@ -521,6 +540,7 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+ // the original (so every mutation below reads the POST-mitigation edmg) —
+ // this is the only place state.health changes for this path.
+ function applyAndReact(actor, target, dmgInfo, ctx, action) {
++  if (actor.kind === "ally" && target.kind === "enemy") return applyAndReactAllyActor(actor, target, dmgInfo, ctx, action);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+     throw new Error(`applyAndReact(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
+   }
+@@ -707,3 +727,253 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
+ 
+   return applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+ }
++
++/*
++ * ---- Step 1d: ally attacking an enemy ----
++ *
++ * Two structurally DIFFERENT shapes share the actor.kind === "ally"
++ * dispatch below, distinguished by action.kit (null for a plain ally —
++ * Kessa today — or the kit object for a kit-bearing one — Hadrian):
++ *
++ *   - Plain ally: allyAggressiveActionLegacy's (combat.js) own formula,
++ *     moved here verbatim — banked enemy-Defense consumption (Brace/
++ *     Guarded Strike/Sure Foundation), Opening Reach/Executioner
++ *     multipliers, sangCuDefenderMitigation, and a miss provoking the
++ *     enemy's own Riposte (riposteCounterByEnemyOnAlly).
++ *   - Kit-bearing ally: basicCompanionAttackLegacy's fallback swing
++ *     (action.ability === null) and useHadrianActive's Crushing Blow/
++ *     Groundbreaker direct-damage branch (action.ability set), both
++ *     moved here from companion.js. Neither has ANY of the five things
++ *     the plain-ally path has above — not Opening Reach, not banked-
++ *     Defense, not sangCuDefenderMitigation, not Riposte-on-miss. A
++ *     real, pre-existing asymmetry between the two ally-attack shapes,
++ *     preserved exactly rather than unified — see
++ *     tools/combat_asymmetry_register.md.
++ *
++ * Enemy Defense, stat()-purity (combatant.js's hard rule): stat(state,
++ * target, "def") returns the PURE creature.def only. The plain-ally
++ * path's banked bonus (Brace/Guarded Strike/Sure Foundation) is summed
++ * in separately in calculateDamageAllyActor by PEEKING the three fields
++ * (reading, not zeroing) — allyAggressiveActionLegacy used to zero them
++ * (and immediately re-grant Sure Foundation if the enemy still wears it)
++ * BEFORE computing damage; that one-shot consumption now happens once,
++ * in applyAndReactAllyActor (step 5), after the damage number that used
++ * the peeked value has already been computed. Nothing re-reads the
++ * fields in between, so the computed number is identical either way —
++ * only WHEN the mutation happens moved, not what it produces.
++ *
++ * Ally atk/acc, same purity rule: the plain-ally path's stat(state,
++ * actor, "atk"/"acc") calls effectiveAllyAtk/effectiveAllyAcc
++ * (companion.js) — pure extracts of allyAggressiveActionLegacy's own
++ * inline calc, zero behavior change. The kit-bearing path's atk/acc
++ * (ally.atk + hadrianFlatAtkBonus(ally); ally.accuracy, raw) is a
++ * SEPARATE, kit-specific formula that never went through
++ * allyBuffStatTotal/allyStatusStatTotal/atkPct at all — kept fully
++ * inline here rather than routed through stat(), same reasoning as
++ * effectiveAllyAtk's own header comment.
++ */
++function rollToHitAllyActor(actor, target, action, ctx) {
++  const state = ctx.state;
++  const ally = actor.ref;
++  const enemySlot = target.store;
++  const creature = enemySlot.creatureObj;
++
++  if (action.kit) {
++    if (!attackConnects(ally.accuracy, creature.agi, action.veteranPct)) {
++      // basicCompanionAttackLegacy's miss line (no ability) vs
++      // useHadrianActive's (a named active) — genuinely different text,
++      // and neither provokes riposteCounterByEnemyOnAlly the way the
++      // plain-ally miss below does.
++      const missLine = action.ability
++        ? `${ally.name} swings ${action.ability.name} and misses.`
++        : `${ally.name} lunges at ${withThe(creature.name, false)} and misses.`;
++      return { hit: false, result: { lines: [missLine], damage: null } };
++    }
++    return { hit: true };
++  }
++
++  const allyAcc = stat(state, actor, "acc");
++  if (!attackConnects(allyAcc, creature.agi)) {
++    return { hit: false, result: { lines: [`${ally.name} lunges at ${withThe(creature.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, enemySlot, ally)], damage: null } };
++  }
++  return { hit: true };
++}
++
++function calculateDamageAllyActor(actor, target, action, ctx, hitInfo) {
++  const state = ctx.state;
++  const ally = actor.ref;
++  const enemySlot = target.store;
++  const creature = enemySlot.creatureObj;
++
++  if (action.kit) {
++    if (!action.ability) {
++      // basicCompanionAttackLegacy.
++      const atk = ally.atk + hadrianFlatAtkBonus(ally);
++      let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), stat(state, target, "def"))));
++      edmg = applyHadrianOutgoingDamageBonuses(ally, edmg, creature);
++      return { shortCircuit: false, edmg, kind: "ally" };
++    }
++    // Crushing Blow / Groundbreaker — useHadrianActive's direct-damage
++    // branch. Empowered Strike is a one-shot ATTACKER resource (not
++    // enemy Defense), consumed here on a successful hit exactly where
++    // the original consumed it — same convention 1b/1c already use for
++    // e.g. Unbroken Grip/Decisive Impact's own "Used" flags.
++    const ability = action.ability;
++    const atkBonus = 1 + (ally.ultimateTurnsLeft > 0 ? ally.ultimateAtkPct : 0);
++    const empowered = ability.consumesEmpoweredStrike && ally.empoweredStrikeTurnsLeft > 0;
++    const empoweredMult = empowered ? 1 + ally.empoweredStrikePct : 1;
++    if (empowered) { ally.empoweredStrikePct = 0; ally.empoweredStrikeTurnsLeft = 0; }
++    const baseAtk = (ally.atk + hadrianFlatAtkBonus(ally)) * atkBonus * empoweredMult;
++    // Unbroken Momentum (ascended Maul): Crushing Blow's Defense-ignore
++    // rises from 20% to 30%; Groundbreaker's splash rises from 60% to 75%.
++    const defIgnore = (ability.defIgnorePct || 0) + (action.ascended && ability.id === "crushing_blow" ? 0.1 : 0);
++    const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (action.ascended ? 0.15 : 0) : 0;
++    let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, stat(state, target, "def") * (1 - defIgnore))));
++    edmg = applyHadrianOutgoingDamageBonuses(ally, edmg, creature);
++    // baseAtk/splashAtkMult ride along for resolveHadrianActiveDamage's
++    // caller (useHadrianActive) to apply Groundbreaker's splash with —
++    // see this file's header on why splash isn't a second pipeline target.
++    return { shortCircuit: false, edmg, kind: "ally", baseAtk, splashAtkMult };
++  }
++
++  // Plain ally (no kit) — allyAggressiveActionLegacy.
++  const allyAtk = stat(state, actor, "atk");
++  const reduction = 1 - (creature.dmgReduction || 0);
++  // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed — see
++  // this file's header. The actual zero + Sure Foundation re-grant moved
++  // to applyAndReactAllyActor (step 5).
++  const bankedDef = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0);
++  const effectiveDef = stat(state, target, "def") + bankedDef;
++  const sangMit = sangCuDefenderMitigation(creature);
++  let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), effectiveDef) * reduction * sangMit)); // v0.11 shared ratio mitigation
++  edmg = applyOpeningReachForActor(ally, edmg);
++  edmg = Math.round(edmg * executionerMultiplierFor(ally, enemySlot.hp, enemySlot.maxHp));
++  return { shortCircuit: false, edmg, kind: "ally" };
++}
++
++function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
++  const state = ctx.state;
++  const ally = actor.ref;
++  const enemySlot = target.store;
++  const creature = enemySlot.creatureObj;
++  let edmg = dmgInfo.edmg;
++
++  if (action.kit) {
++    const kit = action.kit;
++    enemySlot.hp -= edmg;
++    enemySlot.lastDamageType = "physical";
++    const lines = action.ability
++      ? [`${ally.name} lands ${action.ability.name} on ${withThe(creature.name, false)} for ${edmg} damage.`]
++      : [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
++    let killed = false;
++    if (enemySlot.hp <= 0 && enemySlot.alive) {
++      lines.push(...killEnemyAsAlly(state, enemySlot));
++      killed = true;
++    }
++    if (!action.ability) {
++      // basicCompanionAttackLegacy: onHadrianKill fires right away, no
++      // splash to wait on.
++      if (killed) onHadrianKill(state, ally, kit);
++      return { lines, damage: null };
++    }
++    // Crushing Blow/Groundbreaker: onHadrianKill fires once, AFTER
++    // splash — resolveHadrianActiveDamage's caller (useHadrianActive)
++    // collects "killed" across primary + splash and fires it there, not
++    // here, same as the original's single killedAny flag.
++    return { lines, damage: null, killedPrimary: killed, baseAtk: dmgInfo.baseAtk, splashAtkMult: dmgInfo.splashAtkMult };
++  }
++
++  // Plain ally (no kit) — allyAggressiveActionLegacy.
++  // Brace/Guarded Strike/Sure Foundation ON THE ENEMY: the one-shot
++  // zero + Sure Foundation's immediate re-grant — see this file's header.
++  creature.braceBonusDef = 0;
++  creature.guardedStrikeBonusDef = 0;
++  creature.sureFoundationBonusDef = 0;
++  creature.sureFoundationBonusDefTurnsLeft = 0;
++  if (hasEffect(creature, "dra_e05_sure_foundation")) {
++    creature.sureFoundationBonusDef = 2;
++    creature.sureFoundationBonusDefTurnsLeft = 2;
++  }
++  enemySlot.hp -= edmg;
++  enemySlot.lastDamageType = "physical";
++  const lines = [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
++  // Guarded Strike ON THE ALLY ITSELF: banks +2 Defense against whatever
++  // hits this ally next — unconditional (no edmg > 0 guard in the
++  // original, unlike the enemy/ally-as-target versions elsewhere in
++  // this file).
++  if (hasEffect(ally, "guarded_strike")) ally.guardedStrikeBonusDef = 2;
++  if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, creature));
++  return { lines, damage: null };
++}
++
++// ---- Orchestrator: a plain ally (no abilityKit — Kessa today)
++// attacking the active enemy. Same signature/return shape as the old
++// allyAggressiveAction (now allyAggressiveActionLegacy in combat.js), so
++// the one real call site (resolveOneAllyAction, combat.js) keeps calling
++// allyAggressiveAction(state, ally) by name, unchanged.
++function allyAggressiveAction(state, ally) {
++  const combat = state.combat;
++  const enemySlot = combat.enemies[combat.activeIndex];
++  if (!enemySlot || !enemySlot.alive) return [];
++  const actor = makeAllyCombatant(ally);
++  const target = makeEnemyCombatant(state, enemySlot, combat.activeIndex);
++  const action = { kit: null, ability: null };
++  const ctx = { state, pendingAction: action, target };
++
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) return hitInfo.result.lines;
++
++  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  return result.lines;
++}
++
++// ---- Orchestrator: a kit-bearing ally's (Hadrian's) fallback basic
++// attack, when nothing in the kit is off cooldown. Same signature/return
++// shape as the old basicCompanionAttack (now basicCompanionAttackLegacy
++// in companion.js), so the one real call site (resolveCompanionAction)
++// keeps calling basicCompanionAttack(state, ally, enemies) unchanged.
++function basicCompanionAttack(state, ally, enemies) {
++  const kit = ALLY_DEFS[ally.defId].abilityKit;
++  const targetSlot = pickHadrianTarget(enemies);
++  const actor = makeAllyCombatant(ally);
++  const target = makeEnemyCombatant(state, targetSlot, state.combat.enemies.indexOf(targetSlot));
++  const action = { kit, ability: null, veteranPct: veteranBonusPct(ally, kit) };
++  const ctx = { state, pendingAction: action, target };
++
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) return hitInfo.result.lines;
++
++  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  return result.lines;
++}
++
++// ---- Orchestrator: the PRIMARY target only of one of Hadrian's direct-
++// damage Actives (Crushing Blow/Groundbreaker). Called from
++// useHadrianActive (companion.js) after its own hit-roll-independent
++// setup (cooldowns, taunts, self-buffs — none of which reach here).
++// Groundbreaker's splash damage to every OTHER alive enemy reuses this
++// call's own baseAtk/splashAtkMult (no separate hit roll — see this
++// file's chooseTargets comment), so useHadrianActive applies splash
++// itself, in its own loop, using the values returned here, rather than
++// this function looping over every enemy.
++function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veteranPct, ascended) {
++  const actor = makeAllyCombatant(ally);
++  const target = makeEnemyCombatant(state, targetSlot, state.combat.enemies.indexOf(targetSlot));
++  const action = { kit, ability, veteranPct, ascended };
++  const ctx = { state, pendingAction: action, target };
++
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) return { lines: hitInfo.result.lines, hit: false };
++
++  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  return { lines: result.lines, hit: true, killedPrimary: result.killedPrimary, baseAtk: result.baseAtk, splashAtkMult: result.splashAtkMult };
++}

@@ -1,0 +1,107 @@
+range: 3bf5d0d5f824368f696bf33ce4d63eb3663fa545..d61baddd9f6fd5caa7f4b187ecfb382f28993b30
+=== d61baddd9f6fd5caa7f4b187ecfb382f28993b30 2026-11-09 09:55:22 +0000
+Combat Rebuild Phase 1, step 1d: migrate ally-attacks-enemy onto the pipeline
+Moves the ally-to-enemy damage path onto the five-step pipeline
+(chooseAction/chooseTargets/rollToHit/calculateDamage/applyAndReact),
+same shape steps 1b/1c used for the enemy-side paths. Two structurally
+different shapes share the new actor.kind === "ally" branches:
+
+  - allyAggressiveActionLegacy (combat.js) -> allyAggressiveAction
+    (pipeline.js): the plain-ally path (Kessa today) -- banked enemy-
+    Defense consumption (Brace/Guarded Strike/Sure Foundation), Opening
+    Reach/Executioner multipliers, sangCuDefenderMitigation, and a miss
+    provoking the enemy's own Riposte (riposteCounterByEnemyOnAlly).
+  - basicCompanionAttackLegacy (companion.js) -> basicCompanionAttack
+    (pipeline.js): a kit-bearing ally's fallback swing.
+  - useHadrianActiveLegacy's Crushing Blow/Groundbreaker direct-damage
+    tail -> resolveHadrianActiveDamage (pipeline.js), called from the
+    live useHadrianActive (companion.js) for the PRIMARY target only;
+    Groundbreaker's splash stays in useHadrianActive's own loop, reusing
+    the primary hit's baseAtk/splashAtkMult (no separate hit roll of its
+    own, so it isn't a second pipeline target). useHadrianActive's
+    taunt/heal/ultimate branches are untouched -- they deal no damage,
+    so they're outside the pipeline's scope -- but re-verified against
+    useHadrianActiveLegacy anyway for regression safety since both got a
+    large edit in this same commit.
+
+Confirmed while reading the code line by line, NOT assumed: Hadrian's
+two shapes have NONE of Kessa's five extras above -- no banked-Defense
+read, no Opening Reach, no sangCuDefenderMitigation, no Riposte-on-miss.
+A real, pre-existing asymmetry between the two ally-attack shapes,
+preserved exactly rather than unified -- documented in pipeline.js's own
+header; out of scope for tools/combat_asymmetry_register.md, which is
+specifically about the enemy-attacks-player vs enemy-attacks-ally axis,
+not this one.
+
+stat() (combatant.js), per the stat()-purity hard rule:
+  - ally "atk"/"acc": centralized via new effectiveAllyAtk/
+    effectiveAllyAcc (companion.js) -- pure extracts of
+    allyAggressiveActionLegacy's own inline calc, zero behavior change.
+    This is ONLY the plain-ally formula; a kit-bearing ally's atk/acc
+    (ally.atk + hadrianFlatAtkBonus(ally); raw ally.accuracy) never went
+    through allyBuffStatTotal/allyStatusStatTotal/atkPct at all, so it
+    stays a separate, kit-specific calculation inline in the pipeline's
+    ally-actor branches -- folding it into stat() would have silently
+    added buffs/statuses to Hadrian's attack that never applied before.
+  - enemy "def": centralized as the PURE creature.def only, no banked
+    bonus. allyAggressiveActionLegacy used to zero Brace/Guarded Strike/
+    Sure Foundation's banked Defense (and immediately re-grant Sure
+    Foundation if the enemy still wears it) BEFORE computing damage;
+    that one-shot consumption now happens once, in applyAndReactAllyActor
+    (step 5), after calculateDamage has already used the PEEKED value --
+    nothing re-reads the fields in between, so the computed number is
+    identical either way. This was possible to do cleanly, so it was
+    done, per the handoff's own instruction -- no behavior-change
+    exception needed here, unlike U1's matchup gap.
+
+Verification:
+  - Layer 1: tools/tests/phase1_step1d_ally_attack_pipeline_parity.js,
+    30 forced-roll scenarios across all three shapes (Kessa/Hadrian-
+    basic/Hadrian-active, including Groundbreaker's splash and a splash-
+    only kill), each against its own kept oracle, with the "effect
+    changed something" control check. One snapshot-comparison false
+    alarm fixed along the way: the enemy-Defense reorder above changes
+    WHEN two fields (Brace/Guarded Strike's bank) get their first write
+    on the creature object, which a plain JSON.stringify read as a
+    mismatch even though every value was identical -- fixed by sorting
+    object keys before comparing, not by changing the reorder.
+  - phase1_step1a_combatant_ledger.js: NOTYET-ALLY-ATK/NOTYET-ENEMY-DEF
+    (asserted stat() still threw for these two keys) are exactly what
+    this step was always going to end -- replaced with PARITY-ALLY-03/
+    PARITY-ENEMY-03, confirming the real values (and, for enemy def,
+    that a live banked bonus is deliberately excluded).
+  - Full suite: 268/268 (node tools/tests/run_all.js). audit: 0 errors.
+  - Layer 2: exact bit-for-bit match on both the boss sweep (32 cells)
+    and the Dregnar/Arbitarius legal-party baselines (12 cells,
+    Hadrian+Kessa both in the party composition) against the post-§2
+    snapshot -- zero win-rate movement, a real result here since both
+    ally-attack shapes are genuinely exercised by these sims.
+
+Field ledger: regenerated. Still 148/148 tracked fields open (this was a
+control-flow migration, not a field move) -- the shared pipeline
+functions (chooseAction etc.) now also show "1d" in their touched-by
+list, which pulls every field THOSE FUNCTIONS reference (across all
+three target branches) into 1d's closure too, same mechanical
+consequence 1c's own extension had on 1b's fields -- not a new issue.
+
+Not done here, flagged for the next report: a dedicated coverage table
+of ally-attack effect checks vs scenarios (the phase1_step1b-style ask)
+was not built as a separate deliverable; the scenario list above and
+the file's own header stand in for it. Say if a formal table is still
+wanted before 1e.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |   8 +-
+ js/engine/combatant.js                             |  29 ++-
+ js/engine/companion.js                             | 146 +++++++++--
+ js/engine/pipeline.js                              | 270 ++++++++++++++++++++
+ tools/combat_field_ledger.js                       |  14 +-
+ tools/combat_field_ledger.md                       |  52 ++--
+ tools/tests/README.md                              |   1 +
+ tools/tests/phase1_step1a_combatant_ledger.js      |  39 +--
+ .../phase1_step1d_ally_attack_pipeline_parity.js   | 276 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 10 files changed, 768 insertions(+), 68 deletions(-)
