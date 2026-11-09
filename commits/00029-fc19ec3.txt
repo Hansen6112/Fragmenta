@@ -1,0 +1,36 @@
+range: c5e4193327569923afaea1f05f11d7eb76113e3c..fc19ec335a907b2535b2a04eaa79ca78ba355415
+=== fc19ec335a907b2535b2a04eaa79ca78ba355415 2026-11-09 14:51:42 +0000
+1e §3.1 + §3.4: coverage table + shared-resolver proof
+§3.1: tools/combat_1e_coverage.md maps every inline hasEffect/hasSetTier
+check (plus the bare state.combat flag gates that work the same way)
+inside the five pipeline functions and five orchestrators step 1e built
+or touched, to the exact Layer 1 scenario(s) whose `effects`/`sets` setup
+actually stubs it -- confirmed against each test file's own setup, not
+assumed from a scenario's name. 18 named checks (mostly Divine Regalia/
+Legendary/Mythic stacking buffs and useElementAbility's own cooldown-
+economy chain, all inside code relocated verbatim from
+rollPlayerDamage/useElementAbilityLegacy) have no dedicated scenario --
+flagged explicitly as a pre-existing coverage gap step 1e didn't
+introduce and didn't close, not a new risk, same disclosure convention
+tools/combat_asymmetry_register.md already uses.
+
+§3.4: ran a throwaway proof (not committed -- lived in the session
+scratchpad, not this repo) that pipeline.js's five generic, actor-kind-
+dispatched step functions (chooseAction/chooseTargets/rollToHit/
+calculateDamage/applyAndReact) correctly resolve a brand-new action.id
+("test_strike", never special-cased anywhere) through to
+rollToHitPlayerActor/calculateDamagePlayerActor/applyAndReactPlayerActor
+and apply a correctly-computed hit, with zero changes to any of those
+five functions. Surfaced one real, disclosed gap along the way:
+rollToHitPlayerActor's per-action missLines lookup has no fallback entry,
+so an unrecognized action.id that misses throws when its (undefined)
+lines are spread -- harmless for every action this step actually
+migrated (each has its own missLines entry) but worth fixing before any
+later step adds a new player action id without one.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_1e_coverage.md | 152 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 152 insertions(+)
