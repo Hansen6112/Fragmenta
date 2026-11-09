@@ -144,16 +144,23 @@ const { chromium } = require('playwright');
       const c = makeAllyCombatant(ally);
       return { pass: stat(s, c, 'hp') === ally.health && stat(s, c, 'maxHp') === ally.maxHealth };
     });
-    record('NOTYET-ALLY-ATK', 'stat(atk) for an ally throws a clear "not yet migrated" error, not a wrong silent value', () => {
+    // NOTYET-ALLY-ATK used to live here, asserting stat(atk) for an ally
+    // threw "not centralized yet" -- superseded, step 1d: atk/acc are
+    // now centralized (effectiveAllyAtk/effectiveAllyAcc, companion.js),
+    // for the plain-ally formula only (see those functions' own header
+    // on why a kit-bearing ally's atk/acc stay separate and inline,
+    // never routed through stat()).
+    record('PARITY-ALLY-03', 'stat(atk)/stat(acc) === effectiveAllyAtk/effectiveAllyAcc for a plain ally, including a crafted-potion buff and a status debuff', () => {
       const s = makeState(25);
       const ally = addAlly(s);
+      ally.buffs = { atk: { amount: 3, turns: 2 } };
+      ally.statuses = { weakened: { name: 'Weakened', debuff: { acc: -2 }, turnsLeft: 2 } };
       const c = makeAllyCombatant(ally);
-      try {
-        stat(s, c, 'atk');
-        return { pass: false, reason: 'did not throw' };
-      } catch (e) {
-        return { pass: /not centralized yet/.test(e.message), message: e.message };
-      }
+      return {
+        pass: stat(s, c, 'atk') === effectiveAllyAtk(ally) && stat(s, c, 'acc') === effectiveAllyAcc(ally),
+        atkStatVal: stat(s, c, 'atk'), atkDirect: effectiveAllyAtk(ally),
+        accStatVal: stat(s, c, 'acc'), accDirect: effectiveAllyAcc(ally),
+      };
     });
 
     // ---- stat(): enemy branch ----
@@ -174,17 +181,21 @@ const { chromium } = require('playwright');
       const c = makeEnemyCombatant(s, slot, 0);
       return { pass: stat(s, c, 'hp') === slot.hp && stat(s, c, 'maxHp') === slot.maxHp };
     });
-    record('NOTYET-ENEMY-DEF', 'stat(def) for an enemy throws a clear "not yet migrated" error, not a wrong silent value', () => {
+    // NOTYET-ENEMY-DEF used to live here, asserting stat(def) for an
+    // enemy threw "not centralized yet" -- superseded, step 1d: def is
+    // now centralized, but as the PURE value only (creature.def, no
+    // banked Brace/Guarded Strike/Sure Foundation bonus) -- the
+    // stat()-purity rule means a banked bonus is summed in separately at
+    // the pipeline's own call site (pipeline.js), never inside stat()
+    // itself. This test proves BOTH: the pure value is right, AND a
+    // live banked bonus is deliberately excluded from it.
+    record('PARITY-ENEMY-03', 'stat(def) === creature.def exactly, excluding a live banked Brace bonus on purpose (stat()-purity rule)', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
       const slot = s.combat.enemies[0];
+      slot.creatureObj.braceBonusDef = 3;
       const c = makeEnemyCombatant(s, slot, 0);
-      try {
-        stat(s, c, 'def');
-        return { pass: false, reason: 'did not throw' };
-      } catch (e) {
-        return { pass: /not centralized yet/.test(e.message), message: e.message };
-      }
+      return { pass: stat(s, c, 'def') === slot.creatureObj.def && stat(s, c, 'def') !== slot.creatureObj.def + 3, statVal: stat(s, c, 'def'), creatureDef: slot.creatureObj.def };
     });
 
     return ledger;

@@ -150,13 +150,21 @@ function stat(state, combatant, key) {
       // this file.
       case "def": return effectiveAllyDef(ally);
       case "agi": return effectiveAllyAgility(ally);
+      // atk/acc: centralized in step 1d, the step that reaches the
+      // plain-ally (no abilityKit) attack call site
+      // (allyAggressiveActionLegacy's old body, now pipeline.js). This is
+      // ONLY the plain-ally formula — a kit-bearing ally's own attack/
+      // accuracy (companion.js's basicCompanionAttack/useHadrianActive)
+      // stays a separate, kit-specific calculation the pipeline's ally-
+      // actor branches call directly, never through stat() — see
+      // effectiveAllyAtk's own comment (companion.js) for why unifying
+      // them would be an undisclosed balance change.
+      case "atk": return effectiveAllyAtk(ally);
+      case "acc": return effectiveAllyAcc(ally);
       case "magic": return ally.magic;
       case "knowledge": return ally.knowledge;
       case "maxHp": return ally.maxHealth;
       case "hp": return ally.health;
-      // atk/acc: still computed inline at each ally ATTACK call site
-      // today (allyAggressiveAction, companion.js's basicCompanionAttack),
-      // not centralized. Migrated in 1d, the step that reaches those.
       default: return notYetMigrated("ally", key);
     }
   }
@@ -170,9 +178,18 @@ function stat(state, combatant, key) {
       case "magic": return creature.magic;
       case "maxHp": return combatant.ref.maxHp;
       case "hp": return combatant.ref.hp;
-      // def: see header — read as creature.def + whatever banked bonuses
-      // are live, inline at each attacker's call site, with those bonuses
-      // consumed (zeroed) as a side effect of that one hit. Migrated in 1d/1e.
+      // def: the PURE part only (creature.def, no banked bonus) — step
+      // 1d. Brace/Guarded Strike/Sure Foundation's live banked bonus is
+      // read SEPARATELY at the pipeline's ally-actor calculateDamage call
+      // site (pipeline.js), summed with this value, exactly like the
+      // ally-as-target branch already does for ally.braceBonusDef/
+      // guardedStrikeBonusDef (step 1c) — never folded in here, per the
+      // stat()-purity rule. The actual one-shot zeroing (+ Sure
+      // Foundation's immediate re-grant) happens once, in applyAndReact
+      // (step 5), moved there from allyAggressiveActionLegacy's old
+      // pre-damage-calc timing — see pipeline.js's own comment on why
+      // that reorder is safe.
+      case "def": return creature.def || 0;
       default: return notYetMigrated("enemy", key);
     }
   }

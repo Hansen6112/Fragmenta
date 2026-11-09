@@ -3763,7 +3763,13 @@ function sangCuDefenderMitigation(creature) {
   }
   return mult;
 }
-function allyAggressiveAction(state, ally) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1d): the real call site
+// (resolveOneAllyAction, above) now calls allyAggressiveAction
+// (js/engine/pipeline.js) instead, which runs this exact same logic
+// through the five-step pipeline. This copy is kept, unchanged, only as
+// the step 1d forced-roll parity oracle — delete it in step 1h alongside
+// the other superseded per-pair functions.
+function allyAggressiveActionLegacy(state, ally) {
   const combat = state.combat;
   const target = combat.enemies[combat.activeIndex];
   if (!target || !target.alive) return [];
