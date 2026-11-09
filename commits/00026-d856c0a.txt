@@ -1,0 +1,76 @@
+range: d8e0ceded6057f00d08af94ad3b23bd03399e34a..d856c0a6b6ab5e5de3aaf1d973167cdef073f785
+=== d856c0a6b6ab5e5de3aaf1d973167cdef073f785 2026-11-09 14:11:52 +0000
+Combat Rebuild Phase 1, step 1e-ii: migrate Decoy/Ambush/Disarm onto the pipeline
+useDecoy/useAmbush/useDisarm (combat.js) are kept as useDecoyLegacy/
+useAmbushLegacy/useDisarmLegacy (byte-identical, the Layer 1 parity
+oracles); the live call sites (parser.js's "decoy"/"ambush"/"disarm"
+verbs) now resolve to pipeline-backed definitions that run each
+tactic's attack roll/damage/application through the five-step
+pipeline. Feint is NOT migrated: useFeint never rolls to hit or deals
+damage at all (a pure self-buff + cooldown setup), so it has no
+five-step shape to move onto -- same precedent as Hadrian's own
+non-damage Actives staying untouched in step 1d. Its nextAttackBonus
+bonus is already consumed correctly inside calculateDamagePlayerActor's
+basic_attack branch, wired in step 1e-i.
+
+calculateDamagePlayerActor/rollToHitPlayerActor/applyAndReactPlayerActor
+(from 1e-i) now dispatch on action.id ("basic_attack" | "decoy" |
+"ambush" | "disarm") to share ONE copy of rollPlayerDamage's core
+formula (with 1e-i's own two stat()-purity peek/defer splits) across
+all four, while preserving every real asymmetry each tactic's own
+ORIGINAL code already had, not "completing" any of them to match the
+basic attack:
+
+- None of the three ever pick a specific element (activeElement is
+  always undefined for them, even for a mage) -- their own ORIGINAL
+  code always calls rollPlayerDamage(state, creature) with no third
+  argument.
+- All three always report "physical" for lastDamageType and always run
+  applyPhysicalOnHitEffects unconditionally, regardless of whether the
+  hit's own internal formula took the physical or spell branch --
+  unlike the basic attack, which gates both on the true branch. A real,
+  pre-existing gap for a mage using a tactic, preserved exactly.
+- None of the three ever provoke riposteCounterOnPlayer on a miss, or
+  arenaRiposteCounterOnPlayer on a non-kill hit -- only the basic
+  attack's own code ever called either.
+- Decoy and Disarm wrap the result in applyOpeningReach unconditionally
+  (no isPhysical gate, another instance of the asymmetry above); Ambush
+  has no Opening Reach at all, just its own ambushMultiplier and
+  Borrowed Seconds's flat +15% (no cooldown to refund).
+- Ambush's own orchestrator still skips lowHealthTriggerChecks/
+  applyDodgeBlockNegateBonuses/maybeRiposte entirely (the handoff's own
+  listed-change gap, §4: "Ambush skips dodge and Riposte follow-ups") --
+  preserved here exactly, fixed later as its own disclosed change, not
+  silently absorbed into this restructure.
+- Disarm's guardBonus is unconditional on whether the follow-up hit
+  landed, unlike the basic attack's isPhysicalHit-gated version.
+
+Each orchestrator reproduces step 1e-i's own stale-creature shim
+(creature captured once, before resolveSpeedInitiative, never
+refreshed even though a pre-emptive kill can move
+state.combat.activeIndex on) for the same reason documented there --
+bug-for-bug, not fixed here.
+
+Verification: 31 new forced-roll scenarios across the three tactics
+(both damage branches, the shared purity fixes, kill/non-kill
+reactions, each tactic's own asymmetries with their own "effect changed
+something" controls), confirmed to actually discriminate via a
+deliberate sanity break (reverted, caught 8/8 affected scenarios). Full
+suite: 329/329, audit 0 errors. Field ledger: 148/148 still open,
+unchanged (pure control-flow restructure moves no fields). Layer 2:
+boss sweep and the Dregnar/Arbitarius legal-party cells are an exact
+bit-for-bit match against step 1d's own baseline -- and, unlike D1's
+fix, this one is genuinely exercised: the tactical AI driving both
+sweeps actually uses Feint/Decoy/Ambush/Disarm in real simulated
+fights, so the match is real confirmation, not an untouched path.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |  18 +-
+ js/engine/pipeline.js                              | 388 +++++++++++++++++++--
+ tools/tests/README.md                              |   1 +
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    | 218 ++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 602 insertions(+), 24 deletions(-)

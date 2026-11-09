@@ -1,0 +1,486 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index d91d2fd..1613cfe 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -7434,7 +7434,11 @@ function useFeint(state) {
+   return checkReflectDeath(state, out);
+ }
+ 
+-function useDecoy(state) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
++// now calls useDecoy (js/engine/pipeline.js) instead, which runs the
++// same math through the five-step pipeline. Kept here byte-identical
++// as the Layer 1 parity oracle.
++function useDecoyLegacy(state) {
+   if (!state.combat) return ["There's nothing here to use that on."];
+   if (!classHasTactics(state)) return ["Decoys aren't how your training works. Try your class's own ability instead."];
+   let creature = getCombatCreature(state);
+@@ -7531,7 +7535,11 @@ function useDecoy(state) {
+   return checkReflectDeath(state, out);
+ }
+ 
+-function useAmbush(state) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
++// now calls useAmbush (js/engine/pipeline.js) instead, which runs the
++// same math through the five-step pipeline. Kept here byte-identical
++// as the Layer 1 parity oracle.
++function useAmbushLegacy(state) {
+   if (!state.combat) return ["There's nothing here to ambush."];
+   if (!classHasTactics(state)) return ["Ambush isn't how your training works. Try your class's own ability instead."];
+   let creature = getCombatCreature(state);
+@@ -7604,7 +7612,11 @@ function useAmbush(state) {
+   return checkReflectDeath(state, out);
+ }
+ 
+-function useDisarm(state) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
++// now calls useDisarm (js/engine/pipeline.js) instead, which runs the
++// same math through the five-step pipeline. Kept here byte-identical
++// as the Layer 1 parity oracle.
++function useDisarmLegacy(state) {
+   if (!state.combat) return ["There's nothing here to disarm."];
+   if (!classHasTactics(state)) return ["Disarm isn't how your training works. Try your class's own ability instead."];
+   let creature = getCombatCreature(state);
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index f59b844..c721d49 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1141,27 +1141,71 @@ function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veter
+  * to prepend, since calculateDamage doesn't build lines directly anywhere
+  * in this file.
+  */
++// Step 1e-ii (handoff §2's tactics row): Decoy/Ambush/Disarm share the
++// SAME accuracy formula as the basic attack (attackConnects against
++// effectivePlayerAccuracy/creature.agi, no action-specific modifier) --
++// only the miss LINE differs per action, and only the basic attack's
++// own miss provokes riposteCounterOnPlayer. Decoy/Ambush/Disarm never
++// did (useDecoyLegacy/useAmbushLegacy/useDisarmLegacy's own miss
++// branches never call it), preserved exactly, not "completed."
+ function rollToHitPlayerActor(actor, target, action, ctx) {
+   const state = ctx.state;
+   const enemySlot = target.store;
+   const creature = enemySlot.creatureObj;
+   if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
+-    return {
+-      hit: false,
+-      result: {
+-        lines: [`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`, ...riposteCounterOnPlayer(state, creature)],
+-        damage: null,
+-      },
++    const missLines = {
++      basic_attack: [`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`, ...riposteCounterOnPlayer(state, creature)],
++      decoy: [`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`],
++      ambush: [`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`],
++      disarm: [`The follow-up strike doesn't land, but the disarm holds.`],
+     };
++    return { hit: false, result: { lines: missLines[action.id], damage: null } };
+   }
+   return { hit: true };
+ }
+ 
++// Step 1e-ii: Decoy/Ambush/Disarm share this EXACT core formula with the
++// basic attack (rollPlayerDamage's own body, unchanged in substance,
++// with the same two stat()-purity peek/defer splits from 1e-i) -- only
++// each action's own POST-processing (below the core) and how it's
++// reported externally differ, matching useDecoyLegacy/useAmbushLegacy/
++// useDisarmLegacy exactly:
++//   - None of the three ever pick a specific element the way the basic
++//     attack does (pickElement, in playerAttack's own orchestrator) --
++//     useDecoyLegacy/useAmbushLegacy/useDisarmLegacy all call
++//     rollPlayerDamage(state, creature) with NO third argument, so
++//     activeElement is always undefined for them, even for a mage.
++//     (The internal isSpell branch still runs for a mage regardless --
++//     that's state.flags.isMage/state.primaryElement, not activeElement
++//     -- just with an undefined element fed into elementMultiplier,
++//     exactly as before.)
++//   - All three always report "physical" for lastDamageType/the
++//     on-hit-effects gate, regardless of whether THIS hit's own
++//     internal formula took the physical or the spell branch --
++//     useDecoyLegacy/useAmbushLegacy/useDisarmLegacy hardcode
++//     "physical" and call applyPhysicalOnHitEffects unconditionally,
++//     unlike the basic attack's own isPhysical-gated versions of both.
++//     A real, pre-existing asymmetry for a mage using a tactic,
++//     preserved exactly, not "completed" to match the basic attack.
++//   - Only the basic attack's own post-processing (applyOpeningReach,
++//     Borrowed Seconds, Feint) applies; each tactic has its own, from
++//     its own ORIGINAL code, applied in the same order: Decoy wraps the
++//     core result in applyOpeningReach unconditionally (no isPhysical
++//     gate — another instance of the same asymmetry above, since
++//     applyOpeningReach's own state.combat.firstPhysicalAttackDone flag
++//     gets consumed here regardless of branch); Ambush multiplies by
++//     ambushMultiplier then Borrowed Seconds's flat +15% (no cooldown
++//     to refund); Disarm multiplies by a flat 0.7 then applies Opening
++//     Reach, same unconditional gate as Decoy.
++// Siege Corps purity (isPhysical, internal) and the Sure Foundation
++// peek/defer gate below are UNAFFECTED by any of this — they track the
++// core formula's own true internal branch for all four actions, exactly
++// as rollPlayerDamage's single shared implementation always has.
+ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
+   const state = ctx.state;
+   const enemySlot = target.store;
+   const creature = enemySlot.creatureObj;
+-  const { isPhysical, activeElement } = action;
++  const activeElement = action.id === "basic_attack" ? action.activeElement : undefined;
+ 
+   // ---- rollPlayerDamage's own body (combat.js), copied -- see this
+   // section's header for exactly what moved and what didn't. ----
+@@ -1264,18 +1308,41 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
+   }
+   if (state.combat) state.combat.hitsTakenFromPlayer = (state.combat.hitsTakenFromPlayer || 0) + 1;
+ 
+-  // ---- playerAttack's own post-rollPlayerDamage modifiers (combat.js) ----
+-  if (isPhysical) dmg = applyOpeningReach(state, dmg);
+-  if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
++  // physicalBranch: the core formula's TRUE internal branch (did THIS
++  // hit read the player's own Attack stat, i.e. is it the Siege Corps
++  // charge / Sure Foundation gate), for every action -- not necessarily
++  // what gets REPORTED externally (reportPhysical, below), which three
++  // of the four actions always force to true regardless.
++  const physicalBranch = !isSpell;
+   let feintBonusApplied = false;
+-  if (state.combat.nextAttackBonus) {
+-    const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
+-    dmg = Math.round(dmg * feintMult);
+-    state.combat.nextAttackBonus = false;
+-    feintBonusApplied = true;
++  let reportPhysical;
++  // ---- per-action post-processing, from each action's own ORIGINAL
++  // code (combat.js) -- see this function's own header for exactly
++  // which asymmetries are preserved here, not "completed." ----
++  if (action.id === "basic_attack") {
++    if (physicalBranch) dmg = applyOpeningReach(state, dmg);
++    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
++    if (state.combat.nextAttackBonus) {
++      const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
++      dmg = Math.round(dmg * feintMult);
++      state.combat.nextAttackBonus = false;
++      feintBonusApplied = true;
++    }
++    reportPhysical = physicalBranch;
++  } else if (action.id === "decoy") {
++    dmg = applyOpeningReach(state, dmg);
++    reportPhysical = true;
++  } else if (action.id === "ambush") {
++    dmg = Math.round(dmg * ambushMultiplier(state));
++    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
++    reportPhysical = true;
++  } else if (action.id === "disarm") {
++    dmg = Math.round(dmg * 0.7);
++    dmg = applyOpeningReach(state, dmg);
++    reportPhysical = true;
+   }
+ 
+-  return { shortCircuit: false, edmg: dmg, kind: "enemy", isPhysical, feintBonusApplied };
++  return { shortCircuit: false, edmg: dmg, kind: "enemy", isPhysical: physicalBranch, reportPhysical, feintBonusApplied, activeElement };
+ }
+ 
+ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
+@@ -1306,11 +1373,25 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
+     }
+   }
+ 
++  // reportPhysical: what gets REPORTED (lastDamageType, whether
++  // on-hit-effects run) -- basic_attack reports the true internal
++  // branch; Decoy/Ambush/Disarm always report "physical" regardless
++  // (see calculateDamagePlayerActor's own header on this asymmetry).
++  const reportPhysical = dmgInfo.reportPhysical;
++
+   enemySlot.hp -= edmg;
+-  enemySlot.lastDamageType = isPhysical ? "physical" : action.activeElement;
++  enemySlot.lastDamageType = reportPhysical ? "physical" : dmgInfo.activeElement;
+   const lines = [];
+-  if (dmgInfo.feintBonusApplied) lines.push("Your feint pays off —");
+-  lines.push(attackFlavorLine(state, creature, edmg, action.activeElement));
++  if (action.id === "basic_attack") {
++    if (dmgInfo.feintBonusApplied) lines.push("Your feint pays off —");
++    lines.push(attackFlavorLine(state, creature, edmg, dmgInfo.activeElement));
++  } else if (action.id === "decoy") {
++    lines.push(`${attackFlavorLine(state, creature, edmg)} (while it's distracted)`);
++  } else if (action.id === "ambush") {
++    lines.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${edmg} damage, no counter.`);
++  } else if (action.id === "disarm") {
++    lines.push(`You still land a hit for ${edmg} damage.`);
++  }
+ 
+   // No "&& enemySlot.alive" guard here, unlike the ally-actor branches
+   // above -- playerAttackLegacy's own kill check is the bare
+@@ -1321,8 +1402,20 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
+     lines.push(...resolveKill(state, creature));
+     return { lines, damage: edmg, killed: true, isPhysicalHit: isPhysical };
+   }
+-  if (isPhysical) lines.push(...applyPhysicalOnHitEffects(state, creature));
+-  if (edmg > 0) lines.push(...arenaRiposteCounterOnPlayer(state, creature));
++  if (action.id === "basic_attack") {
++    if (isPhysical) lines.push(...applyPhysicalOnHitEffects(state, creature));
++    if (edmg > 0) lines.push(...arenaRiposteCounterOnPlayer(state, creature));
++  } else {
++    // Decoy/Ambush/Disarm: unconditional, no isPhysical gate, and no
++    // Arena Riposte at all -- useDecoyLegacy/useAmbushLegacy/
++    // useDisarmLegacy never call arenaRiposteCounterOnPlayer, only
++    // playerAttackLegacy does. Preserved exactly.
++    lines.push(...applyPhysicalOnHitEffects(state, creature));
++    if (action.id === "ambush" && hasEffect(state, "evasive_release")) {
++      state.combat.evasionCharges += 1;
++      lines.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
++    }
++  }
+   return { lines, damage: edmg, killed: false, isPhysicalHit: isPhysical };
+ }
+ 
+@@ -1418,3 +1511,256 @@ function playerAttack(state) {
+   if (tl) out.push(tl);
+   return checkReflectDeath(state, out);
+ }
++
++// ---- Orchestrators: Decoy/Ambush/Disarm (combat.js's "decoy"/"ambush"/
++// "disarm" verbs, step 1e-ii). Feint (useFeint, combat.js) is NOT
++// migrated: it never rolls to hit or deals damage at all (a pure
++// self-buff + cooldown setup — nextAttackBonus/the "Your feint pays
++// off" bonus it grants is consumed inside calculateDamagePlayerActor's
++// basic_attack branch above, already wired in step 1e-i), so it has no
++// five-step shape to move onto — same precedent as Hadrian's own
++// non-damage Actives (Shielding Presence et al.) staying untouched in
++// step 1d. Everything NOT part of the five-step pipeline itself (the
++// tactic's own gating/cooldown/flavor setup, the rest of the round's
++// initiative order, low-health/evasion/Riposte checks where each
++// tactic's own original code has them) stays exactly where
++// useDecoyLegacy/useAmbushLegacy/useDisarmLegacy had it.
++function useDecoy(state) {
++  if (!state.combat) return ["There's nothing here to use that on."];
++  if (!classHasTactics(state)) return ["Decoys aren't how your training works. Try your class's own ability instead."];
++  let creature = getCombatCreature(state);
++  if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
++  const t = TACTICS.decoy;
++  if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
++  if ((state.combat.cooldowns.decoy || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
++
++  const out = beginTurn(state);
++  if (!state.combat) return out;
++  state.combat.turnTaken = true;
++  if (state.combat.hp <= 0) {
++    out.push(...resolveKill(state, creature));
++    if (!state.combat || state.health <= 0) return out;
++    creature = getCombatCreature(state);
++  }
++  out.push(...resolveSpeedInitiative(state, creature));
++  if (!state.combat || state.health <= 0) return out;
++  const decoyedIndex = state.combat.activeIndex;
++  out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "decoy"));
++  consumeTrailblazer(state);
++  let decoyMemory;
++  if (state.combat.avatarOfTimeTurns > 0) {
++    decoyMemory = { cooldown: 0, fired: false };
++  } else if (applyPerfectTiming(state)) {
++    decoyMemory = { cooldown: 0, fired: false };
++  } else if (state.combat.swiftPassageReady) {
++    state.combat.swiftPassageReady = false;
++    decoyMemory = { cooldown: 0, fired: false };
++  } else if (state.combat.hourglassReserveReady) {
++    state.combat.hourglassReserveReady = false;
++    decoyMemory = { cooldown: 0, fired: false };
++  } else {
++    let baseCooldown = t.cooldown;
++    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
++    decoyMemory = applyTacticalMemory(state, baseCooldown);
++  }
++  if (borrowedSecondsActive(state) && decoyMemory.cooldown > 0) {
++    decoyMemory.cooldown = Math.round(decoyMemory.cooldown / 2);
++  }
++  state.combat.cooldowns.decoy = decoyMemory.cooldown;
++
++  out.push(`You plant a decoy — ${withThe(creature.name, false)} takes the bait.`);
++  if (decoyMemory.cooldown === 0 && !decoyMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
++  if (decoyMemory.fired) out.push(`Old instincts kick in — Decoy recovers faster this time.`);
++
++  // Same stale-creature shim playerAttack's own comment explains --
++  // see pipeline.js's step 1e-i header.
++  const enemySlot = {
++    creatureObj: creature,
++    get hp() { return state.combat.hp; },
++    set hp(v) { state.combat.hp = v; },
++    get maxHp() { return state.combat.maxHp; },
++    get lastDamageType() { return state.combat.lastDamageType; },
++    set lastDamageType(v) { state.combat.lastDamageType = v; },
++  };
++  const actor = makePlayerCombatant(state);
++  const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
++  const action = { id: "decoy" };
++  const ctx = { state, pendingAction: action, target };
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) {
++    out.push(...hitInfo.result.lines);
++  } else {
++    const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++    const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++    out.push(...result.lines);
++    if (result.killed) {
++      if (!state.combat || state.health <= 0) return out;
++      creature = getCombatCreature(state);
++    }
++  }
++
++  const decoyedEnemy = state.combat.enemies[decoyedIndex];
++  if (decoyedEnemy && decoyedEnemy.alive) {
++    out.push(`${withThe(decoyedEnemy.creatureObj.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
++  }
++  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, decoyedIndex);
++  out.push(...retaliation.lines);
++  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
++  const tl = tacticsLine(state);
++  if (tl) out.push(tl);
++  return checkReflectDeath(state, out);
++}
++
++function useAmbush(state) {
++  if (!state.combat) return ["There's nothing here to ambush."];
++  if (!classHasTactics(state)) return ["Ambush isn't how your training works. Try your class's own ability instead."];
++  let creature = getCombatCreature(state);
++  if (creature.friendly) return [`${withThe(creature.name, true)} hasn't given you a reason to ambush it.`];
++  const t = TACTICS.ambush;
++  const ambushBypass = activationRestrictionsBypassed(state);
++  if (state.knowledge < t.knowledgeReq && !ambushBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
++  if (state.combat.turnTaken && !ambushBypass) return [`The moment's passed — ambush only works as your opening move.`];
++
++  const out = beginTurn(state);
++  if (!state.combat) return out;
++  state.combat.turnTaken = true;
++  if (state.combat.hp <= 0) {
++    out.push(...resolveKill(state, creature));
++    if (!state.combat || state.health <= 0) return out;
++    creature = getCombatCreature(state);
++  }
++  out.push(...resolveSpeedInitiative(state, creature));
++  if (!state.combat || state.health <= 0) return out;
++  out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
++  consumeTrailblazer(state);
++  const ambushedIndex = state.combat.activeIndex;
++
++  const enemySlot = {
++    creatureObj: creature,
++    get hp() { return state.combat.hp; },
++    set hp(v) { state.combat.hp = v; },
++    get maxHp() { return state.combat.maxHp; },
++    get lastDamageType() { return state.combat.lastDamageType; },
++    set lastDamageType(v) { state.combat.lastDamageType = v; },
++  };
++  const actor = makePlayerCombatant(state);
++  const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
++  const action = { id: "ambush" };
++  const ctx = { state, pendingAction: action, target };
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) {
++    out.push(...hitInfo.result.lines);
++  } else {
++    const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++    const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++    out.push(...result.lines);
++    if (result.killed) {
++      if (!state.combat || state.health <= 0) return out;
++      creature = getCombatCreature(state);
++    }
++  }
++
++  // Ambush's own original never calls lowHealthTriggerChecks/
++  // applyDodgeBlockNegateBonuses/maybeRiposte/the evasion-bonus trio at
++  // all -- the handoff's own listed-change gap (§4: "Ambush skips
++  // dodge and Riposte follow-ups"), preserved here exactly, fixed later.
++  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, ambushedIndex);
++  out.push(...retaliation.lines);
++  const tl = tacticsLine(state);
++  if (tl) out.push(tl);
++  return checkReflectDeath(state, out);
++}
++
++function useDisarm(state) {
++  if (!state.combat) return ["There's nothing here to disarm."];
++  if (!classHasTactics(state)) return ["Disarm isn't how your training works. Try your class's own ability instead."];
++  let creature = getCombatCreature(state);
++  if (creature.friendly) return [`${withThe(creature.name, true)} isn't armed against you. Nothing to disarm.`];
++  const t = TACTICS.disarm;
++  const disarmBypass = activationRestrictionsBypassed(state);
++  if (state.knowledge < t.knowledgeReq && !disarmBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
++  if (state.combat.disarmed && !disarmBypass) return [`It's already lost whatever you could have disarmed.`];
++  if ((state.combat.cooldowns.disarm || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
++
++  const out = beginTurn(state);
++  if (!state.combat) return out;
++  state.combat.turnTaken = true;
++  if (state.combat.hp <= 0) {
++    out.push(...resolveKill(state, creature));
++    if (!state.combat || state.health <= 0) return out;
++    creature = getCombatCreature(state);
++  }
++  out.push(...resolveSpeedInitiative(state, creature));
++  if (!state.combat || state.health <= 0) return out;
++  out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "disarm"));
++  consumeTrailblazer(state);
++  let disarmMemory;
++  if (state.combat.avatarOfTimeTurns > 0) {
++    disarmMemory = { cooldown: 0, fired: false };
++  } else if (applyPerfectTiming(state)) {
++    disarmMemory = { cooldown: 0, fired: false };
++  } else if (state.combat.swiftPassageReady) {
++    state.combat.swiftPassageReady = false;
++    disarmMemory = { cooldown: 0, fired: false };
++  } else if (state.combat.hourglassReserveReady) {
++    state.combat.hourglassReserveReady = false;
++    disarmMemory = { cooldown: 0, fired: false };
++  } else {
++    let baseCooldown = t.cooldown;
++    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
++    disarmMemory = applyTacticalMemory(state, baseCooldown);
++  }
++  if (borrowedSecondsActive(state) && disarmMemory.cooldown > 0) {
++    disarmMemory.cooldown = Math.round(disarmMemory.cooldown / 2);
++  }
++  state.combat.cooldowns.disarm = disarmMemory.cooldown;
++  state.combat.disarmed = true;
++  state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3;
++
++  out.push(`You disarm ${withThe(creature.name, false)} — its attacks will be noticeably weaker for the rest of this fight.`);
++  if (disarmMemory.cooldown === 0 && !disarmMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
++  if (disarmMemory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
++
++  const enemySlot = {
++    creatureObj: creature,
++    get hp() { return state.combat.hp; },
++    set hp(v) { state.combat.hp = v; },
++    get maxHp() { return state.combat.maxHp; },
++    get lastDamageType() { return state.combat.lastDamageType; },
++    set lastDamageType(v) { state.combat.lastDamageType = v; },
++  };
++  const actor = makePlayerCombatant(state);
++  const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
++  const action = { id: "disarm" };
++  const ctx = { state, pendingAction: action, target };
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) {
++    out.push(...hitInfo.result.lines);
++  } else {
++    const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++    const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++    out.push(...result.lines);
++    if (result.killed) {
++      if (!state.combat || state.health <= 0) return out;
++      creature = getCombatCreature(state);
++    }
++  }
++
++  // Unconditional on whether the follow-up hit landed -- useDisarmLegacy's
++  // own guardBonus never gated on that either, unlike the basic attack's.
++  const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
++  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
++  out.push(...retaliation.lines);
++  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
++  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
++  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
++  const tl = tacticsLine(state);
++  if (tl) out.push(tl);
++  return checkReflectDeath(state, out);
++}
