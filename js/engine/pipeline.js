@@ -20,36 +20,36 @@
  * numbers or triggers changes; see each step's own parity report for how
  * that's verified.
  *
- * The player-attacking and ally-attacking paths are NOT symmetric today,
- * and step 1c preserves every one of those asymmetries exactly rather
+ * The player-attacking and ally-attacking paths are NOT symmetric today.
+ * Step 1c preserved every asymmetry found at the time exactly, rather
  * than "completing" them — see the per-step comments below for each one
- * (the short version: Reinforced/the stun gate/Timeless Guard/Guardian
- * Spirit/Guided Footsteps/Never Where Expected/Blessing or Avatar of
- * Freedom/evasion charges or windows/Marked Target/Flowing Discipline/
- * Winter's Verdict/Stonewarden's physical-branch reduction/Toxic
- * Preparation only ever applied when the player was the target; Hadrian's
- * protection, the generalized Ally Protection Reaction, companion damage
- * mitigation, Last Bastion retaliation, and a miss provoking Riposte only
- * ever applied when an ally was). Deciding whether any of these should
- * become symmetric is a balance question for later, not something Phase
- * 1's restructure gets to silently decide either way.
+ * (the short version: Reinforced/Timeless Guard/Guardian Spirit/Guided
+ * Footsteps/Never Where Expected/Blessing or Avatar of Freedom/evasion
+ * charges or windows/Marked Target/Flowing Discipline/Winter's Verdict/
+ * Stonewarden's physical-branch reduction/Toxic Preparation only ever
+ * applied when the player was the target; Hadrian's protection, the
+ * generalized Ally Protection Reaction, companion damage mitigation, Last
+ * Bastion retaliation, and a miss provoking Riposte only ever applied
+ * when an ally was). Full list, with each one's disposition (kept,
+ * switched behind a U3 unification flag, or fixed outright), now tracked
+ * in tools/combat_asymmetry_register.md rather than only here.
  *
- * Two deliberate, disclosed departures from a "pure" five-step split,
- * both forced by preserving EXACT existing behavior rather than the
- * cleanest possible shape (balance-neutrality wins over tidiness in
- * Phase 1 — Phase 2's registry is where the shape itself can improve):
+ * The stun gate was ALSO on that list through step 1c, but it was a
+ * listed bug, not a balance asymmetry (Tyler, 9 Nov, decision D1): a
+ * stunned enemy's whole action should be skipped regardless of what it
+ * would have attacked, not just when it happened to roll the player as
+ * its target. Fixed by moving the stun check out of chooseAction
+ * entirely, up to resolveEnemyAction (combat.js), before any ability,
+ * summon or target is chosen — see that function's own comment. The
+ * ctx.target.kind === "player" guard that used to gate it here is gone;
+ * chooseAction can no longer return null for an enemy actor.
  *
- *   1. Reinforced's attack-counter (Divine Regalia) increments BEFORE the
- *      stun gate in the original function — a stunned creature's "attack"
- *      still counts toward Reinforced's every-3rd-attack trigger. That's
- *      not naturally chooseAction's job (it's an "attempt happened" tally,
- *      closer to rollToHit's domain), but moving it after the stun gate
- *      would change behavior (a stunned creature would stop counting).
- *      So it stays textually first inside chooseAction, ahead of the stun
- *      check, preserving the original order even though it doesn't fit
- *      the step's own conceptual job. Flagged for Phase 2 to reconsider.
+ * One deliberate, disclosed departure from a "pure" five-step split,
+ * forced by preserving EXACT existing behavior rather than the cleanest
+ * possible shape (balance-neutrality wins over tidiness in Phase 1 —
+ * Phase 2's registry is where the shape itself can improve):
  *
- *   2. Mirror Soul (Artifact) is a full short-circuit found INSIDE
+ *   1. Mirror Soul (Artifact) is a full short-circuit found INSIDE
  *      calculateDamage: the first hostile spell each combat is reflected
  *      onto the CASTER (not the original target), including that
  *      creature's own HP loss and kill resolution, resolved immediately
@@ -78,35 +78,34 @@
 // Active's abilityCtx) — 1b doesn't yet build real action DEFINITIONS
 // (spec section 3.1); that catalog is step 1e's job, alongside the player
 // skill resolver. Returns the chosen action, or null if the actor can't
-// act this turn at all (the only such case today: a stunned enemy).
+// act this turn at all. No enemy case reaches that null today — a
+// stunned enemy is stopped earlier, in resolveEnemyAction (combat.js,
+// D1) — but the shape is kept for whatever later step needs it.
 function chooseAction(actor, ctx) {
   if (actor.kind === "enemy") {
-    // Reinforced and the stun gate: resolveEnemyAttackOnAllyLegacy never
-    // had either check — both are specific to the player-targeted path in
-    // the original code (resolveEnemyRetaliation). A pre-existing
-    // asymmetry (an enemy stunned the round it happens to target an ally
-    // simply isn't stopped, and Reinforced's counter only ever advances
-    // against the player), preserved here exactly via the target-kind
-    // guard rather than corrected or extended — see this file's header.
+    // Reinforced: resolveEnemyAttackOnAllyLegacy never had this check —
+    // it's specific to the player-targeted path in the original code
+    // (resolveEnemyRetaliation). A pre-existing asymmetry (Reinforced's
+    // counter only ever advances against the player), preserved here
+    // exactly via the target-kind guard rather than corrected or extended
+    // — see this file's header.
+    //
+    // The stun gate used to live here too (consumed via actor.store,
+    // behind this same ctx.target.kind === "player" guard) — moved out,
+    // listed change D1 (Tyler, 9 Nov): a stunned enemy's whole action is
+    // now skipped before combat.js's resolveEnemyAction ever picks an
+    // ability or a target, so by the time chooseAction runs for an
+    // ordinary enemy, any stun charge has already been checked and
+    // consumed (or there wasn't one). chooseAction can therefore never
+    // return null for an enemy actor any more — see that function's own
+    // comment, in combat.js, for where the check lives now.
     if (ctx.target && ctx.target.kind === "player") {
       const combat = ctx.state.combat;
-      // Reinforced: see this file's header, departure #1 — stays first,
-      // ahead of the stun gate, to match resolveEnemyRetaliation's
-      // original order exactly.
       if (hasEffect(ctx.state, "reinforced")) {
         combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
         if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
           combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
         }
-      }
-      // enemyStunCharges is itself a PER_ENEMY_FIELDS entry, proxied as
-      // combat.enemyStunCharges when this creature is the active one —
-      // read/write it directly on the slot via actor.store instead, since
-      // actor.store already points at the right slot regardless of which
-      // enemy is "active" (see js/engine/combatant.js).
-      if ((actor.store.enemyStunCharges || 0) > 0) {
-        actor.store.enemyStunCharges -= 1;
-        return null;
       }
     }
     return ctx.pendingAction;
@@ -533,6 +532,11 @@ function resolveEnemyAttackOnPlayer(state, creature, atkSpread, extraDef, abilit
   const action = { atkSpread, extraDef, abilityCtx, basicFirstBonus };
   const ctx = { state, pendingAction: action, target };
 
+  // chooseAction never actually returns null for an enemy actor any more
+  // (the stun check that used to live there moved out to
+  // resolveEnemyAction, combat.js, per D1 — see chooseAction's own
+  // comment) — this guard is kept as defensive dead code, in case a later
+  // step gives chooseAction a real reason to decline an action again.
   const chosen = chooseAction(actor, ctx);
   if (!chosen) return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
 
@@ -558,6 +562,8 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   const action = { abilityCtx, basicFirstBonus };
   const ctx = { state, pendingAction: action, target };
 
+  // Same dead-code note as resolveEnemyAttackOnPlayer above: chooseAction
+  // can't return null for an enemy actor since the stun gate moved out.
   const chosen = chooseAction(actor, ctx);
   if (!chosen) return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
 

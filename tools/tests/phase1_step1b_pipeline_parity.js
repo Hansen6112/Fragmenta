@@ -124,10 +124,15 @@ const { chromium } = require('playwright');
       seq: HIGH,
     });
 
-    checkParity('P1-STUN-01', 'A stunned enemy (enemyStunCharges>0) attacks not at all, and the charge decrements on the slot', {
-      mutate: (s, creature, slot) => { slot.enemyStunCharges = 2; },
-      seq: LOW,
-    });
+    // P1-STUN-01 used to live here, asserting resolveEnemyAttackOnPlayer
+    // (direct call) skips a stunned enemy's attack, matching the oracle.
+    // Removed, listed change D1 (Tyler, 9 Nov): the stun check moved OUT
+    // of this orchestrator entirely, up to resolveEnemyAction (combat.js),
+    // so a stunned enemy is stopped before resolveEnemyAttackOnPlayer is
+    // ever called in production — this layer now deliberately has NO
+    // stun check and can't match the oracle's own (unchanged) one on a
+    // stunned-slot scenario, by design. See tools/tests/
+    // d1_stun_fix_ledger.js for the new, correctly-layered coverage.
 
     checkParity('P1-HIT-01', 'A plain connecting physical hit, no gear effects active, full damage-calc path', {
       seq: LOW,

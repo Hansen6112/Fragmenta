@@ -2284,6 +2284,42 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
   // (resolveEnemyActiveAbility) can express. Dispatched here, first, so
   // the other 40+ creatures' shared path is completely untouched.
   if (creatureObj.bossKit === "dregnar_ashvein") return resolveDregnarAction(state, creatureObj, atkSpread, extraDef);
+  // Stun, listed change D1 (Tyler, 9 Nov): consumed per ACTION SLOT,
+  // before an ability/summon/target is ever chosen — a stunned enemy's
+  // whole action is skipped, whatever it would have attacked. This used
+  // to be checked only deep inside the player-targeted branch of pipeline
+  // chooseAction (js/engine/pipeline.js), so a stunned enemy that happened
+  // to roll an ally as its target, or that used an active ability or a
+  // summon, acted anyway and kept the charge until it eventually targeted
+  // the player. Moved up here, mirroring resolveDregnarAction's own
+  // per-action-slot stun check exactly (see that function's comments,
+  // ~line 2572) — Dregnar's bespoke resolver already did this correctly
+  // and is untouched. Looked up by creatureObj rather than
+  // combat.activeIndex for the same reason findEnemyCombatant is
+  // (combatant.js): whoever happens to be "active" isn't guaranteed to be
+  // the one acting (matches the existing applyEnemySelfModifier
+  // convention). resolveEnemyActionWithFlurry calls this function twice
+  // for a Flurry creature's second action, so each action slot re-checks
+  // and consumes its own charge independently, same as Dregnar's normal
+  // vs. bonus action.
+  // damage: 0, not null, deliberately -- matches exactly what this same
+  // skip returned before D1 for the player-targeted case (chooseAction
+  // returning null used to bubble up to the pipeline orchestrator's own
+  // `{damage: 0}` fallback). That 0 is load-bearing several call sites up
+  // (resolveRemainingInitiativeActions -> its own callers' own
+  // `retaliation.damage === 0` checks gate applyDodgeBlockNegateBonuses/
+  // maybeRiposte): a stun-skip has always counted as "no damage landed"
+  // for granting the player's own dodge/Riposte bonuses, same as a flat
+  // miss. Deliberately NOT matching Dregnar's own stunned-skip, which
+  // already returns damage: null and therefore does NOT grant those same
+  // bonuses -- a pre-existing Dregnar/ordinary-enemy inconsistency this
+  // fix doesn't touch either way (out of scope for D1; flagged in the
+  // asymmetry register as its own row).
+  const stunSlot = state.combat.enemies.find((slot) => slot.creatureObj === creatureObj);
+  if (stunSlot && (stunSlot.enemyStunCharges || 0) > 0) {
+    stunSlot.enemyStunCharges -= 1;
+    return { lines: [`${withThe(creatureObj.name, true)} is still reeling and doesn't attack.`], damage: 0 };
+  }
   const abilityCtx = resolveEnemyActiveAbility(state, creatureObj);
   // packAuraBuff/selfBuff/selfDebuff/healSelfPct (Guarded Stance, Committed
   // Assault, Heavy Commitment, Focused Rally, Defensive Command, Resolute

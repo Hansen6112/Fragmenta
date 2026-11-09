@@ -34,7 +34,8 @@ balance.
 | `injury_items_ledger.js` | Smelling salts / field splint kit craftability, shop reachability, field-treatment gating |
 | `phase1_step1a_combatant_ledger.js` | Combat Rebuild Phase 1 step 1a: combatant views, `stat()` accessor parity |
 | `phase1_step1b_pipeline_parity.js` | Combat Rebuild Phase 1 step 1b: the five-step pipeline vs. the pre-migration enemy-to-player path, forced-roll unit parity, and the "effect changed something" control check |
-| `phase1_step1c_ally_pipeline_parity.js` | Combat Rebuild Phase 1 step 1c: the pipeline extended to the enemy-to-ally path, including the player/ally asymmetries it preserves on purpose (stun, Reinforced, Marked Target, Riposte-on-miss, ...) |
+| `phase1_step1c_ally_pipeline_parity.js` | Combat Rebuild Phase 1 step 1c: the pipeline extended to the enemy-to-ally path, including the player/ally asymmetries it preserves on purpose (Reinforced, Marked Target, Riposte-on-miss, ...) |
+| `d1_stun_fix_ledger.js` | Listed change D1 (9 Nov): a stunned enemy skips its whole action regardless of target/ability/summon, checked per action slot (including Flurry); Dregnar's own bespoke stun handling is unaffected |
 
 ## Adding a ledger
 

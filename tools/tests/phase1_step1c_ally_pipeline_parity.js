@@ -116,7 +116,17 @@ const { chromium } = require('playwright');
     checkParity('P1C-HIT-02', 'A plain connecting hit with mid-range random rolls (exercises the randInt spread)', {
       seq: MID,
     });
-    checkParity('P1C-NOSTUN-01', 'Asymmetry preserved: a creature with enemyStunCharges>0 still attacks an ally normally -- resolveEnemyAttackOnAllyLegacy never had a stun gate, only the player-targeted path does', {
+    // This orchestrator (and its legacy oracle) never checked stun at all
+    // -- that's unchanged by D1 (9 Nov): the check now lives one layer up,
+    // in resolveEnemyAction (combat.js), BEFORE this function is ever
+    // called, for both player- and ally-targeted attacks alike. So this
+    // scenario still correctly parity-matches the oracle (neither checks
+    // it), it's just no longer evidence of an asymmetry -- a stunned
+    // enemy that reaches this far (e.g. called directly, bypassing
+    // resolveEnemyAction, as this test harness does) simply was never
+    // going to be stopped at THIS layer, by either version, on purpose.
+    // See tools/tests/d1_stun_fix_ledger.js for the real stun coverage.
+    checkParity('P1C-NOSTUN-01', 'Neither this function nor its oracle gate on stun -- that check now lives above both, in resolveEnemyAction', {
       mutate: (s, creature, slot) => { slot.enemyStunCharges = 2; },
       seq: LOW,
     });
