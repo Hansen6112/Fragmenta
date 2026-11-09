@@ -35,7 +35,16 @@
 const fs = require("fs");
 const path = require("path");
 const ROOT = path.join(__dirname, "..");
-const FILES = ["js/engine/combat.js", "js/engine/combatant.js", "js/engine/pipeline.js", "js/engine/companion.js", "js/engine/dungeon.js", "js/engine/arena.js", "js/engine/parser.js"];
+// Step 1e completion handoff (9 Nov 2026 follow-up), §7: js/data/actions.js
+// (PIPELINE_HOOKS, PLAYER_ACTION_DEFS) and the `action` blocks now living
+// inside js/data/tactics.js/elementabilities.js/hadrian.js were added to
+// this list for the first time here. Real combat.<field> logic has moved
+// into these files (the element on-hit hooks, flavor lines, Hadrian's
+// non-damage effect application) since this ledger's own FILES list was
+// first written, and leaving them out would make a field that's STILL
+// genuinely read/written -- just now from a hook instead of a per-pair
+// function -- silently and wrongly read as "closed."
+const FILES = ["js/engine/combat.js", "js/engine/combatant.js", "js/engine/pipeline.js", "js/engine/resolver.js", "js/engine/companion.js", "js/engine/dungeon.js", "js/engine/arena.js", "js/engine/parser.js", "js/data/actions.js", "js/data/tactics.js", "js/data/elementabilities.js", "js/data/hadrian.js"];
 
 // Spec section 4's migration-order table, "Today's code" column — plus,
 // from step 1b onward, the SHARED pipeline functions (js/engine/
@@ -79,6 +88,23 @@ const FUNCTION_STEP = {
   useAmbush: ["1e"],
   useDisarm: ["1e"],
   useElementAbility: ["1e"],
+  // Step 1e completion handoff (9 Nov 2026 follow-up): the element on-hit
+  // effects used to live inline inside applyAndReactPlayerActor's own
+  // per-element `if (action.id === "fire") {...}` branches (and so were
+  // already covered, transitively, by applyAndReactPlayerActor's own
+  // entry above). They now live in PIPELINE_HOOKS (js/data/actions.js),
+  // called by NAME (action.elementOnHit), not by a literal callee-text
+  // match -- listed here directly so they're not lost from the ledger's
+  // closure just because they moved.
+  fireOnHit: ["1e"],
+  waterOnHit: ["1e"],
+  lightningOnHit: ["1e"],
+  acidOnHit: ["1e"],
+  forceOnHit: ["1e"],
+  transportationOnHit: ["1e"],
+  airOnHit: ["1e"],
+  staggerOnHit: ["1e"],
+  usePlayerAction: ["1e"],
   maybeRiposte: ["1f"],
   checkReflectDeath: ["1f"],
   maybeCompanionRetaliate: ["1f"],
@@ -112,19 +138,35 @@ const NOISE = ["js", "xxx"]; // regex false-positives (e.g. "combat.js" inside a
 function extractFunctions(text) {
   const lines = text.split("\n");
   const fns = [];
-  let depth = 0, current = null;
+  let depth = 0, current = null, inHooksObject = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (depth === 0) {
-      const m = line.match(/^function\s+(\w+)\s*\(/);
-      if (m) current = { name: m[1], bodyLines: [] };
+    if (depth === 0 && /^const PIPELINE_HOOKS\s*=\s*\{/.test(line)) inHooksObject = true;
+    if (!current) {
+      if (depth === 0) {
+        const m = line.match(/^function\s+(\w+)\s*\(/);
+        if (m) current = { name: m[1], bodyLines: [], startDepth: 0 };
+      } else if (depth === 1 && inHooksObject) {
+        // Step 1e completion handoff (9 Nov 2026 follow-up), §7:
+        // object-method-shorthand entries inside PIPELINE_HOOKS (e.g.
+        // `fireOnHit(h) {`) are real functions the step functions call
+        // indirectly (PIPELINE_HOOKS[name](...), resolved by NAME, never
+        // by action identity) -- without this, a field whose logic moves
+        // from a per-pair function into a hook would wrongly read as
+        // "closed" the moment it did, since the ledger's own text-scan
+        // only ever recognized a top-level `function name(...)`
+        // declaration as trackable.
+        const m = line.match(/^\s*(\w+)\s*\([^)]*\)\s*\{/);
+        if (m) current = { name: m[1], bodyLines: [], startDepth: 1 };
+      }
     }
     if (current) current.bodyLines.push(line);
     for (const ch of line) {
       if (ch === "{") depth++;
       else if (ch === "}") {
         depth--;
-        if (depth === 0 && current) { fns.push(current); current = null; }
+        if (current && depth === current.startDepth) { fns.push(current); current = null; }
+        if (depth === 0) inHooksObject = false;
       }
     }
   }
