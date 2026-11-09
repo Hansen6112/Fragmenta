@@ -1,0 +1,48 @@
+range: e77247036f56c81c378b18e52f2fbce3f960f9e0..84249a515447b8341b46ef6dbfdbc9533e6a2f72
+=== 84249a515447b8341b46ef6dbfdbc9533e6a2f72 2026-11-09 19:21:02 +0000
+1e completion: declare Feint/Apothecary action blocks, add audit P2+P4
+Feint and the 6 Apothecary abilities already dispatch generically off
+their own data tables (knowledgeReq/cooldown/stat/allyStat/cleanse) --
+useFeint/useApothecaryAbility have no per-action identity branching to
+remove (confirmed by reading both in full: neither checks `key ===`/
+`a.id ===` anywhere). What they were missing was the declared `action`
+block itself, for consistency with the rest of the schema and for the
+new audit rules below to check. Added: targeting:"self"/"selfOrAlly",
+toHit:"none", damage:null, actionType, matching the smaller buff/heal/
+cleanse shape js/data/actions.js's own header already documents.
+
+Also added `targeting` to the 11 attack-shaped definitions from the
+previous commit (basic_attack/Decoy/Ambush/Disarm/7 elements) -- present
+in the schema doc but missed when those blocks were first written.
+
+tools/audit.js:
+- P2: every action definition (PLAYER_ACTION_DEFS/TACTICS/
+  APOTHECARY_ABILITIES/ELEMENT_ABILITIES' own `action` blocks, read
+  through getActionDef) declares targeting/toHit/actionType, and either
+  a formula that's a real PIPELINE_FORMULAS key (toHit:"roll") or an
+  explicit damage:null (toHit:"none"). test_strike is deliberately out
+  of scope -- its own proof registers that definition at runtime so it
+  never reaches the real data tables this rule scans.
+- P4: no `action.id ===`/`!==`, `switch (action.id)`, or `.includes(action.id)`
+  in js/engine/pipeline.js or js/data/actions.js (where PIPELINE_HOOKS
+  lives). The `.includes` form is broader than the handoff's own literal
+  wording -- this audit's own prior research found 3 such checks a
+  narrower regex would have missed. Comments are stripped before
+  scanning (the first draft false-positived on this file's own prose
+  mentioning "action.id ===" as documentation).
+
+Both verified to discriminate: a deliberately reintroduced
+`action.id === "fire"` check in pipeline.js is caught by P4; a
+deliberately removed `formula` field on Decoy is caught by P2. Both
+restored clean. Current state: 0 errors, P4 count 0. Full suite
+unaffected (356/356, no behavior changed by this commit).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js          |  1 +
+ js/data/elementabilities.js |  4 +--
+ js/data/tactics.js          | 27 +++++++++++++++++---
+ tools/audit.js              | 61 +++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 88 insertions(+), 5 deletions(-)
