@@ -1,0 +1,35 @@
+range: 80e86430d9d52491202033614a3f564ca09d3308..3704ae7fa9873c2dc4c19e06ab5b6a244cd99122
+=== 3704ae7fa9873c2dc4c19e06ab5b6a244cd99122 2026-11-09 19:55:48 +0000
+1e completion: update coverage table with this handoff's new rows
+Everything the original §3.1 table tabulated still holds unchanged --
+this handoff relocated per-action logic into declared fields/hooks, it
+didn't remove or re-gate any of it. Adds an addendum: rows for the new
+onHitChanceEffect/staggerOnHit mechanism, Crushing Blow/Unyielding
+Advance's ascended-bonus fields, Hadrian's non-damage field-presence
+dispatch (plus the two newly-tested sub-branches, Champion's Challenge/
+Last Bastion), and usePlayerAction itself. Notes that Feint/Apothecary's
+own action blocks add no new coverage (already-generic code, just
+newly declared), and discloses what this handoff did NOT convert
+(Kessa/Hadrian's own action.kit/action.ability dispatch, judged
+analogous to actor.kind's legitimate dispatch; Groundbreaker's splash
+loop, which pipeline.js's own header already discloses as outside the
+five-step pipeline). Also notes P2/P4 as a new, mechanical form of
+coverage this table didn't have before.
+
+This closes out the step 1e completion handoff's own "done when"
+checklist: all attack-shaped player actions plus Feint/Apothecary run
+from definitions (P4 = 0, P2 clean); the test-strike proof passes with
+a definition-only diff (after the one disclosed, necessary schema-
+completion commit it depends on); exact-match parity holds everywhere
+(363/363, both Layer 2 harnesses bit-for-bit identical throughout);
+the §6 gap-fix tables and §7 field-ledger correction are delivered,
+with their own real limitations disclosed rather than glossed over.
+Not converted, disclosed rather than silently dropped: Kessa/Hadrian's
+own actor-shape dispatch and Groundbreaker's splash loop.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_1e_coverage.md | 52 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
