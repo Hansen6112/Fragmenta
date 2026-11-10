@@ -1,0 +1,68 @@
+range: 3704ae7fa9873c2dc4c19e06ab5b6a244cd99122..b85c9d492f6bf90c862217c122cdbea9eaf6ed48
+=== b85c9d492f6bf90c862217c122cdbea9eaf6ed48 2026-11-10 23:36:53 +0000
+1f-i: Hadrian's kit as data (formula/hooks) + extend P4 for ally identity
+Converts Hadrian's ability-kit damage path from action.kit-branching
+code into declared formula/hook fields, per the step 1f handoff's §2.
+
+- data/hadrian.js: a kit-level `action` block (formula: "kitAllyBasic",
+  hooks: {atkBonus, onDamage, onKill}) naming his basic-swing formula
+  and the three named helpers (hadrianFlatAtkBonus/
+  applyHadrianOutgoingDamageBonuses/onHadrianKill, companion.js), now
+  reached ONLY by name through PIPELINE_HOOKS -- never called directly
+  from a step function, including the attack-bonus value itself (the
+  strictest literal reading of "named-ally helpers may only be reached
+  through the hook table").
+- data/allies.js: ALLY_DEFS.hadrian.abilityKit carries that action block.
+- data/actions.js: 3 new PIPELINE_HOOKS entries (hadrianFlatAtkBonus/
+  hadrianOutgoingBonuses/hadrianOnKill, each a thin by-name wrapper
+  around the real companion.js helper) + 3 new PIPELINE_FORMULAS entries
+  (allyPlain -- Kessa's existing formula factored out; kitAllyBasic --
+  Hadrian's basic-swing formula; kitAllyAbility -- the one shared formula
+  for ANY kit-bearing ally's named active, since every per-ability
+  number already lives on the ability's own data).
+- engine/pipeline.js: rollToHitAllyActor/calculateDamageAllyActor/
+  applyAndReactAllyActor now dispatch on the declared `action.formula`
+  string ("allyPlain" vs. anything else) instead of action.kit's own
+  truthiness; the on-kill path dispatches over action.hooks.onKill by
+  name instead of calling onHadrianKill directly. The 3 ally
+  orchestrators (allyAggressiveAction/basicCompanionAttack/
+  resolveHadrianActiveDamage) now supply action.formula/action.hooks on
+  the runtime action object they build. action.kit/action.ability remain
+  as DATA fields (read, e.g. hadrianOnKill's own h.action.kit, or for
+  their own ability-specific numbers) -- only their use as branch VALUES
+  is eliminated, disclosed here since both still exist as data.
+- tools/audit.js: extends P4 with the handoff's own three new checks --
+  action.kit used as a branch condition, a defId/id identity check
+  against "hadrian"/"kessa", and a step function calling a named-ally
+  helper (hadrian*() directly instead of through PIPELINE_HOOKS (scoped
+  to pipeline.js + actions.js, same as existing P4; a direct call is only
+  legal inside PIPELINE_HOOKS' own method bodies, which the check skips).
+  Verified by deliberately reintroducing each of the three violations
+  and confirming audit.js catches all three, then reverting.
+- tools/tests/test_ally_proof_ledger.js (new) + run_all.js: the
+  handoff's own required proof -- a throwaway test_ally with its own
+  minimal kit (one formula, three hooks), registered at runtime only
+  (never written to a real data file), attacking through the REAL call
+  site (resolveCompanionAction -> basicCompanionAttack) with zero
+  changes to companion.js or pipeline.js. 4/4 checks pass, including an
+  exact-value check on the formula + onDamage hook's combined output and
+  a dedicated onKill-hook-fired check.
+
+Verification: full suite 367/367 (was 363/363; +4 for the new test-ally
+proof), audit.js 0 errors (P4 hits: 0, confirmed catching all 3 new
+deliberate breaks). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to the accepted step-1e-completion baseline --
+this is a pure restructure with zero behavior change.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                    |  95 +++++++++++++++++++++
+ js/data/allies.js                     |   2 +-
+ js/data/hadrian.js                    |  18 ++++
+ js/engine/pipeline.js                 | 118 ++++++++++----------------
+ tools/audit.js                        |  36 ++++++++
+ tools/tests/run_all.js                |   1 +
+ tools/tests/test_ally_proof_ledger.js | 150 ++++++++++++++++++++++++++++++++++
+ 7 files changed, 342 insertions(+), 78 deletions(-)

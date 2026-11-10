@@ -1,0 +1,309 @@
+[
+ {
+  "reg": "HADRIAN",
+  "id": "action",
+  "type": "added"
+ },
+ {
+  "reg": "ALLY_DEFS",
+  "id": "hadrian",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "abilityKit",
+    "old": {
+     "actives": [
+      {
+       "id": "crushing_blow",
+       "name": "Crushing Blow",
+       "level": 1,
+       "cooldown": 3,
+       "atkMult": 1.6,
+       "defIgnorePct": 0.2,
+       "consumesEmpoweredStrike": true,
+       "ascendedDefIgnoreBonus": 0.1
+      },
+      {
+       "id": "shielding_presence",
+       "name": "Shielding Presence",
+       "level": 1,
+       "cooldown": 4,
+       "tauntTurns": 2,
+       "dmgReductionPct": 0.2,
+       "dmgReductionTurns": 2,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "groundbreaker",
+       "name": "Groundbreaker",
+       "level": 5,
+       "cooldown": 4,
+       "atkMult": 1.5,
+       "splashAtkMult": 0.6,
+       "splashAll": true,
+       "accuracyDebuff": 10,
+       "accuracyDebuffTurns": 2,
+       "consumesEmpoweredStrike": true
+      },
+      {
+       "id": "unyielding_advance",
+       "name": "Unyielding Advance",
+       "level": 10,
+       "cooldown": 5,
+       "cleanse": true,
+       "healPct": 0.15,
+       "empoweredStrikePct": 0.3,
+       "empoweredStrikeTurns": 2,
+       "ascendedEmpoweredStrikeBonus": 0.15,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "champions_challenge",
+       "name": "Champion's Challenge",
+       "level": 15,
+       "cooldown": 5,
+       "tauntTurns": 1,
+       "bonusDef": 3,
+       "bonusDefTurns": 2,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "last_bastion",
+       "name": "Last Bastion",
+       "level": 20,
+       "cooldown": 8,
+       "tauntTurns": 3,
+       "dmgReductionPct": 0.35,
+       "dmgReductionTurns": 3,
+       "retaliatePct": 0.8,
+       "retaliateTurns": 3,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "arena_incarnate",
+       "name": "Arena Incarnate",
+       "level": 25,
+       "cooldown": 10,
+       "ultimateTurns": 3,
+       "ultimateAtkPct": 0.25,
+       "ultimateDefPct": 0.25,
+       "cdrOnHit": 1,
+       "halvesVulnerabilityDamage": true,
+       "flavorLine": "[fn]"
+      }
+     ],
+     "passives": [
+      {
+       "id": "champions_resolve",
+       "name": "Champion's Resolve",
+       "level": 1,
+       "trigger": "healthFloor",
+       "floorPct": 0.25,
+       "cleanseOne": true,
+       "oncePerCombat": true
+      },
+      {
+       "id": "unbroken_will",
+       "name": "Unbroken Will",
+       "level": 8,
+       "trigger": "healthBelowPct",
+       "threshold": 0.5,
+       "dmgReductionPct": 0.15,
+       "atkBonusPct": 0.1
+      },
+      {
+       "id": "veteran_of_a_hundred_battles",
+       "name": "Veteran of a Hundred Battles",
+       "level": 16,
+       "trigger": "healthLostScaling",
+       "pctPer10": 0.02,
+       "capPct": 0.2
+      },
+      {
+       "id": "bloodbound_paragon",
+       "name": "Bloodbound Paragon",
+       "level": 25,
+       "trigger": "onKill",
+       "cleanseSelfAndLowestAlly": true,
+       "allyDmgReductionPct": 0.1,
+       "allyBuffTurns": 2
+      }
+     ],
+     "vulnerability": {
+      "statuses": [
+       "venom"
+      ],
+      "multiplier": 1.25
+     }
+    },
+    "new": {
+     "actives": [
+      {
+       "id": "crushing_blow",
+       "name": "Crushing Blow",
+       "level": 1,
+       "cooldown": 3,
+       "atkMult": 1.6,
+       "defIgnorePct": 0.2,
+       "consumesEmpoweredStrike": true,
+       "ascendedDefIgnoreBonus": 0.1
+      },
+      {
+       "id": "shielding_presence",
+       "name": "Shielding Presence",
+       "level": 1,
+       "cooldown": 4,
+       "tauntTurns": 2,
+       "dmgReductionPct": 0.2,
+       "dmgReductionTurns": 2,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "groundbreaker",
+       "name": "Groundbreaker",
+       "level": 5,
+       "cooldown": 4,
+       "atkMult": 1.5,
+       "splashAtkMult": 0.6,
+       "splashAll": true,
+       "accuracyDebuff": 10,
+       "accuracyDebuffTurns": 2,
+       "consumesEmpoweredStrike": true
+      },
+      {
+       "id": "unyielding_advance",
+       "name": "Unyielding Advance",
+       "level": 10,
+       "cooldown": 5,
+       "cleanse": true,
+       "healPct": 0.15,
+       "empoweredStrikePct": 0.3,
+       "empoweredStrikeTurns": 2,
+       "ascendedEmpoweredStrikeBonus": 0.15,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "champions_challenge",
+       "name": "Champion's Challenge",
+       "level": 15,
+       "cooldown": 5,
+       "tauntTurns": 1,
+       "bonusDef": 3,
+       "bonusDefTurns": 2,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "last_bastion",
+       "name": "Last Bastion",
+       "level": 20,
+       "cooldown": 8,
+       "tauntTurns": 3,
+       "dmgReductionPct": 0.35,
+       "dmgReductionTurns": 3,
+       "retaliatePct": 0.8,
+       "retaliateTurns": 3,
+       "flavorLine": "[fn]"
+      },
+      {
+       "id": "arena_incarnate",
+       "name": "Arena Incarnate",
+       "level": 25,
+       "cooldown": 10,
+       "ultimateTurns": 3,
+       "ultimateAtkPct": 0.25,
+       "ultimateDefPct": 0.25,
+       "cdrOnHit": 1,
+       "halvesVulnerabilityDamage": true,
+       "flavorLine": "[fn]"
+      }
+     ],
+     "passives": [
+      {
+       "id": "champions_resolve",
+       "name": "Champion's Resolve",
+       "level": 1,
+       "trigger": "healthFloor",
+       "floorPct": 0.25,
+       "cleanseOne": true,
+       "oncePerCombat": true
+      },
+      {
+       "id": "unbroken_will",
+       "name": "Unbroken Will",
+       "level": 8,
+       "trigger": "healthBelowPct",
+       "threshold": 0.5,
+       "dmgReductionPct": 0.15,
+       "atkBonusPct": 0.1
+      },
+      {
+       "id": "veteran_of_a_hundred_battles",
+       "name": "Veteran of a Hundred Battles",
+       "level": 16,
+       "trigger": "healthLostScaling",
+       "pctPer10": 0.02,
+       "capPct": 0.2
+      },
+      {
+       "id": "bloodbound_paragon",
+       "name": "Bloodbound Paragon",
+       "level": 25,
+       "trigger": "onKill",
+       "cleanseSelfAndLowestAlly": true,
+       "allyDmgReductionPct": 0.1,
+       "allyBuffTurns": 2
+      }
+     ],
+     "vulnerability": {
+      "statuses": [
+       "venom"
+      ],
+      "multiplier": 1.25
+     },
+     "action": {
+      "formula": "kitAllyBasic",
+      "hooks": {
+       "atkBonus": "hadrianFlatAtkBonus",
+       "onDamage": [
+        "hadrianOutgoingBonuses"
+       ],
+       "onKill": [
+        "hadrianOnKill"
+       ]
+      }
+     }
+    }
+   }
+  ]
+ },
+ {
+  "reg": "PIPELINE_HOOKS",
+  "id": "hadrianFlatAtkBonus",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_HOOKS",
+  "id": "hadrianOutgoingBonuses",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_HOOKS",
+  "id": "hadrianOnKill",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "allyPlain",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "kitAllyBasic",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "kitAllyAbility",
+  "type": "added"
+ }
+]
