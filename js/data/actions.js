@@ -188,6 +188,19 @@ const PIPELINE_HOOKS = {
   staggerOnHit(h) {
     return tryApplyEnemyStun(h.state, h.creature);
   },
+  // Step 1f-i: named-ally helpers, reached ONLY through this table --
+  // never called directly from a step function (pipeline.js). The
+  // helpers themselves (companion.js) are unchanged; only how they're
+  // reached moved.
+  hadrianFlatAtkBonus(h) {
+    return hadrianFlatAtkBonus(h.ally);
+  },
+  hadrianOutgoingBonuses(h) {
+    return applyHadrianOutgoingDamageBonuses(h.ally, h.edmg, h.creature);
+  },
+  hadrianOnKill(h) {
+    onHadrianKill(h.state, h.ally, h.action.kit);
+  },
 };
 
 // ---- formula table: today's formulas only, no new math. Resolved by
@@ -199,4 +212,86 @@ const PIPELINE_FORMULAS = {
   // there's only one real player-side formula today, not a physical/spell
   // pair at the action level.
   playerCore: (actor, target, ctx, activeElement) => rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement),
+
+  // Step 1f-i: the three ally-side damage formulas, factored out of
+  // calculateDamageAllyActor's own former `if (action.kit)` branch so
+  // that function can dispatch on action.formula (a declared string)
+  // instead of action.kit's own truthiness. Signature matches
+  // calculateDamageAllyActor's own call: (actor, target, action, ctx,
+  // hitInfo) -> { edmg, extra } -- extra is merged onto calculateDamage's
+  // returned dmgInfo (baseAtk/splashAtkMult/bankedDefKit, used by
+  // Groundbreaker's splash loop and applyAndReactAllyActor's own banked-
+  // Defense consumption).
+
+  // Kessa today -- allyAggressiveActionLegacy's own formula.
+  allyPlain(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const ally = actor.ref;
+    const enemySlot = target.store;
+    const creature = enemySlot.creatureObj;
+    const allyAtk = stat(state, actor, "atk");
+    const reduction = 1 - (creature.dmgReduction || 0);
+    // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
+    // pipeline.js's own step 1d header. The actual zero + Sure Foundation
+    // re-grant happens in applyAndReactAllyActor (step 5).
+    const bankedDef = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0);
+    const effectiveDef = stat(state, target, "def") + bankedDef;
+    const sangMit = sangCuDefenderMitigation(creature);
+    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), effectiveDef) * reduction * sangMit));
+    edmg = applyOpeningReachForActor(ally, edmg);
+    edmg = Math.round(edmg * executionerMultiplierFor(ally, enemySlot.hp, enemySlot.maxHp));
+    return { edmg, extra: {} };
+  },
+
+  // A kit-bearing ally's fallback basic swing (Hadrian's today) --
+  // basicCompanionAttackLegacy's own formula. The attack-bonus hook
+  // (action.hooks.atkBonus) and the outgoing-damage hook
+  // (action.hooks.onDamage) are both declared on the kit's own data
+  // (js/data/hadrian.js today), read here generically -- this formula
+  // itself names no ally.
+  kitAllyBasic(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const ally = actor.ref;
+    const enemySlot = target.store;
+    const creature = enemySlot.creatureObj;
+    const bankedDefKit = COMBAT_UNIFY.U3e
+      ? (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0)
+      : 0;
+    const sangMitKit = COMBAT_UNIFY.U3f ? sangCuDefenderMitigation(creature) : 1;
+    const atkBonusHook = action.hooks && action.hooks.atkBonus;
+    const atkBonus = atkBonusHook ? PIPELINE_HOOKS[atkBonusHook]({ state, actor, target, ally, creature, action }) : 0;
+    const atk = ally.atk + atkBonus;
+    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), stat(state, target, "def") + bankedDefKit) * sangMitKit));
+    return { edmg, extra: { bankedDefKit } };
+  },
+
+  // A kit-bearing ally's named active, direct-damage branch (Crushing
+  // Blow/Groundbreaker today) -- useHadrianActive's own direct-damage
+  // formula, moved via resolveHadrianActiveDamage (pipeline.js). Every
+  // per-ability number (atkMult/defIgnorePct/consumesEmpoweredStrike/
+  // splashAtkMult/ascended bonuses) already lives on the ability's own
+  // data (js/data/hadrian.js), so this ONE formula is already generic
+  // across any kit-bearing ally's named actives, not just Hadrian's.
+  kitAllyAbility(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const ally = actor.ref;
+    const enemySlot = target.store;
+    const creature = enemySlot.creatureObj;
+    const bankedDefKit = COMBAT_UNIFY.U3e
+      ? (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0)
+      : 0;
+    const sangMitKit = COMBAT_UNIFY.U3f ? sangCuDefenderMitigation(creature) : 1;
+    const ability = action.ability;
+    const atkBonusHook = action.hooks && action.hooks.atkBonus;
+    const atkBonus = atkBonusHook ? PIPELINE_HOOKS[atkBonusHook]({ state, actor, target, ally, creature, action }) : 0;
+    const atkBonusPct = 1 + (ally.ultimateTurnsLeft > 0 ? ally.ultimateAtkPct : 0);
+    const empowered = ability.consumesEmpoweredStrike && ally.empoweredStrikeTurnsLeft > 0;
+    const empoweredMult = empowered ? 1 + ally.empoweredStrikePct : 1;
+    if (empowered) { ally.empoweredStrikePct = 0; ally.empoweredStrikeTurnsLeft = 0; }
+    const baseAtk = (ally.atk + atkBonus) * atkBonusPct * empoweredMult;
+    const defIgnore = (ability.defIgnorePct || 0) + (action.ascended ? (ability.ascendedDefIgnoreBonus || 0) : 0);
+    const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (action.ascended ? 0.15 : 0) : 0;
+    let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, (stat(state, target, "def") + bankedDefKit) * (1 - defIgnore)) * sangMitKit));
+    return { edmg, extra: { baseAtk, splashAtkMult, bankedDefKit } };
+  },
 };

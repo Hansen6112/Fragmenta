@@ -64,6 +64,6 @@ const ALLY_DEFS = {
     // Companion Ability Engine (engine/companion.js) reads this to run
     // his real kit instead of the generic 3-stance ally action — Kessa
     // has no abilityKit, so she's entirely unaffected by any of this.
-    abilityKit: { actives: HADRIAN.actives, passives: HADRIAN.passives, vulnerability: HADRIAN.vulnerability },
+    abilityKit: { actives: HADRIAN.actives, passives: HADRIAN.passives, vulnerability: HADRIAN.vulnerability, action: HADRIAN.action },
   },
 };

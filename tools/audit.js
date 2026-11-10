@@ -272,6 +272,22 @@ for (const tableName of ACTION_TABLE_NAMES) {
 // object (e.g. `getActionDef(elementKey)`).
 const P4_FILES = ["js/engine/pipeline.js", "js/data/actions.js"];
 const P4_PATTERN = /action\.id\s*(?:===|!==)|\.includes\(\s*action\.id\s*\)|switch\s*\(\s*action\.id\s*\)/g;
+// Step 1f-i §2 extension: the same no-identity-checks rule, for ALLY
+// identity this time -- `action.kit` used as a branch condition (its own
+// truthiness tested, not its fields read as data), `defId ===`/`id ===`
+// against one specific ally, or a step function calling a named-ally
+// helper (e.g. `hadrian*(`) directly instead of through PIPELINE_HOOKS.
+// `action.kit` as a DATA field (assigned into an action object, or passed
+// as an argument -- e.g. hadrianOnKill's own `h.action.kit`) is untouched;
+// only a truthiness/equality test on it trips this.
+const P4_KIT_COND_PATTERN = /\b(?:if|while)\s*\(\s*!?action\.kit\s*\)|action\.kit\s*(?:&&|\?|===|!==)|!action\.kit\b/g;
+const P4_ALLY_ID_PATTERN = /\b(?:defId|id)\s*(?:===|!==)\s*["'`](?:hadrian|kessa)["'`]/g;
+// Named-ally helpers live in companion.js (hadrianFlatAtkBonus,
+// applyHadrianOutgoingDamageBonuses, onHadrianKill, ...) and may only be
+// reached by NAME through PIPELINE_HOOKS -- so a direct call only trips
+// this outside that table's own method bodies, which legitimately make
+// the real call once, by design (js/data/actions.js's PIPELINE_HOOKS).
+const P4_DIRECT_HELPER_PATTERN = /\bhadrian[A-Za-z]*\s*\(/g;
 let p4Hits = 0;
 for (const f of P4_FILES) {
   const src = sources[f];
@@ -282,9 +298,29 @@ for (const f of P4_FILES) {
   // only real code should trip P4. A line's own `//` is never inside a
   // string in this codebase's style, so a naive split is safe here.
   const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]);
+  // PIPELINE_HOOKS' own method bodies are the one place a named-ally
+  // helper may be called directly (that's the whole point of the table);
+  // track whether each line falls inside it so the direct-helper check
+  // can skip just that span, in just this file.
+  const hooksStart = codeOnly.findIndex((l) => /const\s+PIPELINE_HOOKS\s*=\s*\{/.test(l));
+  let hooksEnd = -1;
+  if (hooksStart !== -1) {
+    let depth = 0;
+    for (let i = hooksStart; i < codeOnly.length; i++) {
+      for (const ch of codeOnly[i]) { if (ch === "{") depth++; else if (ch === "}") { depth--; if (depth === 0) { hooksEnd = i; break; } } }
+      if (hooksEnd !== -1) break;
+    }
+  }
   for (let i = 0; i < codeOnly.length; i++) {
     if (P4_PATTERN.test(codeOnly[i])) { err("action-identity", `${f}:${i + 1} checks action identity directly -- "${codeOnly[i].trim()}" (P4)`); p4Hits++; }
     P4_PATTERN.lastIndex = 0;
+    if (P4_KIT_COND_PATTERN.test(codeOnly[i])) { err("action-identity", `${f}:${i + 1} branches on action.kit's own truthiness -- "${codeOnly[i].trim()}" (P4)`); p4Hits++; }
+    P4_KIT_COND_PATTERN.lastIndex = 0;
+    if (P4_ALLY_ID_PATTERN.test(codeOnly[i])) { err("action-identity", `${f}:${i + 1} checks a specific ally's id/defId -- "${codeOnly[i].trim()}" (P4)`); p4Hits++; }
+    P4_ALLY_ID_PATTERN.lastIndex = 0;
+    const insideHooksTable = hooksStart !== -1 && i >= hooksStart && i <= hooksEnd;
+    if (!insideHooksTable && P4_DIRECT_HELPER_PATTERN.test(codeOnly[i])) { err("action-identity", `${f}:${i + 1} calls a named-ally helper directly, outside PIPELINE_HOOKS -- "${codeOnly[i].trim()}" (P4)`); p4Hits++; }
+    P4_DIRECT_HELPER_PATTERN.lastIndex = 0;
   }
 }
 

@@ -127,6 +127,24 @@ const HADRIAN = {
   // system for one companion's flavor vulnerability.
   vulnerability: { statuses: ["venom"], multiplier: 1.25 },
 
+  // Step 1f-i (Combat Rebuild Phase 1, 10 Nov 2026 follow-up): the kit's
+  // own attack formula and hooks -- read generically by
+  // rollToHitAllyActor/calculateDamageAllyActor/applyAndReactAllyActor
+  // (js/engine/pipeline.js) for both his basic fallback swing
+  // (formula) and any named active's direct damage (the fixed
+  // "kitAllyAbility" formula every kit-bearing ally's named actives
+  // share, since the per-ability numbers already live on each active's
+  // own data). hadrianFlatAtkBonus/applyHadrianOutgoingDamageBonuses/
+  // onHadrianKill (engine/companion.js) are reached ONLY through these
+  // named hooks now -- never called directly from a step function. A
+  // future ally with different basic-swing math declares a different
+  // `formula` name here; one with no such bonuses at all simply omits
+  // `hooks`.
+  action: {
+    formula: "kitAllyBasic",
+    hooks: { atkBonus: "hadrianFlatAtkBonus", onDamage: ["hadrianOutgoingBonuses"], onKill: ["hadrianOnKill"] },
+  },
+
   // ---- 8.3/8.4 Ability Kit ----
   // Consumed by engine/companion.js's resolveHadrianAction. `level` gates
   // unlock (checked against ally.level, which syncs to the player's
