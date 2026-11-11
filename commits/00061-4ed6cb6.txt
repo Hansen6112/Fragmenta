@@ -1,0 +1,249 @@
+range: 877f14a3996815f3c6f3dd66ec44dfaa2471da98..4ed6cb616b51861f719b2569060499b377226337
+=== 4ed6cb616b51861f719b2569060499b377226337 2026-11-11 21:01:45 +0000
+Step 1h-i: freeze Legacy-oracle fixtures before deleting anything
+Combat Rebuild Phase 1, step 1h §2: before any of the 15 doomed
+Legacy/dead functions are deleted, capture what each still gets
+compared against into on-disk fixtures, so the comparison survives
+the deletion.
+
+Re-derived the handoff's own "~12 files" estimate by grepping each of
+the 15 function names individually (not a blanket "Legacy" text
+search, which is noisy with disclosure-comment false positives) and
+reading every real hit in context. The true scope is smaller:
+
+- 6 files truly need a frozen fixture, because they call a *Legacy
+  oracle directly inside checkParity as their comparison baseline:
+  phase1_step1b/1c/1d/1e_i/1e_ii/1e_iii pipeline-parity files.
+- 1 file (ally_protection_ledger.js, scenario AP-04) calls
+  resolveEnemyRetaliation not as a Legacy-vs-new comparison but as a
+  convenience stand-in for "the player gets hit" in a negative-control
+  assertion. Fixed by redirecting the call to
+  resolveEnemyAttackOnPlayer, its exact same-signature live
+  replacement since step 1b (per pipeline.js's own header comment) --
+  no freeze needed, no behavior change in what's being asserted.
+- The remaining 8 of the 15 functions have zero test references at
+  all and need neither a freeze nor a redirect.
+
+Freeze mechanism (added to each of the 6 files): an
+env-var-gated dual mode. FREEZE_LEGACY_ORACLES=1 makes the file call
+its own existing runOne(legacyFn, scenario) -- the exact same call the
+live comparison already makes, so there's no separate transcription
+step that could drift from the real oracle output -- and write the
+captured {result, snap[, randomCount]} per scenario code to
+tools/tests/fixtures/<file>.json. Without the env var, the file reads
+the fixture instead of calling the (soon-to-be-deleted) oracle.
+tools/tests/freeze_legacy_oracles.js is the orchestrator that runs all
+six in freeze mode and reports per-file success.
+
+Verification:
+- Froze 176 scenarios total (34+29+36+26+31+20) across the 6 files;
+  re-running the freeze script reproduces byte-identical fixtures
+  (scenarios use forced rolls, so this is expected determinism, now
+  confirmed rather than assumed).
+- Control check on phase1_step1b: hand-corrupted one scenario's fixture
+  value, confirmed the matching scenario (and only that one) failed,
+  reverted, confirmed it passed again.
+- Full suite: 445/445 (unchanged). tools/audit.js: 0 errors, 72
+  warnings (unchanged -- no production file touched this commit, only
+  test files and the new fixtures/orchestrator).
+- Layer 2: reran both whole-fight harnesses (boss_sweep.js, 16 bosses x
+  2 classes x 2 modes; plus3_run.js, Dregnar/Arbitarius legal-party
+  cells) end to end against this commit's code. Both are seeded
+  per-trial (box.setSeed(5000+i)) and completed cleanly with figures
+  matching the pre-1h baseline (e.g. arbitarius_commander/warrior
+  alone: winRate 0, avgPlayerDamageTaken 227 in both scripts' output).
+  This is a trivial confirmation by construction, since zero
+  js/engine/ files changed this commit, but it was actually run rather
+  than assumed.
+
+Nothing is deleted yet -- this is step 1h-i only, its own first commit
+per the handoff. 1h-ii (delete the 15 functions + orphan sweep) is
+next.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/tests/ally_protection_ledger.js              |  14 +-
+ .../fixtures/phase1_step1b_pipeline_parity.json    | 349 +++++++++++++++++++++
+ .../phase1_step1c_ally_pipeline_parity.json        | 300 ++++++++++++++++++
+ .../phase1_step1d_ally_attack_pipeline_parity.json | 291 +++++++++++++++++
+ ...se1_step1e_i_player_attack_pipeline_parity.json | 221 +++++++++++++
+ .../phase1_step1e_ii_tactics_pipeline_parity.json  | 280 +++++++++++++++++
+ ...phase1_step1e_iii_elements_pipeline_parity.json | 189 +++++++++++
+ tools/tests/freeze_legacy_oracles.js               | 105 +++++++
+ tools/tests/phase1_step1b_pipeline_parity.js       |  42 ++-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |  40 ++-
+ .../phase1_step1d_ally_attack_pipeline_parity.js   |  31 +-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |  31 +-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |  32 +-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |  31 +-
+ 14 files changed, 1919 insertions(+), 37 deletions(-)
+=== 19389ab6986983882766b10eeb766ff8755f9b35 2026-11-11 20:30:00 +0000
+Phase 1, step 1g: coverage table + final verification
+tools/combat_1g_coverage.md, same convention as combat_1e_coverage.md/
+combat_1f_coverage.md: maps every path 1g-i through 1g-vii built or
+touched to the test scenario(s) exercising it -- Dregnar's targeting,
+Groundbreaker's splash, the six in-combat heal paths, P1's two
+hardening passes, and all five field-move batches (including the
+disclosed reclassification of summonLifetimeCounts/
+enemyActedFirstThisRound to structural, and 1g-vii's own
+no-code-change, ledger-accounting-only nature).
+
+Confirms all five "Done when" items from the governing handoff:
+Dregnar's targeting through the one shared step with his exemption
+gone; Groundbreaker's splash through steps 4-5 with its exemption gone;
+all in-combat healing through applyHealing with P1 covering HP in every
+direction and form; all 117 fields accounted for across five batches,
+ledger at 0 fields left to move; parity held exact throughout (full
+suite + audit after every commit, bit-for-bit whole-fight parity on
+both harnesses from the first 1g commit to the last).
+
+Final verification: suite 445/445, audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_1g_coverage.md | 124 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 124 insertions(+)
+=== a45b34dbe66f37932b90a9b0b60ec3d30644f09c 2026-11-11 20:25:38 +0000
+Phase 1, step 1g-vii: field move batch 5 (final) -- enemy per-slot state, ledger at 0
+The most central batch, done last, and the odd one out: no js/engine
+code needed to change, because the real storage was already correct.
+Read against the live startCombat wiring, every enemy slot has always
+been its own object literal (the `.map()` over the roster), with
+hp/maxHp/corroded/disarmed/enemyAtkPenalty/enemyDefPenalty/
+enemyStunCharges/hamstringApplied/burn/bleed/lastDamageType/
+reinforcedAttackCount/hitsTakenFromPlayer/creatureId/creatureObj/
+dynamicCreature as its own plain properties -- never shared, never flat
+on combat, since before Phase 1 (or multi-enemy packs) existed.
+wireActiveEnemyProxy's combat.<field> get/set is a pure convenience
+alias ("whichever enemy is active") on top of that already-correct
+storage, the same relationship wirePlayerFieldsProxy has to its own
+private store -- it's the alias's SPELLING that step 1h deletes, not a
+data relocation, since there's nowhere left to relocate these TO.
+
+Through 1g-vi, tools/combat_field_ledger.js deliberately did NOT credit
+PER_ENEMY_FIELDS membership as "storage moved" -- reasonable skepticism
+while that claim was unverified, carried over from before this
+engagement. Verified it here, read against the real wiring rather than
+assumed, and updated the ledger to count it: PER_ENEMY_FIELDS
+membership now sets storageMoved = true, same standing as
+PLAYER_FIELDS_STORAGE_MOVED membership.
+
+Storage not yet moved: 16 -> 0. Zero other engine behavior changes --
+only tools/combat_field_ledger.js and its regenerated .md touched.
+
+Added tools/tests/phase1_step1g_vii_field_move_batch5_ledger.js: two
+enemies in the same pack have fully independent values across all 16
+fields, and the combat.<field> alias both reads and writes to whichever
+enemy is actually active, through the real live wiring -- the
+independent verification backing this batch's "already moved" claim.
+
+Verification: suite 445/445, audit 0 errors. No Layer 2 re-run needed --
+no engine file changed, so no behavioral diff is possible.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_field_ledger.js                       |  39 +++++---
+ tools/combat_field_ledger.md                       |  36 +++----
+ .../phase1_step1g_vii_field_move_batch5_ledger.js  | 108 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 4 files changed, 152 insertions(+), 32 deletions(-)
+=== 12fb20903d5b6ff26b29f711b32f11aaa9be3cc5 2026-11-11 20:21:32 +0000
+Phase 1, step 1g-vi: field move batch 4 -- core player combat state (22 fields)
+Checked before moving, per the handoff's own instruction: of the 24
+fields it listed, summonLifetimeCounts and enemyActedFirstThisRound are
+genuinely fight-wide, not player-owned -- summonLifetimeCounts caps an
+enemy summon ability's lifetime fight-wide (resolveEnemySummon),
+regardless of which pack member casts it; enemyActedFirstThisRound
+describes THIS ROUND's initiative order (resolveSpeedInitiative), not
+any one fighter's own state, even though a player-side passive (Stone's
+Patience) happens to read it. Reclassified both STRUCTURAL in
+tools/combat_field_ledger.js (never move) instead of moving them into
+the player's store, leaving the real batch at 22 -- exactly the
+handoff's own "~22" estimate once the two are excluded.
+
+Moved the remaining 22 into the player's own private store via
+PLAYER_FIELDS/wirePlayerFieldsProxy, same mechanism as batches 1-3:
+atkBuffAmount/Turns, defBuffAmount/Turns, magicBuffAmount/Turns,
+knowledgeBuffAmount, damageReductionTurns, playerBuffs, playerStatuses,
+regen, tempHealth, evasionCharges, evasionTurns, evasiveGuardBonus,
+exposedTarget, playerLastHitType, actionCounter, weaponAttackCounter,
+momentumStacks, momentumUnboundStacks, siegeCorpsAtkCharge.
+
+Regenerated the ledger: tracked drops from 148 to 146 (the two
+reclassified fields leave the tracked set entirely), storage not yet
+moved drops from 40 to 16 -- 22 real moves plus the 2 reclassifications
+removed from the count.
+
+Added tools/tests/phase1_step1g_vi_field_move_batch4_ledger.js: accessor/
+round-trip/isolation checks for the 22 moved fields, plus confirmation
+that the two reclassified fields are still plain (unmoved) properties,
+exercised alongside a real moved field (momentumStacks) and a real
+mechanic (Stone's Patience) in the same combat round.
+
+Verification: suite 442/442, audit 0 errors, boss_sweep/plus3_run
+bit-for-bit identical to the pre-1g-vi baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |  15 +++
+ tools/combat_field_ledger.js                       |  22 +++-
+ tools/combat_field_ledger.md                       |  54 +++++-----
+ .../phase1_step1g_vi_field_move_batch4_ledger.js   | 113 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 177 insertions(+), 28 deletions(-)
+=== a657b5fe3e04977bdf14e946db7dd7f2a68d4ec8 2026-11-11 20:17:28 +0000
+Phase 1, step 1g-v: field move batch 3 -- set/gear stacks and bonuses (37 fields)
+Moved the set/gear stack and bonus fields the handoff listed into the
+player's own private store via PLAYER_FIELDS/wirePlayerFieldsProxy,
+same mechanism as batches 1-2. 37 fields matched the live ledger
+against the handoff's wildcard patterns (its own "about 41" was
+approximate, per its own instruction that the ledger's grouping is the
+authority). What Phase 2 will turn into modifier entries; moved as-is,
+no redesign.
+
+adaptiveTideMagicStacks/PhysicalStacks, adaptiveWardElement,
+battleTemperedAtkStacks/DefStacks, blessingOfFortuneCritStacks,
+calmWatersDefBonus/MagicBonus/Turns, compassionsGraceDefStacks,
+endlessCurrentStacks, endlessStudyMagicBonus, everyChoiceAtkStacks/
+MagicStacks, forestGuardianBonus, groundbreakerDebuffs, lastStandAtkBonus,
+livingCurrentStacks, livingSteelBonus, orderedMindDefStacks,
+perfectMemoryKnowledgeBonus, queenCarapaceBonus, reinforcedDefStacks,
+riverWardenMagicBonus, sovereigntyTurnsLeft, temperedSteelStacks,
+unbrokenLineHitCount, unwaveringDevotionStacks, wallsEndureDefStacks,
+whiteWatchRiposteDefBonus, windsOfChangeAtk/Def/Knowledge/Magic,
+workRefinesAtkStacks/MagicStacks, worthyChallengeStacks.
+
+Updated tools/combat_field_ledger.js's duplicate list and regenerated:
+storage not yet moved drops by exactly 37, from 77 to 40.
+
+Added tools/tests/phase1_step1g_v_field_move_batch3_ledger.js: accessor/
+round-trip/isolation checks, plus groundbreakerDebuffs specifically --
+the one non-scalar (array) field in this batch, exercised through its
+real push (applyGroundbreakerAccuracyDebuff) and filter
+(tickGroundbreakerDebuffs) call sites. Along the way, found that a
+debuff amount exceeding the base stat hits a pre-existing floor-clamp
+quirk in tickGroundbreakerDebuffs's own restore math (unrelated to this
+move -- same bug before and after); the test uses a safe margin instead
+of masking it.
+
+Verification: suite 437/437, audit 0 errors, boss_sweep/plus3_run
+bit-for-bit identical to the pre-1g-v baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |  16 ++++
+ tools/combat_field_ledger.js                       |  13 +++
+ tools/combat_field_ledger.md                       |  78 +++++++--------
+ .../phase1_step1g_v_field_move_batch3_ledger.js    | 106 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 175 insertions(+), 39 deletions(-)
