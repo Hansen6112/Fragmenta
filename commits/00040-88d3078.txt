@@ -1,0 +1,38 @@
+range: 7c97ed044873884d587e9d8db752718bd039b201..88d30786894afc0c27375aec93a46b3916b7fada
+=== 88d30786894afc0c27375aec93a46b3916b7fada 2026-11-11 03:57:54 +0000
+1f-i §3 fix: storage-not-moved must count only wirePlayerFieldsProxy
+The previous commit (7c97ed0) had the "storage not yet moved" metric
+also treating PER_ENEMY_FIELDS/wireActiveEnemyProxy as a "moved"
+signal, which produced 101/148 -- but the governing handoff's own §3
+text is specific: "Detect 'moved' from the real storage wiring
+(wirePlayerFieldsProxy / the store lists), not by searching text" --
+wirePlayerFieldsProxy only. I didn't have that literal wording when I
+wrote 7c97ed0 (it fell out of context after a worker restart); now that
+it's back, this corrects the metric to match it exactly.
+
+PER_ENEMY_FIELDS' own proxy (wireActiveEnemyProxy) predates this
+Phase's combatant-store architecture and is itself slated for deletion
+at step 1h ("Delete old per-pair paths and PER_ENEMY_FIELDS proxy"),
+so a field living behind it still reads "storage not yet moved" here,
+exactly as it did before 1e touched anything. Only the 31
+PLAYER_FIELDS entries (wirePlayerFieldsProxy, the step 1e §3.3 move)
+count as moved now.
+
+Result: storage not yet moved is now 117/148 -- exactly §3's own stated
+expectation ("It should read 117 now, since 31 fields moved in 1e"),
+and unchanged through the rest of 1f since this step renames nothing
+(§3: "no tracked field closes at 1f... the progress number stays at
+117 through this step"). Old-name references remaining stays 148/148,
+unaffected by this fix.
+
+Verification: full suite 367/367, audit 0 errors -- this only changes
+a reporting tool and its generated markdown, zero effect on game
+behavior.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_field_ledger.js | 81 ++++++++++++++++++++++++++++----------------
+ tools/combat_field_ledger.md | 51 +++++++++++++++-------------
+ 2 files changed, 79 insertions(+), 53 deletions(-)
