@@ -5,15 +5,29 @@
 // named branch -- same methodology as step 1b's own suite, including the
 // "effect changed something" control on every scenario naming a gear
 // toggle (added after the Spell Ward false-pass in step 1b's own review).
+//
+// Step 1h-i: resolveEnemyAttackOnAllyLegacy is one of the 15 functions
+// step 1h deletes. FREEZE_LEGACY_ORACLES=1 runs this file in "freeze"
+// mode instead of its normal verify mode -- it still calls the live
+// oracle (so this only works BEFORE 1h-ii deletes it) but writes each
+// scenario's oldRun to tools/tests/fixtures/phase1_step1c_ally_pipeline_parity.json
+// instead of comparing it. After that fixture exists, normal runs read
+// oldRun from it instead of calling resolveEnemyAttackOnAllyLegacy.
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
+const FREEZE = process.env.FREEZE_LEGACY_ORACLES === '1';
+const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'phase1_step1c_ally_pipeline_parity.json');
+const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 
-  const out = await page.evaluate(() => {
+  const out = await page.evaluate(({ FREEZE, frozenIn }) => {
     const ledger = [];
+    const frozenOut = {};
     function record(code, description, fn) {
       let passed = false, errors = 0, detail = null;
       try {
@@ -85,7 +99,8 @@ const { chromium } = require('playwright');
 
     function checkParity(code, description, scenario) {
       record(code, description, () => {
-        const oldRun = runOne(resolveEnemyAttackOnAllyLegacy, scenario);
+        const oldRun = FREEZE ? runOne(resolveEnemyAttackOnAllyLegacy, scenario) : frozenIn[code];
+        if (FREEZE) frozenOut[code] = { result: oldRun.result, randomCount: oldRun.randomCount, snap: oldRun.snap };
         const newRun = runOne(resolveEnemyAttackOnAlly, scenario);
         const resultMatch = JSON.stringify(oldRun.result) === JSON.stringify(newRun.result);
         const snapMatch = oldRun.snap === newRun.snap;
@@ -262,17 +277,26 @@ const { chromium } = require('playwright');
       seq: LOW,
     });
 
-    return ledger;
-  });
+    return { ledger, frozenOut };
+  }, { FREEZE, frozenIn });
 
-  console.log(JSON.stringify(out, null, 2));
-  const fails = out.filter((e) => !e.pass);
-  console.error(`\n${out.length - fails.length}/${out.length} passed`);
+  if (FREEZE) {
+    fs.mkdirSync(path.dirname(FIXTURE_PATH), { recursive: true });
+    fs.writeFileSync(FIXTURE_PATH, JSON.stringify(out.frozenOut, null, 2) + '\n');
+    console.log(`Froze ${Object.keys(out.frozenOut).length} scenario(s) to ${FIXTURE_PATH}`);
+    await browser.close();
+    process.exit(0);
+  }
+
+  const ledger = out.ledger;
+  console.log(JSON.stringify(ledger, null, 2));
+  const fails = ledger.filter((e) => !e.pass);
+  console.error(`\n${ledger.length - fails.length}/${ledger.length} passed`);
   if (fails.length) {
     console.error('FAILURES:');
     for (const f of fails) console.error(`  ${f.code}: ${f.description}\n    detail: ${JSON.stringify(f.detail).slice(0, 2000)}`);
   }
-  console.log(`RESULT: ${out.length - fails.length}/${out.length}`);
+  console.log(`RESULT: ${ledger.length - fails.length}/${ledger.length}`);
   await browser.close();
   process.exit(fails.length ? 1 : 0);
 })();

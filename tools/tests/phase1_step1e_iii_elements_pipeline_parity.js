@@ -5,15 +5,29 @@
 // safety, comparing the full orchestrators directly like every other
 // scenario in this file. useElementAbilityLegacy (combat.js, byte-
 // identical) is the kept oracle for useElementAbility (pipeline.js).
+//
+// Step 1h-i: useElementAbilityLegacy is one of the 15 functions step 1h
+// deletes. FREEZE_LEGACY_ORACLES=1 runs this file in "freeze" mode
+// instead of its normal verify mode -- it still calls the live oracle
+// (so this only works BEFORE 1h-ii deletes it) but writes each
+// scenario's oldRun to tools/tests/fixtures/phase1_step1e_iii_elements_pipeline_parity.json
+// instead of comparing it. After that fixture exists, normal runs read
+// oldRun from it instead of calling useElementAbilityLegacy.
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
+const FREEZE = process.env.FREEZE_LEGACY_ORACLES === '1';
+const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'phase1_step1e_iii_elements_pipeline_parity.json');
+const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 
-  const out = await page.evaluate(() => {
+  const out = await page.evaluate(({ FREEZE, frozenIn }) => {
     const ledger = [];
+    const frozenOut = {};
     function record(code, description, fn) {
       let passed = false, errors = 0, detail = null;
       try {
@@ -107,7 +121,8 @@ const { chromium } = require('playwright');
 
     function checkParity(code, description, legacyFn, newFn, scenario) {
       record(code, description, () => {
-        const oldRun = runOne(legacyFn, scenario);
+        const oldRun = FREEZE ? runOne(legacyFn, scenario) : frozenIn[code];
+        if (FREEZE) frozenOut[code] = { result: oldRun.result, snap: oldRun.snap };
         const newRun = runOne(newFn, scenario);
         const resultMatch = JSON.stringify(oldRun.result) === JSON.stringify(newRun.result);
         const snapMatch = oldRun.snap === newRun.snap;
@@ -206,8 +221,16 @@ const { chromium } = require('playwright');
     })();
 
     const summary = { total: ledger.length, passed: ledger.filter((l) => l.pass).length, failed: ledger.filter((l) => !l.pass) };
-    return { ledger, summary };
-  });
+    return { ledger, summary, frozenOut };
+  }, { FREEZE, frozenIn });
+
+  if (FREEZE) {
+    fs.mkdirSync(path.dirname(FIXTURE_PATH), { recursive: true });
+    fs.writeFileSync(FIXTURE_PATH, JSON.stringify(out.frozenOut, null, 2) + '\n');
+    console.log(`Froze ${Object.keys(out.frozenOut).length} scenario(s) to ${FIXTURE_PATH}`);
+    await browser.close();
+    process.exit(0);
+  }
 
   console.log(`Step 1e-iii element ability parity: ${out.summary.passed}/${out.summary.total} passed`);
   if (out.summary.failed.length) {

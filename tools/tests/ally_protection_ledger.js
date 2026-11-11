@@ -111,11 +111,15 @@ const { chromium } = require('playwright');
       const [kessa] = allies;
       kessa.equipment.offhand = 'Test Gatekeeper Shield';
       const usesBefore = kessa.allyProtectionUsesThisCombat || 0;
-      // Simulate the player being hit: resolveEnemyRetaliation is the
-      // player-facing path; it never calls applyAllyProtectionReaction at
-      // all (only resolveEnemyAttackOnAlly does) -- confirm by checking
-      // the player's own health path doesn't touch kessa's charge.
-      withForcedHit(() => resolveEnemyRetaliation(s, s.combat.creatureObj, 2, 0, null, { accBonus: 0, dmgMultBonus: 1 }));
+      // Simulate the player being hit: resolveEnemyAttackOnPlayer is the
+      // player-facing path (step 1h-i: switched from resolveEnemyRetaliation,
+      // its exact same-signature live replacement since step 1b --
+      // resolveEnemyRetaliation is one of the 15 functions step 1h
+      // deletes, and this was its only remaining test-only caller); it
+      // never calls applyAllyProtectionReaction at all (only
+      // resolveEnemyAttackOnAlly does) -- confirm by checking the
+      // player's own health path doesn't touch kessa's charge.
+      withForcedHit(() => resolveEnemyAttackOnPlayer(s, s.combat.creatureObj, 2, 0, null, { accBonus: 0, dmgMultBonus: 1 }));
       return { pass: (kessa.allyProtectionUsesThisCombat || 0) === usesBefore, usesBefore, usesAfter: kessa.allyProtectionUsesThisCombat || 0 };
     });
 
