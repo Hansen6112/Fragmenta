@@ -172,6 +172,39 @@ const { chromium } = require('playwright');
       mutate: (s, creature) => { s.combat.enemies[0].hp = 1; s.combat.enemies[0].maxHp = 1; },
     });
 
+    // Step 1f-iii §4 (found while scoping audit rule P1): Spell Echo's
+    // own direct `state.combat.hp -= echoDmg` write was moved onto the
+    // pipeline (resolveSpellEchoOnEnemy, action.deferKillCheck), since
+    // nothing in 1f-iii's own reaction work had touched it. The riskiest
+    // part of that move is useElementAbilityLegacy's own unconditional
+    // "if (state.combat.hp <= 0) resolveKill" check running exactly
+    // ONCE no matter which hit (primary or echo) is the actual kill --
+    // this scenario is the ECHO-kills case (the primary hit survives on
+    // its own; P1E-III-SPELLECHO-KILL-01 above is the other case, the
+    // PRIMARY hit killing and gating the echo off entirely). If
+    // resolveSpellEchoOnEnemy's deferKillCheck didn't work and resolveKill
+    // fired a second time, oldRun/newRun's lines (loot, flavor text) would
+    // diverge and this comparison would catch it.
+    (function () {
+      const origRandom = Math.random;
+      Math.random = () => 0.02;
+      let primaryDmg;
+      try {
+        const probe = makeMage('fire');
+        const e = probe.combat.enemies[0];
+        e.hp = 100000; e.maxHp = 100000;
+        const hpBefore = e.hp;
+        useElementAbility(probe, 'fire'); // spell_echo not equipped on this probe -- isolates the primary hit's own damage
+        primaryDmg = hpBefore - e.hp;
+      } finally {
+        Math.random = origRandom;
+      }
+      checkParity('P1E-III-SPELLECHO-ECHOKILL-01', "Spell Echo itself is the killing blow -- the primary hit alone survives (hp = primaryDmg + 1), the echo (0.5x) finishes it, and resolveKill still fires exactly once", useElementAbilityLegacyWrap, useElementAbilityWrap, {
+        element: 'fire', seq: LOW, effects: ['spell_echo'],
+        mutate: (s, creature) => { s.combat.enemies[0].hp = primaryDmg + 1; s.combat.enemies[0].maxHp = primaryDmg + 1; },
+      });
+    })();
+
     const summary = { total: ledger.length, passed: ledger.filter((l) => l.pass).length, failed: ledger.filter((l) => !l.pass) };
     return { ledger, summary };
   });

@@ -679,4 +679,18 @@ const PIPELINE_FORMULAS = {
     }
     return { shortCircuit: false, edmg, kind: "physical" };
   },
+
+  // Spell Echo (found while scoping audit rule P1): a 0.2x/0.4x chance
+  // for a second casting, at half the FIRST casting's own already-
+  // mitigated damage -- not a fresh roll of anything, so the only
+  // "formula" is this one multiply, moved verbatim out of
+  // useElementAbility. action.elementKey is the SAME value
+  // useElementAbility's own `state.combat.lastDamageType = elementKey`
+  // already set unconditionally before this ever runs -- re-setting it
+  // to the identical value here is a no-op, not a second, different
+  // assignment.
+  spellEchoReaction(actor, target, action, ctx, hitInfo) {
+    const edmg = Math.max(1, Math.round(action.castDamageDealt * 0.5));
+    return { shortCircuit: false, edmg, kind: action.elementKey };
+  },
 };
