@@ -1,0 +1,65 @@
+range: 02886a22ad474402f3129e829a7a2dc968fb4900..7c2fccb545468f7603c21cc1189d0dbf324692b0
+=== 7c2fccb545468f7603c21cc1189d0dbf324692b0 2026-11-11 14:52:06 +0000
+Phase 1, step 1f-iii: Spell Echo onto the pipeline (found via P1 scoping)
+Found while scoping audit rule P1, after fixing maybeRiposte: Spell
+Echo (useElementAbility's 0.2x/0.4x chance for a second casting at half
+the first casting's own damage) still wrote `state.combat.hp -=
+echoDmg` directly -- the only remaining undisclosed direct-damage path
+in live code. Unlike Groundbreaker's splash damage (which carries its
+own explicit "deliberately not migrated" comment), this one had no
+disclosure; it looks like a plain oversight from 1e-iii's own element-
+ability migration, predating 1f entirely and never named in that
+step's own §4/§5 scope. Raised to Tyler directly rather than silently
+fixed or silently exempted; Tyler asked for the fix, same pattern as
+maybeRiposte, so P1 only needs the one exemption the handoff asked for
+(Dregnar).
+
+Spell Echo's own math has no roll of any kind -- it's half of a number
+already computed (castDamageDealt, the first casting's own post-
+mitigation damage) -- so this needed two things no other reaction in
+this step did:
+
+- rollToHit itself gained a new top-of-function guard
+  (action.isReaction && action.toHit === "none" && actor.kind ===
+  "player" && target.kind === "enemy" -> unconditional hit): the
+  ordinary player-actor-vs-enemy-target dispatch sends EVERY such case
+  to rollToHitPlayerActor unconditionally, never reading action.toHit
+  at all (a normal player attack always rolls) -- which would have
+  given Spell Echo a real accuracy check it never had.
+- applyAndReactReactionOnEnemy (maybeRiposte's own tail, from the
+  previous commit) gained action.deferKillCheck: useElementAbility is
+  "the one player action shape where applyAndReact does not resolve
+  the kill itself" (applyAndReactPlayerActor's own header) -- its own
+  unconditional "if (state.combat.hp <= 0) resolveKill" check, right
+  after this call exactly as before, is still the one place that
+  covers either the primary hit or the echo killing the creature. A
+  reaction resolving its own kill here too would call resolveKill
+  twice for the same death.
+
+New formula (PIPELINE_FORMULAS.spellEchoReaction) and orchestrator
+(resolveSpellEchoOnEnemy, pipeline.js) follow the same shape as every
+other reaction in this step; useElementAbility's own call site now
+reads `out.push(...resolveSpellEchoOnEnemy(state, creature,
+castDamageDealt, elementKey))` in place of the inline write, with its
+own gate (hasEffect/chance roll) unchanged.
+
+New test: P1E-III-SPELLECHO-ECHOKILL-01, added to the existing 1e-iii
+parity suite (phase1_step1e_iii_elements_pipeline_parity.js) alongside
+the two Spell Echo scenarios already there -- the primary hit survives
+on its own (hp = primaryDmg + 1, probed via a throwaway non-echo cast),
+the echo itself is the kill, and the Legacy-vs-new comparison that
+suite already does catches a double resolveKill automatically (it
+would show up as duplicated loot/flavor lines).
+
+Verified: audit.js (0 errors, P4 at 0), full suite (403/403, up from
+402 -- the 1 new scenario), and both whole-fight harnesses bit-for-bit
+identical against the prior maybeRiposte baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 | 14 ++++++
+ js/engine/pipeline.js                              | 54 ++++++++++++++++++++--
+ .../phase1_step1e_iii_elements_pipeline_parity.js  | 33 +++++++++++++
+ 3 files changed, 98 insertions(+), 3 deletions(-)

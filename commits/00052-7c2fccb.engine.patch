@@ -1,0 +1,93 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 7cc9683..01cf082 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -233,6 +233,15 @@ function chooseTargets(actor, action, ctx) {
+ // { hit: false, result: {lines, damage} } to short-circuit with a final
+ // result (a miss, or one of the several named full-negation effects).
+ function rollToHit(actor, target, action, ctx) {
++  // Step 1f-iii §4 (Spell Echo, found while scoping audit rule P1):
++  // a reaction against an ENEMY with toHit: "none" must stay
++  // unconditional -- the top-level dispatch below sends every OTHER
++  // player-actor-vs-enemy-target case to rollToHitPlayerActor
++  // UNCONDITIONALLY (it never reads action.toHit at all, since a normal
++  // player attack always rolls), which would impose a real accuracy
++  // check Spell Echo's own original code never had (it's just half of
++  // damage ALREADY dealt by the first casting, never its own roll).
++  if (action.isReaction && action.toHit === "none" && actor.kind === "player" && target.kind === "enemy") return { hit: true };
+   if (actor.kind === "ally" && target.kind === "enemy") return rollToHitAllyActor(actor, target, action, ctx);
+   if (actor.kind === "player" && target.kind === "enemy") return rollToHitPlayerActor(actor, target, action, ctx);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+@@ -1042,6 +1051,14 @@ function applyAndReactReactionOnAlly(actor, target, dmgInfo, ctx, action) {
+ // argument is always whichever enemy is currently active, by
+ // construction of every one of its call sites, so there's never a
+ // "redirect back" to do).
++// action.deferKillCheck (Spell Echo, found while scoping audit rule
++// P1): useElementAbility is "the one player action shape where
++// applyAndReact does not resolve the kill itself" (applyAndReactPlayerActor's
++// own header) -- its own unconditional `if (state.combat.hp <= 0)`
++// check, AFTER both the main cast and a possible echo, is the single
++// place that covers either hit killing the creature. A reaction that
++// resolved its own kill here too would call resolveKill a second time
++// for the same death.
+ function applyAndReactReactionOnEnemy(actor, target, dmgInfo, ctx, action) {
+   const state = ctx.state;
+   const enemySlot = target.store;
+@@ -1050,6 +1067,7 @@ function applyAndReactReactionOnEnemy(actor, target, dmgInfo, ctx, action) {
+   enemySlot.hp -= edmg;
+   enemySlot.lastDamageType = dmgInfo.kind;
+   const lines = [action.flavorLine(creature, edmg)];
++  if (action.deferKillCheck) return { lines };
+   if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, creature));
+   return { lines };
+ }
+@@ -1227,6 +1245,38 @@ function resolveRiposteCounterPlayer(state, creature) {
+   return result.lines;
+ }
+ 
++// ---- Orchestrator: Spell Echo, landing on an ENEMY (found while
++// scoping audit rule P1) -- a 0.2x/0.4x chance for a second casting at
++// half the first casting's own already-mitigated damage, through steps
++// 4-5 only (toHit: "none", via rollToHit's own isReaction/toHit==="none"
++// guard, so no real accuracy check -- the original never had one).
++// deferKillCheck: true, since useElementAbility's own unconditional
++// "if (state.combat.hp <= 0)" check (right after this call, same as
++// before) is still the one place that resolves either hit's kill --
++// see applyAndReactReactionOnEnemy's own header for why. Called from
++// useElementAbility, which keeps its own gate (hasEffect/chance roll)
++// outside the pipeline.
++function resolveSpellEchoOnEnemy(state, creature, castDamageDealt, elementKey) {
++  const actor = makePlayerCombatant(state);
++  const target = findEnemyCombatant(state, creature);
++  const action = {
++    formula: "spellEchoReaction",
++    toHit: "none", isReaction: true, deferKillCheck: true,
++    castDamageDealt, elementKey,
++    flavorLine: (creature, edmg) => `The spell echoes — a second casting lands for ${edmg} damage.`,
++  };
++  const ctx = { state, pendingAction: action, target };
++
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) return hitInfo.result.lines; // dead code: toHit "none" always hits
++
++  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  return result.lines;
++}
++
+ // ---- Orchestrator: Riposte, generalized for an enemy wearer (step
+ // 1f-iii §4) -- a free 0.5x follow-up when the PLAYER's own attack
+ // misses, through steps 2-5 with the target fixed to the player. A
+@@ -2264,9 +2314,7 @@ function useElementAbility(state, elementKey) {
+ 
+   const spellEchoChance = masterOfArmsDoubles(state, "spell_echo") ? 0.4 : 0.2;
+   if (state.combat.hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < spellEchoChance) {
+-    const echoDmg = Math.max(1, Math.round(castDamageDealt * 0.5));
+-    state.combat.hp -= echoDmg;
+-    out.push(`The spell echoes — a second casting lands for ${echoDmg} damage.`);
++    out.push(...resolveSpellEchoOnEnemy(state, creature, castDamageDealt, elementKey));
+   }
+ 
+   if (state.combat.hp <= 0) {
