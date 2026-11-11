@@ -1,0 +1,27 @@
+range: 50e8446967adbf3e53116f0dddc77b90c94c0cdd..dfc95a4f942e87ca7a78ac8309ba6cb399c8184c
+=== dfc95a4f942e87ca7a78ac8309ba6cb399c8184c 2026-11-11 20:03:36 +0000
+Phase 1, step 1g-ii §2c: harden P1_PATTERN against alternate HP-write forms
+Extended P1_PATTERN beyond the plain -=/+=/= Math.min(...) forms to also
+catch a decrease written as a self-assignment (x.hp = x.hp - ...,
+x.health = x.health - ..., enforced via backreference so both sides
+must be the exact same expression) or as a zero-floored subtraction
+(x.hp = Math.max(0, ... - ...)).
+
+Confirmed by reading every match these two new forms produce against
+the live code before adding them: 3 total, all three already inside
+allowed functions (riposteCounterByEnemyOnAllyLegacy, applyAndReactReactionOnAlly,
+maybeHadrianAllyProtection) -- zero new allowances needed, this is
+purely a hardening, not a new exemption.
+
+Verified both new forms actually get caught with a deliberate break per
+form (a self-assign-minus write, then a Math.max(0, ...) write), both
+caught, both reverted clean.
+
+Verification: suite 422/422, audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
