@@ -3591,7 +3591,7 @@ function resolveEnemyAttackOnAllyLegacy(state, creature, ally, abilityCtx, basic
     // ally zero damage (a miss) — if the ALLY wears Riposte, it counters
     // THIS creature (the attacker, not the one who got missed).
     const enemySlot = state.combat.enemies[state.combat.activeIndex];
-    return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`, ...riposteCounterByAllyOnEnemy(state, ally, enemySlot)], damage: null };
+    return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`, ...riposteCounterByAllyOnEnemyLegacy(state, ally, enemySlot)], damage: null };
   }
   const rawAtk = effectiveEnemyAtk(state, creature);
   // effectiveAllyDef (engine/companion.js): base Def plus every temporary/
@@ -5534,11 +5534,11 @@ function riposteCounterByEnemyOnAlly(state, target, ally) {
   if (ally.health <= 0) lines.push(...killAlly(state, ally));
   return lines;
 }
-// Wearer = the ALLY an enemy's attack just missed — the ally counters the
-// enemy. Called from resolveEnemyAttackOnAlly's miss branch; `enemySlot`
-// is the per-fight enemy slot object (combat.enemies[i], not just its
-// creatureObj), since landing the hit needs to mutate its own .hp/.alive.
-function riposteCounterByAllyOnEnemy(state, ally, enemySlot) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged, only
+// as the forced-roll parity oracle for resolveEnemyAttackOnAllyLegacy
+// (this file) -- delete in step 1h alongside the other superseded
+// per-pair functions.
+function riposteCounterByAllyOnEnemyLegacy(state, ally, enemySlot) {
   if (!enemySlot || !enemySlot.alive || !hasEffect(ally, "riposte")) return [];
   if (!nonPlayerRiposteCapAllows(ally)) return [];
   markNonPlayerRiposteFired(ally);
@@ -5549,7 +5549,18 @@ function riposteCounterByAllyOnEnemy(state, ally, enemySlot) {
   if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, enemySlot.creatureObj));
   return lines;
 }
-
+// Wearer = the ALLY an enemy's attack just missed — the ally counters the
+// enemy. Called from rollToHitAllyActor's own miss branch (step 1f-iii
+// §4: through steps 2-5, target fixed to the attacker --
+// resolveRiposteCounterByAllyOnEnemy, pipeline.js). Eligibility/cap
+// bookkeeping stays here, outside the pipeline, matching every other
+// reaction's own pre-check (maybeCompanionRetaliate's own shape).
+function riposteCounterByAllyOnEnemy(state, ally, enemySlot) {
+  if (!enemySlot || !enemySlot.alive || !hasEffect(ally, "riposte")) return [];
+  if (!nonPlayerRiposteCapAllows(ally)) return [];
+  markNonPlayerRiposteFired(ally);
+  return resolveRiposteCounterByAllyOnEnemy(state, ally, enemySlot);
+}
 // Every Choice Matters (Divine Regalia — Ring of Unbroken Consequence)
 // and Threads of Consequence (Regalia of the Woven Thread 4pc) both key
 // off the same "the enemy's retaliation this turn dealt zero damage"

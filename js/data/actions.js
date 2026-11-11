@@ -344,6 +344,18 @@ const PIPELINE_FORMULAS = {
     return { edmg, extra: {} };
   },
 
+  // Step 1f-iii §4: Riposte, generalized for an ally wearer -- a free
+  // 0.5x follow-up on a miss. Today's exact math (the same randInt band
+  // around 85%-115% of atk as allyPlain's own basic swing, times 0.5),
+  // moved verbatim out of combat.js's riposteCounterByAllyOnEnemy.
+  riposteCounterAlly(actor, target, action, ctx, hitInfo) {
+    const ally = actor.ref;
+    const enemySlot = target.store;
+    const creature = enemySlot.creatureObj;
+    const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, Math.round(ally.atk * 0.85)), Math.round(ally.atk * 1.15)), creature.def) * 0.5));
+    return { edmg, extra: {} };
+  },
+
   // Step 1f-ii: the enemy-actor damage formula -- shared by EVERY enemy
   // active ability AND the basic attack (abilityCtx null), the same "one
   // formula, read generically off declared fields, never by ability

@@ -110,6 +110,20 @@ const { chromium } = require('playwright');
     checkParity('P1C-MISS-01', 'A miss (forced high random) provokes Riposte-by-ally-on-enemy -- the ally-path-only reaction a player-targeted miss never has', {
       seq: HIGH,
     });
+    // Step 1f-iii §4: P1C-MISS-01 above never actually equips Riposte, so
+    // it only proves the no-op path. riposteCounterByAllyOnEnemy now
+    // runs through resolveRiposteCounterByAllyOnEnemy (pipeline.js) --
+    // these two scenarios force the REAL counter-strike, with Riposte
+    // actually equipped on the ally.
+    checkParity('P1F3-RIPOSTE-ALLY-ONENEMY-01', 'Riposte equipped on the ally: a miss provokes the real 0.5x counter-strike against the attacker, non-lethal', {
+      effects: ['riposte'],
+      seq: HIGH,
+    });
+    checkParity('P1F3-RIPOSTE-ALLY-ONENEMY-KILL-01', 'Riposte equipped on the ally: a miss provokes a counter-strike that kills the attacker (resolveKill via killEnemyAsAlly\'s own activeIndex redirect)', {
+      effects: ['riposte'],
+      mutate: (s, creature, slot) => { slot.hp = 1; slot.maxHp = 1; },
+      seq: HIGH,
+    });
     checkParity('P1C-HIT-01', 'A plain connecting physical hit on an ally, no gear effects active', {
       seq: LOW,
     });

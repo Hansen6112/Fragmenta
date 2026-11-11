@@ -906,6 +906,34 @@ function resolveCompanionRetaliation(state, ally, kit, enemyIdx) {
   return result.lines;
 }
 
+// ---- Orchestrator: Riposte, generalized for an ally wearer (step 1f-iii
+// §4) -- a free 0.5x follow-up when the enemy that just attacked this
+// ally missed, through steps 2-5 with the target fixed to the attacker.
+// No to-hit roll (action.toHit: "none", matching riposteCounterByAlly
+// OnEnemyLegacy's own unconditional math exactly). Called from combat.js's
+// own riposteCounterByAllyOnEnemy, which keeps "does this ally even
+// have Riposte, is it capped" eligibility outside the pipeline.
+function resolveRiposteCounterByAllyOnEnemy(state, ally, enemySlot) {
+  const idx = state.combat.enemies.indexOf(enemySlot);
+  const actor = makeAllyCombatant(ally);
+  const target = makeEnemyCombatant(state, enemySlot, idx);
+  const action = {
+    formula: "riposteCounterAlly",
+    toHit: "none",
+    flavorLine: (a, c, edmg) => `${a.name} seizes the opening — a free riposte on ${withThe(c.name, false)} for ${edmg} damage.`,
+  };
+  const ctx = { state, pendingAction: action, target };
+
+  const chosen = chooseAction(actor, ctx);
+  const targets = chooseTargets(actor, chosen, ctx);
+  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
+  if (!hitInfo.hit) return hitInfo.result.lines; // dead code today (toHit: "none" always hits).
+
+  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+  return result.lines;
+}
+
 /*
  * ---- Step 1e-i: player attacking an enemy (the basic attack) ----
  *
