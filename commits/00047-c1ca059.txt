@@ -1,0 +1,35 @@
+range: e88f26e062f10980c273fe5e3b7be98470d330d0..c1ca0591df1fd35c9e0ba6dd87f592128b5a17cd
+=== c1ca0591df1fd35c9e0ba6dd87f592128b5a17cd 2026-11-11 14:02:03 +0000
+Phase 1, step 1f-iii: convert Mirror Soul into a real reaction
+Handoff §4: "Mirror Soul and reflect (checkReflectDeath): the reflected
+damage becomes a reaction against the attacker that goes through step
+5. This removes the step-4 HP-write exception from 1b. It must still
+match exactly (same number, same order of dice rolls)."
+
+calculateDamage still finds the trigger and computes the same
+reflected-damage number in step 4 (same single randInt draw, same
+order), but no longer writes HP or resolves the kill itself. It now
+returns { shortCircuit: false, edmg: reflected, kind: "mirrorSoul" },
+and applyAndReact dispatches on dmgInfo.kind to the new
+applyAndReactMirrorSoul, which performs the HP write, sets
+lastDamageType, and runs resolveKill in step 5 -- exactly the original
+logic, just executing in the correct step.
+
+This removes the last step-4 HP-write exception from this file's
+header note (introduced in 1b, resolved here); updated that note and
+calculateDamage's own doc comment to match.
+
+Verified: audit.js (0 errors, P4 at 0), full suite (373/373, including
+the three dedicated Mirror Soul parity tests in
+phase1_step1b_pipeline_parity.js covering real reflect+kill, the
+already-used case, and the zero-reflect edge case -- all unchanged
+against the Legacy oracle), and both whole-fight harnesses
+(boss_sweep.js, plus3_run.js) bit-for-bit identical against the prior
+1f-iii riposte-family baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 134 +++++++++++++++++++++++++++-----------------------
+ 1 file changed, 72 insertions(+), 62 deletions(-)

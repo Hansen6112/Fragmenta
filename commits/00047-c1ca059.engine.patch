@@ -1,0 +1,188 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 8fb14ec..37eafdb 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -48,32 +48,27 @@
+  * ctx.target.kind === "player" guard that used to gate it here is gone;
+  * chooseAction can no longer return null for an enemy actor.
+  *
+- * One deliberate, disclosed departure from a "pure" five-step split,
+- * forced by preserving EXACT existing behavior rather than the cleanest
+- * possible shape (balance-neutrality wins over tidiness in Phase 1 —
+- * Phase 2's registry is where the shape itself can improve):
++ * One deliberate, disclosed departure from a "pure" five-step split was
++ * introduced in 1b and RESOLVED in step 1f-iii (reactions, §4):
+  *
+- *   1. Mirror Soul (Artifact) is a full short-circuit found INSIDE
+- *      calculateDamage: the first hostile spell each combat is reflected
+- *      onto the CASTER (not the original target), including that
+- *      creature's own HP loss and kill resolution, resolved immediately
+- *      and returned. That's an HP write inside step 4, not step 5 — a
+- *      real exception to the "HP changes only in applyAndReact" rule
++ *   1. Mirror Soul (Artifact), as of 1b, was a full short-circuit found
++ *      INSIDE calculateDamage: the first hostile spell each combat was
++ *      reflected onto the CASTER (not the original target), including
++ *      that creature's own HP loss and kill resolution, resolved
++ *      immediately and returned — an HP write inside step 4, not step 5,
++ *      a real exception to the "HP changes only in applyAndReact" rule
+  *      (spec section 3, hard rule), forced by Mirror Soul redirecting the
+- *      hit onto a DIFFERENT combatant than the one steps 2-5 are resolving
+- *      for.
++ *      hit onto a DIFFERENT combatant than the one steps 2-5 were
++ *      resolving for.
+  *
+- *      TEMPORARY, KNOWN, TIME-BOUNDED (Tyler, 6 Nov) — not a permanent
+- *      allow-list entry. Reflection is a REACTION, not part of calculating
+- *      the original hit's damage, so it belongs in step 1f (reactions and
+- *      ticks), as its own action against the attacker that runs through
+- *      the real step 5 (applyAndReact) like everything else — that's what
+- *      actually removes the exception, rather than codifying it as a
+- *      permanent audit allow-list entry at step 1h. Tracked as part of
+- *      1f's own scope (see that step's task description); left as-is here
+- *      in 1b, since 1b's only job is this one path's control-flow shape,
+- *      not fixing a cross-cutting reaction mechanic that belongs to a
+- *      later step by the migration order's own rules.
++ *      As of 1f-iii, this exception is gone: calculateDamage still finds
++ *      the trigger and computes the same reflected-damage number (same
++ *      single randInt draw, same order), but now returns
++ *      { shortCircuit: false, edmg, kind: "mirrorSoul" } instead of
++ *      writing HP itself. applyAndReact dispatches on dmgInfo.kind to
++ *      applyAndReactMirrorSoul, which performs the HP write and kill
++ *      resolution in step 5, as a reaction against the attacker — see
++ *      that function's own comment, below.
+  */
+ 
+ // Combat Rebuild Phase 1 handoff §2 (Tyler, 9 Nov 2026): unification
+@@ -99,8 +94,9 @@ const COMBAT_UNIFY = {
+   // call (9 Nov): ship U1 with a flat matchup rather than invent one, and
+   // revisit if/when allies get a real elemental identity. Mirror Soul is
+   // deliberately OUT of U1's scope — it's the player's own artifact,
+-  // already a separate, time-bounded step-1f fix (this file's departure
+-  // #1 above); U1 doesn't entangle a second open question with it.
++  // already handled as its own reaction by step 1f-iii (this file's
++  // header departure note above); U1 doesn't entangle a second open
++  // question with it.
+   U1: false,
+   // Dregnar's Unquenched Focus (dra_e07) applies on his first successful
+   // elemental hit against an ally too, not just the player. Only
+@@ -361,11 +357,12 @@ function rollToHit(actor, target, action, ctx) {
+ }
+ 
+ // ---- Step 4: calculate damage ----
+-// Returns { shortCircuit: true, result } for Mirror Soul's reflection
+-// (see this file's header, departure #2), or { edmg, kind } to continue
+-// into applyAndReact — edmg is the fully-computed pre-mitigation damage,
+-// matching exactly where resolveEnemyRetaliation called
+-// mitigateAndApplyHitOnPlayer in the original.
++// Returns { shortCircuit: true, result } in cases this file's header
++// documents as departures, or { edmg, kind } to continue into
++// applyAndReact — edmg is the fully-computed pre-mitigation damage.
++// Mirror Soul's reflection no longer shortCircuits: it returns
++// { shortCircuit: false, edmg, kind: "mirrorSoul" } so applyAndReact
++// performs the HP write in step 5, as a reaction against the attacker.
+ function calculateDamage(actor, target, action, ctx, hitInfo) {
+   if (actor.kind === "ally" && target.kind === "enemy") return calculateDamageAllyActor(actor, target, action, ctx, hitInfo);
+   if (actor.kind === "player" && target.kind === "enemy") return calculateDamagePlayerActor(actor, target, action, ctx, hitInfo);
+@@ -377,43 +374,27 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+   const creature = actor.ref.creatureObj;
+ 
+   // Mirror Soul (Artifact): a magical hit on the PLAYER can be reflected
+-  // back at the caster before any formula runs — kept here, inline, as
+-  // the deliberate step-4 HP-write exception from step 1b (this file's
+-  // header, departure #2). Step 1f-ii (this migration) does not touch
+-  // it: the governing handoff's §4 explicitly turns Mirror Soul into a
+-  // real reaction through step 5 at step 1f-iii, removing this exception
+-  // then, not now. target.kind === "ally" never reaches this check
+-  // (Mirror Soul only ever answers a hit on the PLAYER), matching the
+-  // original's own structure exactly.
+-  // Step 1f-iii §4: a reaction (action.isReaction) never passes through
+-  // this check -- its own damage is never elemental/matchup-based
+-  // regardless of the acting creature's own element (every riposte
+-  // formula is a flat physical counter, hardcoded "physical" below,
+-  // same as the originals), and Mirror Soul's own reflection has never
+-  // triggered off a riposte. Mirror Soul itself becomes a proper
+-  // reaction later in this same sub-step (handoff §4); until then this
+-  // guard keeps the step-4 exception scoped to exactly what it covered
+-  // before any reaction existed.
++  // back at the caster. Step 1f-iii §4: "the reflected damage becomes a
++  // reaction against the attacker that goes through step 5. This
++  // removes the step-4 HP-write exception from 1b." So the TRIGGER
++  // check and the damage NUMBER (base/matchup/reflected -- the one
++  // randInt draw) stay here, in step 4, exactly where they've always
++  // been computed ("same number, same order of dice rolls" -- the
++  // handoff's own words) -- but the HP write and kill resolution move
++  // to applyAndReact (step 5), tagged via dmgInfo.kind === "mirrorSoul"
++  // rather than this function doing them itself and shortCircuiting.
++  // target.kind === "ally" never reaches this check (Mirror Soul only
++  // ever answers a hit on the PLAYER), matching the original's own
++  // structure exactly. action.isReaction never reaches it either --
++  // every riposte formula is a flat physical counter (hardcoded
++  // "physical" in its own formula), and Mirror Soul's reflection has
++  // never triggered off one.
+   if (!action.isReaction && target.kind === "player" && creature.element && hasEffect(state, "mirror_soul") && !combat.mirrorSoulUsed) {
+     combat.mirrorSoulUsed = true;
+     const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
+     const base = randInt(creature.magic - 2, creature.magic + 2);
+     const reflected = Math.max(0, Math.round(base * matchup));
+-    if (reflected > 0) {
+-      // Departure #2: Mirror Soul's own HP write and kill resolution
+-      // target the ATTACKER (actor), not the player this pipeline call
+-      // is otherwise resolving for — actor.store is this creature's own
+-      // slot, so writing through it is correct regardless of which
+-      // enemy is "active" right now (unlike the old combat.hp proxy,
+-      // which happened to be safe here only because Mirror Soul always
+-      // fires on the currently-acting creature).
+-      actor.store.hp -= reflected;
+-      actor.store.lastDamageType = creature.element;
+-      const lines = [`Mirror Soul turns ${withThe(creature.name, false)}'s spell back on it, for ${reflected} damage.`];
+-      if (actor.store.hp <= 0) lines.push(...resolveKill(state, creature));
+-      return { shortCircuit: true, result: { lines, damage: 0 } };
+-    }
+-    return { shortCircuit: true, result: { lines: [`Mirror Soul readies itself, but there's nothing in the spell worth turning aside.`], damage: 0 } };
++    return { shortCircuit: false, edmg: reflected, kind: "mirrorSoul" };
+   }
+   // Step 1f-ii: everything else (both target kinds, the physical and
+   // magic branches) now lives in the named formula table (js/data/
+@@ -448,6 +429,11 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+   // Engine mitigation, no Last Bastion retaliation chaining off of it,
+   // none of which the ordinary ally-target body below skips).
+   if (action.isReaction && target.kind === "ally") return applyAndReactReactionOnAlly(actor, target, dmgInfo, ctx, action);
++  // Mirror Soul (step 1f-iii §4): calculateDamage tags its own reflected-
++  // damage result this way instead of shortCircuiting -- the HP write
++  // and kill resolution happen HERE (step 5), not in step 4, per the
++  // handoff's own "removes the step-4 HP-write exception from 1b."
++  if (dmgInfo.kind === "mirrorSoul") return applyAndReactMirrorSoul(actor, dmgInfo.edmg, ctx);
+   const state = ctx.state;
+   const combat = state.combat;
+   const creature = actor.ref.creatureObj;
+@@ -1020,6 +1006,30 @@ function applyAndReactReactionOnAlly(actor, target, dmgInfo, ctx, action) {
+   return { lines, damage: null };
+ }
+ 
++// ---- Step 5, reaction tail: Mirror Soul's own reflection (step 1f-iii
++// §4). calculateDamage already computed `reflected` (the one randInt
++// draw, same order as before); this is exactly what used to run inline
++// there under `shortCircuit: true`, just moved to step 5 so the HP
++// write/kill resolution happens in the one place this pipeline makes
++// that change, same as every other reaction.
++function applyAndReactMirrorSoul(actor, reflected, ctx) {
++  const state = ctx.state;
++  const creature = actor.ref.creatureObj;
++  if (reflected > 0) {
++    // Mirror Soul's own HP write and kill resolution target the
++    // ATTACKER (actor), not the player this pipeline call is otherwise
++    // resolving for -- actor.store is this creature's own slot, so
++    // writing through it is correct regardless of which enemy is
++    // "active" right now.
++    actor.store.hp -= reflected;
++    actor.store.lastDamageType = creature.element;
++    const lines = [`Mirror Soul turns ${withThe(creature.name, false)}'s spell back on it, for ${reflected} damage.`];
++    if (actor.store.hp <= 0) lines.push(...resolveKill(state, creature));
++    return { lines, damage: 0 };
++  }
++  return { lines: [`Mirror Soul readies itself, but there's nothing in the spell worth turning aside.`], damage: 0 };
++}
++
+ // ---- Orchestrator: Riposte, generalized for an enemy wearer (step
+ // 1f-iii §4) -- a free 0.5x follow-up when the PLAYER's own attack
+ // misses, through steps 2-5 with the target fixed to the player. A
