@@ -278,7 +278,16 @@ const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 //     resolveEnemyAttackOnAlly, shared with every other enemy since steps
 //     1b/1c), and keeping a no-op exemption only invites future misuse.
 const P1_FILES = ["js/engine/combat.js", "js/engine/pipeline.js", "js/engine/companion.js"];
-const P1_PATTERN = /\.hp\s*-=|\.health\s*-=|\.hp\s*\+=|\.health\s*\+=|\.hp\s*=\s*Math\.min\(|\.health\s*=\s*Math\.min\(/g;
+// Step 1g-ii §2c: hardened beyond the plain `-=`/`+=`/`= Math.min(...)`
+// forms to also catch the same decrease written as a self-assignment
+// (`x.hp = x.hp - ...`, `x.health = x.health - ...` -- the `([\w.]+)...\1`/
+// `\2` backreferences require the SAME expression on both sides of `=`)
+// or as a zero-floored subtraction (`x.hp = Math.max(0, ... - ...)`).
+// Confirmed by reading every match these two new forms produce today
+// (3, all inside already-allowed functions -- riposteCounterByEnemyOnAllyLegacy,
+// applyAndReactReactionOnAlly, maybeHadrianAllyProtection): zero new
+// allowances needed, this is purely a hardening, not a new exemption.
+const P1_PATTERN = /\.hp\s*-=|\.health\s*-=|\.hp\s*\+=|\.health\s*\+=|\.hp\s*=\s*Math\.min\(|\.health\s*=\s*Math\.min\(|([\w.]+)\.hp\s*=\s*\1\.hp\s*-|([\w.]+)\.health\s*=\s*\2\.health\s*-|\.hp\s*=\s*Math\.max\(\s*0\s*,|\.health\s*=\s*Math\.max\(\s*0\s*,/g;
 const P1_ALLOWED_FNS = new Set([
   "applyAndReact", "applyAndReactPlayerActor", "applyAndReactAllyActor",
   "applyAndReactReactionOnPlayer", "applyAndReactReactionOnAlly", "applyAndReactReactionOnEnemy",
