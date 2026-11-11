@@ -75,5 +75,6 @@ WARNINGS (72)
 
 [items] live-reachable: 1368/1865; reserved: 497 ({"contract":263,"faction":70,"world_boss (unworn)":20,"hidden_dungeon":3,"quest":11,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"devotion_quest":72}); R2 violations: 0
 [actions] P4 action-identity checks found: 0 (must be 0)
+[combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 
 0 error(s), 72 warning(s) across 51 scripts.

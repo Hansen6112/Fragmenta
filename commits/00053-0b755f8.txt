@@ -1,0 +1,53 @@
+range: 7c2fccb545468f7603c21cc1189d0dbf324692b0..0b755f8d7304caa20a0c718349d049e5a799bb22
+=== 0b755f8d7304caa20a0c718349d049e5a799bb22 2026-11-11 14:56:10 +0000
+Phase 1, step 1f §6: turn on audit rule P1 (HP changes in step 5 only)
+Handoff §6: "After 1f-iv, turn on audit rule P1 (HP changes only in
+applyAndReact/applyHealing, with Dregnar temporarily exempted until
+1g)."
+
+Scoped to the three combat engine files (combat.js, pipeline.js,
+companion.js) and to DECREASES only (`-=`) -- healing was never part
+of this restructure, so the rule doesn't need to scrutinize `+=`/heal
+writes at all. Scoping the rule (reading every current HP-write site
+and classifying it) is what surfaced the two real gaps fixed in the
+preceding two commits (maybeRiposte, Spell Echo) -- both are now
+inside the allow-list implicitly, by being part of applyAndReact's own
+call graph.
+
+The allow-list, each entry disclosed in the rule's own comment:
+- applyAndReact + every tail it dispatches to (applyAndReactPlayerActor,
+  applyAndReactAllyActor, the three ReactionOn* tails, applyAndReactMirrorSoul,
+  the four Tick* tails) + applyPlayerDamage/checkDeathPrevention, the
+  shared primitives those tails call into one level down.
+- Every *Legacy-named function: confirmed zero live callers anywhere,
+  kept oracles for Layer 1 parity tests only.
+- buildFightCreature/legacyScaledCreature: creature construction, not
+  combat resolution.
+- resolveEnemyRetaliation: confirmed dead code (zero callers anywhere),
+  superseded when the enemy-to-player path was migrated in step 1b,
+  never deleted -- a step 1h candidate, not touched here.
+- useHadrianActive's Groundbreaker splash: a pre-existing, DISCLOSED
+  design choice (its own comment already explains it), not a migration
+  gap.
+- Dregnar (anything matching resolve[Dd]regnar*/dregnarResolve*): the
+  one exemption the handoff itself asks for. Currently matches ZERO
+  lines -- his damage already reaches resolveEnemyAttackOnPlayer/
+  resolveEnemyAttackOnAlly (migrated in 1b/1c, shared with every other
+  enemy) with no direct write of its own anywhere in this scan. Kept
+  as a no-op safety net per the handoff's explicit instruction; step
+  1g owns deciding whether anything still needs it.
+
+Verified: the rule reports 0 (full suite 403/403 unaffected -- audit.js
+is a static-analysis dev tool, never loaded by the game, so there's no
+Layer 2 runtime surface to re-check here), and a deliberate break-and-
+revert test (a throwaway direct HP write injected into a non-exempt
+function, confirmed caught, then reverted with a clean `git diff`)
+confirms the rule actually fires on a real violation rather than
+silently passing everything.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js | 71 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 71 insertions(+)
