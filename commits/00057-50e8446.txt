@@ -1,0 +1,52 @@
+range: 671f8c5bb080bf98339ac65f8c566696b71908ed..50e8446967adbf3e53116f0dddc77b90c94c0cdd
+=== 50e8446967adbf3e53116f0dddc77b90c94c0cdd 2026-11-11 20:01:46 +0000
+Phase 1, step 1g-ii §2b: in-combat healing through applyHealing, P1 extended to HP increases
+Added applyHealing(target, amount, source, ctx) (combat.js), the
+generalized sibling of the existing player-only applyHeal: one shared
+entry point for a heal on ANY fighter in combat (player/ally/enemy),
+same role applyAndReact plays for damage. Deliberately NOT a merge with
+applyHeal -- that function carries real player-only baggage
+(Flourishing Soul, Blessing of Compassion, the Avatar/Mercy's
+Gift/Overflowing Life/Living Current/Compassion's Grace/Endless Current
+hooks, the cleanse-on-heal call, the playerDowned guard) none of
+applyHealing's six callers ever had.
+
+Routed all six in-combat heal paths that used to write hp/health
+directly through it, each one's own existing clamping math preserved
+exactly (Math.min(max, current + amount), same pre-clamp amount
+computation at the call site):
+  - tickEnemyPassives: regenPerTurn and the healPctIfMaxed branch of
+    periodicSummon (2 enemy self-heals)
+  - resolveEnemyAction: the healSelfPct branch (an enemy active's self-heal)
+  - allySupportAction: the ally-heals-ally branch (Kessa's Support stance)
+  - applyConsumableEffectToAlly: the heal-type consumable branch
+  - useHadrianActive: the healPct branch (Unyielding Advance) -- its
+    flavor line still reports the pre-clamp healAmount unchanged, same
+    quirk as before
+
+Extended P1_PATTERN to also catch HP increases (`+=`, `= Math.min(...)`)
+alongside the existing decrease forms, with applyHeal/applyHealing added
+to the allowed-function list. Confirmed (by reading each file, not
+assuming) that out-of-combat healing -- inns, the healer, potions used
+outside a fight, injury cures -- lives entirely outside the three P1
+files, so it's naturally out of this rule's reach. Verified the
+extension actually catches violations with two deliberate breaks (a
+raw `+=` and a raw `Math.min(...)`), both caught, both reverted clean.
+
+Added tools/tests/phase1_step1g_ii_healing_parity.js: 14 scenarios
+pinning each of the six paths' exact heal amount and clamping, plus
+applyHealing itself across all three target kinds.
+
+Verification: suite 422/422, audit 0 errors, boss_sweep/plus3_run
+bit-for-bit identical to the pre-2b baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                            |  64 +++++--
+ js/engine/companion.js                         |   6 +-
+ tools/audit.js                                 |  46 +++--
+ tools/tests/phase1_step1g_ii_healing_parity.js | 225 +++++++++++++++++++++++++
+ tools/tests/run_all.js                         |   1 +
+ 5 files changed, 312 insertions(+), 30 deletions(-)
