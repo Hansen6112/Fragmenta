@@ -1,0 +1,49 @@
+range: 987777103ba9239c605fa63411e67c313111afa3..63d43be04b831c8369f51e4c2bd785290d9b3f96
+=== 63d43be04b831c8369f51e4c2bd785290d9b3f96 2026-11-11 04:23:22 +0000
+1f-iii §4 (part 1): ally-protection interceptions as named hooks
+Per the step 1f handoff's §4: "Interceptions (applyAllyProtectionReaction,
+maybeHadrianAllyProtection, enemyAllyProtectionMultiplier) become
+onIncomingDamage hooks on the defender or protector, running inside
+step 5 before HP changes."
+
+- js/data/actions.js: two new PIPELINE_HOOKS entries
+  (hadrianAllyProtection/allyProtectionReaction), each a thin by-name
+  wrapper around the real, unchanged companion.js/combat.js function —
+  same convention as 1f-i's hadrianFlatAtkBonus wrapper. A new declared,
+  ordered list, ON_INCOMING_DAMAGE_ALLY_HOOKS, names them in the exact
+  order step 5 already ran them (Legion's Memory/Brothers in Arms before
+  the plain Ally Protection Reaction — order matters, since Legion's
+  Memory redirects part of the hit before the generic 0.9x reduction
+  would otherwise apply to the full amount).
+- js/engine/pipeline.js: applyAndReact's ally-target branch (step 5) now
+  loops over that declared list by name instead of calling
+  maybeHadrianAllyProtection/applyAllyProtectionReaction directly,
+  hardcoded. Companion Ability Engine mitigation (applyCompanionDamage
+  Taken) stays a direct call -- it's an always-on mechanic, not a
+  reaction with its own trigger/cap.
+
+Disclosed interpretation: maybeHadrianAllyProtection's own "is Hadrian
+in the party" check is UNCHANGED and still lives inside that function —
+per the handoff's own "kind-C mechanics ... keep exactly their current
+behaviour. Only their shape changes," this is Hadrian's own legitimately
+unique mechanic, not the step-function ally-identity dispatch P4
+forbids (that rule is about pipeline.js/PIPELINE_HOOKS never branching
+on identity, not every helper anywhere in the engine never mentioning
+an ally by name). enemyAllyProtectionMultiplier is untouched: it's
+already a plain multiplicative factor folded directly into
+PIPELINE_FORMULAS.playerCore's own sangMit chain (rollPlayerDamageCore
+ForPipeline), reading hasAllyProtectionEffect/cooldown/uses fields
+generically with zero identity branching — already compliant, nothing
+to move.
+
+Verification: full suite 367/367, audit 0 errors. Layer 2 (plus3_run.js)
+bit-for-bit identical to the step-1f-i baseline — a pure restructure,
+zero behavior change.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js    | 30 ++++++++++++++++++++++++++++++
+ js/engine/pipeline.js | 26 +++++++++++++++++---------
+ 2 files changed, 47 insertions(+), 9 deletions(-)

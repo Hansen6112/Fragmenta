@@ -1,0 +1,42 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 3b16149..95ae263 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -431,20 +431,28 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+       creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
+       creature.duelistMeasurePendingTarget = ally.name;
+     }
+-    // Legion's Memory/Brothers in Arms, then the generalized Ally
+-    // Protection Reaction, then Companion Ability Engine mitigation —
+-    // this path's equivalent of "shields and temporary HP" (spec step 5),
+-    // all ally-only mechanics with no player-path counterpart.
+-    const protection = maybeHadrianAllyProtection(state, ally, edmg);
+-    edmg = protection.dmg;
+-    const allyProtectionReaction = applyAllyProtectionReaction(state, ally, edmg);
+-    edmg = allyProtectionReaction.dmg;
++    // Step 1f-iii §4: the generalized Ally Protection interceptions
++    // (Legion's Memory/Brothers in Arms, then the plain Ally Protection
++    // Reaction — order matters, see js/data/actions.js's own comment on
++    // ON_INCOMING_DAMAGE_ALLY_HOOKS) now run by NAME, through that
++    // declared list, instead of two calls hardcoded here. Companion
++    // Ability Engine mitigation right after is its own separate, always-
++    // on mechanic (not a reaction with a trigger/cap of its own), so it
++    // stays a direct call — this path's equivalent of "shields and
++    // temporary HP" (spec step 5), all ally-only mechanics with no
++    // player-path counterpart.
++    const protectionLines = [];
++    for (const hookName of ON_INCOMING_DAMAGE_ALLY_HOOKS) {
++      const result = PIPELINE_HOOKS[hookName]({ state, ally, edmg });
++      edmg = result.dmg;
++      protectionLines.push(...result.lines);
++    }
+     const mitigation = applyCompanionDamageTaken(ally, edmg);
+     edmg = mitigation.dmg;
+     const arenaFloor = combat && combat.isArenaFight && !combat.arenaLethal ? 1 : 0;
+     ally.health = Math.max(arenaFloor, ally.health - edmg);
+     const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
+-    const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${edmg} damage.`, ...protection.lines, ...allyProtectionReaction.lines, ...mitigation.lines, ...sangAllyLines];
++    const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${edmg} damage.`, ...protectionLines, ...mitigation.lines, ...sangAllyLines];
+     if (abilityCtx && abilityCtx.inflict) {
+       const inflictLinesAlly = applyAbilityInflictOnAlly(ally, abilityCtx.inflict, creature.name);
+       lines.push(...inflictLinesAlly);

@@ -1,0 +1,16 @@
+[
+ {
+  "reg": "PIPELINE_HOOKS",
+  "id": "hadrianAllyProtection",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_HOOKS",
+  "id": "allyProtectionReaction",
+  "type": "added"
+ },
+ {
+  "reg": "ON_INCOMING_DAMAGE_ALLY_HOOKS",
+  "type": "registry added"
+ }
+]
