@@ -152,6 +152,21 @@ const PLAYER_FIELDS = [
   "unbrokenLineHitCount", "unwaveringDevotionStacks", "wallsEndureDefStacks",
   "whiteWatchRiposteDefBonus", "windsOfChangeAtk", "windsOfChangeDef", "windsOfChangeKnowledge",
   "windsOfChangeMagic", "workRefinesAtkStacks", "workRefinesMagicStacks", "worthyChallengeStacks",
+  // Step 1g-vi: batch 4 of the 117-field move -- core player combat
+  // state. The handoff's own list named 24 fields and asked to check
+  // whether summonLifetimeCounts/enemyActedFirstThisRound are really
+  // fight-wide rather than player-owned: they are (summonLifetimeCounts
+  // caps an enemy summon ability fight-wide, regardless of which pack
+  // member casts it; enemyActedFirstThisRound describes this ROUND's
+  // initiative order, not any one fighter's own state) -- both moved to
+  // STRUCTURAL in tools/combat_field_ledger.js instead, leaving the
+  // real 22 below.
+  "atkBuffAmount", "atkBuffTurns", "defBuffAmount", "defBuffTurns",
+  "magicBuffAmount", "magicBuffTurns", "knowledgeBuffAmount", "damageReductionTurns",
+  "playerBuffs", "playerStatuses", "regen", "tempHealth",
+  "evasionCharges", "evasionTurns", "evasiveGuardBonus", "exposedTarget",
+  "playerLastHitType", "actionCounter", "weaponAttackCounter",
+  "momentumStacks", "momentumUnboundStacks", "siegeCorpsAtkCharge",
 ];
 
 function wirePlayerFieldsProxy(combat) {

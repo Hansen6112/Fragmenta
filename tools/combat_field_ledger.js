@@ -130,9 +130,20 @@ const PER_ENEMY_FIELDS = [
   "firstActiveUsed", "healthLostStacks", "hitsTakenFromPlayer", "lastAttackTargetKind",
   "consecutiveTargetStacks", "summonSourceKey",
 ];
+// Step 1g-vi: summonLifetimeCounts and enemyActedFirstThisRound, added
+// here (not to PLAYER_FIELDS_STORAGE_MOVED below) per the handoff's own
+// "check before moving" instruction -- both read against live source
+// and confirmed fight-wide, not player-owned: summonLifetimeCounts caps
+// an enemy summon ability's lifetime fight-wide (js/engine/combat.js's
+// resolveEnemySummon), regardless of which pack member casts it;
+// enemyActedFirstThisRound describes THIS ROUND's initiative order
+// (resolveSpeedInitiative/resolveRemainingInitiativeActions), not any
+// one fighter's own state, even though a player-side passive (Stone's
+// Patience) happens to read it.
 const STRUCTURAL = ["enemies", "activeIndex", "started", "turnTaken", "isArenaFight",
   "arenaFightType", "arenaLethal", "arenaOpponentTierIndex", "arenaUneven", "huntJobId",
-  "isHadrianAmbush", "isHadrianQuestFinale", "downs", "cooldowns"];
+  "isHadrianAmbush", "isHadrianQuestFinale", "downs", "cooldowns",
+  "summonLifetimeCounts", "enemyActedFirstThisRound"];
 const NOISE = ["js", "xxx"]; // regex false-positives (e.g. "combat.js" inside a comment)
 
 // Step 1f handoff (10 Nov 2026 follow-up), §3: the ledger now reports TWO
@@ -210,6 +221,15 @@ const PLAYER_FIELDS_STORAGE_MOVED = [
   "unbrokenLineHitCount", "unwaveringDevotionStacks", "wallsEndureDefStacks",
   "whiteWatchRiposteDefBonus", "windsOfChangeAtk", "windsOfChangeDef", "windsOfChangeKnowledge",
   "windsOfChangeMagic", "workRefinesAtkStacks", "workRefinesMagicStacks", "worthyChallengeStacks",
+  // Step 1g-vi: batch 4 (22 fields, after summonLifetimeCounts/
+  // enemyActedFirstThisRound moved to STRUCTURAL above), duplicated from
+  // js/engine/combat.js's own PLAYER_FIELDS additions.
+  "atkBuffAmount", "atkBuffTurns", "defBuffAmount", "defBuffTurns",
+  "magicBuffAmount", "magicBuffTurns", "knowledgeBuffAmount", "damageReductionTurns",
+  "playerBuffs", "playerStatuses", "regen", "tempHealth",
+  "evasionCharges", "evasionTurns", "evasiveGuardBonus", "exposedTarget",
+  "playerLastHitType", "actionCounter", "weaponAttackCounter",
+  "momentumStacks", "momentumUnboundStacks", "siegeCorpsAtkCharge",
 ];
 
 function extractFunctions(text) {
