@@ -576,21 +576,17 @@ function tickAllyStatuses(state, ally) {
   const lines = [];
   const statuses = ally.statuses;
   if (!statuses) return lines;
-  const def = ALLY_DEFS[ally.defId];
-  const vulnerability = def && def.abilityKit && def.abilityKit.vulnerability;
   for (const [key, entry] of Object.entries(statuses)) {
     if (entry.dot && ally.alive) {
+      // The ally-kit vulnerability multiplier and (further down, the
+      // pipeline's own applyAndReactTickOnAlly) the arena non-lethal
+      // floor are now tickStatusAlly's/that tail's own job -- step
+      // 1f-iv §5. This loop still owns the raw pre-formula number
+      // (maxHealth * pctMaxHp * stacks) and the per-tick resolver call.
       const stacks = entry.stacks || 1;
-      let dmg = Math.max(0, Math.round(ally.maxHealth * entry.dot.pctMaxHp * stacks));
-      if (vulnerability && vulnerability.statuses.includes(key)) dmg = Math.round(dmg * vulnerability.multiplier);
-      if (dmg > 0) {
-        // The Grand Ovum (engine/arena.js): same non-lethal floor a direct
-        // hit on an ally already respects (resolveEnemyAttackOnAlly).
-        const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
-        ally.health = Math.max(arenaFloor, ally.health - dmg);
-        lines.push(`${entry.name} saps ${ally.name}'s health for ${dmg}.`);
-        if (ally.health <= 0) lines.push(...killAlly(state, ally));
-      }
+      const rawDmg = Math.max(0, Math.round(ally.maxHealth * entry.dot.pctMaxHp * stacks));
+      const result = resolveAllyDotTick(state, ally, key, rawDmg, entry.name);
+      lines.push(...result.lines);
     }
     entry.turnsLeft -= 1;
     if (entry.turnsLeft <= 0) delete statuses[key];
@@ -624,23 +620,14 @@ function tickPlayerStatuses(state) {
   const lines = [];
   for (const [key, entry] of Object.entries(combat.playerStatuses)) {
     if (entry.dot) {
+      // Heatproof's halving is now tickStatusPlayer's own job (step
+      // 1f-iv §5) -- this loop still owns the raw pre-formula number and
+      // the dungeon-rescue-ends-combat early break.
       const stacks = entry.stacks || 1;
-      let dmg = Math.max(0, Math.round(state.maxHealth * entry.dot.pctMaxHp * stacks));
-      if (key === "burning" && hasEffect(state, "heatproof")) dmg = Math.floor(dmg / 2);
-      if (dmg > 0) {
-        applyPlayerDamage(state, dmg);
-        combat.playerLastHitType = statusDamageType(key); // Injury System v0.2
-        lines.push(`${entry.name} saps ${dmg} health.`);
-        if (state.health <= 0) {
-          const dotDefeatMsg = resolvePlayerDefeatOrDowned(state);
-          if (dotDefeatMsg) lines.push(dotDefeatMsg);
-          // The dungeon rescue can fire here and end combat outright — if
-          // it did, stop ticking the remaining statuses entirely rather
-          // than let a second DOT in this same tick deal more damage the
-          // (already-spent) rescue can't answer.
-          if (!state.combat) break;
-        }
-      }
+      const rawDmg = Math.max(0, Math.round(state.maxHealth * entry.dot.pctMaxHp * stacks));
+      const result = resolvePlayerDotTick(state, key, rawDmg, entry.name);
+      lines.push(...result.lines);
+      if (result.comboEnded) break;
     }
     entry.turnsLeft -= 1;
     if (entry.turnsLeft <= 0) delete combat.playerStatuses[key];
@@ -4134,37 +4121,21 @@ function beginTurn(state) {
     if (e.burn && e.burn.turnsLeft > 0) {
       // Ashward (DRA-E08): every eligible Burning tick against the wearer
       // deals 0.75x — Burning still applies/expires on its own schedule
-      // otherwise, only the per-tick damage is reduced.
-      const burnDmg = hasEffect(e.creatureObj, "dra_e08_ashward") ? Math.round(e.burn.dmgPerTurn * 0.75) : e.burn.dmgPerTurn;
-      e.hp -= burnDmg;
-      e.lastDamageType = "fire";
-      lines.push(`The flames still burn ${withThe(e.creatureObj.name, false)} for ${burnDmg} damage.`);
+      // otherwise, only the per-tick damage is reduced (now the
+      // tickBurnEnemy formula's own job, step 1f-iv §5).
+      const burnResult = resolveEnemyDotTick(state, e, i, "tickBurnEnemy", (creature, edmg) => `The flames still burn ${withThe(creature.name, false)} for ${edmg} damage.`, playerTargetIndex, e.burn.dmgPerTurn);
+      lines.push(...burnResult.lines);
       e.burn.turnsLeft -= 1;
       if (e.burn.turnsLeft <= 0) e.burn = null;
-      if (e.hp <= 0 && e.alive) {
-        combat.activeIndex = i;
-        lines.push(...resolveKill(state, e.creatureObj));
-        if (!state.combat) return lines;
-        if (i !== playerTargetIndex && combat.enemies[playerTargetIndex] && combat.enemies[playerTargetIndex].alive) {
-          combat.activeIndex = playerTargetIndex;
-        }
-        continue;
-      }
+      if (burnResult.comboEnded) return lines;
+      if (burnResult.killed) continue;
     }
     if (e.alive && e.bleed && e.bleed.turnsLeft > 0) {
-      e.hp -= e.bleed.dmgPerTurn;
-      e.lastDamageType = "bleed";
-      lines.push(`${withThe(e.creatureObj.name, true)} is still bleeding for ${e.bleed.dmgPerTurn} damage.`);
+      const bleedResult = resolveEnemyDotTick(state, e, i, "tickBleedEnemy", (creature, edmg) => `${withThe(creature.name, true)} is still bleeding for ${edmg} damage.`, playerTargetIndex, e.bleed.dmgPerTurn);
+      lines.push(...bleedResult.lines);
       e.bleed.turnsLeft -= 1;
       if (e.bleed.turnsLeft <= 0) e.bleed = null;
-      if (e.hp <= 0 && e.alive) {
-        combat.activeIndex = i;
-        lines.push(...resolveKill(state, e.creatureObj));
-        if (!state.combat) return lines;
-        if (i !== playerTargetIndex && combat.enemies[playerTargetIndex] && combat.enemies[playerTargetIndex].alive) {
-          combat.activeIndex = playerTargetIndex;
-        }
-      }
+      if (bleedResult.comboEnded) return lines;
     }
     // Enemy Ability Engine: this creature's own self-buff countdown and
     // recurring Health-based/regen passives — same per-enemy, every-round

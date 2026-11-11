@@ -602,4 +602,49 @@ const PIPELINE_FORMULAS = {
     const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), effectiveDef) * 0.5));
     return { shortCircuit: false, edmg, kind: "physical" };
   },
+
+  // Step 1f-iv §5: every DOT tick's own "final number" adjustment, moved
+  // verbatim out of beginTurn/tickAllyStatuses/tickPlayerStatuses. Each
+  // formula reads action.rawDmg -- the amount the caller already computed
+  // from the tick's own fields (burn/bleed's dmgPerTurn, a status's
+  // maxHealth * pctMaxHp * stacks) -- and applies exactly the one
+  // reduction/multiplier the original inline code applied at this same
+  // point, nothing more. The caller still owns everything else: whether
+  // this tick even runs (turnsLeft > 0), decrementing turnsLeft/deleting
+  // an expired status, and the per-kind "skip entirely if the final
+  // number is <= 0" gate (enemy ticks never had that gate; player/ally
+  // ticks did, checked AFTER their own reduction below -- so the gate
+  // moved to read dmgInfo.edmg, post-formula, not the pre-formula raw
+  // value, to match exactly).
+  tickBurnEnemy(actor, target, action, ctx, hitInfo) {
+    const creature = target.ref.creatureObj;
+    const edmg = hasEffect(creature, "dra_e08_ashward") ? Math.round(action.rawDmg * 0.75) : action.rawDmg;
+    return { shortCircuit: false, edmg, kind: "fire" };
+  },
+  tickBleedEnemy(actor, target, action, ctx, hitInfo) {
+    return { shortCircuit: false, edmg: action.rawDmg, kind: "bleed" };
+  },
+  // Heatproof (halves Burning specifically) is the player-side status
+  // tick's only final-number adjustment, moved verbatim out of
+  // tickPlayerStatuses -- statusDamageType (combat.js) picks the
+  // Injury System v0.2 hit-type key from the status's own id, same as
+  // the original's own call.
+  tickStatusPlayer(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    let edmg = action.rawDmg;
+    if (action.key === "burning" && hasEffect(state, "heatproof")) edmg = Math.floor(edmg / 2);
+    return { shortCircuit: false, edmg, kind: statusDamageType(action.key) };
+  },
+  // The ally-kit vulnerability multiplier (e.g. a kit whose own weakness
+  // table marks a status as extra-dangerous) is the ally-side status
+  // tick's only final-number adjustment, moved verbatim out of
+  // tickAllyStatuses.
+  tickStatusAlly(actor, target, action, ctx, hitInfo) {
+    const ally = target.ref;
+    const def = ALLY_DEFS[ally.defId];
+    const vulnerability = def && def.abilityKit && def.abilityKit.vulnerability;
+    let edmg = action.rawDmg;
+    if (vulnerability && vulnerability.statuses.includes(action.key)) edmg = Math.round(edmg * vulnerability.multiplier);
+    return { shortCircuit: false, edmg, kind: "physical" };
+  },
 };

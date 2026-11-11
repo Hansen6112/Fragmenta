@@ -364,6 +364,13 @@ function rollToHit(actor, target, action, ctx) {
 // { shortCircuit: false, edmg, kind: "mirrorSoul" } so applyAndReact
 // performs the HP write in step 5, as a reaction against the attacker.
 function calculateDamage(actor, target, action, ctx, hitInfo) {
+  // Step 1f-iv §5: a DOT tick (action.isTick) is self-contained -- actor
+  // and target are the SAME combatant (whoever's carrying the status),
+  // so it never fits the actor-kind-vs-target-kind dispatch below. Its
+  // damage number is still resolved by formula name exactly like every
+  // other action's (js/data/actions.js's PIPELINE_FORMULAS), just called
+  // directly here instead of falling through to a kind-specific branch.
+  if (action.isTick) return PIPELINE_FORMULAS[action.formula](actor, target, action, ctx, hitInfo);
   if (actor.kind === "ally" && target.kind === "enemy") return calculateDamageAllyActor(actor, target, action, ctx, hitInfo);
   if (actor.kind === "player" && target.kind === "enemy") return calculateDamagePlayerActor(actor, target, action, ctx, hitInfo);
   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
@@ -409,6 +416,13 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
 // the original (so every mutation below reads the POST-mitigation edmg) —
 // this is the only place state.health changes for this path.
 function applyAndReact(actor, target, dmgInfo, ctx, action) {
+  // Step 1f-iv §5: a DOT tick (action.isTick), same self-contained
+  // actor-equals-target shape as calculateDamage's own guard above --
+  // dispatched by TARGET kind (applyAndReactTick, below) to one of three
+  // dedicated tails, each exactly what beginTurn/tickPlayerStatuses/
+  // tickAllyStatuses's own inline "write the damage, maybe resolve a
+  // kill/defeat" block already did for that kind.
+  if (action.isTick) return applyAndReactTick(actor, target, dmgInfo, ctx, action);
   if (actor.kind === "ally" && target.kind === "enemy") return applyAndReactAllyActor(actor, target, dmgInfo, ctx, action);
   if (actor.kind === "player" && target.kind === "enemy") return applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action);
   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
@@ -1028,6 +1042,121 @@ function applyAndReactMirrorSoul(actor, reflected, ctx) {
     return { lines, damage: 0 };
   }
   return { lines: [`Mirror Soul readies itself, but there's nothing in the spell worth turning aside.`], damage: 0 };
+}
+
+// ---- Step 5, DOT tick dispatcher (step 1f-iv §5) -- a tick's actor and
+// target are the same combatant (see calculateDamage's own isTick guard
+// above), so the only real choice left is which kind of combatant is
+// taking it; each tail below is exactly what that kind's own inline
+// "write the damage, maybe resolve a kill/defeat" block already did.
+function applyAndReactTick(actor, target, dmgInfo, ctx, action) {
+  if (target.kind === "enemy") return applyAndReactTickOnEnemy(actor, target, dmgInfo, ctx, action);
+  if (target.kind === "player") return applyAndReactTickOnPlayer(actor, target, dmgInfo, ctx, action);
+  if (target.kind === "ally") return applyAndReactTickOnAlly(actor, target, dmgInfo, ctx, action);
+  throw new Error(`applyAndReactTick(): target kind "${target.kind}" not supported.`);
+}
+
+// Moved verbatim out of beginTurn's own enemy burn/bleed blocks: write
+// the damage, and if it drops this enemy's HP to 0 or below, resolve
+// the kill with the exact same combat.activeIndex redirect those blocks
+// already did (become the dying enemy so resolveKill's own flavor/loot
+// resolves for the right creature, then redirect back to whichever
+// enemy the player is actually fighting if a DIFFERENT one just died).
+// `killed`/`comboEnded` let the caller replicate its own `continue` (burn
+// only) and early `return lines` (both) exactly, since those live in
+// beginTurn's loop, not here.
+function applyAndReactTickOnEnemy(actor, target, dmgInfo, ctx, action) {
+  const state = ctx.state;
+  const combat = state.combat;
+  const enemySlot = target.store;
+  const creature = target.ref.creatureObj;
+  const i = target.index;
+  const edmg = dmgInfo.edmg;
+  enemySlot.hp -= edmg;
+  enemySlot.lastDamageType = dmgInfo.kind;
+  const lines = [action.flavorLine(creature, edmg)];
+  let killed = false, comboEnded = false;
+  if (enemySlot.hp <= 0 && enemySlot.alive) {
+    combat.activeIndex = i;
+    lines.push(...resolveKill(state, creature));
+    killed = true;
+    if (!state.combat) return { lines, killed, comboEnded: true };
+    if (i !== action.playerTargetIndex && combat.enemies[action.playerTargetIndex] && combat.enemies[action.playerTargetIndex].alive) {
+      combat.activeIndex = action.playerTargetIndex;
+    }
+  }
+  return { lines, killed, comboEnded };
+}
+
+// Moved verbatim out of tickPlayerStatuses's own "if (dmg > 0)" block --
+// applyPlayerDamage (not the full mitigateAndApplyHitOnPlayer pipeline a
+// reaction uses: a status tick was never mitigated by Shield Wall/etc.,
+// and never showed Temporary Health absorb lines either, both preserved
+// here exactly), then the same resolvePlayerDefeatOrDowned call and
+// dungeon-rescue-ends-combat check the original made.
+function applyAndReactTickOnPlayer(actor, target, dmgInfo, ctx, action) {
+  const state = ctx.state;
+  const combat = state.combat;
+  const edmg = dmgInfo.edmg;
+  applyPlayerDamage(state, edmg);
+  combat.playerLastHitType = dmgInfo.kind;
+  const lines = [action.flavorLine(edmg)];
+  let comboEnded = false;
+  if (state.health <= 0) {
+    const dotDefeatMsg = resolvePlayerDefeatOrDowned(state);
+    if (dotDefeatMsg) lines.push(dotDefeatMsg);
+    if (!state.combat) comboEnded = true;
+  }
+  return { lines, comboEnded };
+}
+
+// Moved verbatim out of tickAllyStatuses's own "if (dmg > 0)" block --
+// the same arena non-lethal floor a direct hit on an ally already
+// respects, then killAlly if this tick was the kill.
+function applyAndReactTickOnAlly(actor, target, dmgInfo, ctx, action) {
+  const state = ctx.state;
+  const ally = target.ref;
+  const edmg = dmgInfo.edmg;
+  const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
+  ally.health = Math.max(arenaFloor, ally.health - edmg);
+  const lines = [action.flavorLine(ally.name, edmg)];
+  if (ally.health <= 0) lines.push(...killAlly(state, ally));
+  return { lines };
+}
+
+// ---- Orchestrators: DOT ticks (step 1f-iv §5) -- "through steps 4-5"
+// only, per the handoff's own wording: no chooseAction/chooseTargets/
+// rollToHit call, since a tick is never chosen and never rolls to hit
+// (toHit: "none" is this action's declared shape, for the same reason
+// every other reaction declares one, even though nothing here actually
+// calls rollToHit to read it). Each orchestrator's own caller
+// (beginTurn/tickPlayerStatuses/tickAllyStatuses) keeps owning whether
+// the tick runs at all, decrementing turnsLeft, and deleting an expired
+// status -- exactly where those already lived.
+function resolveEnemyDotTick(state, enemySlot, index, formula, flavorLine, playerTargetIndex, rawDmg) {
+  const combatant = makeEnemyCombatant(state, enemySlot, index);
+  const action = { isTick: true, toHit: "none", formula, flavorLine, playerTargetIndex, rawDmg };
+  const ctx = { state };
+  const dmgInfo = calculateDamage(combatant, combatant, action, ctx, null);
+  return applyAndReact(combatant, combatant, dmgInfo, ctx, action);
+}
+
+function resolvePlayerDotTick(state, key, rawDmg, entryName) {
+  const combatant = makePlayerCombatant(state);
+  const action = { isTick: true, toHit: "none", formula: "tickStatusPlayer", key, rawDmg, flavorLine: (edmg) => `${entryName} saps ${edmg} health.` };
+  const ctx = { state };
+  const dmgInfo = calculateDamage(combatant, combatant, action, ctx, null);
+  if (dmgInfo.edmg <= 0) return { lines: [], comboEnded: false };
+  return applyAndReact(combatant, combatant, dmgInfo, ctx, action);
+}
+
+function resolveAllyDotTick(state, ally, key, rawDmg, entryName) {
+  const combatant = makeAllyCombatant(ally);
+  const action = { isTick: true, toHit: "none", formula: "tickStatusAlly", key, rawDmg, flavorLine: (allyName, edmg) => `${entryName} saps ${allyName}'s health for ${edmg}.` };
+  const ctx = { state };
+  const dmgInfo = calculateDamage(combatant, combatant, action, ctx, null);
+  if (dmgInfo.edmg <= 0) return { lines: [] };
+  return applyAndReact(combatant, combatant, dmgInfo, ctx, action);
 }
 
 // ---- Orchestrator: Riposte, generalized for an enemy wearer (step
