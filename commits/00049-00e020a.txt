@@ -1,0 +1,46 @@
+range: af61e4f652b9dff484e9dce34a31a19e1520e4fc..00e020a0abb86cd25c5ccb08faf0d3f52b8c4e14
+=== 00e020a0abb86cd25c5ccb08faf0d3f52b8c4e14 2026-11-11 14:13:22 +0000
+Phase 1, step 1f-iii: test-reaction proof (data-only, no step changes)
+Handoff §4's own required proof: "a throwaway test reaction (for
+example 'on being missed, counter at ×0.5') added as data only. It
+fires through the pipeline with no step-function changes."
+
+test_half_counter is a test-only reaction, same convention as
+test_strike_proof_ledger.js's PLAYER_ACTION_DEFS entry: its formula is
+registered into PIPELINE_FORMULAS at runtime, inside this script's own
+page.evaluate, never written to any file on disk. Its orchestrator
+(testHalfCounterReaction) also lives only in the test file -- not one
+line is added to pipeline.js or combat.js. It calls the five pipeline
+step functions (chooseAction, chooseTargets, rollToHit,
+calculateDamage, applyAndReact) exactly the way
+resolveArenaRiposteCounterOnPlayer (already shipped) calls them for
+the real Riposte family, proving those five functions -- as hardened
+for the Riposte family during this same sub-step -- are now generic
+over any new reaction shaped like one, not specific to the handful
+actually shipped.
+
+Six scenarios: fires end to end with the right damage and flavor
+line; the damage matches the new formula's own math exactly (proving
+calculateDamage dispatched to it by name); toHit: "none" makes it
+unconditional; and two scenarios confirming "reactions don't chain
+unless today's code already lets them" holds for this brand-new
+reaction with zero new guards -- Mirror Soul and Reinforced's counter
+both already exclude action.isReaction (added for the real Riposte
+family), and this new reaction inherits that protection for free. A
+sixth confirms the dedicated reaction tail (applyAndReactReactionOnPlayer)
+resolves a lethal hit's defeat exactly once.
+
+Registered in run_all.js's LEDGERS list alongside the two existing
+proof tests.
+
+Verified: full suite (379/379, up from 373 -- the 6 new scenarios),
+audit.js unaffected (0 errors), and both whole-fight harnesses
+bit-for-bit identical (expected: this test touches no game file).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/tests/run_all.js                    |   1 +
+ tools/tests/test_reaction_proof_ledger.js | 194 ++++++++++++++++++++++++++++++
+ 2 files changed, 195 insertions(+)
