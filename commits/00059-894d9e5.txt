@@ -1,0 +1,44 @@
+range: dfc95a4f942e87ca7a78ac8309ba6cb399c8184c..894d9e52393c289fb40822df7957d1499bb521a6
+=== 894d9e52393c289fb40822df7957d1499bb521a6 2026-11-11 20:09:42 +0000
+Phase 1, step 1g-iii: field move batch 1 -- once-per-fight/cooldown flags (19)
+Moved the 19 once-per-fight/cooldown flags the handoff named into the
+player's own private store via PLAYER_FIELDS/wirePlayerFieldsProxy
+(combat.js) -- the same mechanism 1e §3.3 already used for its own 31
+fields. state.combat.<field> stays a transparent get/set alias on top
+of the real store, so every existing call site keeps working
+unchanged; no stacking/duration logic touched, no redesign.
+
+betweenWorldsUsed, elderBarkSaveUsed, firstHitTakenUsed, guardianSpiritUsed,
+guidedFootstepsUsed, lastStandUsed, mercyOfTheVeilUsed, mirrorSoulUsed,
+naturesPersistenceUsed, preparedResponseWitnessed, scoutStealthUsed,
+sharedBurdenUsed, stormBarrierUsed, threadsOfConsequencePending,
+timelessGuardCooldown, trailblazerUsed, unbreakableUsed,
+unlikelyOutcomeGuaranteedCrit, unyieldingWallCooldown.
+
+Updated tools/combat_field_ledger.js's own duplicate PLAYER_FIELDS_STORAGE_MOVED
+list (it can't require combat.js's internals, same existing convention
+as its PER_ENEMY_FIELDS duplicate) and regenerated the ledger: storage
+not yet moved drops by exactly 19, from 117 to 98. Also changed the
+ledger's own first line to lead with that progress number ("98 fields
+left to move") instead of "148 tracked," per the handoff's own
+instruction.
+
+Added tools/tests/phase1_step1g_iii_field_move_batch1_ledger.js: proves
+all 19 fields are real accessors backed by the private store (not
+plain properties), round-trip correctly, reset cleanly between fights,
+and still work through two real pipeline mechanics (Guardian Spirit,
+Mirror Soul) exercised end to end.
+
+Verification: suite 428/428, audit 0 errors, boss_sweep/plus3_run
+bit-for-bit identical to the pre-1g-iii baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |   8 ++
+ tools/combat_field_ledger.js                       |  15 ++-
+ tools/combat_field_ledger.md                       |  76 ++++++------
+ .../phase1_step1g_iii_field_move_batch1_ledger.js  | 133 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 194 insertions(+), 39 deletions(-)
