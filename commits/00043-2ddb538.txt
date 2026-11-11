@@ -1,0 +1,69 @@
+range: 63d43be04b831c8369f51e4c2bd785290d9b3f96..2ddb538faed2f4e11cdd64883c821a9b55bb025b
+=== 2ddb538faed2f4e11cdd64883c821a9b55bb025b 2026-11-11 04:31:15 +0000
+1f-iii §4 (part 2): companion retaliation (Last Bastion) through steps 2-5
+Per the step 1f handoff's §4: "Counter-attacks (..., companion
+retaliation, ...) run through steps 2-5 with their target fixed to the
+attacker."
+
+- js/engine/companion.js: today's maybeCompanionRetaliate renamed to
+  maybeCompanionRetaliateLegacy (byte-identical, kept only as the forced-
+  roll parity oracle for combat.js's own resolveEnemyAttackOnAllyLegacy).
+  maybeCompanionRetaliate now keeps just the eligibility/target-lookup
+  pre-check (unchanged) and calls the new resolveCompanionRetaliation
+  (pipeline.js) for the actual counter-strike.
+- js/engine/pipeline.js: new resolveCompanionRetaliation orchestrator --
+  builds the ally/enemy combatant views and runs chooseAction ->
+  chooseTargets -> rollToHit -> calculateDamage -> applyAndReact, target
+  fixed to the attacker, exactly like every other ally orchestrator.
+  Two small, purely additive changes to the shared ally-actor step
+  functions make this possible with zero risk to the normal ally-attack
+  path (neither field is set by any existing caller):
+    - rollToHitAllyActor: a new `action.toHit === "none"` early return
+      (always hits) -- Last Bastion's retaliation never rolled a to-hit
+      check in the original either.
+    - applyAndReactAllyActor: a new `action.flavorLine` override (a
+      function, same declared-field convention Hadrian's own actives
+      already use for their flavor text) for the one case where neither
+      of the two existing hardcoded lines ("lands <ability> on" / "
+      strikes") matches -- retaliation's own distinctive "answers the
+      blow, retaliating against..." line.
+- js/data/actions.js: new PIPELINE_FORMULAS.allyRetaliate -- today's
+  exact math (atk * (retaliatePct + veteranPct), mitigate, no crit/
+  random band), moved verbatim, reusing the SAME hadrianFlatAtkBonus/
+  hadrianOutgoingBonuses/hadrianOnKill hooks already declared on the
+  kit's own action.hooks (1f-i) rather than a second copy of them.
+- tools/tests/phase1_step1d_ally_attack_pipeline_parity.js: 3 new
+  forced-roll parity cases (off / normal hit / lethal hit + onKill)
+  against maybeCompanionRetaliateLegacy.
+
+Disclosed gap found while regenerating the field ledger for this commit:
+PIPELINE_FORMULAS entries reached via `PIPELINE_FORMULAS[action.formula]`
+(bracket/dynamic dispatch) are invisible to combat_field_ledger.js's own
+text-based callee detection (`new RegExp(\`\\b${other}\\s*\\(\`)`, a
+literal-name match) -- this already affected 1f-ii's own enemyCore
+formula, just not yet visible since the ledger wasn't regenerated
+between 1f-ii and this commit. It's the same class of cosmetic,
+zero-runtime-impact gap step 1e completion's own §7 disclosed (the
+ledger's "old-name references" count is a heuristic, not the real
+"storage not yet moved" progress metric, which stays accurate at
+117/148). Flagging here rather than patching piecemeal -- planned to be
+addressed properly in task "1f: coverage table update + final suite/
+audit verification," the pass already scoped for reconciling the
+ledger's own coverage at the end of this step.
+
+Verification: full suite 370/370 (+3 for the new parity cases), audit 0
+errors. Layer 2: boss_sweep.js and plus3_run.js (party includes Hadrian
+with Last Bastion reachable) both bit-for-bit identical to the step-1f-i
+baseline -- a pure restructure, zero behavior change.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 | 19 ++++++++
+ js/engine/combat.js                                |  7 ++-
+ js/engine/companion.js                             | 32 +++++++++++--
+ js/engine/pipeline.js                              | 55 ++++++++++++++++++++--
+ tools/combat_field_ledger.md                       |  6 +--
+ .../phase1_step1d_ally_attack_pipeline_parity.js   | 20 ++++++++
+ 6 files changed, 126 insertions(+), 13 deletions(-)

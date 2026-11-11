@@ -1,0 +1,145 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 958ad82..9256460 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -3722,8 +3722,11 @@ function resolveEnemyAttackOnAllyLegacy(state, creature, ally, abilityCtx, basic
+     if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
+   }
+   // Last Bastion's automatic retaliation (engine/companion.js) — a no-op
+-  // for any ally without one.
+-  lines.push(...maybeCompanionRetaliate(state, ally, creature));
++  // for any ally without one. This Legacy function calls the Legacy-named
++  // retaliation helper (step 1f-iii), since this whole function is
++  // itself the step 1c forced-roll parity oracle and must stay
++  // byte-identical to before the pipeline existed.
++  lines.push(...maybeCompanionRetaliateLegacy(state, ally, creature));
+   if (ally.health <= 0) {
+     lines.push(...killAlly(state, ally));
+     // killAlly's own party-wipe branch (the player already downed, and
+diff --git a/js/engine/companion.js b/js/engine/companion.js
+index 85c0c06..56b9616 100644
+--- a/js/engine/companion.js
++++ b/js/engine/companion.js
+@@ -790,11 +790,14 @@ function maybeHadrianAllyProtection(state, targetAlly, dmg) {
+   return { dmg: remaining, lines };
+ }
+ 
+-// combat.js's resolveEnemyAttackOnAlly calls this right after applying
+-// damage — Last Bastion's automatic retaliation against whichever enemy
+-// just struck him, boosted by Veteran of a Hundred Battles' scaling
+-// retaliation-damage bonus.
+-function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): every real call site
++// now calls maybeCompanionRetaliate (below) instead, which runs this
++// exact same logic through the five-step pipeline
++// (resolveCompanionRetaliation, js/engine/pipeline.js). This copy is
++// kept, unchanged, only as the step 1f-iii forced-roll parity oracle for
++// combat.js's own resolveEnemyAttackOnAllyLegacy — delete it in step 1h
++// alongside the other superseded per-pair functions.
++function maybeCompanionRetaliateLegacy(state, ally, creatureThatAttacked) {
+   const def = ALLY_DEFS[ally.defId];
+   if (!def || !def.abilityKit || ally.retaliateTurnsLeft <= 0) return [];
+   const idx = state.combat.enemies.findIndex((e) => e.creatureObj === creatureThatAttacked);
+@@ -814,3 +817,22 @@ function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
+   }
+   return lines;
+ }
++
++// combat.js's resolveEnemyAttackOnAlly calls this right after applying
++// damage — Last Bastion's automatic retaliation against whichever enemy
++// just struck him, boosted by Veteran of a Hundred Battles' scaling
++// retaliation-damage bonus. Step 1f-iii §4: eligibility (is this ally
++// even kit-bearing, with Last Bastion's own buff still active) and
++// target resolution (which enemy slot actually attacked it) stay here,
++// outside the pipeline — the same shape every other ally orchestrator's
++// own target/eligibility resolution already has (resolveCompanionAction's
++// AI tree, pickHadrianTarget, ...) — then resolveCompanionRetaliation
++// (pipeline.js) runs the actual counter-strike through steps 2-5, target
++// fixed to the attacker.
++function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
++  const def = ALLY_DEFS[ally.defId];
++  if (!def || !def.abilityKit || ally.retaliateTurnsLeft <= 0) return [];
++  const idx = state.combat.enemies.findIndex((e) => e.creatureObj === creatureThatAttacked);
++  if (idx === -1 || !state.combat.enemies[idx].alive) return [];
++  return resolveCompanionRetaliation(state, ally, def.abilityKit, idx);
++}
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 95ae263..e28721f 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -664,6 +664,13 @@ function rollToHitAllyActor(actor, target, action, ctx) {
+   const enemySlot = target.store;
+   const creature = enemySlot.creatureObj;
+ 
++  // Step 1f-iii §4: a reaction declaring toHit:"none" always lands --
++  // e.g. Last Bastion's retaliation (resolveCompanionRetaliation), which
++  // never rolled a to-hit check in maybeCompanionRetaliateLegacy either.
++  // No existing caller declares this field, so it's a pure addition —
++  // zero effect on any normal ally attack.
++  if (action.toHit === "none") return { hit: true };
++
+   if (action.formula !== "allyPlain") {
+     if (!attackConnects(ally.accuracy, creature.agi, action.veteranPct)) {
+       // basicCompanionAttackLegacy's miss line (no ability) vs
+@@ -734,9 +741,17 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
+     }
+     enemySlot.hp -= edmg;
+     enemySlot.lastDamageType = "physical";
+-    const lines = action.ability
+-      ? [`${ally.name} lands ${action.ability.name} on ${withThe(creature.name, false)} for ${edmg} damage.`]
+-      : [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
++    // Step 1f-iii §4: a reaction declares its own flavorLine (a function,
++    // same declared-field convention as Hadrian's own actives already
++    // use) when neither of the two existing lines fits -- e.g. Last
++    // Bastion's retaliation ("answers the blow..."), distinct from both
++    // "lands <ability> on" and "strikes". No existing caller declares
++    // this field, so it's a pure addition.
++    const lines = action.flavorLine
++      ? [action.flavorLine(ally, creature, edmg)]
++      : action.ability
++        ? [`${ally.name} lands ${action.ability.name} on ${withThe(creature.name, false)} for ${edmg} damage.`]
++        : [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
+     let killed = false;
+     if (enemySlot.hp <= 0 && enemySlot.alive) {
+       lines.push(...killEnemyAsAlly(state, enemySlot));
+@@ -857,6 +872,40 @@ function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veter
+   return { lines: result.lines, hit: true, killedPrimary: result.killedPrimary, baseAtk: result.baseAtk, splashAtkMult: result.splashAtkMult };
+ }
+ 
++// ---- Orchestrator: Last Bastion's automatic retaliation (step 1f-iii
++// §4) -- a kit-bearing ally striking back at whichever enemy just hit
++// it, every time (no to-hit roll, action.toHit: "none", matching
++// maybeCompanionRetaliateLegacy's own unconditional math exactly),
++// through steps 2-5 with the target fixed to the attacker. Called from
++// companion.js's own maybeCompanionRetaliate, which keeps "is this ally
++// even eligible" and the attacker-to-enemy-slot lookup outside the
++// pipeline -- the same shape every other ally orchestrator's own
++// target/eligibility resolution already has (resolveCompanionAction's
++// own AI tree, pickHadrianTarget, ...). `kit` is passed through on the
++// action object as plain data (read by hadrianOnKill's own hook, never
++// branched on) -- the same already-disclosed exception 1f-i's own
++// applyAndReactAllyActor comment covers.
++function resolveCompanionRetaliation(state, ally, kit, enemyIdx) {
++  const record = state.combat.enemies[enemyIdx];
++  const actor = makeAllyCombatant(ally);
++  const target = makeEnemyCombatant(state, record, enemyIdx);
++  const action = {
++    kit, formula: "allyRetaliate", hooks: kit.action.hooks, veteranPct: veteranBonusPct(ally, kit),
++    toHit: "none",
++    flavorLine: (a, c, edmg) => `${a.name} answers the blow, retaliating against ${withThe(c.name, false)} for ${edmg} damage.`,
++  };
++  const ctx = { state, pendingAction: action, target };
++
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) return hitInfo.result.lines; // dead code today (toHit: "none" always hits) -- kept for the same defensive-shape reason chooseAction's own null-return is.
++
++  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  return result.lines;
++}
++
+ /*
+  * ---- Step 1e-i: player attacking an enemy (the basic attack) ----
+  *
