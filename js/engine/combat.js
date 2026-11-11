@@ -3876,7 +3876,7 @@ function allyAggressiveActionLegacy(state, ally) {
   if (!attackConnects(allyAcc, target.creatureObj.agi)) {
     // Riposte, generalized: this ally's own attack just dealt the target
     // zero damage (a miss) — if the target wears Riposte, it counters here.
-    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, target, ally)];
+    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`, ...riposteCounterByEnemyOnAllyLegacy(state, target, ally)];
   }
   // atkPct (Intimidated, Feared, ...): a status's own fractional Attack
   // penalty, same pct-of-base shape effectivePlayerAtk-adjacent code uses.
@@ -5555,10 +5555,11 @@ function arenaRiposteCounterOnPlayer(state, creature) {
   const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnSuccessfulHit");
   return resolveArenaRiposteCounterOnPlayer(state, creature, passive.mult || 0.8);
 }
-// Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
-// the enemy counters the ally. Called from allyAggressiveAction's miss
-// branch.
-function riposteCounterByEnemyOnAlly(state, target, ally) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged,
+// only as the forced-roll parity oracle for allyAggressiveActionLegacy
+// (this file) -- delete in step 1h alongside the other superseded
+// per-pair functions.
+function riposteCounterByEnemyOnAllyLegacy(state, target, ally) {
   if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
   if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
   markNonPlayerRiposteFired(target.creatureObj);
@@ -5570,6 +5571,17 @@ function riposteCounterByEnemyOnAlly(state, target, ally) {
   const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte on ${ally.name} for ${dmg} damage.`];
   if (ally.health <= 0) lines.push(...killAlly(state, ally));
   return lines;
+}
+// Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
+// the enemy counters the ally. Called from rollToHitAllyActor's own miss
+// branches (step 1f-iii §4: through steps 2-5, target fixed to the
+// ally -- resolveRiposteCounterByEnemyOnAlly, pipeline.js). Eligibility/
+// cap bookkeeping stays here, outside the pipeline.
+function riposteCounterByEnemyOnAlly(state, target, ally) {
+  if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
+  if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
+  markNonPlayerRiposteFired(target.creatureObj);
+  return resolveRiposteCounterByEnemyOnAlly(state, target, ally);
 }
 // SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged, only
 // as the forced-roll parity oracle for resolveEnemyAttackOnAllyLegacy

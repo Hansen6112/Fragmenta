@@ -586,4 +586,20 @@ const PIPELINE_FORMULAS = {
     const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (action.mult || 0.8)));
     return { shortCircuit: false, edmg, kind: "physical" };
   },
+
+  // Step 1f-iii §4: Riposte, generalized for an enemy wearer whose own
+  // retaliation an ALLY's attack just missed -- the ally-target twin of
+  // riposteCounterEnemy above (same flat 0.5x, no Opening Reach, no
+  // wearer-effect chain), moved verbatim out of combat.js's
+  // riposteCounterByEnemyOnAlly. effectiveAllyDef, not effectivePlayerDef
+  // -- this hits an ally, not the player.
+  riposteCounterEnemyOnAlly(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const creature = actor.ref.creatureObj;
+    const ally = target.ref;
+    const atk = effectiveEnemyAtk(state, creature);
+    const effectiveDef = effectiveAllyDef(ally);
+    const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), effectiveDef) * 0.5));
+    return { shortCircuit: false, edmg, kind: "physical" };
+  },
 };

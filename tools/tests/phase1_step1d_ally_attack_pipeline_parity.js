@@ -146,6 +146,16 @@ const { chromium } = require('playwright');
       effects: ['riposte'],
       seq: HIGH,
     });
+    // Step 1f-iii §4: P1D-K-MISS-01 above only exercises the non-lethal
+    // counter-strike. riposteCounterByEnemyOnAlly now runs through
+    // resolveRiposteCounterByEnemyOnAlly (pipeline.js) -- this forces the
+    // counter to kill Kessa, exercising the dedicated reaction tail's
+    // own killAlly call.
+    checkParity('P1F3-RIPOSTE-ENEMY-ONALLY-KILL-01', 'Kessa: a miss provokes a counter-strike from a Riposte-wearing enemy that kills her', allyAggressiveActionLegacy, allyAggressiveAction, kessaArgs, {
+      effects: ['riposte'],
+      mutate: (s, kessa) => { kessa.health = 1; kessa.maxHealth = 1; },
+      seq: HIGH,
+    });
     checkParity('P1D-K-BANKEDDEF-01', "Kessa: the enemy's banked Brace/Guarded Strike Defense is read AND consumed exactly once (peeked in calculateDamage, zeroed in applyAndReact)", allyAggressiveActionLegacy, allyAggressiveAction, kessaArgs, {
       mutate: (s, kessa, hadrian, kit, enemies) => { enemies[0].creatureObj.braceBonusDef = 3; enemies[0].creatureObj.guardedStrikeBonusDef = 2; },
       seq: LOW,
