@@ -28,7 +28,7 @@ old-name text-scan this file has always done, which is what step
 | `actionTypeHistory` | player | yes | 1e | 1e |
 | `adaptiveTideMagicStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `adaptiveTidePhysicalStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `adaptiveWardElement` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `adaptiveWardElement` | player | **no** | 1e, 1g | 1g |
 | `atkBuffAmount` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `atkBuffTurns` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `avatarOfBloomUsed` | player | yes | 1e | 1e |
@@ -96,7 +96,7 @@ old-name text-scan this file has always done, which is what step
 | `everyChoiceAtkStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `everyChoiceMagicStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `exposedTarget` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `firstHitTakenUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `firstHitTakenUsed` | player | **no** | 1e, 1g | 1g |
 | `firstPhysicalAttackDone` | player | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `forestGuardianBonus` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `groundbreakerDebuffs` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
@@ -147,7 +147,7 @@ old-name text-scan this file has always done, which is what step
 | `siegeCorpsAtkCharge` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `sovereigntyTurnsLeft` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `spellCastCounter` | player | yes | 1e | 1e |
-| `stormBarrierUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `stormBarrierUsed` | player | **no** | 1e, 1g | 1g |
 | `summonLifetimeCounts` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `surgingConduitUsesLeft` | player | yes | 1e | 1e |
 | `swiftPassageReady` | player | yes | 1e | 1e |

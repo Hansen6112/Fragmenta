@@ -10,6 +10,9 @@
 //     taunts/heal/ultimate branches are untouched code either way;
 //     Crushing Blow/Groundbreaker's direct-damage tail is the one that
 //     actually moved)
+//   - maybeCompanionRetaliateLegacy vs maybeCompanionRetaliate (step
+//     1f-iii §4: Last Bastion's automatic retaliation, now routed
+//     through resolveCompanionRetaliation, pipeline.js)
 const { chromium } = require('playwright');
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
@@ -271,6 +274,23 @@ const { chromium } = require('playwright');
     const bastionAbility = (kit) => kit.actives.find((a) => a.id === 'last_bastion');
     const bastionArgs = (s, kessa, hadrian, kit, enemies) => [s, hadrian, kit, bastionAbility(kit), enemies];
     checkParity('P1D-HA-BASTION-01', 'Hadrian Last Bastion: taunt + dmgReduction + retaliatePct, no damage', useHadrianActiveLegacy, useHadrianActive, bastionArgs, { seq: MID });
+
+    // Step 1f-iii §4: Last Bastion's own automatic retaliation
+    // (maybeCompanionRetaliate -> resolveCompanionRetaliation, pipeline.js)
+    // against maybeCompanionRetaliateLegacy -- the same forced-roll
+    // parity shape as every other moved ally function above, applied to
+    // the one function this file hadn't covered yet (it's called from
+    // resolveEnemyAttackOnAlly's own tail, not from useHadrianActive).
+    const retaliateArgs = (s, kessa, hadrian, kit, enemies) => [s, hadrian, enemies[0].creatureObj];
+    checkParity('P1F3-RETALIATE-OFF-01', 'maybeCompanionRetaliate: no-op when retaliateTurnsLeft is 0 (Last Bastion not active)', maybeCompanionRetaliateLegacy, maybeCompanionRetaliate, retaliateArgs, { seq: MID });
+    checkParity('P1F3-RETALIATE-HIT-01', 'maybeCompanionRetaliate: Last Bastion active, a normal (non-lethal) counter-strike against the attacker -- no to-hit roll, always lands', maybeCompanionRetaliateLegacy, maybeCompanionRetaliate, retaliateArgs, {
+      mutate: (s, kessa, hadrian) => { hadrian.retaliateTurnsLeft = 2; hadrian.retaliatePct = 0.5; },
+      seq: MID,
+    });
+    checkParity('P1F3-RETALIATE-KILL-01', 'maybeCompanionRetaliate: a lethal counter-strike kills via killEnemyAsAlly and fires onHadrianKill', maybeCompanionRetaliateLegacy, maybeCompanionRetaliate, retaliateArgs, {
+      mutate: (s, kessa, hadrian, kit, enemies) => { hadrian.retaliateTurnsLeft = 2; hadrian.retaliatePct = 0.5; enemies[0].hp = 1; enemies[0].maxHp = 1; },
+      seq: MID,
+    });
 
     const summary = { total: ledger.length, passed: ledger.filter((l) => l.pass).length, failed: ledger.filter((l) => !l.pass) };
     return { ledger, summary };

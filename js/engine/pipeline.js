@@ -664,6 +664,13 @@ function rollToHitAllyActor(actor, target, action, ctx) {
   const enemySlot = target.store;
   const creature = enemySlot.creatureObj;
 
+  // Step 1f-iii §4: a reaction declaring toHit:"none" always lands --
+  // e.g. Last Bastion's retaliation (resolveCompanionRetaliation), which
+  // never rolled a to-hit check in maybeCompanionRetaliateLegacy either.
+  // No existing caller declares this field, so it's a pure addition —
+  // zero effect on any normal ally attack.
+  if (action.toHit === "none") return { hit: true };
+
   if (action.formula !== "allyPlain") {
     if (!attackConnects(ally.accuracy, creature.agi, action.veteranPct)) {
       // basicCompanionAttackLegacy's miss line (no ability) vs
@@ -734,9 +741,17 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
     }
     enemySlot.hp -= edmg;
     enemySlot.lastDamageType = "physical";
-    const lines = action.ability
-      ? [`${ally.name} lands ${action.ability.name} on ${withThe(creature.name, false)} for ${edmg} damage.`]
-      : [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
+    // Step 1f-iii §4: a reaction declares its own flavorLine (a function,
+    // same declared-field convention as Hadrian's own actives already
+    // use) when neither of the two existing lines fits -- e.g. Last
+    // Bastion's retaliation ("answers the blow..."), distinct from both
+    // "lands <ability> on" and "strikes". No existing caller declares
+    // this field, so it's a pure addition.
+    const lines = action.flavorLine
+      ? [action.flavorLine(ally, creature, edmg)]
+      : action.ability
+        ? [`${ally.name} lands ${action.ability.name} on ${withThe(creature.name, false)} for ${edmg} damage.`]
+        : [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
     let killed = false;
     if (enemySlot.hp <= 0 && enemySlot.alive) {
       lines.push(...killEnemyAsAlly(state, enemySlot));
@@ -855,6 +870,40 @@ function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veter
   const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
   const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
   return { lines: result.lines, hit: true, killedPrimary: result.killedPrimary, baseAtk: result.baseAtk, splashAtkMult: result.splashAtkMult };
+}
+
+// ---- Orchestrator: Last Bastion's automatic retaliation (step 1f-iii
+// §4) -- a kit-bearing ally striking back at whichever enemy just hit
+// it, every time (no to-hit roll, action.toHit: "none", matching
+// maybeCompanionRetaliateLegacy's own unconditional math exactly),
+// through steps 2-5 with the target fixed to the attacker. Called from
+// companion.js's own maybeCompanionRetaliate, which keeps "is this ally
+// even eligible" and the attacker-to-enemy-slot lookup outside the
+// pipeline -- the same shape every other ally orchestrator's own
+// target/eligibility resolution already has (resolveCompanionAction's
+// own AI tree, pickHadrianTarget, ...). `kit` is passed through on the
+// action object as plain data (read by hadrianOnKill's own hook, never
+// branched on) -- the same already-disclosed exception 1f-i's own
+// applyAndReactAllyActor comment covers.
+function resolveCompanionRetaliation(state, ally, kit, enemyIdx) {
+  const record = state.combat.enemies[enemyIdx];
+  const actor = makeAllyCombatant(ally);
+  const target = makeEnemyCombatant(state, record, enemyIdx);
+  const action = {
+    kit, formula: "allyRetaliate", hooks: kit.action.hooks, veteranPct: veteranBonusPct(ally, kit),
+    toHit: "none",
+    flavorLine: (a, c, edmg) => `${a.name} answers the blow, retaliating against ${withThe(c.name, false)} for ${edmg} damage.`,
+  };
+  const ctx = { state, pendingAction: action, target };
+
+  const chosen = chooseAction(actor, ctx);
+  const targets = chooseTargets(actor, chosen, ctx);
+  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
+  if (!hitInfo.hit) return hitInfo.result.lines; // dead code today (toHit: "none" always hits) -- kept for the same defensive-shape reason chooseAction's own null-return is.
+
+  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+  return result.lines;
 }
 
 /*

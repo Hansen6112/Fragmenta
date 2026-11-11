@@ -3722,8 +3722,11 @@ function resolveEnemyAttackOnAllyLegacy(state, creature, ally, abilityCtx, basic
     if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
   }
   // Last Bastion's automatic retaliation (engine/companion.js) — a no-op
-  // for any ally without one.
-  lines.push(...maybeCompanionRetaliate(state, ally, creature));
+  // for any ally without one. This Legacy function calls the Legacy-named
+  // retaliation helper (step 1f-iii), since this whole function is
+  // itself the step 1c forced-roll parity oracle and must stay
+  // byte-identical to before the pipeline existed.
+  lines.push(...maybeCompanionRetaliateLegacy(state, ally, creature));
   if (ally.health <= 0) {
     lines.push(...killAlly(state, ally));
     // killAlly's own party-wipe branch (the player already downed, and

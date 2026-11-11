@@ -325,6 +325,25 @@ const PIPELINE_FORMULAS = {
     return { edmg, extra: { baseAtk, splashAtkMult, bankedDefKit } };
   },
 
+  // Step 1f-iii §4: Last Bastion's own automatic-retaliation formula --
+  // today's exact math (atk * (retaliatePct + veteranPct), mitigate, no
+  // crit/random band unlike kitAllyBasic/kitAllyAbility's own rolls),
+  // moved verbatim out of companion.js's maybeCompanionRetaliate. The
+  // atkBonus hook (action.hooks.atkBonus) is the same hadrianFlatAtkBonus
+  // hook kitAllyBasic/kitAllyAbility already read, declared on the same
+  // kit.action.hooks data -- a retaliation reuses it, not a second copy.
+  allyRetaliate(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const ally = actor.ref;
+    const enemySlot = target.store;
+    const creature = enemySlot.creatureObj;
+    const atkBonusHook = action.hooks && action.hooks.atkBonus;
+    const atkBonus = atkBonusHook ? PIPELINE_HOOKS[atkBonusHook]({ state, actor, target, ally, creature, action }) : 0;
+    const atk = ally.atk + atkBonus;
+    const edmg = Math.max(1, Math.round(mitigate(atk * (ally.retaliatePct + action.veteranPct), creature.def)));
+    return { edmg, extra: {} };
+  },
+
   // Step 1f-ii: the enemy-actor damage formula -- shared by EVERY enemy
   // active ability AND the basic attack (abilityCtx null), the same "one
   // formula, read generically off declared fields, never by ability

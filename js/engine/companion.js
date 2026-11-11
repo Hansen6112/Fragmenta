@@ -790,11 +790,14 @@ function maybeHadrianAllyProtection(state, targetAlly, dmg) {
   return { dmg: remaining, lines };
 }
 
-// combat.js's resolveEnemyAttackOnAlly calls this right after applying
-// damage — Last Bastion's automatic retaliation against whichever enemy
-// just struck him, boosted by Veteran of a Hundred Battles' scaling
-// retaliation-damage bonus.
-function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): every real call site
+// now calls maybeCompanionRetaliate (below) instead, which runs this
+// exact same logic through the five-step pipeline
+// (resolveCompanionRetaliation, js/engine/pipeline.js). This copy is
+// kept, unchanged, only as the step 1f-iii forced-roll parity oracle for
+// combat.js's own resolveEnemyAttackOnAllyLegacy — delete it in step 1h
+// alongside the other superseded per-pair functions.
+function maybeCompanionRetaliateLegacy(state, ally, creatureThatAttacked) {
   const def = ALLY_DEFS[ally.defId];
   if (!def || !def.abilityKit || ally.retaliateTurnsLeft <= 0) return [];
   const idx = state.combat.enemies.findIndex((e) => e.creatureObj === creatureThatAttacked);
@@ -813,4 +816,23 @@ function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
     onHadrianKill(state, ally, kit);
   }
   return lines;
+}
+
+// combat.js's resolveEnemyAttackOnAlly calls this right after applying
+// damage — Last Bastion's automatic retaliation against whichever enemy
+// just struck him, boosted by Veteran of a Hundred Battles' scaling
+// retaliation-damage bonus. Step 1f-iii §4: eligibility (is this ally
+// even kit-bearing, with Last Bastion's own buff still active) and
+// target resolution (which enemy slot actually attacked it) stay here,
+// outside the pipeline — the same shape every other ally orchestrator's
+// own target/eligibility resolution already has (resolveCompanionAction's
+// AI tree, pickHadrianTarget, ...) — then resolveCompanionRetaliation
+// (pipeline.js) runs the actual counter-strike through steps 2-5, target
+// fixed to the attacker.
+function maybeCompanionRetaliate(state, ally, creatureThatAttacked) {
+  const def = ALLY_DEFS[ally.defId];
+  if (!def || !def.abilityKit || ally.retaliateTurnsLeft <= 0) return [];
+  const idx = state.combat.enemies.findIndex((e) => e.creatureObj === creatureThatAttacked);
+  if (idx === -1 || !state.combat.enemies[idx].alive) return [];
+  return resolveCompanionRetaliation(state, ally, def.abilityKit, idx);
 }
