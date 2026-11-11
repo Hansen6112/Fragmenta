@@ -60,6 +60,7 @@ const LEDGERS = [
   "test_ally_proof_ledger.js",
   "test_reaction_proof_ledger.js",
   "phase1_step1g_i_dregnar_targeting_parity.js",
+  "phase1_step1g_ii_healing_parity.js",
 ];
 
 function waitForServer(url, timeoutMs) {

@@ -228,34 +228,43 @@ for (const [n, d] of Object.entries(ITEM_DEFS)) {
 if (r2.length) err("item-source", `R2: ${r2.length} item(s) with a live source nothing actually reaches: ${r2.join(", ")}`);
 const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 
-// ---- combat HP writes (Combat Rebuild Phase 1, step 1f §6: "After
-// 1f-iv, turn on audit rule P1 (HP changes only in applyAndReact/
-// applyHealing, with Dregnar temporarily exempted until 1g).") ----
+// ---- combat HP writes (Combat Rebuild Phase 1, step 1f §6 turned this
+// on for decreases; step 1g-ii §2b extends it to increases: "writes to
+// .hp/.health with +=, or = Math.min(max, ...), in the three combat
+// files, outside applyHealing/applyAndReact (plus fighter creation,
+// buildFightCreature/legacyScaledCreature)." ) ----
 // P1: a combat creature's HP/Health may only be written inside
 // applyAndReact's own call graph (its top-level dispatch, every tail it
 // dispatches to, and applyPlayerDamage/checkDeathPrevention -- the
-// shared primitives those tails call into, one level down) or inside
-// applyHeal (healing was never part of this restructure, so this rule
-// only ever looks at DECREASES -- `-=`, never `+=` or a heal's own
-// `= Math.min(max, x + heal)` shape). Scoped to the three combat engine
-// files; dungeon.js's trap damage is a structurally separate system
-// (never touches state.combat) and is correctly outside this rule's
-// reach by simply not being scanned.
+// shared primitives those tails call into, one level down), or, for
+// healing specifically, inside applyHeal (the player-only original) or
+// applyHealing (its step 1g-ii §2b generalization, now the one shared
+// entry point for an ally/enemy heal too). Scoped to the three combat
+// engine files; dungeon.js's trap damage is a structurally separate
+// system (never touches state.combat) and is correctly outside this
+// rule's reach by simply not being scanned. Healing OUTSIDE combat (inns,
+// the healer, potions used outside a fight, injury cures) lives in other
+// files entirely (parser.js, dungeon.js, ...), so it's naturally outside
+// P1_FILES too -- confirmed by reading each, not assumed.
 //
 // Exemptions, each disclosed here rather than silently matched:
 //   - Every *Legacy-named function (combat.js/companion.js): kept
 //     oracles for Layer 1 forced-roll parity tests, confirmed to have
 //     ZERO live callers anywhere outside tools/tests/ -- their own
-//     direct writes are the ORIGINAL code, deliberately preserved
-//     byte-for-byte, never executed by an actual player.
+//     direct writes (decreases AND increases -- e.g.
+//     resolveEnemyAttackOnAllyLegacy's own healOnHitPct copy,
+//     useHadrianActiveLegacy's own Unyielding Advance heal) are the
+//     ORIGINAL code, deliberately preserved byte-for-byte, never
+//     executed by an actual player.
 //   - buildFightCreature/legacyScaledCreature (combat.js): creature
-//     CONSTRUCTION (setting a freshly-built creature's starting hp),
-//     not combat resolution.
+//     CONSTRUCTION (setting a freshly-built creature's starting/scaled
+//     hp), not combat resolution.
 //   - resolveEnemyRetaliation (combat.js): confirmed dead code (zero
 //     callers anywhere, live or test) -- superseded by
 //     resolveEnemyAttackOnPlayer when the enemy-to-player path was
-//     migrated in step 1b, never deleted. A step 1h candidate ("delete
-//     old per-pair paths"), not touched here.
+//     migrated in step 1b, never deleted. Its own healOnHitPct copy is
+//     dead for the same reason. A step 1h candidate ("delete old
+//     per-pair paths"), not touched here.
 //   - useHadrianActive: REMOVED in step 1g-ii §2a. Groundbreaker's splash
 //     now runs through resolveHadrianActiveDamage's own packSplash
 //     targeting (steps 2-5), same as any other hit, so this exemption no
@@ -269,7 +278,7 @@ const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 //     resolveEnemyAttackOnAlly, shared with every other enemy since steps
 //     1b/1c), and keeping a no-op exemption only invites future misuse.
 const P1_FILES = ["js/engine/combat.js", "js/engine/pipeline.js", "js/engine/companion.js"];
-const P1_PATTERN = /\.hp\s*-=|\.health\s*-=/g;
+const P1_PATTERN = /\.hp\s*-=|\.health\s*-=|\.hp\s*\+=|\.health\s*\+=|\.hp\s*=\s*Math\.min\(|\.health\s*=\s*Math\.min\(/g;
 const P1_ALLOWED_FNS = new Set([
   "applyAndReact", "applyAndReactPlayerActor", "applyAndReactAllyActor",
   "applyAndReactReactionOnPlayer", "applyAndReactReactionOnAlly", "applyAndReactReactionOnEnemy",
@@ -277,6 +286,7 @@ const P1_ALLOWED_FNS = new Set([
   "applyAndReactTickOnPlayer", "applyAndReactTickOnAlly",
   "applyPlayerDamage", "checkDeathPrevention", "maybeHadrianAllyProtection",
   "buildFightCreature", "legacyScaledCreature", "resolveEnemyRetaliation",
+  "applyHeal", "applyHealing",
 ]);
 const P1_ALLOWED_PATTERNS = [/Legacy$/];
 let p1Hits = 0;
@@ -291,7 +301,7 @@ for (const f of P1_FILES) {
     if (!P1_PATTERN.test(codeOnly[i])) { P1_PATTERN.lastIndex = 0; continue; }
     P1_PATTERN.lastIndex = 0;
     const allowed = P1_ALLOWED_FNS.has(fn) || P1_ALLOWED_PATTERNS.some((p) => p.test(fn));
-    if (!allowed) { err("hp-write", `${f}:${i + 1} (${fn}) writes combat HP outside applyAndReact's own call graph -- "${codeOnly[i].trim()}" (P1)`); p1Hits++; }
+    if (!allowed) { err("hp-write", `${f}:${i + 1} (${fn}) writes combat HP outside applyAndReact's/applyHealing's own call graph -- "${codeOnly[i].trim()}" (P1)`); p1Hits++; }
   }
 }
 

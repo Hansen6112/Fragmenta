@@ -608,7 +608,11 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
 
   if (ability.healPct) {
     const healAmount = Math.round(ally.maxHealth * ability.healPct);
-    ally.health = Math.min(ally.maxHealth, ally.health + healAmount);
+    // Step 1g-ii §2b: routed through applyHealing (combat.js) -- the
+    // flavor line below still reports healAmount itself (the pre-clamp
+    // number), matching ability.flavorLine's own existing text exactly;
+    // only the actual HP write moves.
+    applyHealing(makeAllyCombatant(ally), healAmount, "hadrian_heal", { state });
     // "Removes all negative status effects" is a no-op here — no ally
     // status system exists yet (see file header) — deliberately NOT
     // clearing ally.passiveOnceFlags, which gates once-per-combat safety

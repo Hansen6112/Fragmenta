@@ -918,6 +918,52 @@ function applyHeal(state, amount) {
   return { healed, lines };
 }
 
+// Step 1g-ii §2b: the one shared healing primitive for ANY fighter in
+// combat (player/ally/enemy), same role applyAndReact (pipeline.js)
+// plays for damage. Today it's a pure pass-through -- every one of its
+// six call sites' own existing clamping math (Math.min(max, current +
+// amount)) is preserved exactly, just performed here instead of
+// inline -- but it gives Phase 2's anti-heal/healing-boost modifiers
+// exactly one place to hook into once they exist, instead of six.
+// Deliberately NOT applyHeal's generalization: applyHeal carries real
+// PLAYER-only baggage (Flourishing Soul, Blessing of Compassion,
+// Avatar of Devotion/Endurance, Mercy's Gift, Overflowing Life, Living
+// Current, Compassion's Grace, Endless Current, the cleanse-on-heal
+// hook, the playerDowned guard) that none of this function's six
+// callers ever had or need -- folding them in would be new behavior on
+// an enemy/ally heal that today's game has never had.
+// target: a combatant view (makePlayerCombatant/makeAllyCombatant/
+// makeEnemyCombatant, combatant.js). amount: the caller's own, already-
+// computed pre-clamp heal number (e.g. Math.max(1, Math.round(maxHp *
+// pct)) -- that floor/rounding stays at the call site, unchanged).
+// source: a short string naming what's healing (not yet read by
+// anything here -- a Phase 2 registry hook, same spirit as
+// calculateDamage's `kind`). ctx: {state, ...} where available; not yet
+// read either. Returns the actual amount healed (post-clamp), matching
+// applyHeal's own `healed` convention.
+function applyHealing(target, amount, source, ctx) {
+  if (!(amount > 0)) return 0;
+  if (target.kind === "player") {
+    const state = target.ref;
+    const before = state.health;
+    state.health = Math.min(state.maxHealth, state.health + amount);
+    return state.health - before;
+  }
+  if (target.kind === "ally") {
+    const ally = target.ref;
+    const before = ally.health;
+    ally.health = Math.min(ally.maxHealth, ally.health + amount);
+    return ally.health - before;
+  }
+  if (target.kind === "enemy") {
+    const enemySlot = target.store;
+    const before = enemySlot.hp;
+    enemySlot.hp = Math.min(enemySlot.maxHp, enemySlot.hp + amount);
+    return enemySlot.hp - before;
+  }
+  throw new Error(`applyHealing(): unknown target kind "${target.kind}"`);
+}
+
 // Consumables (data/items.js's slot: "consumable"): usable in or out of
 // combat. Outside a fight it's a free, instant action (nothing around to
 // react to it). Mid-fight, using one is a full turn exactly like any Tactic or
@@ -1112,8 +1158,7 @@ function applyConsumableEffectToAlly(item, ally, effect) {
   if (!effect) return [`You use ${item} on ${ally.name}, but nothing happens.`];
   if (effect.type === "heal") {
     const amount = Math.ceil(ally.maxHealth * effect.pct);
-    const healed = Math.min(amount, ally.maxHealth - ally.health);
-    ally.health = Math.min(ally.maxHealth, ally.health + amount);
+    const healed = applyHealing(makeAllyCombatant(ally), amount, "consumable", null);
     return [`You give ${item} to ${ally.name}, mending ${healed} health.`];
   }
   // Unlike the player's combat.playerBuffs, an ally's buff lives directly
@@ -2423,7 +2468,7 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
     if (abilityCtx.selfBuff) applyEnemySelfModifier(state.combat, creatureObj, abilityCtx.selfBuff);
     if (abilityCtx.healSelfPct) {
       const heal = Math.round(state.combat.maxHp * abilityCtx.healSelfPct);
-      if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
+      if (heal > 0) applyHealing(makeEnemyCombatant(state, state.combat.enemies[state.combat.activeIndex], state.combat.activeIndex), heal, "enemy_self_heal", { state });
     }
     // Prepare Ballista (Ingenum Ballistarius, Sanguivorum Imperial
     // Military): banks the prepared state on the enemy RECORD (this
@@ -3975,8 +4020,7 @@ function allySupportAction(state, ally) {
     const { healed, lines } = applyHeal(state, amount);
     return [`${ally.name} tends to your wounds, mending ${healed} health.`, ...lines];
   }
-  const healed = Math.min(amount, target.maxHp - target.hp);
-  target.ref.health += healed;
+  const healed = applyHealing(makeAllyCombatant(target.ref), amount, "ally_support", { state });
   return [`${ally.name} tends to ${target.ref.name}'s wounds, mending ${healed} health.`];
 }
 
@@ -5220,9 +5264,8 @@ function tickEnemyPassives(state, e) {
     if (!p) continue;
     if (p.trigger === "regenPerTurn" && e.hp > 0 && e.hp < e.maxHp) {
       const heal = Math.max(1, Math.round(e.maxHp * p.pct));
-      const before = e.hp;
-      e.hp = Math.min(e.maxHp, e.hp + heal);
-      if (e.hp > before) lines.push(`${withThe(creature.name, true)} recovers ${e.hp - before} health.`);
+      const healed = applyHealing(makeEnemyCombatant(state, e, state.combat.enemies.indexOf(e)), heal, "enemy_regen", { state });
+      if (healed > 0) lines.push(`${withThe(creature.name, true)} recovers ${healed} health.`);
     } else if (p.trigger === "healthBelowPct" && !e.passiveOnceFlags[pid] && e.hp / e.maxHp <= p.threshold) {
       e.passiveOnceFlags[pid] = true;
       // Arena Ferocity/Veteran's Guard (Sanguivorum Criminal Underworld):
@@ -5324,9 +5367,8 @@ function tickEnemyPassives(state, e) {
         if (p.maxActive != null && alreadyActive >= p.maxActive) {
           if (p.healPctIfMaxed) {
             const heal = Math.max(1, Math.round(e.maxHp * p.healPctIfMaxed));
-            const before = e.hp;
-            e.hp = Math.min(e.maxHp, e.hp + heal);
-            if (e.hp > before) lines.push(`${withThe(creature.name, true)} recovers ${e.hp - before} health, its grove already at full strength.`);
+            const healed = applyHealing(makeEnemyCombatant(state, e, state.combat.enemies.indexOf(e)), heal, "enemy_regen", { state });
+            if (healed > 0) lines.push(`${withThe(creature.name, true)} recovers ${healed} health, its grove already at full strength.`);
           }
         } else {
           lines.push(...resolveEnemySummon(state, creature.level, p, pid, creature.name, creature));
