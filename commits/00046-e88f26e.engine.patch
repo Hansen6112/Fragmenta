@@ -1,0 +1,126 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 6c07249..8c8b563 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -3876,7 +3876,7 @@ function allyAggressiveActionLegacy(state, ally) {
+   if (!attackConnects(allyAcc, target.creatureObj.agi)) {
+     // Riposte, generalized: this ally's own attack just dealt the target
+     // zero damage (a miss) — if the target wears Riposte, it counters here.
+-    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, target, ally)];
++    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`, ...riposteCounterByEnemyOnAllyLegacy(state, target, ally)];
+   }
+   // atkPct (Intimidated, Feared, ...): a status's own fractional Attack
+   // penalty, same pct-of-base shape effectivePlayerAtk-adjacent code uses.
+@@ -5555,10 +5555,11 @@ function arenaRiposteCounterOnPlayer(state, creature) {
+   const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnSuccessfulHit");
+   return resolveArenaRiposteCounterOnPlayer(state, creature, passive.mult || 0.8);
+ }
+-// Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
+-// the enemy counters the ally. Called from allyAggressiveAction's miss
+-// branch.
+-function riposteCounterByEnemyOnAlly(state, target, ally) {
++// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged,
++// only as the forced-roll parity oracle for allyAggressiveActionLegacy
++// (this file) -- delete in step 1h alongside the other superseded
++// per-pair functions.
++function riposteCounterByEnemyOnAllyLegacy(state, target, ally) {
+   if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
+   if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
+   markNonPlayerRiposteFired(target.creatureObj);
+@@ -5571,6 +5572,17 @@ function riposteCounterByEnemyOnAlly(state, target, ally) {
+   if (ally.health <= 0) lines.push(...killAlly(state, ally));
+   return lines;
+ }
++// Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
++// the enemy counters the ally. Called from rollToHitAllyActor's own miss
++// branches (step 1f-iii §4: through steps 2-5, target fixed to the
++// ally -- resolveRiposteCounterByEnemyOnAlly, pipeline.js). Eligibility/
++// cap bookkeeping stays here, outside the pipeline.
++function riposteCounterByEnemyOnAlly(state, target, ally) {
++  if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
++  if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
++  markNonPlayerRiposteFired(target.creatureObj);
++  return resolveRiposteCounterByEnemyOnAlly(state, target, ally);
++}
+ // SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged, only
+ // as the forced-roll parity oracle for resolveEnemyAttackOnAllyLegacy
+ // (this file) -- delete in step 1h alongside the other superseded
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index adc83d4..8fb14ec 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -442,6 +442,12 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+   // own header for the full comparison against the original riposte
+   // functions this replaces.
+   if (action.isReaction && target.kind === "player") return applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action);
++  // Same reasoning, for an enemy wearer's counter landing on an ALLY
++  // (riposteCounterByEnemyOnAllyLegacy's own tail is just a flat 0 floor
++  // + killAlly -- no ally protection interceptions, no Companion Ability
++  // Engine mitigation, no Last Bastion retaliation chaining off of it,
++  // none of which the ordinary ally-target body below skips).
++  if (action.isReaction && target.kind === "ally") return applyAndReactReactionOnAlly(actor, target, dmgInfo, ctx, action);
+   const state = ctx.state;
+   const combat = state.combat;
+   const creature = actor.ref.creatureObj;
+@@ -995,6 +1001,25 @@ function applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action) {
+   return { lines, damage: edmg };
+ }
+ 
++// ---- Step 5, reaction tail: an enemy wearer's counter-attack landing
++// on an ALLY (riposteCounterByEnemyOnAlly, step 1f-iii §4). Dedicated,
++// same reasoning as applyAndReactReactionOnPlayer just above --
++// riposteCounterByEnemyOnAllyLegacy's own tail is a flat 0-floor
++// subtraction + killAlly, nothing else: no ally protection
++// interceptions, no Companion Ability Engine mitigation, no Last
++// Bastion retaliation chaining off of it, all of which the ordinary
++// ally-target body below has.
++function applyAndReactReactionOnAlly(actor, target, dmgInfo, ctx, action) {
++  const state = ctx.state;
++  const creature = actor.ref.creatureObj;
++  const ally = target.ref;
++  const edmg = dmgInfo.edmg;
++  ally.health = Math.max(0, ally.health - edmg);
++  const lines = [action.flavorLine(creature, ally, edmg)];
++  if (ally.health <= 0) lines.push(...killAlly(state, ally));
++  return { lines, damage: null };
++}
++
+ // ---- Orchestrator: Riposte, generalized for an enemy wearer (step
+ // 1f-iii §4) -- a free 0.5x follow-up when the PLAYER's own attack
+ // misses, through steps 2-5 with the target fixed to the player. A
+@@ -1053,6 +1078,35 @@ function resolveArenaRiposteCounterOnPlayer(state, creature, mult) {
+   return result.lines;
+ }
+ 
++// ---- Orchestrator: Riposte, generalized for an enemy wearer whose own
++// retaliation the ALLY'S attack just missed (step 1f-iii §4) -- a free
++// 0.5x follow-up against that ally, through steps 2-5, target fixed to
++// the ally. No to-hit roll (action.toHit: "none", matching
++// riposteCounterByEnemyOnAllyLegacy's own unconditional math). Called
++// from combat.js's own riposteCounterByEnemyOnAlly, which keeps "does
++// this enemy even have Riposte, is it capped" eligibility outside the
++// pipeline.
++function resolveRiposteCounterByEnemyOnAlly(state, enemySlot, ally) {
++  const idx = state.combat.enemies.indexOf(enemySlot);
++  const actor = makeEnemyCombatant(state, enemySlot, idx);
++  const target = makeAllyCombatant(ally);
++  const action = {
++    formula: "riposteCounterEnemyOnAlly",
++    toHit: "none", isReaction: true,
++    flavorLine: (creature, a, edmg) => `${withThe(creature.name, true)} seizes the opening — a free riposte on ${a.name} for ${edmg} damage.`,
++  };
++  const ctx = { state, pendingAction: action, target };
++
++  const chosen = chooseAction(actor, ctx);
++  const targets = chooseTargets(actor, chosen, ctx);
++  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
++  if (!hitInfo.hit) return hitInfo.result.lines; // dead code today (toHit: "none" always hits).
++
++  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
++  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  return result.lines;
++}
++
+ /*
+  * ---- Step 1e-i: player attacking an enemy (the basic attack) ----
+  *

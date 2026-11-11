@@ -1,0 +1,53 @@
+range: 65a83d8f764583be6c3e68d305a71322836837a9..e88f26e062f10980c273fe5e3b7be98470d330d0
+=== e88f26e062f10980c273fe5e3b7be98470d330d0 2026-11-11 13:51:52 +0000
+1f-iii §4 (part 5): Riposte-by-enemy-on-ally through steps 2-5
+Last Riposte-family variant after the enemy-vs-player pair: an enemy
+wearer's counter against the ALLY whose own attack just missed it.
+Same discipline as the player-target pair -- checked the existing
+ally-target body in applyAndReact for leaks before reusing anything,
+and found the same pattern: riposteCounterByEnemyOnAllyLegacy's own
+tail is just a flat 0-floor HP subtraction + killAlly, with none of the
+ordinary ally-target path's ally protection interceptions, Companion
+Ability Engine mitigation, or Last Bastion retaliation chaining. Given
+its own dedicated tail (applyAndReactReactionOnAlly) rather than more
+gates threaded into that body, mirroring applyAndReactReactionOnPlayer.
+
+- js/engine/combat.js: riposteCounterByEnemyOnAlly renamed to *Legacy
+  (byte-identical, kept as the forced-roll parity oracle for
+  allyAggressiveActionLegacy's own miss branch). The live name keeps
+  just eligibility/cap bookkeeping and calls the new
+  resolveRiposteCounterByEnemyOnAlly (pipeline.js), which runs steps
+  2-5 with the target fixed to the ally, no to-hit roll
+  (action.toHit: "none", matching the original's unconditional math).
+- js/engine/pipeline.js: applyAndReact dispatches isReaction+target.kind
+  === "ally" to the new applyAndReactReactionOnAlly tail, same pattern
+  as the player-target dispatch added in the previous commit.
+- js/data/actions.js: new PIPELINE_FORMULAS.riposteCounterEnemyOnAlly --
+  today's exact math (flat 0.5x against effectiveAllyDef, no wearer-
+  effect chain), moved verbatim.
+- tools/tests/phase1_step1d_ally_attack_pipeline_parity.js: the existing
+  P1D-K-MISS-01 already exercises the real counter-strike (effects:
+  ['riposte'], forced miss) but not a kill -- one new scenario forces
+  the counter to kill the ally, exercising the dedicated tail's own
+  killAlly call.
+
+This closes out the Riposte family (riposteCounterOnPlayer,
+riposteCounterByAllyOnEnemy, riposteCounterByEnemyOnAlly,
+arenaRiposteCounterOnPlayer) alongside the already-committed
+companion-retaliation/Last-Bastion piece -- every "counter-attack" the
+handoff's §4 named now runs through steps 2-5, target fixed to the
+attacker.
+
+Verification: full suite 373/373 (+1), audit 0 errors. Layer 2
+(boss_sweep.js, plus3_run.js) both bit-for-bit identical to the
+step-1f-i baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 | 16 +++++++
+ js/engine/combat.js                                | 22 +++++++--
+ js/engine/pipeline.js                              | 54 ++++++++++++++++++++++
+ .../phase1_step1d_ally_attack_pipeline_parity.js   | 10 ++++
+ 4 files changed, 97 insertions(+), 5 deletions(-)
