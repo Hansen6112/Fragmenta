@@ -1,0 +1,25 @@
+range: 0b755f8d7304caa20a0c718349d049e5a799bb22..b7fb8c80f068c8b59d14244e5e7a1ac91063a875
+=== b7fb8c80f068c8b59d14244e5e7a1ac91063a875 2026-11-11 14:59:43 +0000
+Phase 1, step 1f: coverage table + final suite/audit verification
+New tools/combat_1f_coverage.md, same convention combat_1e_coverage.md
+established: every reaction (1f-iii) and DOT tick (1f-iv) this step
+built, mapped to its own formula/tail and the test scenario(s) that
+exercise it, plus a short summary of 1f-i/1f-ii's own work and P1/P4
+as mechanical coverage.
+
+Final verification closing out step 1f as a whole: full suite
+(403/403), audit.js (0 errors, P1 and P4 both at 0), and both
+whole-fight harnesses (boss_sweep.js, plus3_run.js) bit-for-bit
+identical against the immediately preceding commit.
+
+This completes step 1f (handoff: reactions, ticks, enemy abilities).
+Not part of 1f, explicitly deferred: step 1g (Dregnar's damage onto
+the pipeline) and step 1h (delete the old per-pair paths and the
+PER_ENEMY_FIELDS proxy).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_1f_coverage.md | 112 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 112 insertions(+)
