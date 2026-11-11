@@ -170,7 +170,7 @@ const HADRIAN = {
     },
     {
       id: "groundbreaker", name: "Groundbreaker", level: 5, cooldown: 4,
-      atkMult: 1.5, splashAtkMult: 0.6, splashAll: true,
+      atkMult: 1.5, splashAtkMult: 0.6, splashAll: true, targeting: "packSplash",
       accuracyDebuff: 10, accuracyDebuffTurns: 2,
       consumesEmpoweredStrike: true,
     },

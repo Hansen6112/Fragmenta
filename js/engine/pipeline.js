@@ -215,12 +215,27 @@ function chooseTargets(actor, action, ctx) {
   }
   // Step 1d: the ally's target was already picked outside the pipeline
   // (combat.activeIndex for a plain ally, pickHadrianTarget for a kit-
-  // bearing one) — same no-op shape as the enemy branch above. Splash
-  // damage to OTHER enemies (Groundbreaker) is NOT a second pipeline
-  // target: it reuses the primary hit's own already-computed baseAtk
-  // with no separate hit roll, so it's applied in a loop around this
-  // single-target pipeline call instead — see resolveHadrianActiveDamage.
-  if (actor.kind === "ally" && ctx.target && ctx.target.kind === "enemy") return [ctx.target];
+  // bearing one) — same no-op shape as the enemy branch above.
+  if (actor.kind === "ally" && ctx.target && ctx.target.kind === "enemy") {
+    // Step 1g-ii §2a: Groundbreaker's splash, generalized as a real
+    // multi-target pick instead of useHadrianActive's own private loop.
+    // The primary target is still [0]; every OTHER alive enemy in
+    // ctx.allEnemies (the same already-alive-filtered list the caller
+    // built) follows, in that same order — exactly who useHadrianActive's
+    // old inline loop hit, just chosen here instead. Each splash target
+    // still reuses the primary hit's own already-computed baseAtk (no
+    // separate hit roll of its own) — see resolveHadrianActiveDamage,
+    // which is the only caller that ever runs steps 4-5 against targets
+    // [1..] from this list.
+    if (action.targeting === "packSplash" && ctx.allEnemies) {
+      const state = ctx.state;
+      const splashTargets = ctx.allEnemies
+        .filter((e) => e.alive && e !== ctx.target.store)
+        .map((e) => makeEnemyCombatant(state, e, state.combat.enemies.indexOf(e)));
+      return [ctx.target, ...splashTargets];
+    }
+    return [ctx.target];
+  }
   // Step 1e-i: the player's target (whichever enemy is currently active,
   // state.combat.activeIndex) was already picked outside the pipeline by
   // the orchestrator — same no-op shape as the ally branch above.
@@ -914,20 +929,29 @@ function basicCompanionAttack(state, ally, enemies) {
   return result.lines;
 }
 
-// ---- Orchestrator: the PRIMARY target only of one of Hadrian's direct-
-// damage Actives (Crushing Blow/Groundbreaker). Called from
-// useHadrianActive (companion.js) after its own hit-roll-independent
-// setup (cooldowns, taunts, self-buffs — none of which reach here).
-// Groundbreaker's splash damage to every OTHER alive enemy reuses this
-// call's own baseAtk/splashAtkMult (no separate hit roll — see this
-// file's chooseTargets comment), so useHadrianActive applies splash
-// itself, in its own loop, using the values returned here, rather than
-// this function looping over every enemy.
-function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veteranPct, ascended) {
+// ---- Orchestrator: one of Hadrian's direct-damage Actives (Crushing
+// Blow/Groundbreaker). Called from useHadrianActive (companion.js) after
+// its own hit-roll-independent setup (cooldowns, taunts, self-buffs —
+// none of which reach here). `enemies` is the same already-alive-
+// filtered list useHadrianActive's own caller built (resolveCompanionAction) —
+// threaded through as ctx.allEnemies so chooseTargets (step 2) can pick
+// Groundbreaker's splash targets from it.
+//
+// Step 1g-ii §2a: splash used to be useHadrianActive's own private loop,
+// writing enemy HP directly outside applyAndReact entirely. Now
+// chooseTargets returns [primary, ...splash] for a packSplash action
+// (ability.targeting === "packSplash", Groundbreaker only today), the
+// PRIMARY alone gets a real hit roll (step 3) exactly as before, and
+// every splash target reuses that hit's own baseAtk/splashAtkMult with
+// NO hit roll of its own — same as always — but now runs through steps
+// 4-5 (calculateDamage/applyAndReact) like any other hit, instead of a
+// direct `e.hp -=`. Same damage number, same dice-roll order (none extra
+// for splash, matching before), same kill order (loop order unchanged).
+function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veteranPct, ascended, enemies) {
   const actor = makeAllyCombatant(ally);
   const target = makeEnemyCombatant(state, targetSlot, state.combat.enemies.indexOf(targetSlot));
-  const action = { kit, ability, veteranPct, ascended, formula: "kitAllyAbility", hooks: kit.action.hooks };
-  const ctx = { state, pendingAction: action, target };
+  const action = { kit, ability, veteranPct, ascended, formula: "kitAllyAbility", hooks: kit.action.hooks, targeting: ability.targeting };
+  const ctx = { state, pendingAction: action, target, allEnemies: enemies };
 
   const chosen = chooseAction(actor, ctx);
   const targets = chooseTargets(actor, chosen, ctx);
@@ -936,7 +960,30 @@ function resolveHadrianActiveDamage(state, ally, kit, ability, targetSlot, veter
 
   const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
   const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
-  return { lines: result.lines, hit: true, killedPrimary: result.killedPrimary, baseAtk: result.baseAtk, splashAtkMult: result.splashAtkMult };
+  const lines = [...result.lines];
+  let killedAny = !!result.killedPrimary;
+  for (const splashTarget of targets.slice(1)) {
+    const splashAction = {
+      kit, ability, baseAtk: result.baseAtk, splashAtkMult: result.splashAtkMult,
+      formula: "kitAllyAbilitySplash", hooks: kit.action.hooks,
+      flavorLine: (a, creature, edmg) => `The blow's shockwave catches ${withThe(creature.name, false)} for ${edmg} damage.`,
+    };
+    const splashDmgInfo = calculateDamage(actor, splashTarget, splashAction, ctx, null);
+    // useHadrianActiveLegacy's own order, preserved exactly: the accuracy
+    // debuff on a splash target is unconditional, applied BEFORE this
+    // target's own hp<=0 kill check -- never gated on whether this hit is
+    // about to kill it (unlike the PRIMARY's debuff, still gated on
+    // survival below, in useHadrianActive itself). Doing it here, between
+    // steps 4 and 5, keeps that ordering: applyAndReact (step 5) is what
+    // may resolve the kill and, if this is the last enemy standing, end
+    // the fight (state.combat -> null) -- which must happen AFTER, not
+    // before, this debuff write.
+    if (ability.accuracyDebuff) applyGroundbreakerAccuracyDebuff(state, splashTarget.store, ability.accuracyDebuff, ability.accuracyDebuffTurns);
+    const splashResult = applyAndReact(actor, splashTarget, splashDmgInfo, ctx, splashAction);
+    lines.push(...splashResult.lines);
+    if (splashResult.killedPrimary) killedAny = true;
+  }
+  return { lines, hit: true, killedAny, baseAtk: result.baseAtk, splashAtkMult: result.splashAtkMult };
 }
 
 // ---- Orchestrator: Last Bastion's automatic retaliation (step 1f-iii

@@ -635,29 +635,24 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   // Crushing Blow / Groundbreaker — direct damage. Moved onto the
   // pipeline (Combat Rebuild Phase 1, step 1d): resolveHadrianActiveDamage
   // (pipeline.js) runs the PRIMARY target through chooseAction->
-  // applyAndReact. Splash stays here, unchanged — it reuses the primary
-  // hit's own baseAtk/splashAtkMult (no separate hit roll of its own),
-  // so it isn't a second pipeline target; see pipeline.js's chooseTargets
-  // comment for why.
+  // applyAndReact. Step 1g-ii §2a: Groundbreaker's splash now ALSO runs
+  // through resolveHadrianActiveDamage (steps 2-5, via its own
+  // packSplash targeting) instead of this function's own private
+  // `e.hp -=` loop, including each splash target's own accuracy-debuff
+  // application (never an HP write, so never P1's concern, but its
+  // ORDER relative to that target's own kill resolution still matters —
+  // see that function's own comment). Only the PRIMARY's debuff — still
+  // gated on survival, exactly as useHadrianActiveLegacy gates it —
+  // stays here.
   const ascended = hasAscendedRegalia(ally);
   const target = pickHadrianTarget(enemies);
-  const primary = resolveHadrianActiveDamage(state, ally, kit, ability, target, veteranPct, ascended);
+  const primary = resolveHadrianActiveDamage(state, ally, kit, ability, target, veteranPct, ascended, enemies);
   lines.push(...primary.lines);
   if (!primary.hit) return lines;
 
-  let killedAny = primary.killedPrimary;
-  if (ability.splashAll) {
-    for (const e of enemies) {
-      if (e === target || !e.alive) continue;
-      let splashDmg = Math.max(1, Math.round(mitigate(primary.baseAtk * primary.splashAtkMult, e.creatureObj.def))); // v0.11 shared ratio mitigation
-      splashDmg = applyHadrianOutgoingDamageBonuses(ally, splashDmg, e.creatureObj);
-      e.hp -= splashDmg;
-      e.lastDamageType = "physical";
-      lines.push(`The blow's shockwave catches ${withThe(e.creatureObj.name, false)} for ${splashDmg} damage.`);
-      if (ability.accuracyDebuff) applyGroundbreakerAccuracyDebuff(state, e, ability.accuracyDebuff, ability.accuracyDebuffTurns);
-      if (e.hp <= 0 && e.alive) { lines.push(...killEnemyAsAlly(state, e)); killedAny = true; }
-    }
-    if (ability.accuracyDebuff && target.alive) applyGroundbreakerAccuracyDebuff(state, target, ability.accuracyDebuff, ability.accuracyDebuffTurns);
+  let killedAny = primary.killedAny;
+  if (ability.splashAll && ability.accuracyDebuff && target.alive) {
+    applyGroundbreakerAccuracyDebuff(state, target, ability.accuracyDebuff, ability.accuracyDebuffTurns);
   }
 
   if (killedAny) onHadrianKill(state, ally, kit);

@@ -256,12 +256,12 @@ const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 //     resolveEnemyAttackOnPlayer when the enemy-to-player path was
 //     migrated in step 1b, never deleted. A step 1h candidate ("delete
 //     old per-pair paths"), not touched here.
-//   - useHadrianActive's own Groundbreaker splash (companion.js):
-//     DISCLOSED, PERMANENT, pre-existing design choice (own comment:
-//     "Splash damage to OTHER enemies... is NOT a second pipeline
-//     target... applied in a loop around this single-target pipeline
-//     call instead") -- not a migration gap, a Phase 2 registry
-//     candidate.
+//   - useHadrianActive: REMOVED in step 1g-ii §2a. Groundbreaker's splash
+//     now runs through resolveHadrianActiveDamage's own packSplash
+//     targeting (steps 2-5), same as any other hit, so this exemption no
+//     longer matches anything -- settling the "not a migration gap, a
+//     Phase 2 registry candidate" question the 1f-era comment here used
+//     to raise.
 //   - Dregnar: step 1g-i deleted the /^resolve[Dd]regnar/ and
 //     /^dregnarResolve/ exemption the handoff carried over from 1f "until
 //     1g" -- it matched ZERO lines even before deletion (Dregnar's own
@@ -276,7 +276,7 @@ const P1_ALLOWED_FNS = new Set([
   "applyAndReactMirrorSoul", "applyAndReactTick", "applyAndReactTickOnEnemy",
   "applyAndReactTickOnPlayer", "applyAndReactTickOnAlly",
   "applyPlayerDamage", "checkDeathPrevention", "maybeHadrianAllyProtection",
-  "useHadrianActive", "buildFightCreature", "legacyScaledCreature", "resolveEnemyRetaliation",
+  "buildFightCreature", "legacyScaledCreature", "resolveEnemyRetaliation",
 ]);
 const P1_ALLOWED_PATTERNS = [/Legacy$/];
 let p1Hits = 0;

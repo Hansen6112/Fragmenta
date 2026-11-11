@@ -325,6 +325,21 @@ const PIPELINE_FORMULAS = {
     return { edmg, extra: { baseAtk, splashAtkMult, bankedDefKit } };
   },
 
+  // Step 1g-ii §2a: Groundbreaker's splash hit on one OTHER enemy --
+  // useHadrianActive's own former inline math (mitigate(baseAtk *
+  // splashAtkMult, raw creature.def), via stat() here for the same
+  // number since neither bankedDefKit nor sangMitKit ever applied to a
+  // splash target -- only the primary). action.baseAtk/action.splashAtkMult
+  // are the PRIMARY hit's own already-computed values (kitAllyAbility's
+  // `extra`, carried onto this splash action by resolveHadrianActiveDamage)
+  // -- no second hit roll, no second atk-bonus/empowered-strike
+  // computation, exactly as before.
+  kitAllyAbilitySplash(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const edmg = Math.max(1, Math.round(mitigate(action.baseAtk * action.splashAtkMult, stat(state, target, "def"))));
+    return { edmg, extra: {} };
+  },
+
   // Step 1f-iii §4: Last Bastion's own automatic-retaliation formula --
   // today's exact math (atk * (retaliatePct + veteranPct), mitigate, no
   // crit/random band unlike kitAllyBasic/kitAllyAbility's own rolls),
