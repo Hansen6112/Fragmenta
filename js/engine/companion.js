@@ -272,7 +272,7 @@ function effectiveAllyAgility(ally) {
   return Math.max(0, Math.round(base * (1 + pct)));
 }
 
-// Extracted from allyAggressiveActionLegacy's own inline calc (Combat
+// Extracted from allyAggressiveAction's own inline calc (Combat
 // Rebuild Phase 1, step 1d) — zero behavior change, same shape as
 // effectiveAllyAgility above. This is the PLAIN-ally (no abilityKit —
 // Kessa today) formula only. A kit-bearing ally's own attack/accuracy
@@ -431,37 +431,6 @@ function resolveCompanionAction(state, ally) {
   return basicCompanionAttack(state, ally, enemies);
 }
 
-// SUPERSEDED (Combat Rebuild Phase 1, step 1d): the real call site
-// (resolveCompanionAction, above) now calls basicCompanionAttack
-// (js/engine/pipeline.js) instead, which runs this exact same logic
-// through the five-step pipeline. This copy is kept, unchanged, only as
-// the step 1d forced-roll parity oracle — delete it in step 1h.
-//
-// Fallback when nothing is off cooldown — NOT the same formula as
-// allyAggressiveAction/Kessa despite the similar shape: no banked-
-// Defense consumption (Brace/Guarded Strike/Sure Foundation), no
-// Opening Reach/Executioner multiplier, and a miss here never provokes
-// the enemy's own Riposte the way Kessa's does. A real, pre-existing
-// asymmetry between the two ally-attack shapes, preserved exactly — see
-// tools/combat_asymmetry_register.md.
-function basicCompanionAttackLegacy(state, ally, enemies) {
-  const kit = ALLY_DEFS[ally.defId].abilityKit;
-  const target = pickHadrianTarget(enemies);
-  if (!attackConnects(ally.accuracy, target.creatureObj.agi, veteranBonusPct(ally, kit))) {
-    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`];
-  }
-  const atk = ally.atk + hadrianFlatAtkBonus(ally);
-  let dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), target.creatureObj.def))); // v0.11 shared ratio mitigation (engine/combat.js)
-  dmg = applyHadrianOutgoingDamageBonuses(ally, dmg, target.creatureObj);
-  target.hp -= dmg;
-  target.lastDamageType = "physical";
-  const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
-  if (target.hp <= 0 && target.alive) {
-    lines.push(...killEnemyAsAlly(state, target));
-    onHadrianKill(state, ally, kit);
-  }
-  return lines;
-}
 
 // Kills an enemy record on an ally's behalf — resolveKill (combat.js)
 // reads state.combat.activeIndex to know which record died, so this
@@ -477,98 +446,6 @@ function killEnemyAsAlly(state, target) {
   return lines;
 }
 
-// PARTIALLY SUPERSEDED (Combat Rebuild Phase 1, step 1d): kept, byte-
-// identical to the live useHadrianActive below as of 1d landing, ONLY
-// as the forced-roll parity oracle for that function's Crushing Blow/
-// Groundbreaker direct-damage tail — the taunt/heal/ultimate branches
-// above it were never migrated (they deal no damage, so they're outside
-// the pipeline's scope) and the live function still runs that same code
-// unchanged; only its damage tail now calls resolveHadrianActiveDamage
-// (js/engine/pipeline.js) instead. Delete this copy in step 1h.
-function useHadrianActiveLegacy(state, ally, kit, ability, enemies) {
-  // "The Unbroken Champion" 4pc: abilities used while Defensive or
-  // Support have their cooldown reduced by 1 turn.
-  const cdrActive = hasAscendedRegalia(ally) && (ally.stance === "defensive" || ally.stance === "support");
-  // Feinting Edge/Tactical Memory, generalized (see resolveEnemyActiveAbility
-  // in engine/combat.js for the fuller comment): the same proportional -1
-  // equivalent, for a companion's own kit cooldowns.
-  let hadrianCooldown = Math.max(0, ability.cooldown - (cdrActive ? 1 : 0));
-  if (hadrianCooldown && hasEffect(ally, "feinting_edge")) hadrianCooldown = Math.max(0, hadrianCooldown - 1);
-  if (hadrianCooldown && !ally.tacticalMemoryUsed && hasEffect(ally, "tactical_memory") && Math.random() < 0.2) {
-    ally.tacticalMemoryUsed = true;
-    hadrianCooldown = Math.max(0, hadrianCooldown - 1);
-  }
-  ally.abilityCooldowns[ability.id] = hadrianCooldown;
-  const lines = [];
-  const veteranPct = veteranBonusPct(ally, kit);
-
-  if (ability.id === "shielding_presence" || ability.id === "champions_challenge" || ability.id === "last_bastion") {
-    ally.tauntTurnsLeft = ability.tauntTurns;
-    if (ability.dmgReductionPct) { ally.dmgReductionPct = ability.dmgReductionPct; ally.dmgReductionTurnsLeft = ability.dmgReductionTurns; }
-    if (ability.bonusDef) { ally.bonusDefAmount = ability.bonusDef; ally.bonusDefTurnsLeft = ability.bonusDefTurns; }
-    if (ability.retaliatePct) { ally.retaliatePct = ability.retaliatePct; ally.retaliateTurnsLeft = ability.retaliateTurns; }
-    lines.push(`${ally.name} plants himself between the party and the fight, daring every enemy present to come through him instead.`);
-    return lines;
-  }
-
-  if (ability.id === "unyielding_advance") {
-    const healAmount = Math.round(ally.maxHealth * ability.healPct);
-    ally.health = Math.min(ally.maxHealth, ally.health + healAmount);
-    ally.empoweredStrikePct = hasAscendedRegalia(ally) ? ability.empoweredStrikePct + 0.15 : ability.empoweredStrikePct;
-    ally.empoweredStrikeTurnsLeft = ability.empoweredStrikeTurns;
-    lines.push(`${ally.name} plants his maul and steadies himself, mending for ${healAmount} health.`);
-    return lines;
-  }
-
-  if (ability.id === "arena_incarnate") {
-    ally.ultimateTurnsLeft = ability.ultimateTurns;
-    ally.ultimateAtkPct = ability.ultimateAtkPct;
-    ally.ultimateDefPct = ability.ultimateDefPct;
-    lines.push(`${ally.name} plants his feet — for a moment he fights like the Ovum's undefeated Champion all over again.`);
-    return lines;
-  }
-
-  // Crushing Blow / Groundbreaker — direct damage.
-  const ascended = hasAscendedRegalia(ally);
-  const target = pickHadrianTarget(enemies);
-  const atkBonus = 1 + (ally.ultimateTurnsLeft > 0 ? ally.ultimateAtkPct : 0);
-  if (!attackConnects(ally.accuracy, target.creatureObj.agi, veteranPct)) {
-    lines.push(`${ally.name} swings ${ability.name} and misses.`);
-    return lines;
-  }
-  const empowered = ability.consumesEmpoweredStrike && ally.empoweredStrikeTurnsLeft > 0;
-  const empoweredMult = empowered ? 1 + ally.empoweredStrikePct : 1;
-  if (empowered) { ally.empoweredStrikePct = 0; ally.empoweredStrikeTurnsLeft = 0; }
-  const baseAtk = (ally.atk + hadrianFlatAtkBonus(ally)) * atkBonus * empoweredMult;
-  // Unbroken Momentum (ascended Maul): Crushing Blow's Defense-ignore
-  // rises from 20% to 30%; Groundbreaker's splash rises from 60% to 75%.
-  const defIgnore = (ability.defIgnorePct || 0) + (ascended && ability.id === "crushing_blow" ? 0.1 : 0);
-  const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (ascended ? 0.15 : 0) : 0;
-  let primaryDmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, (target.creatureObj.def || 0) * (1 - defIgnore)))); // v0.11 shared ratio mitigation
-  primaryDmg = applyHadrianOutgoingDamageBonuses(ally, primaryDmg, target.creatureObj);
-  target.hp -= primaryDmg;
-  target.lastDamageType = "physical";
-  lines.push(`${ally.name} lands ${ability.name} on ${withThe(target.creatureObj.name, false)} for ${primaryDmg} damage.`);
-  let killedAny = target.hp <= 0 && target.alive;
-  if (killedAny) lines.push(...killEnemyAsAlly(state, target));
-
-  if (ability.splashAll) {
-    for (const e of enemies) {
-      if (e === target || !e.alive) continue;
-      let splashDmg = Math.max(1, Math.round(mitigate(baseAtk * splashAtkMult, e.creatureObj.def))); // v0.11 shared ratio mitigation
-      splashDmg = applyHadrianOutgoingDamageBonuses(ally, splashDmg, e.creatureObj);
-      e.hp -= splashDmg;
-      e.lastDamageType = "physical";
-      lines.push(`The blow's shockwave catches ${withThe(e.creatureObj.name, false)} for ${splashDmg} damage.`);
-      if (ability.accuracyDebuff) applyGroundbreakerAccuracyDebuff(state, e, ability.accuracyDebuff, ability.accuracyDebuffTurns);
-      if (e.hp <= 0 && e.alive) { lines.push(...killEnemyAsAlly(state, e)); killedAny = true; }
-    }
-    if (ability.accuracyDebuff && target.alive) applyGroundbreakerAccuracyDebuff(state, target, ability.accuracyDebuff, ability.accuracyDebuffTurns);
-  }
-
-  if (killedAny) onHadrianKill(state, ally, kit);
-  return lines;
-}
 
 // Executes one of Hadrian's Active abilities — damage math, cooldowns,
 // and the handful of stateful side effects (taunt windows, Empowered
@@ -646,7 +523,7 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   // application (never an HP write, so never P1's concern, but its
   // ORDER relative to that target's own kill resolution still matters —
   // see that function's own comment). Only the PRIMARY's debuff — still
-  // gated on survival, exactly as useHadrianActiveLegacy gates it —
+  // gated on survival, exactly as useHadrianActive gates it —
   // stays here.
   const ascended = hasAscendedRegalia(ally);
   const target = pickHadrianTarget(enemies);
@@ -789,33 +666,6 @@ function maybeHadrianAllyProtection(state, targetAlly, dmg) {
   return { dmg: remaining, lines };
 }
 
-// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): every real call site
-// now calls maybeCompanionRetaliate (below) instead, which runs this
-// exact same logic through the five-step pipeline
-// (resolveCompanionRetaliation, js/engine/pipeline.js). This copy is
-// kept, unchanged, only as the step 1f-iii forced-roll parity oracle for
-// combat.js's own resolveEnemyAttackOnAllyLegacy — delete it in step 1h
-// alongside the other superseded per-pair functions.
-function maybeCompanionRetaliateLegacy(state, ally, creatureThatAttacked) {
-  const def = ALLY_DEFS[ally.defId];
-  if (!def || !def.abilityKit || ally.retaliateTurnsLeft <= 0) return [];
-  const idx = state.combat.enemies.findIndex((e) => e.creatureObj === creatureThatAttacked);
-  if (idx === -1 || !state.combat.enemies[idx].alive) return [];
-  const record = state.combat.enemies[idx];
-  const kit = def.abilityKit;
-  const veteranPct = veteranBonusPct(ally, kit);
-  const atk = ally.atk + hadrianFlatAtkBonus(ally);
-  let dmg = Math.max(1, Math.round(mitigate(atk * (ally.retaliatePct + veteranPct), record.creatureObj.def))); // v0.11 shared ratio mitigation
-  dmg = applyHadrianOutgoingDamageBonuses(ally, dmg, record.creatureObj);
-  record.hp -= dmg;
-  record.lastDamageType = "physical";
-  const lines = [`${ally.name} answers the blow, retaliating against ${withThe(creatureThatAttacked.name, false)} for ${dmg} damage.`];
-  if (record.hp <= 0 && record.alive) {
-    lines.push(...killEnemyAsAlly(state, record));
-    onHadrianKill(state, ally, kit);
-  }
-  return lines;
-}
 
 // combat.js's resolveEnemyAttackOnAlly calls this right after applying
 // damage — Last Bastion's automatic retaliation against whichever enemy

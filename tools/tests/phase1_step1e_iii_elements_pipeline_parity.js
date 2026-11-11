@@ -6,28 +6,25 @@
 // scenario in this file. useElementAbilityLegacy (combat.js, byte-
 // identical) is the kept oracle for useElementAbility (pipeline.js).
 //
-// Step 1h-i: useElementAbilityLegacy is one of the 15 functions step 1h
-// deletes. FREEZE_LEGACY_ORACLES=1 runs this file in "freeze" mode
-// instead of its normal verify mode -- it still calls the live oracle
-// (so this only works BEFORE 1h-ii deletes it) but writes each
-// scenario's oldRun to tools/tests/fixtures/phase1_step1e_iii_elements_pipeline_parity.json
-// instead of comparing it. After that fixture exists, normal runs read
-// oldRun from it instead of calling useElementAbilityLegacy.
+// Step 1h-ii has now deleted useElementAbilityLegacy (and the other 14
+// doomed functions elsewhere) -- this file no longer calls it. Every
+// scenario's oldRun comes from the frozen fixture at
+// tools/tests/fixtures/phase1_step1e_iii_elements_pipeline_parity.json,
+// captured in step 1h-i (freeze_legacy_oracles.js) while the oracle
+// still existed.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
-const FREEZE = process.env.FREEZE_LEGACY_ORACLES === '1';
 const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'phase1_step1e_iii_elements_pipeline_parity.json');
-const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
+const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 
-  const out = await page.evaluate(({ FREEZE, frozenIn }) => {
+  const out = await page.evaluate((frozenIn) => {
     const ledger = [];
-    const frozenOut = {};
     function record(code, description, fn) {
       let passed = false, errors = 0, detail = null;
       try {
@@ -119,10 +116,9 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       return { applicable: true, expectMatters: true, mattered };
     }
 
-    function checkParity(code, description, legacyFn, newFn, scenario) {
+    function checkParity(code, description, newFn, scenario) {
       record(code, description, () => {
-        const oldRun = FREEZE ? runOne(legacyFn, scenario) : frozenIn[code];
-        if (FREEZE) frozenOut[code] = { result: oldRun.result, snap: oldRun.snap };
+        const oldRun = frozenIn[code];
         const newRun = runOne(newFn, scenario);
         const resultMatch = JSON.stringify(oldRun.result) === JSON.stringify(newRun.result);
         const snapMatch = oldRun.snap === newRun.snap;
@@ -137,52 +133,51 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       });
     }
 
-    const useElementAbilityLegacyWrap = (s, el) => useElementAbilityLegacy(s, el);
     const useElementAbilityWrap = (s, el) => useElementAbility(s, el);
 
     // ============ One hit scenario per element ============
-    checkParity('P1E-III-FIRE-01', 'Fire (Ignite): a hit sets the burn DoT', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'fire', seq: LOW });
-    checkParity('P1E-III-FIRE-MISS-01', 'Fire: a miss', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'fire', seq: HIGH });
-    checkParity('P1E-III-WATER-01', 'Water (Torrent): a hit heals the player', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'water', seq: LOW });
-    checkParity('P1E-III-WATER-SOVEREIGNTY-01', "Water: First Sword's Regalia 10pc refreshes sovereigntyTurnsLeft", useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-FIRE-01', 'Fire (Ignite): a hit sets the burn DoT', useElementAbilityWrap, { element: 'fire', seq: LOW });
+    checkParity('P1E-III-FIRE-MISS-01', 'Fire: a miss', useElementAbilityWrap, { element: 'fire', seq: HIGH });
+    checkParity('P1E-III-WATER-01', 'Water (Torrent): a hit heals the player', useElementAbilityWrap, { element: 'water', seq: LOW });
+    checkParity('P1E-III-WATER-SOVEREIGNTY-01', "Water: First Sword's Regalia 10pc refreshes sovereigntyTurnsLeft", useElementAbilityWrap, {
       element: 'water', seq: LOW, sets: ["First Sword's Regalia:10"],
     });
-    checkParity('P1E-III-EARTH-01', 'Earth (Stoneskin): a pure self-buff, no target roll at all (not migrated, re-verified)', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'earth', seq: MID });
-    checkParity('P1E-III-EARTH-FOCUS-01', 'Earth: Elemental Focus raises the Defense buff', useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-EARTH-01', 'Earth (Stoneskin): a pure self-buff, no target roll at all (not migrated, re-verified)', useElementAbilityWrap, { element: 'earth', seq: MID });
+    checkParity('P1E-III-EARTH-FOCUS-01', 'Earth: Elemental Focus raises the Defense buff', useElementAbilityWrap, {
       element: 'earth', seq: MID, effects: ['elemental_focus'],
     });
-    checkParity('P1E-III-LIGHTNING-01', 'Lightning (Flurry): both hits land on a tough target', useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-LIGHTNING-01', 'Lightning (Flurry): both hits land on a tough target', useElementAbilityWrap, {
       element: 'lightning', seq: LOW, mutate: (s, creature) => { s.combat.enemies[0].hp = 100000; s.combat.enemies[0].maxHp = 100000; },
     });
-    checkParity('P1E-III-LIGHTNING-KILL-01', "Lightning: the first hit alone kills -- the second hit never fires (state.combat.hp > 0 gate)", useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-LIGHTNING-KILL-01', "Lightning: the first hit alone kills -- the second hit never fires (state.combat.hp > 0 gate)", useElementAbilityWrap, {
       element: 'lightning', seq: LOW, mutate: (s, creature) => { s.combat.enemies[0].hp = 1; s.combat.enemies[0].maxHp = 1; },
     });
-    checkParity('P1E-III-LIGHTNING-MISS-01', 'Lightning: a miss skips both hits entirely', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'lightning', seq: HIGH });
-    checkParity('P1E-III-ACID-01', "Acid (Corrode): a hit sets corroded and the enemy Defense penalty", useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'acid', seq: LOW });
-    checkParity('P1E-III-ACID-ALREADYCORRODED-01', 'Acid: already corroded blocks the cast entirely', useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-LIGHTNING-MISS-01', 'Lightning: a miss skips both hits entirely', useElementAbilityWrap, { element: 'lightning', seq: HIGH });
+    checkParity('P1E-III-ACID-01', "Acid (Corrode): a hit sets corroded and the enemy Defense penalty", useElementAbilityWrap, { element: 'acid', seq: LOW });
+    checkParity('P1E-III-ACID-ALREADYCORRODED-01', 'Acid: already corroded blocks the cast entirely', useElementAbilityWrap, {
       element: 'acid', seq: LOW, mutate: (s) => { s.combat.corroded = true; },
     });
-    checkParity('P1E-III-FORCE-01', 'Force (Concuss): a hit stuns the enemy via tryApplyEnemyStun', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'force', seq: LOW });
-    checkParity('P1E-III-TRANSPORT-01', 'Transportation (Blink): a hit applies its own 1.3x multiplier', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'transportation', seq: LOW });
-    checkParity('P1E-III-AIR-01', 'Air (Windcut): a hit grants a 2-turn evasion window', useElementAbilityLegacyWrap, useElementAbilityWrap, { element: 'air', seq: LOW });
+    checkParity('P1E-III-FORCE-01', 'Force (Concuss): a hit stuns the enemy via tryApplyEnemyStun', useElementAbilityWrap, { element: 'force', seq: LOW });
+    checkParity('P1E-III-TRANSPORT-01', 'Transportation (Blink): a hit applies its own 1.3x multiplier', useElementAbilityWrap, { element: 'transportation', seq: LOW });
+    checkParity('P1E-III-AIR-01', 'Air (Windcut): a hit grants a 2-turn evasion window', useElementAbilityWrap, { element: 'air', seq: LOW });
 
     // ============ Shared purity fixes (checked once, via fire) ============
-    checkParity('P1E-III-BANKEDDEF-01', "Fire: the enemy's banked Brace/Guarded Strike Defense is peeked and consumed exactly once", useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-BANKEDDEF-01', "Fire: the enemy's banked Brace/Guarded Strike Defense is peeked and consumed exactly once", useElementAbilityWrap, {
       element: 'fire', seq: LOW, mutate: (s, creature) => { creature.braceBonusDef = 3; creature.guardedStrikeBonusDef = 2; },
     });
-    checkParity('P1E-III-SIEGECORPS-01', "Fire: Siege Corps' charge purity fix produces the identical roll (an element cast is always the spell branch, so this never actually fires -- but must still produce identical output either way)", useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-SIEGECORPS-01', "Fire: Siege Corps' charge purity fix produces the identical roll (an element cast is always the spell branch, so this never actually fires -- but must still produce identical output either way)", useElementAbilityWrap, {
       element: 'fire', seq: LOW, mutate: (s) => { s.combat.siegeCorpsAtkCharge = 2; },
     });
 
     // ============ Cross-cutting (synergy / Spell Echo / kill-after-synergy ordering) ============
-    checkParity('P1E-III-SYNERGY-01', 'Fire cast right after Water triggers a synergy bonus', useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-SYNERGY-01', 'Fire cast right after Water triggers a synergy bonus', useElementAbilityWrap, {
       element: 'fire', secondaryElement: 'water', seq: LOW, mutate: (s) => { s.combat.lastElementUsed = 'water'; },
     });
-    checkParity('P1E-III-SPELLECHO-01', 'Spell Echo repeats the cast at half power after a non-kill hit', useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-SPELLECHO-01', 'Spell Echo repeats the cast at half power after a non-kill hit', useElementAbilityWrap, {
       element: 'fire', seq: LOW, effects: ['spell_echo'],
       mutate: (s, creature) => { s.combat.enemies[0].hp = 100000; s.combat.enemies[0].maxHp = 100000; },
     });
-    checkParity('P1E-III-SPELLECHO-KILL-01', "Spell Echo never fires once the primary hit already killed (state.combat.hp > 0 gate) -- with or without the effect, the outcome is identical", useElementAbilityLegacyWrap, useElementAbilityWrap, {
+    checkParity('P1E-III-SPELLECHO-KILL-01', "Spell Echo never fires once the primary hit already killed (state.combat.hp > 0 gate) -- with or without the effect, the outcome is identical", useElementAbilityWrap, {
       element: 'fire', seq: LOW, effects: ['spell_echo'], expectEffectMatters: false,
       mutate: (s, creature) => { s.combat.enemies[0].hp = 1; s.combat.enemies[0].maxHp = 1; },
     });
@@ -214,23 +209,15 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       } finally {
         Math.random = origRandom;
       }
-      checkParity('P1E-III-SPELLECHO-ECHOKILL-01', "Spell Echo itself is the killing blow -- the primary hit alone survives (hp = primaryDmg + 1), the echo (0.5x) finishes it, and resolveKill still fires exactly once", useElementAbilityLegacyWrap, useElementAbilityWrap, {
+      checkParity('P1E-III-SPELLECHO-ECHOKILL-01', "Spell Echo itself is the killing blow -- the primary hit alone survives (hp = primaryDmg + 1), the echo (0.5x) finishes it, and resolveKill still fires exactly once", useElementAbilityWrap, {
         element: 'fire', seq: LOW, effects: ['spell_echo'],
         mutate: (s, creature) => { s.combat.enemies[0].hp = primaryDmg + 1; s.combat.enemies[0].maxHp = primaryDmg + 1; },
       });
     })();
 
     const summary = { total: ledger.length, passed: ledger.filter((l) => l.pass).length, failed: ledger.filter((l) => !l.pass) };
-    return { ledger, summary, frozenOut };
-  }, { FREEZE, frozenIn });
-
-  if (FREEZE) {
-    fs.mkdirSync(path.dirname(FIXTURE_PATH), { recursive: true });
-    fs.writeFileSync(FIXTURE_PATH, JSON.stringify(out.frozenOut, null, 2) + '\n');
-    console.log(`Froze ${Object.keys(out.frozenOut).length} scenario(s) to ${FIXTURE_PATH}`);
-    await browser.close();
-    process.exit(0);
-  }
+    return { ledger, summary };
+  }, frozenIn);
 
   console.log(`Step 1e-iii element ability parity: ${out.summary.passed}/${out.summary.total} passed`);
   if (out.summary.failed.length) {

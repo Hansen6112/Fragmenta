@@ -248,23 +248,19 @@ const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 // P1_FILES too -- confirmed by reading each, not assumed.
 //
 // Exemptions, each disclosed here rather than silently matched:
-//   - Every *Legacy-named function (combat.js/companion.js): kept
-//     oracles for Layer 1 forced-roll parity tests, confirmed to have
-//     ZERO live callers anywhere outside tools/tests/ -- their own
-//     direct writes (decreases AND increases -- e.g.
-//     resolveEnemyAttackOnAllyLegacy's own healOnHitPct copy,
-//     useHadrianActiveLegacy's own Unyielding Advance heal) are the
-//     ORIGINAL code, deliberately preserved byte-for-byte, never
-//     executed by an actual player.
+//   - Every *Legacy-named function (combat.js/companion.js) USED TO BE
+//     exempt here: kept oracles for Layer 1 forced-roll parity tests,
+//     confirmed to have ZERO live callers anywhere outside tools/tests/.
+//     Step 1h-ii deleted all 15 of them (resolveEnemyRetaliation
+//     included, despite its lacking the Legacy suffix -- it was
+//     confirmed dead code the same way, superseded by
+//     resolveEnemyAttackOnPlayer since step 1b) and removed the
+//     /Legacy$/ pattern below along with the "resolveEnemyRetaliation"
+//     name from P1_ALLOWED_FNS -- there is nothing left for either
+//     exemption to match.
 //   - buildFightCreature/legacyScaledCreature (combat.js): creature
 //     CONSTRUCTION (setting a freshly-built creature's starting/scaled
 //     hp), not combat resolution.
-//   - resolveEnemyRetaliation (combat.js): confirmed dead code (zero
-//     callers anywhere, live or test) -- superseded by
-//     resolveEnemyAttackOnPlayer when the enemy-to-player path was
-//     migrated in step 1b, never deleted. Its own healOnHitPct copy is
-//     dead for the same reason. A step 1h candidate ("delete old
-//     per-pair paths"), not touched here.
 //   - useHadrianActive: REMOVED in step 1g-ii §2a. Groundbreaker's splash
 //     now runs through resolveHadrianActiveDamage's own packSplash
 //     targeting (steps 2-5), same as any other hit, so this exemption no
@@ -294,10 +290,13 @@ const P1_ALLOWED_FNS = new Set([
   "applyAndReactMirrorSoul", "applyAndReactTick", "applyAndReactTickOnEnemy",
   "applyAndReactTickOnPlayer", "applyAndReactTickOnAlly",
   "applyPlayerDamage", "checkDeathPrevention", "maybeHadrianAllyProtection",
-  "buildFightCreature", "legacyScaledCreature", "resolveEnemyRetaliation",
+  "buildFightCreature", "legacyScaledCreature",
   "applyHeal", "applyHealing",
 ]);
-const P1_ALLOWED_PATTERNS = [/Legacy$/];
+// Step 1h-ii: the /Legacy$/ pattern exemption is gone -- all 15 *Legacy/
+// dead functions it covered are deleted, so there is nothing left for it
+// to match (confirmed: P1 still reports 0 hits with it removed).
+const P1_ALLOWED_PATTERNS = [];
 let p1Hits = 0;
 for (const f of P1_FILES) {
   const src = sources[f];

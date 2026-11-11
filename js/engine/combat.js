@@ -537,7 +537,7 @@ function applyPlayerStatus(state, key, spec, sourceName) {
 // Rolls and applies whatever `inflict` an active ability specifies —
 // either a named STATUS_EFFECTS entry (`{ status, chance }`) or a bespoke
 // one-off magnitude (`{ custom: { ...debuff, turns }, chance }`) that
-// doesn't match any named status. Called from resolveEnemyRetaliation
+// doesn't match any named status. Called from resolveEnemyAttackOnPlayer
 // after a hit lands.
 function applyAbilityInflict(state, inflict, sourceName) {
   if (!inflict || Math.random() >= (inflict.chance != null ? inflict.chance : 1)) return [];
@@ -1256,7 +1256,7 @@ function hasUsableConsumable(state) {
 // Legion's Shield Wall (4pc): a flat -10% on ALL incoming damage, applied
 // last after every other reduction (Defense, Spell Ward, etc.) — used at
 // every point the player actually takes damage (both branches of
-// resolveEnemyRetaliation, and attemptFlee's failed-flee hit).
+// resolveEnemyAttackOnPlayer, and attemptFlee's failed-flee hit).
 function applyShieldWall(state, dmg) {
   if (!hasSetTier(state, "Legion", 4)) return dmg;
   return Math.round(dmg * 0.9);
@@ -1500,7 +1500,7 @@ function avatarOfRenewalDamageMultiplier(state) {
 // types that actually reach the player in this engine; "Burn," cited as
 // an example in the source text, is a DoT the player only ever inflicts
 // on enemies, never receives, so there's a third bucket with nothing to
-// ever grow it). Stacks grow in resolveEnemyRetaliation, right after each
+// ever grow it). Stacks grow in resolveEnemyAttackOnPlayer, right after each
 // branch's damage is finalized.
 function adaptiveTidePhysicalMultiplier(state) {
   if (!hasEffect(state, "adaptive_tide") || !state.combat) return 1;
@@ -1575,7 +1575,7 @@ function borrowedSecondsActive(state) {
 // (unlike Unyielding Wall's damage CAP), on its own 3-round recharge
 // (unlike Shared Burden's once-per-fight gate). Checked (and, on
 // success, its own cooldown reset) at the very top of
-// resolveEnemyRetaliation, before any of the other evasion/miss checks.
+// resolveEnemyAttackOnPlayer, before any of the other evasion/miss checks.
 function applyTimelessGuard(state) {
   if (!hasEffect(state, "timeless_guard") || !state.combat) return false;
   const combat = state.combat;
@@ -1800,7 +1800,7 @@ function applyBeneficialEffectBonuses(state, duration) {
 // distinct effect ids (so each item declares its own) resolving through
 // ONE shared, wearer-neutral mechanism. This generalizes the player-only
 // Stonewarden 6pc precedent (combat.firstHitTakenUsed/hasSetTier(state,
-// "Stonewarden", 6), resolveEnemyRetaliation/attemptFlee below) the same
+// "Stonewarden", 6), resolveEnemyAttackOnPlayer/attemptFlee below) the same
 // way Ally Protection Reaction was generalized from its own
 // Hadrian-specific precedent — but mirrored to the other side of the
 // exchange: this fires on the WEARER's first incoming hit from the
@@ -1878,7 +1878,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   // Brace/Guarded Strike, generalized: this creature may have banked a
   // Defense bonus against its next incoming hit (resolveEnemyAction's own
   // non-damaging-action branch, or its own landed basic attack — see
-  // resolveEnemyRetaliation/resolveEnemyAttackOnAlly) — consumed here, the
+  // resolveEnemyAttackOnPlayer/resolveEnemyAttackOnAlly) — consumed here, the
   // one place the player's own damage against any creature is computed.
   const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
   creature.braceBonusDef = 0;
@@ -1931,7 +1931,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // than cutting the multiplier alone to ~0.6, which would gut the
     // class's identity below Warrior's own atk growth) moves each lever
     // less. Isolated to the player — enemy elemental attacks
-    // (resolveEnemyRetaliation) use a different, non-quadratic formula,
+    // (resolveEnemyAttackOnPlayer) use a different, non-quadratic formula,
     // and companions have their own separate damage path that doesn't
     // reference this constant.
     const multiplier = 1 + magic / 60;
@@ -2205,7 +2205,7 @@ function applyPhysicalOnHitEffects(state, creature) {
 // initiative slot (the other deliberate exception to "every combatant
 // acts exactly once a round," alongside flurry's guaranteed extra swing;
 // flurry is keyed off Speed, this is keyed off being hit). Reuses
-// resolveEnemyRetaliation for the actual attack roll/damage/mitigation —
+// resolveEnemyAttackOnPlayer for the actual attack roll/damage/mitigation —
 // the same Accuracy-vs-Agility check, Guardian Spirit/evasion/Timeless
 // Guard interactions, and "uses <name> on you" flavor line any other
 // named attack already gets — passing a minimal synthetic abilityCtx
@@ -2339,7 +2339,7 @@ function buildInitiativeOrder(state) {
 // combatant (a `flurry` creature's own deliberate extra swing aside — see
 // resolveEnemyActionWithFlurry).
 //
-// Reuses resolveEnemyRetaliation for the actual damage/mitigation math
+// Reuses resolveEnemyAttackOnPlayer for the actual damage/mitigation math
 // (defined further below, but plain function declarations are hoisted) —
 // using its default spread and no bonus Defense, since none of the
 // action-specific defensive bonuses (Brace, Guarded Strike, ...) exist yet
@@ -2531,7 +2531,7 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
     }
     // Calculated Preparation (Ingenum Field Engineer, Sanguivorum Imperial
     // Military): banks a flat ACC bonus for the wearer's own next damaging
-    // attack attempt (resolveEnemyRetaliation/resolveEnemyAttackOnAlly
+    // attack attempt (resolveEnemyAttackOnPlayer/resolveEnemyAttackOnAlly
     // consume it), unlike grantsPreparedState above this lives on the
     // creature object itself (same convention as sureFoundationBonusDef).
     if (abilityCtx.banksNextAttackAccBonus) {
@@ -2658,7 +2658,7 @@ function dregnarAbilityEligible(e, id) {
 
 // One damaging attempt (active or basic) against the player — brackets
 // DRA-P03's temporary +3 Attack (if charges remain) around the real
-// resolveEnemyRetaliation call, and applies/consumes the DRA-P01/P02
+// resolveEnemyAttackOnPlayer call, and applies/consumes the DRA-P01/P02
 // shared pending-Accuracy bonus. Barrier never reaches here (see
 // resolveDregnarAction's own branch for it) since it isn't a damaging
 // attempt at all.
@@ -2685,19 +2685,19 @@ function dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpr
     creatureObj.legacyCharges -= 1;
   }
   // Black-Ice Reserve (DRA-E09): captured BEFORE the call below, not
-  // after — this attempt's own resolveEnemyRetaliation call can ITSELF
+  // after — this attempt's own resolveEnemyAttackOnPlayer call can ITSELF
   // freshly grant a pending charge (via a successful Chilled application,
   // handled inside that function), and consuming unconditionally after
   // the call would immediately wipe out that same fresh grant before any
   // LATER attempt ever got to use it. Only a charge that was already
   // pending BEFORE this attempt started gets consumed here — "on the
   // attempt, even a miss" per its own rule, enforced here since
-  // resolveEnemyRetaliation only ever peeks/applies the damage multiplier
+  // resolveEnemyAttackOnPlayer only ever peeks/applies the damage multiplier
   // when the attack actually landed.
   const hadBlackIceReservePending = !!creatureObj.blackIceReservePending;
   const ctx = abilityCtx ? { ...abilityCtx, accBonus: (abilityCtx.accBonus || 0) + accBonus } : null;
   const basicFirstBonus = abilityCtx ? null : { accBonus, dmgMultBonus: 1 };
-  // Phase 0 hotfix: Dregnar used to call resolveEnemyRetaliation (the
+  // Phase 0 hotfix: Dregnar used to call resolveEnemyAttackOnPlayer (the
   // player-only damage path) unconditionally, so he could never damage an
   // ally and kept hitting an already-downed player. Step 1g-i: now calls
   // the exact same shared resolveEnemySingleTargetAttempt every other
@@ -2721,7 +2721,7 @@ function dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpr
 }
 
 // Resolves one named active by id — Barrier is a pure self-buff branch
-// (never calls resolveEnemyRetaliation at all, so it can't be a "damaging
+// (never calls resolveEnemyAttackOnPlayer at all, so it can't be a "damaging
 // attempt" for P03's purposes); every other active is a real attack.
 function resolveDregnarAttempt(state, e, creatureObj, abilityId, atkSpread, extraDef) {
   const ability = getEnemyAbility(abilityId);
@@ -2800,10 +2800,10 @@ function resolveDregnarAction(state, creatureObj, atkSpread, extraDef) {
   // Stun (Stage B): consumed per ACTION SLOT, not per turn — e is the
   // exact enemy slot combat.enemyStunCharges transparently proxies to
   // (combat.activeIndex doesn't change mid-turn here), so this is the
-  // same counter resolveEnemyRetaliation reads. Checked BEFORE priority-
+  // same counter resolveEnemyAttackOnPlayer reads. Checked BEFORE priority-
   // list selection so it also covers Barrier's self-buff branch and
   // Judgment's wind-up/resolution — neither ever calls
-  // resolveEnemyRetaliation, so that shared check alone would miss them.
+  // resolveEnemyAttackOnPlayer, so that shared check alone would miss them.
   // If this slot would have resolved a pending Judgment, that's an
   // explicit cancellation (the doc's own rule), not left pending.
   let normalResult;
@@ -3057,7 +3057,7 @@ function firstAttackPassiveBonus(state, creature) {
 // first-attack bonus if this is its first active use this fight, bonus
 // damage against a status the player/target is suffering, bonus damage
 // against a Health threshold), and returns a context object
-// resolveEnemyRetaliation/resolveEnemyAttackOnAlly read to replace their
+// resolveEnemyAttackOnPlayer/resolveEnemyAttackOnAlly read to replace their
 // usual flat attack roll — or null, meaning this creature just makes a
 // normal attack this turn (no eligible ability, or it has none at all —
 // every BESTIARY creature without an `actives` array behaves exactly as
@@ -3245,7 +3245,7 @@ function resolveEnemyActiveAbility(state, creature) {
   // Aim's own banksNextAttackAccBonus already banked the state on
   // creature.bankedAttackAccBonusTurnsLeft; checked here (read-only) and
   // consumed, as always, by this very attack's own normal
-  // resolveEnemyRetaliation/resolveEnemyAttackOnAlly consumption below —
+  // resolveEnemyAttackOnPlayer/resolveEnemyAttackOnAlly consumption below —
   // this check never itself touches/clears the banked state.
   if (ability.bonusIfPreparedState && creature.bankedAttackAccBonusTurnsLeft > 0) {
     dmgMult *= ability.bonusIfPreparedState.mult;
@@ -3543,7 +3543,7 @@ function applyPackAuraBuff(combat, creature, spec) {
 }
 
 // An enemy attacking an ally instead of the player — its own smaller,
-// ally-scoped sibling of resolveEnemyRetaliation, since that function's
+// ally-scoped sibling of resolveEnemyAttackOnPlayer, since that function's
 // mitigation pipeline is threaded through with player-only Divine
 // Regalia/Legendary/Mythic effects that have no bearing on an ally's own
 // (shared-inventory) gear. `damage` on the returned object is always
@@ -3637,236 +3637,6 @@ function applyAllyProtectionReaction(state, targetAlly, dmg) {
   return { dmg, lines: [] };
 }
 
-// SUPERSEDED (Combat Rebuild Phase 1, step 1c): every real call site now
-// calls resolveEnemyAttackOnAlly (js/engine/pipeline.js) instead, which
-// runs this exact same logic through the five-step pipeline. This copy is
-// kept, unchanged, only as the step 1c forced-roll parity oracle — delete
-// it in step 1h alongside the other superseded per-pair functions. Note
-// the two renamings this required: this function used to BE named
-// resolveEnemyAttackOnAlly; it's "Legacy" now so the live, pipeline-backed
-// version (same name as it always had at every call site) can exist
-// alongside it for the parity harness to call both.
-function resolveEnemyAttackOnAllyLegacy(state, creature, ally, abilityCtx, basicFirstBonus) {
-  // allyBuffStatTotal (companion.js): Steady Grip cast on this ally —
-  // same crafted-potion-buff storage effectiveAllyDef already reads for
-  // Defense. allyStatusStatTotal/allyStatusStatPctTotal: an inflicted
-  // status (Chilled, Pinned, Restrained, ...) lowering this ally's own
-  // Agility — same shape as effectivePlayerAgility's own pct-then-flat
-  // combination.
-  const allyAgiBase = ally.agility + allyBuffStatTotal(ally, "agi") + allyStatusStatTotal(ally, "agi");
-  const allyAgiPct = allyStatusStatPctTotal(ally, "agiPct");
-  const allyAgi = Math.max(0, Math.round(allyAgiBase * (1 + allyAgiPct)));
-  // abilityCtx.accBonus (Precise Shot/H04): "+10 Accuracy for this attack"
-  // has to count here too — resolveEnemyRetaliation already added it to
-  // its own roll, but this sibling function used to leave the ability's
-  // whole accuracy bonus on the floor whenever the roll happened to pick
-  // an ally instead of the player.
-  const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
-  // Duelist's Measure (SANG-CU-IE007): mirrors resolveEnemyRetaliation's
-  // own copy — pending bonus only pays out against the SAME target by
-  // name; targeting a different ally (or the player) than last time
-  // resets it, which falls out for free since this is cleared below
-  // regardless of whether it matched.
-  const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
-  // Calculated Aim (MIL-IE003) / Calculated Preparation (Sanguivorum
-  // Imperial Military): mirror resolveEnemyRetaliation's own copies —
-  // both consumed on this attempt regardless of hit/miss.
-  let calculatedAimBonusAlly = 0;
-  // Concealed Edge (SANG-IAG-IE007, Concealed Contract Dagger, Sanguivorum
-  // Independent Armed Groups): "first damaging attack attempted in combat
-  // gains +8 ACC, consumed on the attempt whether it hits or misses" —
-  // the codex's own wording calls this "reuse first-attack Accuracy
-  // pattern where identical," and Calculated Aim's existing mechanism just
-  // above is that identical pattern — a second effect id sharing the SAME
-  // once-per-combat flag/bonus, not a second mechanism.
-  if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
-    creature.calculatedAimUsed = true;
-    calculatedAimBonusAlly = 8;
-  }
-  const bankedPrepBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
-  // Silent Preparation/Measured Aim: mirror resolveEnemyRetaliation's own
-  // copies of these two reads, against the ally instead.
-  const bankedPrepDmgMultBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
-  const measuredAimAccBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
-  creature.bankedAttackAccBonus = 0;
-  creature.bankedAttackAccBonusTurnsLeft = 0;
-  creature.bankedAttackDmgMultBonus = 0;
-  const accBonus = baseAccBonus + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
-  creature.duelistMeasurePendingTarget = null;
-  if (!attackConnects(creature.acc + accBonus, allyAgi)) {
-    // Riposte, generalized: this creature's own attack just dealt the
-    // ally zero damage (a miss) — if the ALLY wears Riposte, it counters
-    // THIS creature (the attacker, not the one who got missed).
-    const enemySlot = state.combat.enemies[state.combat.activeIndex];
-    return { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`, ...riposteCounterByAllyOnEnemyLegacy(state, ally, enemySlot)], damage: null };
-  }
-  const rawAtk = effectiveEnemyAtk(state, creature);
-  // effectiveAllyDef (engine/companion.js): base Def plus every temporary/
-  // permanent companion bonus (Champion's Challenge, the Legendary
-  // ascension's flat set bonus, No Name Forgotten, Brothers in Arms/
-  // Honor Beyond Death) — all zero for any ally without one (Kessa).
-  // Brace/Guarded Strike, generalized: consume whatever this ally banked
-  // against its next incoming hit (allyDefensiveAction/allySupportAction/
-  // allyAggressiveAction) — an enemy's attack counts just as much as
-  // another enemy's would.
-  const bankedDef = (ally.braceBonusDef || 0) + (ally.guardedStrikeBonusDef || 0);
-  ally.braceBonusDef = 0;
-  ally.guardedStrikeBonusDef = 0;
-  const effectiveDef = effectiveAllyDef(ally) + bankedDef;
-  // v0.11: shared ratio mitigation against the ally's full Defense (was
-  // a flat -50% Defense) — allies and the player now follow one rule.
-  // basicFirstBonus.dmgMultBonus: see resolveEnemyRetaliation's own copy
-  // of this comment — only ever set on a plain basic attack.
-  let dmg = abilityCtx
-    ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
-    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
-  // Opening Reach/Executioner, generalized — same basic-attack-only scope
-  // as resolveEnemyRetaliation's own copy of this pair.
-  if (!abilityCtx) dmg = applyOpeningReachForActor(creature, dmg);
-  dmg = Math.round(dmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
-  // Silent Preparation's banked dmgMultBonus: mirrors resolveEnemyRetaliation's
-  // own copy, against the ally instead.
-  if (bankedPrepDmgMultBonusAlly > 0) dmg = Math.round(dmg * bankedPrepDmgMultBonusAlly);
-  // Phase 0 hotfix — Dregnar on-hit riders ported from resolveEnemyRetaliation
-  // now that his attacks can land on an ally. Ice-Forged Edge (DRA-E01):
-  // every hit, no stacking, no state at all.
-  if (hasEffect(creature, "dra_e01_ice_forged_edge")) dmg = Math.round(dmg * 1.10);
-  // Unbroken Grip (DRA-E04): first physical weapon attack each combat —
-  // shares the SAME unbrokenGripUsed flag the player-path copy sets, since
-  // it's wearer-side bookkeeping ("first attack this combat," full stop),
-  // not target-side; whichever path lands the wearer's first hit consumes it.
-  if (dmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
-    creature.unbrokenGripUsed = true;
-    dmg = Math.round(dmg * 1.10);
-  }
-  // Executioner's Seal (DRA-E06): same shape as resolveEnemyRetaliation's own
-  // copy, but checked against the ALLY's own HP% (the target of THIS hit),
-  // not the player's — the codex's "target at/below 30% max HP" always means
-  // whoever is actually being hit.
-  if (hasEffect(creature, "dra_e06_executioners_seal") && ally.health <= ally.maxHealth * 0.3) dmg = Math.round(dmg * 1.20);
-  // Black-Ice Reserve (DRA-E09): peeked only (consumption/decay is wearer-side
-  // bookkeeping already handled in dregnarResolveDamagingAttempt/tickEnemyPassives,
-  // unaffected by which target this particular attempt landed on).
-  if (dmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) dmg = Math.round(dmg * 1.10);
-  // Tyrant's Edge (SANG-CU-IE012): mirrors resolveEnemyRetaliation's own
-  // copy, against the ally's HP instead of the player's.
-  if (dmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && ally.health <= ally.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
-    creature.tyrantsEdgeCooldown = 3;
-    creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
-    dmg = Math.round(dmg * 1.10);
-  }
-  // Decisive Impact (MIL-IE005, Sanguivorum Imperial Military): mirrors
-  // resolveEnemyRetaliation's own copy, against the ally instead.
-  if (dmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
-    creature.decisiveImpactUsed = true;
-    dmg = Math.round(dmg * 1.08);
-  }
-  // Guarded Strike, generalized: bank +2 Defense for this creature against
-  // whatever hits it next, same basic-attack-only scope.
-  if (!abilityCtx && dmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
-  const sangAllyLines = [];
-  // Serrated Opening (SANG-CU-IE003): mirrors resolveEnemyRetaliation's
-  // own copy, against the ally's own status table.
-  if (dmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
-    creature.serratedOpeningUsed = true;
-    if (!(ally.statuses && ally.statuses.bleed)) {
-      sangAllyLines.push(...applyAbilityInflictOnAlly(ally, { status: "bleed", chance: 1 }, creature.name));
-    }
-  }
-  // Duelist's Measure (SANG-CU-IE007): mirrors resolveEnemyRetaliation's
-  // own copy, banking the pending bonus against this specific ally by name.
-  if (dmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
-    creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
-    creature.duelistMeasurePendingTarget = ally.name;
-  }
-  // Legion's Memory / Brothers in Arms (engine/companion.js): Hadrian may
-  // redirect part of this hit onto himself, or buff himself reactively,
-  // BEFORE the target's own mitigation runs — a no-op unless Hadrian is
-  // in the party, ascended/trinketed, and it's a DIFFERENT ally being hit.
-  const protection = maybeHadrianAllyProtection(state, ally, dmg);
-  dmg = protection.dmg;
-  // Ally Protection Reaction (Sanguivorum Gatekeeper's Stand/Protective
-  // Intercession/Officer's Intercession, generalized) — independent of,
-  // and checked after, Hadrian's own protection above.
-  const allyProtectionReaction = applyAllyProtectionReaction(state, ally, dmg);
-  dmg = allyProtectionReaction.dmg;
-  // Companion Ability Engine (engine/companion.js): taunt/Unbroken Will
-  // damage reduction, Honor Beyond Death's fatal-hit save, and Champion's
-  // Resolve's non-fatal floor for a kit-bearing ally — a no-op for any
-  // ally without one (Kessa).
-  const mitigation = applyCompanionDamageTaken(ally, dmg);
-  dmg = mitigation.dmg;
-  // The Grand Ovum (engine/arena.js): a non-lethal bout protects allies
-  // exactly like it protects the player — nobody actually dies in a match
-  // that was never billed as one, so their Health simply can't drop to 0
-  // here, same floor-at-1 as the player's own non-lethal-loss save.
-  const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
-  ally.health = Math.max(arenaFloor, ally.health - dmg);
-  const verb = abilityCtx ? `uses ${abilityCtx.name} on` : "strikes";
-  const lines = [`${withThe(creature.name, true)} ${verb} ${ally.name} for ${dmg} damage.`, ...protection.lines, ...allyProtectionReaction.lines, ...mitigation.lines, ...sangAllyLines];
-  // abilityCtx.healOnHitPct: same "heals for a fraction of the damage this
-  // hit actually dealt" payout resolveEnemyRetaliation grants on a landed
-  // player hit — an ally hit is just as much a landed hit.
-  // abilityCtx.inflict (Suppressing Strike/H05, Exposed Weakness/H14,
-  // Scorpion Lunge/H21, ...): applyAbilityInflictOnAlly — ally.statuses'
-  // own applier, same unconditional-once-the-roll-connected placement as
-  // applyAbilityInflict above (not gated on dmg > 0 — a hit that's fully
-  // mitigated to 0 damage still "landed" for this purpose, same as the
-  // player branch).
-  if (abilityCtx && abilityCtx.inflict) {
-    const inflictLinesAlly = applyAbilityInflictOnAlly(ally, abilityCtx.inflict, creature.name);
-    lines.push(...inflictLinesAlly);
-    // Black-Ice Reserve (DRA-E09): mirrors resolveEnemyRetaliation's own
-    // grant — a non-empty return means Chilled's chance roll actually
-    // succeeded on the ally, not just that it was attempted.
-    if (inflictLinesAlly.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
-      creature.blackIceReservePending = true;
-      creature.blackIceReserveTurnsLeft = 2;
-    }
-  }
-  if (abilityCtx && abilityCtx.healOnHitPct && dmg > 0) {
-    const heal = Math.round(dmg * abilityCtx.healOnHitPct);
-    if (heal > 0) state.combat.hp = Math.min(state.combat.maxHp, state.combat.hp + heal);
-  }
-  // Last Bastion's automatic retaliation (engine/companion.js) — a no-op
-  // for any ally without one. This Legacy function calls the Legacy-named
-  // retaliation helper (step 1f-iii), since this whole function is
-  // itself the step 1c forced-roll parity oracle and must stay
-  // byte-identical to before the pipeline existed.
-  lines.push(...maybeCompanionRetaliateLegacy(state, ally, creature));
-  if (ally.health <= 0) {
-    lines.push(...killAlly(state, ally));
-    // killAlly's own party-wipe branch (the player already downed, and
-    // this the last living ally) can null state.combat — the fight is
-    // over, so there's no "rest of this encounter" left for an onKill
-    // self-buff to apply to; without this, applyEnemySelfModifier below
-    // reads state.combat fresh and crashes on a null dereference.
-    if (!state.combat) return { lines, damage: null };
-    // Enemy Ability Engine: Predator's Momentum-style "after defeating an
-    // enemy" passives — the only thing this engine's creatures can
-    // actually defeat mid-fight is a party member, since the player's own
-    // death simply ends the game rather than continuing the encounter.
-    for (const pid of creature.passives || []) {
-      const p = getEnemyAbility(pid);
-      if (!p || p.trigger !== "onKill") continue;
-      // Roadlord's Momentum (Sanguivorum Criminal Underworld, IA-30):
-      // "once per combat; does not retrigger on further kills" — every
-      // other onKill entry (Predator's Momentum, ...) has no
-      // oncePerCombat flag and keeps retriggering on every kill exactly
-      // as before this generalization; unaffected. onKillUsed lives on
-      // `creature` itself (not an enemy-slot passiveOnceFlags lookup) —
-      // simpler here since `creature` is the one stable object this
-      // whole fight, and this function has no enemy-slot reference handy.
-      if (p.oncePerCombat) {
-        creature.onKillUsed = creature.onKillUsed || {};
-        if (creature.onKillUsed[pid]) continue;
-        creature.onKillUsed[pid] = true;
-      }
-      applyEnemySelfModifier(state.combat, creature, p.selfBuff);
-    }
-  }
-  return { lines, damage: null };
-}
 
 // Permanent, not "downed for this fight" — enemies inflicting genuine,
 // lasting death is the whole point (see the file-header comment above).
@@ -3964,68 +3734,6 @@ function sangCuDefenderMitigation(creature) {
     mult *= 0.9;
   }
   return mult;
-}
-// SUPERSEDED (Combat Rebuild Phase 1, step 1d): the real call site
-// (resolveOneAllyAction, above) now calls allyAggressiveAction
-// (js/engine/pipeline.js) instead, which runs this exact same logic
-// through the five-step pipeline. This copy is kept, unchanged, only as
-// the step 1d forced-roll parity oracle — delete it in step 1h alongside
-// the other superseded per-pair functions.
-function allyAggressiveActionLegacy(state, ally) {
-  const combat = state.combat;
-  const target = combat.enemies[combat.activeIndex];
-  if (!target || !target.alive) return [];
-  // allyBuffStatTotal (companion.js): Rousing Tonic/Clear Focus cast on
-  // this ally, same crafted-potion-buff storage effectiveAllyDef already
-  // reads for Defense. allyStatusStatTotal: an inflicted status (Buried,
-  // Disoriented, Drowsy, ...) lowering this ally's own Accuracy.
-  const allyAcc = ally.accuracy + allyBuffStatTotal(ally, "acc") + allyStatusStatTotal(ally, "acc");
-  if (!attackConnects(allyAcc, target.creatureObj.agi)) {
-    // Riposte, generalized: this ally's own attack just dealt the target
-    // zero damage (a miss) — if the target wears Riposte, it counters here.
-    return [`${ally.name} lunges at ${withThe(target.creatureObj.name, false)} and misses.`, ...riposteCounterByEnemyOnAllyLegacy(state, target, ally)];
-  }
-  // atkPct (Intimidated, Feared, ...): a status's own fractional Attack
-  // penalty, same pct-of-base shape effectivePlayerAtk-adjacent code uses.
-  const allyAtkBase = ally.atk + allyBuffStatTotal(ally, "atk") + allyStatusStatTotal(ally, "atk");
-  const allyAtk = Math.max(0, Math.round(allyAtkBase * (1 + allyStatusStatPctTotal(ally, "atkPct"))));
-  // dmgReduction (Enemy Ability Engine — Guarded Stance/
-  // Protective Cover/Last Stand): applies to an ally's own hits too, not
-  // just the player's — see rollPlayerDamage for the primary application.
-  const reduction = 1 - (target.creatureObj.dmgReduction || 0);
-  // Brace/Guarded Strike, generalized: consume whatever this target banked
-  // against its next incoming hit (see resolveEnemyAction/
-  // resolveEnemyRetaliation) — an ally's attack counts just as much as the
-  // player's own.
-  // Sure Foundation (DRA-E05) is physical-only but this whole function is
-  // already an ally's physical weapon attack, so it folds straight into
-  // bankedDef with no separate magic/physical split needed (contrast
-  // rollPlayerDamage, which has both branches and keeps it separate).
-  const bankedDef = (target.creatureObj.braceBonusDef || 0) + (target.creatureObj.guardedStrikeBonusDef || 0) + (target.creatureObj.sureFoundationBonusDef || 0);
-  target.creatureObj.braceBonusDef = 0;
-  target.creatureObj.guardedStrikeBonusDef = 0;
-  target.creatureObj.sureFoundationBonusDef = 0;
-  target.creatureObj.sureFoundationBonusDefTurnsLeft = 0;
-  if (hasEffect(target.creatureObj, "dra_e05_sure_foundation")) {
-    target.creatureObj.sureFoundationBonusDef = 2;
-    target.creatureObj.sureFoundationBonusDefTurnsLeft = 2;
-  }
-  const sangMit = sangCuDefenderMitigation(target.creatureObj);
-  let dmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), target.creatureObj.def + bankedDef) * reduction * sangMit)); // v0.11 shared ratio mitigation
-  // Opening Reach/Executioner, generalized — this ally's own first basic
-  // physical attack this fight, and a finisher bonus vs a badly wounded
-  // target, same as the player's and an enemy's own versions above.
-  dmg = applyOpeningReachForActor(ally, dmg);
-  dmg = Math.round(dmg * executionerMultiplierFor(ally, target.hp, target.maxHp));
-  target.hp -= dmg;
-  target.lastDamageType = "physical";
-  const lines = [`${ally.name} strikes ${withThe(target.creatureObj.name, false)} for ${dmg} damage.`];
-  // Guarded Strike, generalized: bank +2 Defense for this ally against
-  // whatever hits it next, same scope as the enemy/player versions (a
-  // landed basic physical attack only).
-  if (hasEffect(ally, "guarded_strike")) ally.guardedStrikeBonusDef = 2;
-  if (target.hp <= 0 && target.alive) lines.push(...resolveKill(state, target.creatureObj));
-  return lines;
 }
 
 // Defensive stance: weaken the active enemy's attack rather than damage
@@ -4620,7 +4328,7 @@ function checkTrapDeathPrevention(state) {
 // nothing there has ever needed one before. If that reflect alone was
 // lethal, and the round's own retaliation afterward happens to miss or
 // get evaded (every one of those branches returns out of
-// resolveEnemyRetaliation before it ever reaches its own
+// resolveEnemyAttackOnPlayer before it ever reaches its own
 // state.health <= 0 check), nothing else catches it — the fight would
 // otherwise sit at 0 Health with combat still active, forever. Every
 // action that can deal damage to an enemy (and so risk triggering one of
@@ -4783,7 +4491,7 @@ function applyUnbrokenLine(state, dmg) {
 // the player is computed as if the player's Agility were temporarily +8,
 // for that one roll only. Mutates combat.scoutStealthUsed as a side effect
 // (mirrors combat.guardianSpiritUsed's check-and-consume pattern) so this
-// is safe to call unconditionally at every resolveEnemyRetaliation call.
+// is safe to call unconditionally at every resolveEnemyAttackOnPlayer call.
 function scoutStealthOpeningBonus(state, combat) {
   if (!state.flags.scoutStealthBranchUnlocked || combat.scoutStealthUsed) return 0;
   combat.scoutStealthUsed = true;
@@ -4791,7 +4499,7 @@ function scoutStealthOpeningBonus(state, combat) {
 }
 
 // A Stun application against an enemy either lands (incrementing the
-// shared per-enemy charge counter resolveEnemyRetaliation/
+// shared per-enemy charge counter resolveEnemyAttackOnPlayer/
 // resolveDregnarAction consume from, one at a time, per eligible action)
 // or is negated by Unshaken Command (Dregnar Ashvein's First Sword's
 // Regalia, DRA-E02) — two charges per combat, reset at combat start (see
@@ -4821,410 +4529,6 @@ function tryApplyEnemyStun(state, creature) {
   return [];
 }
 
-// SUPERSEDED (Combat Rebuild Phase 1, step 1b): every real call site now
-// calls resolveEnemyAttackOnPlayer (js/engine/pipeline.js) instead, which
-// runs this exact same logic through the five-step pipeline. This copy is
-// kept, unchanged, only as the step 1b forced-roll parity oracle — delete
-// it in step 1h alongside the other superseded per-pair functions.
-function resolveEnemyRetaliation(state, creature, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
-  const combat = state.combat;
-  const bonusDef = extraDef || 0;
-  // Reinforced (Divine Regalia — Forgeguard Buckler): every 3rd enemy
-  // ATTACK against the player (counted here, unconditionally, before any
-  // of the early-return misses/evasions below — an "attack" that gets
-  // evaded still counts as an attack, unlike Walls Endure/Unbroken Line's
-  // narrower "damage actually taken" counters) permanently grants +2
-  // Defense, capped at +20 (10 triggers).
-  if (hasEffect(state, "reinforced")) {
-    combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
-    if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
-      combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
-    }
-  }
-  // A stunned enemy simply doesn't act at all this turn — not a "miss," so
-  // it's checked before the connects roll below, same as Reinforced above.
-  // enemyStunCharges is a counter, not a bool (Dregnar Ashvein Stage B):
-  // each charge cancels exactly one action opportunity. Every ordinary
-  // creature only ever gets one resolveEnemyRetaliation call per turn, so
-  // this is behavior-identical to the old boolean for all of them — one
-  // charge skips this turn's one action; an extra charge (never granted
-  // today outside Dregnar's own bespoke stun handling) would simply carry
-  // to that creature's next turn, satisfying the source catalog's "carries
-  // to the next eligible action" rule for free. Dregnar's own bespoke
-  // resolver (resolveDregnarAction) consumes charges itself, once per
-  // action slot, before ever reaching here — see its own comments.
-  if ((combat.enemyStunCharges || 0) > 0) {
-    combat.enemyStunCharges -= 1;
-    return { lines: [`${withThe(creature.name, true)} is still reeling and doesn't attack.`], damage: 0 };
-  }
-  // Accuracy vs Agility: does the attack even connect? Checked before every
-  // special miss/evasion effect below, so none of those (Timeless Guard's
-  // once-per-3-rounds negation, Guardian Spirit/Guided Footsteps' first-
-  // attack charge, evasion charges, ...) ever get consumed on an attack
-  // that was going to miss on its own merits anyway. Scout's level-15
-  // "Branch" choice (a real combat effect for the old stealthMod flavor
-  // stat) folds a temporary +8 Agility into this one roll, only for the
-  // very first enemy attack against the player each fight — see
-  // scoutStealthOpeningBonus below. Deliberately additive to the existing
-  // Agility-vs-Accuracy formula rather than a hard override, so it stacks
-  // normally with gear/effects that also touch Agility.
-  // abilityCtx.accBonus (Precise Shot/H04): a flat Accuracy bonus for this
-  // one roll only — added directly to creature.acc rather than threaded as
-  // hitChance's extraChance, since the codex phrases it as a stat bonus
-  // ("+10 Accuracy"), not a direct hit-percentage bonus.
-  const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
-  // Marked Target (SANG-CU-IE002, Spotter's Lens): consumed by the next
-  // attack ATTEMPT (hit or miss) against the exposed player, as long as
-  // it's a DIFFERENT enemy than whoever applied Exposed — consumption
-  // happens here, on the attempt, not gated on this attempt landing.
-  let markedTargetBonus = 0;
-  if (combat.exposedTarget && combat.exposedTarget.by !== creature) {
-    markedTargetBonus = 8;
-    combat.exposedTarget = null;
-  }
-  // Duelist's Measure (SANG-CU-IE007, Ovum Outcast Primary Blade): this
-  // creature's own pending +10 Accuracy from its last successful hit on
-  // this same target (the player) — a target change (tracked via the
-  // string this field holds) resets it instead of granting the bonus; see
-  // resolveEnemyAttackOnAlly's own entry for the player->ally reset.
-  const duelistPending = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === "player";
-  const duelistBonus = duelistPending ? 10 : 0;
-  creature.duelistMeasurePendingTarget = null; // consumed on the attempt regardless of hit/miss, same as Marked Target above
-  // Calculated Aim (MIL-IE003, Calculation Lens, Sanguivorum Imperial
-  // Military): the wearer's own first damaging attack ATTEMPT each
-  // combat, consumed whether it hits or misses — same unconditional-on-
-  // attempt consumption shape as Marked Target/Duelist's Measure above.
-  let calculatedAimBonus = 0;
-  // Concealed Edge (SANG-IAG-IE007): see resolveEnemyAttackOnAlly's own
-  // copy of this comment earlier in this file — same shared mechanism,
-  // not new.
-  if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
-    creature.calculatedAimUsed = true;
-    calculatedAimBonus = 8;
-  }
-  // Calculated Preparation (Ingenum Field Engineer's own active, Sanguivorum
-  // Imperial Military): "+10 ACC on next damaging attack within 2 turns,
-  // consumed by qualifying attempt" — banked by resolveEnemyAction when
-  // the active is cast, consumed here on the next attempt regardless of
-  // hit/miss, same as Calculated Aim just above; tickEnemyPassives below
-  // decays it if 2 of the wearer's own turns pass unused.
-  const bankedPrepBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
-  // Silent Preparation's own dmgMultBonus (Veiled Executor, Sanguivorum
-  // Independent Armed Groups): read at the SAME point bankedPrepBonus just
-  // above is, before either is cleared below — applied to edmg further
-  // down, in the physical branch, so the ACC bump and the damage bump land
-  // on the same next attack and expire together.
-  const bankedPrepDmgMultBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
-  // Measured Aim (SANG-IAG-IE003, Contract Heavy Crossbow): "if an
-  // accuracy-preparation buff is active, +8 ACC pre-hit" — the equipment
-  // side of the same banked-state read, additive on top of whatever the
-  // ability-granted banked ACC already provides above, same read-before-
-  // clear timing.
-  const measuredAimAccBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
-  creature.bankedAttackAccBonus = 0;
-  creature.bankedAttackAccBonusTurnsLeft = 0;
-  creature.bankedAttackDmgMultBonus = 0;
-  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus + measuredAimAccBonus;
-  if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
-    return { lines: [`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`], damage: 0 };
-  }
-  // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
-  // attack every 3 rounds deals 0 damage entirely, ahead of even
-  // Guardian Spirit/Guided Footsteps — a full negation, not just a miss
-  // chance, so it takes priority over the probabilistic checks below.
-  if (applyTimelessGuard(state)) {
-    return { lines: [`Timeless Guard — for a moment, time itself refuses to let the blow land.`], damage: 0 };
-  }
-  // Guardian Spirit (Mythic): the very first enemy attack each fight is a
-  // guaranteed miss, checked before anything else (stun, evasion) since
-  // it's a harder guarantee than either.
-  if (hasEffect(state, "guardian_spirit") && !combat.guardianSpiritUsed) {
-    combat.guardianSpiritUsed = true;
-    return { lines: [`Guardian Spirit turns the first blow aside completely.`], damage: 0 };
-  }
-  // Guided Footsteps (Divine Regalia — Boots of the Hidden Path): a
-  // softer, probabilistic Guardian Spirit — 75% instead of a guarantee,
-  // same "first enemy attack only" gate.
-  if (hasEffect(state, "guided_footsteps") && !combat.guidedFootstepsUsed) {
-    combat.guidedFootstepsUsed = true;
-    if (Math.random() < 0.75) {
-      return { lines: [`Guided Footsteps — you're already a step from where it lands.`], damage: 0 };
-    }
-  }
-  // Never Where Expected (Divine Regalia — Boots of the Wandering Wind): a
-  // flat 15% miss chance on EVERY enemy attack (not just the first, unlike
-  // Guardian Spirit/Guided Footsteps above), regardless of accuracy.
-  if (hasEffect(state, "never_where_expected") && Math.random() < 0.15) {
-    return { lines: [`Never Where Expected — it swings, and finds nothing there.`], damage: 0 };
-  }
-  // Blessing of Freedom (Regalia of the Endless Horizon 2pc): a flat 15%
-  // evasion chance on every enemy attack — its own independent roll,
-  // stacking with Never Where Expected/Guardian Spirit/Guided Footsteps if
-  // a character somehow has several of these miss-chance sources at once.
-  if (hasSetTier(state, "Regalia of the Endless Horizon", 2) && Math.random() < 0.15) {
-    return { lines: [`Blessing of Freedom carries you clear of the blow.`], damage: 0 };
-  }
-  // Avatar of Freedom (Regalia of the Endless Horizon 6pc): an additional,
-  // independent 50% evasion chance for its 4-round window — stacks with
-  // Blessing of Freedom's 15% above rather than replacing it.
-  if (combat.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
-    return { lines: [`Avatar of Freedom carries you beyond its reach entirely.`], damage: 0 };
-  }
-  // Evasive Release's charges are a one-shot dodge chance, checked (and
-  // consumed either way — "expires after triggering") before falling back
-  // to Windcut/Blink's duration-based evasion window.
-  let evasionRolled = false;
-  if (combat.evasionCharges > 0) {
-    combat.evasionCharges -= 1;
-    evasionRolled = Math.random() < 0.5;
-  } else if (combat.evasionTurns > 0) {
-    evasionRolled = Math.random() < 0.5;
-  }
-  if (evasionRolled) {
-    if (hasEffect(state, "evasive_guard")) combat.evasiveGuardBonus = Math.min(3, combat.evasiveGuardBonus + 1);
-    if (creature.element && hasSetTier(state, "River Warden", 6)) {
-      combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
-    }
-    return { lines: [`You slip past ${withThe(creature.name, false)}'s counter entirely.`], damage: 0 };
-  }
-  if (creature.element) {
-    const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
-    const base = randInt(creature.magic - 2, creature.magic + 2);
-    // Mirror Soul (Artifact): the first hostile spell each combat is
-    // reflected back at the caster wholesale — the raw, unmitigated roll,
-    // before any of the player's own damage-reduction effects below apply
-    // — instead of landing on the player at all. Safe to resolve a kill
-    // from here if the reflection is lethal: every caller of
-    // resolveEnemyRetaliation already null-guards on state.combat before
-    // doing anything further with it.
-    if (hasEffect(state, "mirror_soul") && !combat.mirrorSoulUsed) {
-      combat.mirrorSoulUsed = true;
-      const reflected = Math.max(0, Math.round(base * matchup));
-      if (reflected > 0) {
-        combat.hp -= reflected;
-        combat.lastDamageType = creature.element;
-        const lines = [`Mirror Soul turns ${withThe(creature.name, false)}'s spell back on it, for ${reflected} damage.`];
-        if (combat.hp <= 0) lines.push(...resolveKill(state, creature));
-        return { lines, damage: 0 };
-      }
-      return { lines: [`Mirror Soul readies itself, but there's nothing in the spell worth turning aside.`], damage: 0 };
-    }
-    const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
-    const def = effectivePlayerDef(state) + bonusDef + coldBonus;
-    // v0.11: shared ratio mitigation against the player's full Defense
-    // (was a flat -Defense/10, so armor did almost nothing against mages).
-    let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
-    // Unquenched Focus (DRA-E07): the wearer's first successful elemental
-    // attack each combat deals 1.10x. Dormant for Dregnar himself (none of
-    // his Stage A actives are elemental — all five are physical), wired
-    // generically here for any future elemental wearer of this item.
-    if (edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
-      creature.unquenchedFocusUsed = true;
-      edmg = Math.round(edmg * 1.10);
-    }
-    // Adaptive Ward (Mythic): the first elemental hit taken each fight
-    // establishes resistance to that element for the rest of the fight;
-    // this triggering hit isn't itself reduced, only subsequent hits of
-    // the same element are (halved, stacking with Spell Ward and friends).
-    if (hasEffect(state, "adaptive_ward")) {
-      if (!combat.adaptiveWardElement) {
-        combat.adaptiveWardElement = creature.element;
-      } else if (creature.element === combat.adaptiveWardElement) {
-        edmg = Math.round(edmg * 0.5);
-      }
-    }
-    const swMult = spellWardMultiplier(state);
-    if (swMult < 1) {
-      edmg = Math.round(edmg * swMult);
-      if (hasSetTier(state, "River Warden", 6)) combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
-    }
-    if (edmg > 0 && !combat.stormBarrierUsed) {
-      combat.stormBarrierUsed = true;
-      if (hasSetTier(state, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
-    }
-    if (edmg > 0 && !combat.firstHitTakenUsed) {
-      combat.firstHitTakenUsed = true;
-      if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
-    }
-    const magicHit = mitigateAndApplyHitOnPlayer(state, edmg, "magic");
-    edmg = magicHit.edmg;
-    const absorbLines1 = magicHit.absorbLines;
-    // Injury System v0.2: the REAL element (creature.element), not the
-    // generic "magic" kind string just passed to mitigateAndApplyHitOnPlayer
-    // above — that's what picks the down's injury group (§5/§6).
-    if (edmg > 0) combat.playerLastHitType = creature.element;
-    const elName = ELEMENTS[creature.element].name.toLowerCase();
-    const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${elName} of its own, for ${edmg} damage.` : `Its ${elName} washes over you harmlessly.`, ...absorbLines1];
-    if (state.health <= 0) {
-      const defeatMsg = resolvePlayerDefeatOrDowned(state);
-      if (defeatMsg) lines.push(defeatMsg);
-    }
-    return { lines, damage: edmg };
-  }
-  const atk = effectiveEnemyAtk(state, creature);
-  // v0.11: shared ratio mitigation (was a flat -100% Defense, floor 0 —
-  // the "geared player is immune" bug). Abilities now carry a +/-10%
-  // spread like any other swing, and a connecting hit always deals >= 1.
-  // An ability with dmgMult 0 (pure utility) still deals nothing.
-  const playerDef = effectivePlayerDef(state) + bonusDef;
-  // basicFirstBonus.dmgMultBonus (H08 Prepared Opening et al, on a plain
-  // basic attack — see firstAttackPassiveBonus/resolveEnemyAction): an
-  // active cast's own dmgMult already has this folded in by
-  // resolveEnemyActiveAbility, so it's only ever set here when abilityCtx
-  // is null.
-  let edmg = abilityCtx
-    ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), playerDef))) : 0)
-    : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0); // atk: 0 = intentionally harmless (Vaelorn) — effectiveEnemyAtk floors at 1, so check the raw stat
-  // Opening Reach, generalized (applyOpeningReachForActor): only on a
-  // plain basic attack, same scope as the player's own version — an
-  // Active cast never qualifies, abilityCtx or not.
-  if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
-  edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
-  // Silent Preparation's banked dmgMultBonus (see bankedPrepDmgMultBonus
-  // above) — applied to the next qualifying attack regardless of whether
-  // it's an active cast or a plain basic attack, same scope as the ACC
-  // bump it travels with.
-  if (bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * bankedPrepDmgMultBonus);
-  // First Sword's Regalia physical-weapon-hit multipliers (Dregnar
-  // Ashvein Stage B) — every one of Dregnar's own actives IS a weapon
-  // strike (Ashquench), so these apply uniformly whether abilityCtx is
-  // set or not, same scope as executionerMultiplierFor just above. Each
-  // once-per-combat consumption is gated on edmg > 0 — a miss never
-  // reaches this line (resolveEnemyRetaliation returns early on one), so
-  // "misses don't consume it" falls out for free, matching every effect's
-  // own stated rule except Black-Ice Reserve (consumed even on a miss —
-  // handled separately in dregnarResolveDamagingAttempt, the one place
-  // that wraps every damaging ATTEMPT regardless of hit result; only
-  // peeked, not consumed, here).
-  if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10); // Ice-Forged Edge: every hit, no stacking
-  if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
-    creature.unbrokenGripUsed = true;
-    edmg = Math.round(edmg * 1.10); // Unbroken Grip: first physical weapon attack each combat
-  }
-  // Decisive Impact (MIL-IE005, Heavy War Lance, Sanguivorum Imperial
-  // Military): the wearer's first SUCCESSFUL damaging attack each combat
-  // (edmg > 0 — a miss never reaches this line) deals x1.08 final damage;
-  // a miss does not consume it, same shape as Unbroken Grip just above.
-  if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
-    creature.decisiveImpactUsed = true;
-    edmg = Math.round(edmg * 1.08);
-  }
-  // Executioner's Seal (DRA-E06): same 30%-max-HP threshold as the base
-  // Executioner effect, kept as its own id (DEP-07) rather than aliased.
-  if (hasEffect(creature, "dra_e06_executioners_seal") && state.health <= state.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
-  if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10); // Black-Ice Reserve: peeked only
-  // Tyrant's Edge (SANG-CU-IE012, Roadlord's Veteran Blade): same
-  // target-HP-threshold shape as Executioner's Seal just above, but with
-  // its own cooldown (ticked in tickEnemyPassives) and max-twice-per-combat
-  // cap instead of Executioner's Seal's unlimited once-per-hit reuse.
-  if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && state.health <= state.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
-    creature.tyrantsEdgeCooldown = 3;
-    creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
-    edmg = Math.round(edmg * 1.10);
-  }
-  if (edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
-    creature.flowingDisciplinePending = false;
-    creature.flowingDisciplineTurnsLeft = 0;
-    edmg = Math.round(edmg * 1.10); // Flowing Discipline (6pc, exclusive): consumes the pending charge from a no-damage defensive action
-  }
-  if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && combat.playerStatuses && combat.playerStatuses.chilled) {
-    creature.wintersVerdictUsed = true;
-    edmg = Math.round(edmg * 1.15); // Winter's Verdict (8pc, exclusive): first hit vs a Chilled target each combat
-  }
-  if (edmg > 0 && !combat.firstHitTakenUsed) {
-    combat.firstHitTakenUsed = true;
-    if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
-  }
-  // Toxic Preparation (SANG-IAG-IE008, Executor's Poisoned Dagger,
-  // Sanguivorum Independent Armed Groups): "first time each combat the
-  // wearer damages an already-Poisoned enemy, deal additional floor(5% of
-  // triggering final direct damage), minimum 1" — this fires FROM the
-  // wearer's own attack against the PLAYER, so it checks the PLAYER's own
-  // poison status (combat.playerStatuses["sang_iag_poison"]) — Poisoned
-  // Edge is something THIS creature inflicts ON the player; this triggers
-  // off hitting an already-poisoned player, the reverse direction from
-  // most of this division's other mechanics. Added onto edmg here, before
-  // mitigateAndApplyHitOnPlayer finalizes the hit, so the bonus is part of
-  // this same landed hit rather than a separate damage event.
-  if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.playerStatuses && combat.playerStatuses["sang_iag_poison"]) {
-    creature.toxicPreparationUsed = true;
-    edmg += Math.max(1, Math.floor(edmg * 0.05));
-  }
-  const physicalHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
-  edmg = physicalHit.edmg;
-  const absorbLines2 = physicalHit.absorbLines;
-  if (edmg > 0) combat.playerLastHitType = "physical"; // Injury System v0.2
-  // Guarded Strike, generalized: after THIS creature's own landed basic
-  // physical attack (ability casts don't qualify, mirroring the player's
-  // own isPhysicalHit scope), bank +2 Defense against whatever hits it
-  // next — consumed in rollPlayerDamage/allyAggressiveAction, the two
-  // places something else's damage against this creature is computed.
-  if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
-  const sangLines = [];
-  // Serrated Opening (SANG-CU-IE003, Cutthroat Blade V2/V3): first
-  // successful damaging hit each combat applies 1 Bleeding stack, only if
-  // the player isn't already Bleeding.
-  if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
-    creature.serratedOpeningUsed = true;
-    if (!(combat.playerStatuses && combat.playerStatuses.bleed)) {
-      sangLines.push(...applyAbilityInflict(state, { status: "bleed", chance: 1 }, creature.name));
-    }
-  }
-  // Marked Target (SANG-CU-IE002, Spotter's Lens): the wearer's own first
-  // successful damaging hit each combat exposes the player — consumed by
-  // the NEXT different enemy's attack attempt (see the accBonus block
-  // above), or it simply expires unconsumed; no explicit turn-expiry
-  // countdown is ticked (approximated as "until consumed or until this
-  // same combat's remaining enemy actions run out," close enough to the
-  // codex's own "2 target turns" for a short-lived once-per-combat tag).
-  if (edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.exposedTarget) {
-    creature.markedTargetUsed = true;
-    combat.exposedTarget = { by: creature };
-  }
-  // Duelist's Measure (SANG-CU-IE007, Ovum Outcast Primary Blade): a
-  // successful hit on the player banks +10 Accuracy for this creature's
-  // NEXT attack attempt against the player specifically (consumed, or
-  // reset by a target change, at the top of this function / the ally
-  // sibling below) — max twice per combat.
-  if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
-    creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
-    creature.duelistMeasurePendingTarget = "player";
-  }
-  const verb = abilityCtx ? `uses ${abilityCtx.name} on you` : "hits back";
-  const lines = [edmg > 0 ? `${withThe(creature.name, true)} ${verb} for ${edmg} damage.` : `You take no damage from its counter.`, ...absorbLines2, ...sangLines];
-  // Enemy Ability Engine: the ability's one genuinely on-hit consequence —
-  // a status it inflicts on the PLAYER specifically, only once its damage
-  // has actually landed and been applied above. selfBuff/selfDebuff/
-  // healSelfPct/packAuraBuff are all resolved once in resolveEnemyAction
-  // instead, ahead of this hit/miss roll — see the comment there for why.
-  if (abilityCtx) {
-    if (abilityCtx.inflict) {
-      const inflictLines = applyAbilityInflict(state, abilityCtx.inflict, creature.name);
-      // Black-Ice Reserve (DRA-E09): granted the moment the wearer
-      // successfully applies Chilled (a non-empty return means the
-      // chance roll succeeded and the status actually took, not just that
-      // one was attempted) — a fresh grant simply overwrites any unused
-      // prior charge rather than stacking, matching "one charge/combat"
-      // (the wearer can reapply Chilled several times a fight; only ever
-      // one live charge at once).
-      if (inflictLines.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
-        creature.blackIceReservePending = true;
-        creature.blackIceReserveTurnsLeft = 2;
-      }
-      lines.push(...inflictLines);
-    }
-    if (abilityCtx.healOnHitPct && edmg > 0) {
-      const heal = Math.round(edmg * abilityCtx.healOnHitPct);
-      if (heal > 0) combat.hp = Math.min(combat.maxHp, combat.hp + heal);
-    }
-  }
-  if (edmg > 0) lines.push(...checkMercyOfTheVeil(state));
-  if (state.health <= 0) {
-    const defeatMsg = resolvePlayerDefeatOrDowned(state);
-    if (defeatMsg) lines.push(defeatMsg);
-  }
-  return { lines, damage: edmg };
-}
 
 // Applies a temporary self-modifier from an active ability directly onto
 // the ACTING creature's own (already-per-fight-cloned, so safe to mutate)
@@ -5477,9 +4781,9 @@ function tickEnemyPassives(state, e) {
 
 // Riposte: a free follow-up hit whenever the enemy's retaliation dealt
 // zero damage (stunned, evaded, Decoy, or reduced to 0 by defense). Called
-// by every action that either goes through resolveEnemyRetaliation (when
+// by every action that either goes through resolveEnemyAttackOnPlayer (when
 // its returned damage is 0) or otherwise guarantees a damage-free counter
-// (Decoy, which doesn't call resolveEnemyRetaliation at all). White
+// (Decoy, which doesn't call resolveEnemyAttackOnPlayer at all). White
 // Watch's 4pc set bonus raises the multiplier from 0.5x to 0.75x; its 6pc
 // grants a stacking +2 Defense for the rest of the fight each time this fires.
 // Step 1f-iii §4 (found while scoping audit rule P1, after 1f-iv): this
@@ -5529,29 +4833,6 @@ function markNonPlayerRiposteFired(wearer) {
   wearer.riposteUsedThisRound = true;
   wearer.riposteUsesThisCombat = (wearer.riposteUsesThisCombat || 0) + 1;
 }
-// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged, only
-// as the forced-roll parity oracle for playerAttackLegacy's own miss
-// branch (this file) -- delete in step 1h alongside the other
-// superseded per-pair functions.
-function riposteCounterOnPlayerLegacy(state, creature) {
-  if (!hasEffect(creature, "riposte") || !state.combat || state.combat.hp <= 0) return [];
-  if (!nonPlayerRiposteCapAllows(creature)) return [];
-  markNonPlayerRiposteFired(creature);
-  if (!attackConnects(creature.acc, effectivePlayerAgility(state))) {
-    return [`${withThe(creature.name, true)} seizes the opening, but the riposte doesn't land.`];
-  }
-  const atk = effectiveEnemyAtk(state, creature);
-  const playerDef = effectivePlayerDef(state);
-  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
-  const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
-  if (hit.edmg > 0) state.combat.playerLastHitType = "physical"; // Injury System v0.2
-  const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte for ${hit.edmg} damage.`, ...hit.absorbLines];
-  if (state.health <= 0) {
-    const defeatMsg = resolvePlayerDefeatOrDowned(state);
-    if (defeatMsg) lines.push(defeatMsg);
-  }
-  return lines;
-}
 // Riposte, generalized, for the enemy wearer whose own retaliation the
 // PLAYER'S attack just missed -- reached today from basic_attack's own
 // declared missLine (js/data/actions.js's PLAYER_ACTION_DEFS.basic_
@@ -5597,31 +4878,6 @@ function hasArenaRiposteAbility(creature) {
     return p && p.trigger === "counterOnSuccessfulHit";
   });
 }
-// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged,
-// only as the forced-roll parity oracle for playerAttackLegacy's own
-// successful-hit branch (this file) -- delete in step 1h alongside the
-// other superseded per-pair functions.
-function arenaRiposteCounterOnPlayerLegacy(state, creature) {
-  if (!hasArenaRiposteAbility(creature)) return [];
-  if (!state.combat || state.combat.hp <= 0) return [];
-  const cooldown = creature.arenaRiposteCooldown || 0;
-  const uses = creature.arenaRiposteUsesThisCombat || 0;
-  if (cooldown > 0 || uses >= 2) return [];
-  creature.arenaRiposteCooldown = 4;
-  creature.arenaRiposteUsesThisCombat = uses + 1;
-  const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnSuccessfulHit");
-  const atk = effectiveEnemyAtk(state, creature);
-  const playerDef = effectivePlayerDef(state);
-  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (passive.mult || 0.8)));
-  const hit = mitigateAndApplyHitOnPlayer(state, dmg, "physical");
-  if (hit.edmg > 0) state.combat.playerLastHitType = "physical"; // Injury System v0.2
-  const lines = [`${withThe(creature.name, true)} turns the blow aside and answers with a counter for ${hit.edmg} damage.`, ...hit.absorbLines];
-  if (state.health <= 0) {
-    const defeatMsg = resolvePlayerDefeatOrDowned(state);
-    if (defeatMsg) lines.push(defeatMsg);
-  }
-  return lines;
-}
 // Step 1f-iii §4: the actual counter-strike now runs through steps 2-5,
 // target fixed to the player -- resolveArenaRiposteCounterOnPlayer
 // (pipeline.js). Eligibility/cooldown/cap bookkeeping, and the passive's
@@ -5637,23 +4893,6 @@ function arenaRiposteCounterOnPlayer(state, creature) {
   const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnSuccessfulHit");
   return resolveArenaRiposteCounterOnPlayer(state, creature, passive.mult || 0.8);
 }
-// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged,
-// only as the forced-roll parity oracle for allyAggressiveActionLegacy
-// (this file) -- delete in step 1h alongside the other superseded
-// per-pair functions.
-function riposteCounterByEnemyOnAllyLegacy(state, target, ally) {
-  if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
-  if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
-  markNonPlayerRiposteFired(target.creatureObj);
-  const creature = target.creatureObj;
-  const atk = effectiveEnemyAtk(state, creature);
-  const effectiveDef = effectiveAllyDef(ally);
-  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), effectiveDef) * 0.5));
-  ally.health = Math.max(0, ally.health - dmg);
-  const lines = [`${withThe(creature.name, true)} seizes the opening — a free riposte on ${ally.name} for ${dmg} damage.`];
-  if (ally.health <= 0) lines.push(...killAlly(state, ally));
-  return lines;
-}
 // Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
 // the enemy counters the ally. Called from rollToHitAllyActor's own miss
 // branches (step 1f-iii §4: through steps 2-5, target fixed to the
@@ -5664,21 +4903,6 @@ function riposteCounterByEnemyOnAlly(state, target, ally) {
   if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
   markNonPlayerRiposteFired(target.creatureObj);
   return resolveRiposteCounterByEnemyOnAlly(state, target, ally);
-}
-// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged, only
-// as the forced-roll parity oracle for resolveEnemyAttackOnAllyLegacy
-// (this file) -- delete in step 1h alongside the other superseded
-// per-pair functions.
-function riposteCounterByAllyOnEnemyLegacy(state, ally, enemySlot) {
-  if (!enemySlot || !enemySlot.alive || !hasEffect(ally, "riposte")) return [];
-  if (!nonPlayerRiposteCapAllows(ally)) return [];
-  markNonPlayerRiposteFired(ally);
-  const dmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, Math.round(ally.atk * 0.85)), Math.round(ally.atk * 1.15)), enemySlot.creatureObj.def) * 0.5));
-  enemySlot.hp -= dmg;
-  enemySlot.lastDamageType = "physical";
-  const lines = [`${ally.name} seizes the opening — a free riposte on ${withThe(enemySlot.creatureObj.name, false)} for ${dmg} damage.`];
-  if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, enemySlot.creatureObj));
-  return lines;
 }
 // Wearer = the ALLY an enemy's attack just missed — the ally counters the
 // enemy. Called from rollToHitAllyActor's own miss branch (step 1f-iii
@@ -6219,7 +5443,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     corroded: false, // whether Corrode has already landed on this target
     enemyAtkPenalty: 0, // lasting attack reduction from Disarm
     enemyDefPenalty: 0, // lasting defense reduction from Corrode
-    enemyStunCharges: 0, // set (incremented) by Concuss, consumed one at a time per eligible action — see resolveEnemyRetaliation and resolveDregnarAction
+    enemyStunCharges: 0, // set (incremented) by Concuss, consumed one at a time per eligible action — see resolveEnemyAttackOnPlayer and resolveDregnarAction
     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
     bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
     lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit this creature, for resolveKill's damage-type-flavored death line
@@ -6746,7 +5970,7 @@ function checkAvatarOfFate(state) {
 // same technique Avatar of Bloom uses for its own +25%), a 10%-damage-
 // dealt-as-healing lifesteal (see rollPlayerDamage), and widens Riposte's
 // trigger to fire on every enemy hit rather than only a zero-damage one
-// (see the resolveEnemyRetaliation call sites). Its "immune to Fear/Stun/
+// (see the resolveEnemyAttackOnPlayer call sites). Its "immune to Fear/Stun/
 // Disarm" clause is trivially already true — none of those exist as
 // player-targeting mechanics in this engine — and "defeating an enemy
 // immediately grants another attack" is inert for the same reason Second
@@ -6851,7 +6075,7 @@ function checkAvatarOfEndurance(state) {
 // cooldowns recover twice as fast (beginTurn) and every Ability/Tactic's
 // non-cooldown activation restrictions can be ignored (see
 // activationRestrictionsBypassed), plus its own independent 50% evasion
-// roll (resolveEnemyRetaliation, stacking with Blessing of Freedom's 15%
+// roll (resolveEnemyAttackOnPlayer, stacking with Blessing of Freedom's 15%
 // since both are separate rolls). Its "immune to all control effects"
 // clause is inert — the same reason as every other CC-immunity effect so
 // far (no enemy-applied control mechanic exists yet; deferred to the
@@ -7031,7 +6255,7 @@ function applyArchiveEternal(state, creature) {
 // every site that reduces combat.hp (burn/bleed DOTs, Mirror Soul's
 // reflected spell, Riposte, the basic Attack, Decoy/Ambush/Disarm, and
 // useElementAbility's casts). Falls back to the generic "falls" line for
-// an untracked/missing type (e.g. resolveEnemyRetaliation's non-mage
+// an untracked/missing type (e.g. resolveEnemyAttackOnPlayer's non-mage
 // branch never sets it, since the ENEMY hitting itself isn't a kill path).
 const DEATH_FLAVOR_BY_DAMAGE_TYPE = {
   physical: (name) => `${name} falls, its wounds finally too much to survive.`,
@@ -7283,113 +6507,6 @@ Events.on("enemy.killed", ({ state }) => {
   }
 });
 
-// SUPERSEDED (Combat Rebuild Phase 1, step 1e-i): the real call site
-// (parser.js's "fight" verb) now calls playerAttack (js/engine/pipeline.js)
-// instead, which runs the same math through the five-step pipeline. Kept
-// here byte-identical as the Layer 1 parity oracle -- see
-// tools/tests/phase1_step1e_i_player_attack_pipeline_parity.js.
-function playerAttackLegacy(state) {
-  if (!state.combat) return ["There's nothing here to fight."];
-  let creature = getCombatCreature(state);
-  if (creature.friendly) {
-    return [`${withThe(creature.name, true)} has done you no harm. Attacking it seems both unwise and unkind.`];
-  }
-
-  const out = beginTurn(state);
-  // beginTurn can itself end the fight now — a burn/bleed tick on a
-  // non-active pack member can finish it off (and, if it was the last one
-  // standing, the whole encounter) before the player's own action runs.
-  if (!state.combat) return out;
-  state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
-    // Already dead from a DOT tick this same beginTurn — kill it, and if
-    // the fight goes on, re-target the survivor resolveKill just made
-    // active and keep this action going against it, rather than ending
-    // the round here.
-    out.push(...resolveKill(state, creature));
-    if (!state.combat || state.health <= 0) return out;
-    creature = getCombatCreature(state);
-  }
-  out.push(...resolveSpeedInitiative(state, creature));
-  // !state.combat: a faster enemy's pre-emptive strike inside
-  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
-  // the player back up and ends combat outright — checking health alone
-  // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
-  // already null.
-  if (!state.combat || state.health <= 0) return out;
-  out.push(...applyEndlessStudy(state, "attack"), ...applyWanderersReward(state, "attack"), ...applyActionTypeTracking(state, "attack"));
-
-  // "Physical" here mirrors rollPlayerDamage's own branch check — a mage
-  // with a primary element deals magic damage instead, so Opening
-  // Reach/Deep Cut/Hamstring/Guarded Strike (all physical-attack effects)
-  // don't apply to that basic attack.
-  const isPhysical = !(state.flags.isMage && state.primaryElement);
-  const activeElement = isPhysical ? null : pickElement(state);
-  let isPhysicalHit = false;
-  // Accuracy vs Agility: does this attack even connect? A miss here
-  // doesn't consume Feint's nextAttackBonus (it's preserved for the next
-  // real attempt) or any of the on-hit-only effects below.
-  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
-    out.push(`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`);
-    // Riposte, generalized: the enemy wearer's mirror of the player's own
-    // maybeRiposte — scoped to the player's plain basic attack only (the
-    // ability-cast/Tactic miss paths don't carry this yet, a deliberate
-    // scope limit for this pass, not an oversight). This whole function
-    // is the step 1e-i Legacy oracle, so it calls the Legacy-named
-    // riposte helper (step 1f-iii) to stay byte-identical.
-    out.push(...riposteCounterOnPlayerLegacy(state, creature));
-  } else {
-    let dmg = rollPlayerDamage(state, creature, activeElement);
-    if (isPhysical) dmg = applyOpeningReach(state, dmg);
-    // Borrowed Seconds (Divine Regalia — Epochkeeper): a plain Attack has
-    // no cooldown to refund, so its every-4th-action trigger grants +15%
-    // damage to this hit instead.
-    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
-    if (state.combat.nextAttackBonus) {
-      const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
-      dmg = Math.round(dmg * feintMult);
-      state.combat.nextAttackBonus = false;
-      out.push("Your feint pays off —");
-    }
-    state.combat.hp -= dmg;
-    state.combat.lastDamageType = isPhysical ? "physical" : activeElement;
-    out.push(attackFlavorLine(state, creature, dmg, activeElement));
-    isPhysicalHit = isPhysical;
-
-    if (state.combat.hp <= 0) {
-      // Killing your target doesn't end the round — the rest of the
-      // pack (and, if it was the last one standing, nothing) still gets
-      // to act below. Re-target the survivor before anything downstream
-      // (retaliation's own bookkeeping, Riposte) reads `creature` again.
-      out.push(...resolveKill(state, creature));
-      if (!state.combat || state.health <= 0) return out;
-      creature = getCombatCreature(state);
-    } else {
-      if (isPhysical) out.push(...applyPhysicalOnHitEffects(state, creature));
-      // Arena Riposte (Ovum Veteran Guard, Sanguivorum Security and
-      // Enforcement): the wearer's own reaction to a damaging hit it just
-      // survived — placed in THIS branch (not just a bare "state.combat.hp
-      // > 0" check after the if/else above) so a creature this same
-      // attack just killed never retaliates: the kill branch above
-      // returns or re-targets to the survivor and never reaches here, so
-      // only the creature that actually took (and survived) this hit can
-      // ever counter it. Gated additionally on dmg > 0 — a fully
-      // mitigated zero-damage hit isn't "a damaging hit landed."
-      if (dmg > 0) out.push(...arenaRiposteCounterOnPlayerLegacy(state, creature));
-    }
-  }
-
-  const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
-  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
-  out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
-  const tl = tacticsLine(state);
-  if (tl) out.push(tl);
-  return checkReflectDeath(state, out);
-}
 
 
 // The player's own round when downed (resolvePlayerDefeatOrDowned) — no
@@ -7643,275 +6760,8 @@ function useFeint(state) {
   return checkReflectDeath(state, out);
 }
 
-// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
-// now calls useDecoy (js/engine/pipeline.js) instead, which runs the
-// same math through the five-step pipeline. Kept here byte-identical
-// as the Layer 1 parity oracle.
-function useDecoyLegacy(state) {
-  if (!state.combat) return ["There's nothing here to use that on."];
-  if (!classHasTactics(state)) return ["Decoys aren't how your training works. Try your class's own ability instead."];
-  let creature = getCombatCreature(state);
-  if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
-  const t = TACTICS.decoy;
-  if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if ((state.combat.cooldowns.decoy || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
 
-  const out = beginTurn(state);
-  // beginTurn can itself end the fight now — a burn/bleed tick on a
-  // non-active pack member can finish it off (and, if it was the last one
-  // standing, the whole encounter) before the player's own action runs.
-  if (!state.combat) return out;
-  state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    if (!state.combat || state.health <= 0) return out;
-    creature = getCombatCreature(state);
-  }
-  out.push(...resolveSpeedInitiative(state, creature));
-  // !state.combat: a faster enemy's pre-emptive strike inside
-  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
-  // the player back up and ends combat outright — checking health alone
-  // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
-  // already null.
-  if (!state.combat || state.health <= 0) return out;
-  // Captured now, before the player's own strike (below) has any chance to
-  // kill this specific enemy — this is who's actually being decoyed, for
-  // the excludeIndex argument further down.
-  const decoyedIndex = state.combat.activeIndex;
-  out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "decoy"));
-  consumeTrailblazer(state);
-  let decoyMemory;
-  if (state.combat.avatarOfTimeTurns > 0) {
-    decoyMemory = { cooldown: 0, fired: false };
-  } else if (applyPerfectTiming(state)) {
-    decoyMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.swiftPassageReady) {
-    state.combat.swiftPassageReady = false;
-    decoyMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.hourglassReserveReady) {
-    state.combat.hourglassReserveReady = false;
-    decoyMemory = { cooldown: 0, fired: false };
-  } else {
-    let baseCooldown = t.cooldown;
-    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
-    decoyMemory = applyTacticalMemory(state, baseCooldown);
-  }
-  if (borrowedSecondsActive(state) && decoyMemory.cooldown > 0) {
-    decoyMemory.cooldown = Math.round(decoyMemory.cooldown / 2);
-  }
-  state.combat.cooldowns.decoy = decoyMemory.cooldown;
 
-  out.push(`You plant a decoy — ${withThe(creature.name, false)} takes the bait.`);
-  if (decoyMemory.cooldown === 0 && !decoyMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
-  if (decoyMemory.fired) out.push(`Old instincts kick in — Decoy recovers faster this time.`);
-  // Accuracy vs Agility gates the player's own strike while the creature is
-  // distracted — it still wastes its attack on the decoy either way (that
-  // part isn't about whether YOUR hit landed).
-  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
-    out.push(`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`);
-  } else {
-    let dmg = applyOpeningReach(state, rollPlayerDamage(state, creature));
-    state.combat.hp -= dmg;
-    state.combat.lastDamageType = "physical";
-    out.push(attackFlavorLine(state, creature, dmg) + " (while it's distracted)");
-
-    if (state.combat.hp <= 0) {
-      out.push(...resolveKill(state, creature));
-      if (!state.combat || state.health <= 0) return out;
-      creature = getCombatCreature(state);
-    } else {
-      out.push(...applyPhysicalOnHitEffects(state, creature));
-    }
-  }
-
-  // Decoy only fools the one creature it's aimed at — if it's still alive,
-  // it specifically sits this round out; anyone ELSE still standing in a
-  // pack fight isn't distracted and acts normally.
-  const decoyedEnemy = state.combat.enemies[decoyedIndex];
-  if (decoyedEnemy && decoyedEnemy.alive) {
-    out.push(`${withThe(decoyedEnemy.creatureObj.name, true)} wastes its attack on the decoy — you take no damage this turn.`);
-  }
-  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, decoyedIndex);
-  out.push(...retaliation.lines);
-  // Decoy always guarantees the decoyed enemy itself dealt no damage, so
-  // Riposte/dodge bonuses fire unconditionally (matching the original
-  // solo-fight behavior) rather than being gated on the whole pack's
-  // aggregate retaliation.
-  out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  const tl = tacticsLine(state);
-  if (tl) out.push(tl);
-  return checkReflectDeath(state, out);
-}
-
-// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
-// now calls useAmbush (js/engine/pipeline.js) instead, which runs the
-// same math through the five-step pipeline. Kept here byte-identical
-// as the Layer 1 parity oracle.
-function useAmbushLegacy(state) {
-  if (!state.combat) return ["There's nothing here to ambush."];
-  if (!classHasTactics(state)) return ["Ambush isn't how your training works. Try your class's own ability instead."];
-  let creature = getCombatCreature(state);
-  if (creature.friendly) return [`${withThe(creature.name, true)} hasn't given you a reason to ambush it.`];
-  const t = TACTICS.ambush;
-  const ambushBypass = activationRestrictionsBypassed(state);
-  if (state.knowledge < t.knowledgeReq && !ambushBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if (state.combat.turnTaken && !ambushBypass) return [`The moment's passed — ambush only works as your opening move.`];
-
-  const out = beginTurn(state);
-  // beginTurn can itself end the fight now — a burn/bleed tick on a
-  // non-active pack member can finish it off (and, if it was the last one
-  // standing, the whole encounter) before the player's own action runs.
-  if (!state.combat) return out;
-  state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    if (!state.combat || state.health <= 0) return out;
-    creature = getCombatCreature(state);
-  }
-  out.push(...resolveSpeedInitiative(state, creature));
-  // !state.combat: a faster enemy's pre-emptive strike inside
-  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
-  // the player back up and ends combat outright — checking health alone
-  // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
-  // already null.
-  if (!state.combat || state.health <= 0) return out;
-  out.push(...applyEndlessStudy(state, "ambush"), ...applyWanderersReward(state, "ambush"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "ambush"));
-  consumeTrailblazer(state);
-  // Captured now, before the strike below has any chance to kill this
-  // specific enemy — this is who's actually being ambushed, for the
-  // excludeIndex argument further down.
-  const ambushedIndex = state.combat.activeIndex;
-
-  // Even an ambush can go wide — Accuracy vs Agility still decides it,
-  // just with no counter either way since the creature never saw it coming.
-  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
-    out.push(`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`);
-  } else {
-    let dmg = Math.round(rollPlayerDamage(state, creature) * ambushMultiplier(state));
-    // Borrowed Seconds (Divine Regalia — Epochkeeper): Ambush has no
-    // cooldown to refund (per its own established "no cooldown to shorten"
-    // design), so its every-4th-action trigger grants +15% damage instead.
-    if (borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
-    state.combat.hp -= dmg;
-    state.combat.lastDamageType = "physical";
-    out.push(`You strike first — ${withThe(creature.name, false)} never saw it coming. ${dmg} damage, no counter.`);
-
-    if (state.combat.hp <= 0) {
-      out.push(...resolveKill(state, creature));
-      if (!state.combat || state.health <= 0) return out;
-      creature = getCombatCreature(state);
-    } else {
-      out.push(...applyPhysicalOnHitEffects(state, creature));
-      if (hasEffect(state, "evasive_release")) {
-        state.combat.evasionCharges += 1;
-        out.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
-      }
-    }
-  }
-
-  // Ambush only surprises the one creature it's aimed at — anyone else
-  // still standing in a pack fight wasn't caught off guard and retaliates
-  // normally, same as Decoy.
-  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, 0, ambushedIndex);
-  out.push(...retaliation.lines);
-  const tl = tacticsLine(state);
-  if (tl) out.push(tl);
-  return checkReflectDeath(state, out);
-}
-
-// SUPERSEDED (Combat Rebuild Phase 1, step 1e-ii): the real call site
-// now calls useDisarm (js/engine/pipeline.js) instead, which runs the
-// same math through the five-step pipeline. Kept here byte-identical
-// as the Layer 1 parity oracle.
-function useDisarmLegacy(state) {
-  if (!state.combat) return ["There's nothing here to disarm."];
-  if (!classHasTactics(state)) return ["Disarm isn't how your training works. Try your class's own ability instead."];
-  let creature = getCombatCreature(state);
-  if (creature.friendly) return [`${withThe(creature.name, true)} isn't armed against you. Nothing to disarm.`];
-  const t = TACTICS.disarm;
-  const disarmBypass = activationRestrictionsBypassed(state);
-  if (state.knowledge < t.knowledgeReq && !disarmBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if (state.combat.disarmed && !disarmBypass) return [`It's already lost whatever you could have disarmed.`];
-  if ((state.combat.cooldowns.disarm || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
-
-  const out = beginTurn(state);
-  // beginTurn can itself end the fight now — a burn/bleed tick on a
-  // non-active pack member can finish it off (and, if it was the last one
-  // standing, the whole encounter) before the player's own action runs.
-  if (!state.combat) return out;
-  state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    if (!state.combat || state.health <= 0) return out;
-    creature = getCombatCreature(state);
-  }
-  out.push(...resolveSpeedInitiative(state, creature));
-  // !state.combat: a faster enemy's pre-emptive strike inside
-  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
-  // the player back up and ends combat outright — checking health alone
-  // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
-  // already null.
-  if (!state.combat || state.health <= 0) return out;
-  out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "disarm"));
-  consumeTrailblazer(state);
-  let disarmMemory;
-  if (state.combat.avatarOfTimeTurns > 0) {
-    disarmMemory = { cooldown: 0, fired: false };
-  } else if (applyPerfectTiming(state)) {
-    disarmMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.swiftPassageReady) {
-    state.combat.swiftPassageReady = false;
-    disarmMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.hourglassReserveReady) {
-    state.combat.hourglassReserveReady = false;
-    disarmMemory = { cooldown: 0, fired: false };
-  } else {
-    let baseCooldown = t.cooldown;
-    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
-    disarmMemory = applyTacticalMemory(state, baseCooldown);
-  }
-  if (borrowedSecondsActive(state) && disarmMemory.cooldown > 0) {
-    disarmMemory.cooldown = Math.round(disarmMemory.cooldown / 2);
-  }
-  state.combat.cooldowns.disarm = disarmMemory.cooldown;
-  state.combat.disarmed = true;
-  state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3;
-
-  out.push(`You disarm ${withThe(creature.name, false)} — its attacks will be noticeably weaker for the rest of this fight.`);
-  if (disarmMemory.cooldown === 0 && !disarmMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
-  if (disarmMemory.fired) out.push(`Old instincts kick in — Disarm recovers faster this time.`);
-  // The disarm itself always lands (it's a grapple/tactic, not a strike) —
-  // only the follow-up hit is gated on Accuracy vs Agility.
-  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
-    out.push(`The follow-up strike doesn't land, but the disarm holds.`);
-  } else {
-    let dmg = applyOpeningReach(state, Math.round(rollPlayerDamage(state, creature) * 0.7));
-    state.combat.hp -= dmg;
-    state.combat.lastDamageType = "physical";
-    out.push(`You still land a hit for ${dmg} damage.`);
-
-    if (state.combat.hp <= 0) {
-      out.push(...resolveKill(state, creature));
-      if (!state.combat || state.health <= 0) return out;
-      creature = getCombatCreature(state);
-    } else {
-      out.push(...applyPhysicalOnHitEffects(state, creature));
-    }
-  }
-
-  const guardBonus = hasEffect(state, "guarded_strike") ? 2 : 0;
-  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
-  out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
-  const tl = tacticsLine(state);
-  if (tl) out.push(tl);
-  return checkReflectDeath(state, out);
-}
 
 // Apothecary's kit (data/tactics.js's APOTHECARY_ABILITIES) — a
 // deliberately simpler cousin of Feint/Decoy/Ambush/Disarm above: same
@@ -8032,301 +6882,4 @@ function applyApothecaryAbilityEffect(state, a, ally) {
   if (!ally.buffs) ally.buffs = {};
   ally.buffs[allyStat] = { amount, turns: 3 };
   return [`You use ${a.name} on ${ally.name} — +${amount} ${STAT_LABELS[allyStat] || allyStat} for their next 3 rounds of combat.`];
-}
-
-// ---- Elemental abilities (mage only — one per element, replaces tactics) ----
-
-// SUPERSEDED (Combat Rebuild Phase 1, step 1e-iii): the real call site
-// now calls useElementAbility (js/engine/pipeline.js) instead, which runs
-// the same math through the five-step pipeline for 7 of the 8 elements
-// (Stoneskin/earth has no attack roll, so it's handled inline there,
-// same as this function's own switch branch). Kept here byte-identical
-// as the Layer 1 parity oracle.
-function useElementAbilityLegacy(state, elementKey) {
-  const a = ELEMENT_ABILITIES[elementKey];
-  if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
-  let creature = getCombatCreature(state);
-  if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. Save it.`];
-  // World Walker (Artifact): Blink specifically ignores the known-element
-  // gate entirely — usable by any class, mage or not, regardless of which
-  // elements (if any) are actually known.
-  const worldWalkerBypass = elementKey === "transportation" && hasEffect(state, "world_walker");
-  // Trailblazer (Divine Regalia — Feather of the First Wind) and Avatar of
-  // Freedom (Regalia of the Endless Horizon 6pc): "Blink ignores
-  // conditional requirements" is one of the item's own stated examples,
-  // generalized here to the known-element gate for ANY element, not just
-  // the transportation element World Walker already special-cases above.
-  const elementalBypass = activationRestrictionsBypassed(state);
-  if (!worldWalkerBypass && !elementalBypass && elementKey !== state.primaryElement && elementKey !== state.secondaryElement && elementKey !== state.tertiaryElement) {
-    return [`You haven't opened yourself to ${ELEMENTS[elementKey].name}.`];
-  }
-  if (state.knowledge < a.knowledgeReq && !elementalBypass) return [`You don't have the Knowledge for that yet. (needs Knowledge ${a.knowledgeReq}+)`];
-  if (elementKey === "acid" && state.combat.corroded && !elementalBypass) return [`It's already lost whatever defenses you could corrode.`];
-  if ((state.combat.cooldowns[elementKey] || 0) > 0) return [`${a.name} is still recovering — ${state.combat.cooldowns[elementKey]} more turn(s).`];
-
-  const out = beginTurn(state);
-  // beginTurn can itself end the fight now — a burn/bleed tick on a
-  // non-active pack member can finish it off (and, if it was the last one
-  // standing, the whole encounter) before the player's own action runs.
-  if (!state.combat) return out;
-  state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    if (!state.combat || state.health <= 0) return out;
-    creature = getCombatCreature(state);
-  }
-  out.push(...resolveSpeedInitiative(state, creature));
-  // !state.combat: a faster enemy's pre-emptive strike inside
-  // resolveSpeedInitiative can trigger the dungeon rescue, which heals
-  // the player back up and ends combat outright — checking health alone
-  // would miss that and let this function keep going into further
-  // combat-only logic (e.g. resolveRemainingInitiativeActions) with state.combat
-  // already null.
-  if (!state.combat || state.health <= 0) return out;
-  // combat.spellCastCounter: an unconditional per-cast counter (every
-  // elemental ability, regardless of what's equipped), shared by
-  // Seedbearer (every 3rd) and Eureka (every 4th) below — the same
-  // "shared counter, independent consumers" pattern as combat.actionCounter.
-  state.combat.spellCastCounter = (state.combat.spellCastCounter || 0) + 1;
-  // Seedbearer (Divine Regalia — Ring of Verdant Promise): every 3rd
-  // elemental cast this fight restores 10% max Health, routed through
-  // applyHeal like every other heal.
-  if (hasEffect(state, "seedbearer") && state.combat.spellCastCounter % 3 === 0) {
-    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
-    if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
-  }
-  out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"), ...applyPerfectMemory(state, elementKey));
-  consumeTrailblazer(state);
-  // Conduit Mastery (Mythic): a flat, unconditional -1 to every elemental
-  // cooldown, applied to the base cooldown before Novitiate/River's
-  // Favor's free-cast check (which would otherwise get pushed back up
-  // from 0) and before Conduit Ease's probabilistic reduction.
-  let cooldown = a.cooldown;
-  if (hasEffect(state, "conduit_mastery")) cooldown = Math.max(1, cooldown - 1);
-  // Novitiate's 6pc set bonus: the first elemental cast of the fight
-  // costs no cooldown at all, taking priority over Conduit Ease's
-  // probabilistic reduction (which only matters once this charge is spent).
-  if ((hasSetTier(state, "Novitiate", 6) || hasEffect(state, "rivers_favor")) && !state.combat.noviceFreeCastUsed) {
-    state.combat.noviceFreeCastUsed = true;
-    cooldown = 0;
-    out.push(`First casting's free — the conduit hasn't tired yet.`);
-  } else if (hasEffect(state, "conduit_ease") && Math.random() < conduitEaseChance(state)) {
-    cooldown = Math.max(1, cooldown - 1);
-    out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
-  }
-  // Eureka (Divine Regalia — Ring of Boundless Inquiry): every 4th spell
-  // cast has no cooldown after resolving, overriding whatever was just
-  // computed above.
-  if (hasEffect(state, "eureka") && state.combat.spellCastCounter % 4 === 0) {
-    cooldown = 0;
-    out.push(`Eureka — the insight arrives before the cost does.`);
-  }
-  // Avatar of Knowledge (Regalia of the Endless Archive 6pc): for its
-  // 4-round window, every spell costs no cooldown at all.
-  if (state.combat.avatarOfKnowledgeTurns > 0) cooldown = 0;
-  // Avatar of Time (Regalia of the Eternal Hour 6pc): same "every cast
-  // costs no cooldown" window, its own separate source.
-  if (state.combat.avatarOfTimeTurns > 0) cooldown = 0;
-  // Swift Passage (Divine Regalia — Windstep Boots): the queued charge
-  // from a prior fight's kill (see resolveKill/startCombat) overrides
-  // whatever was just computed above, one time.
-  if (state.combat.swiftPassageReady) {
-    state.combat.swiftPassageReady = false;
-    cooldown = 0;
-  }
-  // Hourglass Reserve (Divine Regalia — Sands of the Last Hour): a once-
-  // per-combat charge, available from the moment combat starts, that
-  // resets the first Ability/Tactic's own cooldown back to 0 immediately
-  // after it's set — functionally identical to Swift Passage's override
-  // above, just combat-scoped instead of queued across fights.
-  if (state.combat.hourglassReserveReady) {
-    state.combat.hourglassReserveReady = false;
-    cooldown = 0;
-  }
-  // Borrowed Seconds (Divine Regalia — Epochkeeper): refunds 50% of
-  // whatever cooldown was just computed above (a no-op if it's already 0
-  // from one of the free-cast sources above).
-  if (borrowedSecondsActive(state) && cooldown > 0) {
-    cooldown = Math.round(cooldown / 2);
-  }
-  state.combat.cooldowns[elementKey] = cooldown;
-  // Universal Understanding (Regalia of the Endless Archive 4pc): every
-  // elemental cast randomly reduces the cooldown of another known,
-  // currently-cooling-down element by 2 (floor 0).
-  if (hasSetTier(state, "Regalia of the Endless Archive", 4)) {
-    const otherKnown = [state.primaryElement, state.secondaryElement, state.tertiaryElement]
-      .filter((el) => el && el !== elementKey && (state.combat.cooldowns[el] || 0) > 0);
-    if (otherKnown.length) {
-      const pick = otherKnown[Math.floor(Math.random() * otherKnown.length)];
-      state.combat.cooldowns[pick] = Math.max(0, state.combat.cooldowns[pick] - 2);
-      out.push(`Universal Understanding — the insight carries over; ${ELEMENT_ABILITIES[pick].name}'s cooldown eases.`);
-    }
-  }
-
-  // Elemental synergy: casting the mage's OTHER known element right before
-  // this one boosts this cast. Checked before lastElementUsed is updated,
-  // since the check is "what came before this."
-  const synergy = getSynergy(state, elementKey);
-  let dmgMult = synergy ? synergy.dmgMultiplier : 1;
-  // Twin Rivers (Mythic): unlike curated synergy pairs, this rewards ANY
-  // back-to-back elemental cast this fight, stacking with a real synergy
-  // bonus if one also applies. Checked before lastElementUsed updates,
-  // same "what came before this" ordering as the synergy check above.
-  if (hasEffect(state, "twin_rivers") && state.combat.lastElementUsed) dmgMult *= 1.4;
-  state.combat.lastElementUsed = elementKey;
-
-  // Elemental Focus and Surging Conduit (now potentially 2 charges a
-  // fight, via Conduit Master 6pc/Fragmenta 4pc) layer on top of synergy
-  // as a separate multiplier — kept apart from dmgMult because Stoneskin
-  // (earth) deals no damage and gets flat Defense instead of either bonus.
-  const focusActive = hasEffect(state, "elemental_focus");
-  const focusMult = elementalFocusMultiplier(state);
-  const surgeActive = hasEffect(state, "surging_conduit") && state.combat.surgingConduitUsesLeft > 0;
-  if (surgeActive) state.combat.surgingConduitUsesLeft -= 1;
-  let elementalDmgMult = dmgMult;
-  if (focusActive) elementalDmgMult *= focusMult;
-  if (surgeActive) elementalDmgMult *= 1.2;
-
-  // Spell Echo (Legendary) totals whatever damage this cast actually dealt
-  // (0 for Stoneskin, which deals none) so it has something to repeat at
-  // half power after the switch below.
-  let castDamageDealt = 0;
-  // Every non-Stoneskin case below deals damage — Stoneskin (earth) never
-  // reduces combat.hp, so this being set even for it is harmless (no kill
-  // can ever be attributed to it).
-  state.combat.lastDamageType = elementKey;
-  // Accuracy vs Agility: does the cast even connect? Stoneskin (earth) is a
-  // self-buff with no target, so it's exempt — everything else (including
-  // its on-hit side effects: Ignite's burn, Corrode's defense penalty,
-  // the Force stun, Windcut's evasion window) only happens if this hits.
-  const spellHits = elementKey === "earth" || attackConnects(effectivePlayerAccuracy(state), creature.agi);
-  switch (elementKey) {
-    case "fire": {
-      if (!spellHits) { out.push(`${ELEMENTS.fire.name}'s lance goes wide, the flame guttering out short of ${withThe(creature.name, false)}.`); break; }
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
-      state.combat.hp -= dmg;
-      castDamageDealt += dmg;
-      out.push(`${ELEMENTS.fire.verb(withThe(creature.name, false))} for ${dmg} damage, and the flame catches.`);
-      state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 4)) };
-      break;
-    }
-    case "water": {
-      if (!spellHits) { out.push(`The wave crashes past ${withThe(creature.name, false)}, missing entirely.`); break; }
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
-      state.combat.hp -= dmg;
-      castDamageDealt += dmg;
-      const heal = Math.round(dmg * waterHealPct(state));
-      const { healed, lines: healLines } = applyHeal(state, heal);
-      out.push(`${ELEMENTS.water.verb(withThe(creature.name, false))} for ${dmg} damage, and the backwash mends you for ${healed}.`, ...healLines);
-      // Elemental Sovereignty (First Sword's Regalia 10pc, exclusive):
-      // the catalog's "Aqua/Cryo" trigger mapped to this engine's real
-      // water element only — no ice/cryo element exists. A successful
-      // water-element ability (this one) refreshes the 2-turn window
-      // rather than stacking the percentage.
-      if (hasSetTier(state, "First Sword's Regalia", 10)) state.combat.sovereigntyTurnsLeft = 2;
-      break;
-    }
-    case "earth": {
-      let defBonus = Math.max(flatStat(3), Math.round((state.magic / 3) * dmgMult)); // v0.11: state.magic is already scaled; the flat floor/bonuses go through flatStat
-      if (focusActive) defBonus += flatStat(1);
-      if (surgeActive) defBonus += flatStat(3);
-      state.combat.defBuffTurns = 3;
-      state.combat.defBuffAmount = defBonus;
-      out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
-      // Brace's bonuses (Stonewarden's +5 instead of +3, Siege Corps's
-      // next-turn +2 Attack) apply here too, since Stoneskin is the
-      // mage's own "no-damage action."
-      if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
-        state.combat.siegeCorpsAtkCharge = 2;
-      }
-      break;
-    }
-    case "lightning": {
-      if (!spellHits) { out.push(`The bolt arcs past ${withThe(creature.name, false)} without connecting.`); break; }
-      const dmg1 = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
-      state.combat.hp -= dmg1;
-      castDamageDealt += dmg1;
-      out.push(`${ELEMENTS.lightning.verb(withThe(creature.name, false))} for ${dmg1} damage —`);
-      if (state.combat.hp > 0) {
-        const dmg2 = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
-        state.combat.hp -= dmg2;
-        castDamageDealt += dmg2;
-        out.push(`— and again, for ${dmg2} more before it can react.`);
-      }
-      break;
-    }
-    case "acid": {
-      if (!spellHits) { out.push(`The acid splashes wide, missing ${withThe(creature.name, false)} entirely.`); break; }
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
-      state.combat.hp -= dmg;
-      castDamageDealt += dmg;
-      state.combat.corroded = true;
-      state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 4;
-      out.push(`${ELEMENTS.acid.verb(withThe(creature.name, false))} for ${dmg} damage — its defenses will be weaker against you for the rest of this fight.`);
-      break;
-    }
-    case "force": {
-      if (!spellHits) { out.push(`The wall of force passes ${withThe(creature.name, false)} by.`); break; }
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
-      state.combat.hp -= dmg;
-      castDamageDealt += dmg;
-      out.push(`${ELEMENTS.force.verb(withThe(creature.name, false))} for ${dmg} damage — it reels, stunned.`, ...tryApplyEnemyStun(state, creature));
-      break;
-    }
-    case "transportation": {
-      if (!spellHits) { out.push(`You reappear a beat too far from ${withThe(creature.name, false)} to land the strike.`); break; }
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * 1.3 * elementalDmgMult);
-      state.combat.hp -= dmg;
-      castDamageDealt += dmg;
-      out.push(`${ELEMENTS.transportation.verb(withThe(creature.name, false))} for ${dmg} damage before it can track where you went.`);
-      break;
-    }
-    case "air": {
-      if (!spellHits) { out.push(`The gust tears past ${withThe(creature.name, false)}, missing.`); break; }
-      const dmg = Math.round(rollPlayerDamage(state, creature, elementKey) * elementalDmgMult);
-      state.combat.hp -= dmg;
-      castDamageDealt += dmg;
-      state.combat.evasionTurns = 2;
-      out.push(`${ELEMENTS.air.verb(withThe(creature.name, false))} for ${dmg} damage, leaving you lighter on your feet.`);
-      break;
-    }
-  }
-
-  if (synergy) {
-    if (synergy.extraEffect) synergy.extraEffect(state, creature);
-    out.push(synergy.message(withThe(creature.name, false)));
-  }
-
-  // Spell Echo (Legendary): a flat 20% chance for this cast's damage to
-  // immediately repeat at half power, checked once per cast regardless of
-  // how many hits it already landed (so Lightning's double-strike doesn't
-  // get two independent rolls). Master of Arms (Artifact) doubles that
-  // chance to 40% when Spell Echo is specifically the Main Hand item's own
-  // effect — "triggers twice" read as "triggers twice as often" for a
-  // proc-chance passive, rather than doubling the echo's own damage.
-  const spellEchoChance = masterOfArmsDoubles(state, "spell_echo") ? 0.4 : 0.2;
-  if (state.combat.hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < spellEchoChance) {
-    const echoDmg = Math.max(1, Math.round(castDamageDealt * 0.5));
-    state.combat.hp -= echoDmg;
-    out.push(`The spell echoes — a second casting lands for ${echoDmg} damage.`);
-  }
-
-  if (state.combat.hp <= 0) {
-    out.push(...resolveKill(state, creature));
-    if (!state.combat || state.health <= 0) return out;
-    creature = getCombatCreature(state);
-  } else if (castDamageDealt > 0) {
-    out.push(...checkCounteringGuard(state, creature));
-    out.push(...checkEnemyLowHealthTriggers(state, creature));
-  }
-
-  let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
-  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
-  out.push(...retaliation.lines);
-  if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
-  if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
-  const tl = tacticsLine(state);
-  if (tl) out.push(tl);
-  return checkReflectDeath(state, out);
 }
