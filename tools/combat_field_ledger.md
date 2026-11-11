@@ -8,12 +8,17 @@ state.combat) while old-name `combat.<field>` references to it
 still remain at call sites that haven't been rewritten yet (that's
 exactly what the step 1e §3.3/§7 gap looked like before this split —
 see tools/combat_1e_completion_gapfix_tables.md's own §7).
-`Storage moved?` is a structural fact (checked against the real
-proxy wiring in js/engine/combat.js — PER_ENEMY_FIELDS/
-wireActiveEnemyProxy and PLAYER_FIELDS/wirePlayerFieldsProxy — never
-a text search); `Touched by` stays the same old-name text-scan this
-file has always done, which is what step 1h's own rename pass
-clears.
+`Storage moved?` is a structural fact, checked against the real
+js/engine/combat.js wiring — never a text search — but only
+PLAYER_FIELDS/wirePlayerFieldsProxy counts as "moved" for this
+metric (§3's own words: "Detect 'moved' from the real storage
+wiring (wirePlayerFieldsProxy / the store lists)"). The older
+PER_ENEMY_FIELDS/wireActiveEnemyProxy proxy predates this Phase's
+combatant-store architecture and is itself slated for deletion at
+step 1h, so a field behind it still reads "storage not yet
+moved" here, same as before 1e. `Touched by` stays the same
+old-name text-scan this file has always done, which is what step
+1h's own rename pass clears.
 
 ## Tracked (must reach "touched by": none before step 1h)
 
@@ -62,29 +67,29 @@ clears.
 | `battleTemperedAtkStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `battleTemperedDefStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `betweenWorldsUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `bleed` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `bleed` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `blessingOfFortuneCritStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `burn` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1e | 1e |
+| `burn` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1e | 1e |
 | `calmWatersDefBonus` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `calmWatersMagicBonus` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `calmWatersTurns` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `compassionsGraceDefStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `corroded` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `creatureId` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `creatureObj` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1e | 1e |
+| `corroded` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `creatureId` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `creatureObj` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1e | 1e |
 | `damageReductionTurns` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `defBuffAmount` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `defBuffTurns` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `disarmed` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `dynamicCreature` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `disarmed` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `dynamicCreature` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `elderBarkSaveUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `endlessCurrentStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `endlessStudyKeys` | player | yes | 1e | 1e |
 | `endlessStudyMagicBonus` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `enemyActedFirstThisRound` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `enemyAtkPenalty` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `enemyDefPenalty` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `enemyStunCharges` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1e, 1g | 1g |
+| `enemyAtkPenalty` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `enemyDefPenalty` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `enemyStunCharges` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1e, 1g | 1g |
 | `evasionCharges` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `evasionTurns` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `evasiveGuardBonus` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
@@ -97,14 +102,14 @@ clears.
 | `groundbreakerDebuffs` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `guardianSpiritUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `guidedFootstepsUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `hamstringApplied` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `hitsTakenFromPlayer` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `hamstringApplied` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `hitsTakenFromPlayer` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `holdTheLineUsed` | player | yes | 1e | 1e |
 | `hourglassReserveReady` | player | yes | 1e | 1e |
-| `hp` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `hp` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `knowledgeBuffAmount` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `lastActionType` | player | yes | 1e | 1e |
-| `lastDamageType` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `lastDamageType` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `lastElementUsed` | player | yes | 1e | 1e |
 | `lastStandAtkBonus` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `lastStandUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
@@ -113,7 +118,7 @@ clears.
 | `loveEnduresUsed` | player | yes | 1e | 1e |
 | `magicBuffAmount` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `magicBuffTurns` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `maxHp` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `maxHp` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `mercyOfTheVeilUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `mirrorSoulUsed` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `momentumStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
@@ -133,7 +138,7 @@ clears.
 | `rallyTheLineUsed` | player | yes | 1e | 1e |
 | `recentActionKeys` | player | yes | 1e | 1e |
 | `regen` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
-| `reinforcedAttackCount` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | yes | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
+| `reinforcedAttackCount` | enemy (per-slot, via PER_ENEMY_FIELDS proxy) | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `reinforcedDefStacks` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `riverWardenMagicBonus` | player | **no** | 1b, 1c, 1d, 1e, 1f, 1g | 1g |
 | `rootedResolveUsed` | player | yes | 1e | 1e |
@@ -187,6 +192,6 @@ clears.
 | `started` |
 | `turnTaken` |
 
-**Storage not yet moved (real architectural debt — step 1h's actual gate): 101/148.**
+**Storage not yet moved (real architectural debt — step 1h's actual gate): 117/148.**
 
 **Old-name references remaining (cosmetic call-site text, touched by at least one un-landed step): 148/148.**

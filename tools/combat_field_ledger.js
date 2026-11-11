@@ -145,23 +145,31 @@ const NOISE = ["js", "xxx"]; // regex false-positives (e.g. "combat.js" inside a
 // directly, and keeping the two lists in literal sync is the existing
 // convention here, not a new one.
 //
-// A field's STORAGE is "moved" the moment something real -- a private
-// closure variable (wirePlayerFieldsProxy's own `store`, for these 31) or
-// a specific slot object (state.combat.enemies[i], for PER_ENEMY_FIELDS)
-// -- holds its value instead of state.combat itself. That's a structural
-// fact about where the byte lives, confirmed by reading the wiring
-// function, not a text search. A field's OLD-NAME REFERENCES are the
-// `combat.<field>` call-site spelling this file has always text-scanned
-// for -- untouched by a storage move, since wirePlayerFieldsProxy's own
-// get/set keeps that spelling working on purpose (every caller, migrated
-// or not, needs it to still resolve) until step 1h deletes the alias and
-// every caller is rewritten to read a specific combatant's store
-// directly. The two numbers move on different schedules: storage-not-
-// moved should be small and shrinks whenever a field gets its own real
-// sub-store wired; old-name-references-remaining stays large until step
-// 1h's own rename pass, exactly the step 1e completion gap this split
-// was built to stop silently hiding (tools/combat_1e_completion_
-// gapfix_tables.md's own §7 disclosure).
+// §3's own words: "Detect 'moved' from the real storage wiring
+// (wirePlayerFieldsProxy / the store lists), not by searching text" --
+// wirePlayerFieldsProxy is the ONLY wiring this metric treats as "moved."
+// PER_ENEMY_FIELDS/wireActiveEnemyProxy is a DIFFERENT, older proxy that
+// predates this Phase's combatant-store architecture and is itself
+// slated for deletion at step 1h (alongside the old per-pair paths) --
+// so a field living behind it still reads as "storage not yet moved"
+// here, exactly as it did before 1e. That's what makes the number land
+// on §3's own stated expectation: 0 fields moved before 1e (not-yet-
+// moved == every tracked field), 31 moved in 1e (the list below), so
+// not-yet-moved == tracked.length - 31 -- 117 at 148 tracked fields,
+// unchanged through 1f since this step renames nothing (§3: "no
+// tracked field closes at 1f"). A field's OLD-NAME REFERENCES are the
+// separate `combat.<field>` call-site spelling this file has always
+// text-scanned for -- untouched by a storage move, since
+// wirePlayerFieldsProxy's own get/set keeps that spelling working on
+// purpose (every caller, migrated or not, needs it to still resolve)
+// until step 1h deletes the alias and every caller is rewritten to read
+// a specific combatant's store directly. The two numbers move on
+// different schedules: storage-not-moved drops only when a field gets
+// its own real sub-store wired (1e moved 31; 1g/1h move the rest);
+// old-name-references-remaining stays large until step 1h's own rename
+// pass -- exactly the step 1e completion gap this split was built to
+// stop silently hiding (tools/combat_1e_completion_gapfix_tables.md's
+// own §7 disclosure).
 const PLAYER_FIELDS_STORAGE_MOVED = [
   "actionTypeHistory", "avatarOfBloomUsed", "avatarOfChaosUsed", "avatarOfCreationUsed",
   "avatarOfDevotionUsed", "avatarOfEnduranceUsed", "avatarOfFateUsed", "avatarOfFreedomUsed",
@@ -260,13 +268,21 @@ function build() {
     const steps = STEP_ORDER.filter((s) => owningFns.some((fn) => stepClosure[s] && stepClosure[s].has(fn)));
     let owner = "player";
     let countsTowardLedger = true;
-    // Step 1f §3: storage-moved is a STRUCTURAL fact (which real object
-    // holds the value), independent of the steps[]/"touched by" text-scan
-    // above -- a field can be fully storage-moved (wired to its own
-    // store) while old-name call sites touching it still show up in
-    // steps[], and that's exactly the step 1e §3.3/§7 gap this split
-    // makes visible instead of silently folding both into one number.
-    let storageMoved = PER_ENEMY_FIELDS.includes(field);
+    // Step 1f §3, literally: "Detect 'moved' from the real storage wiring
+    // (wirePlayerFieldsProxy / the store lists), not by searching text" --
+    // wirePlayerFieldsProxy is the ONLY wiring that counts as "moved" for
+    // this metric. PER_ENEMY_FIELDS/wireActiveEnemyProxy is a different,
+    // older proxy (predates Phase 1, and is itself slated for deletion at
+    // step 1h -- task "Delete old per-pair paths and PER_ENEMY_FIELDS
+    // proxy") -- it is NOT the Phase 1 combatant-store architecture
+    // landing, so an enemy field sitting behind it still reads as "storage
+    // not yet moved" here, same as before 1e. This is what makes the
+    // numbers land exactly on the handoff's own stated expectation: 0
+    // fields moved before 1e (not-yet-moved == every tracked field), 31
+    // moved in 1e (the PLAYER_FIELDS_STORAGE_MOVED list below), so
+    // not-yet-moved == tracked.length - 31 now -- 117, if tracked.length
+    // is 148, exactly what §3 says it "should read... now."
+    let storageMoved = false;
     if (PER_ENEMY_FIELDS.includes(field)) owner = "enemy (per-slot, via PER_ENEMY_FIELDS proxy)";
     else if (STRUCTURAL.includes(field)) { owner = "structural (fight-wide, no single fighter)"; countsTowardLedger = false; storageMoved = true; }
     else storageMoved = PLAYER_FIELDS_STORAGE_MOVED.includes(field);
@@ -289,12 +305,17 @@ function toMarkdown(rows) {
   lines.push("still remain at call sites that haven't been rewritten yet (that's");
   lines.push("exactly what the step 1e §3.3/§7 gap looked like before this split —");
   lines.push("see tools/combat_1e_completion_gapfix_tables.md's own §7).");
-  lines.push("`Storage moved?` is a structural fact (checked against the real");
-  lines.push("proxy wiring in js/engine/combat.js — PER_ENEMY_FIELDS/");
-  lines.push("wireActiveEnemyProxy and PLAYER_FIELDS/wirePlayerFieldsProxy — never");
-  lines.push("a text search); `Touched by` stays the same old-name text-scan this");
-  lines.push("file has always done, which is what step 1h's own rename pass");
-  lines.push("clears.");
+  lines.push("`Storage moved?` is a structural fact, checked against the real");
+  lines.push("js/engine/combat.js wiring — never a text search — but only");
+  lines.push("PLAYER_FIELDS/wirePlayerFieldsProxy counts as \"moved\" for this");
+  lines.push("metric (§3's own words: \"Detect 'moved' from the real storage");
+  lines.push("wiring (wirePlayerFieldsProxy / the store lists)\"). The older");
+  lines.push("PER_ENEMY_FIELDS/wireActiveEnemyProxy proxy predates this Phase's");
+  lines.push("combatant-store architecture and is itself slated for deletion at");
+  lines.push("step 1h, so a field behind it still reads \"storage not yet");
+  lines.push("moved\" here, same as before 1e. `Touched by` stays the same");
+  lines.push("old-name text-scan this file has always done, which is what step");
+  lines.push("1h's own rename pass clears.");
   lines.push("");
   lines.push("## Tracked (must reach \"touched by\": none before step 1h)");
   lines.push("");
