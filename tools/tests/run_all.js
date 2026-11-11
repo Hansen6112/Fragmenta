@@ -56,6 +56,7 @@ const LEDGERS = [
   "apothecary_action_tracking_ledger.js",
   "test_strike_proof_ledger.js",
   "test_ally_proof_ledger.js",
+  "test_reaction_proof_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
