@@ -1,0 +1,41 @@
+range: b7fb8c80f068c8b59d14244e5e7a1ac91063a875..f50f0f84bd19884c21c281e524c26199a9b50f5e
+=== f50f0f84bd19884c21c281e524c26199a9b50f5e 2026-11-11 19:33:18 +0000
+Phase 1, step 1g-i: Dregnar's targeting through the one shared step
+Verified against live source first: Dregnar's dregnarResolveDamagingAttempt
+already called pickEnemyAttackTarget + dispatched to
+resolveEnemyAttackOnPlayer/resolveEnemyAttackOnAlly exactly like the
+ordinary resolveEnemyAction path (the Phase 0 hotfix already did this,
+for both). The handoff's premise that Dregnar alone still bypassed the
+shared step didn't hold against the code as it stands today -- disclosing
+that discrepancy here rather than silently reinterpreting the step.
+
+What was real to fix: the pick-target-and-dispatch logic was duplicated
+in two places (resolveEnemyAction and dregnarResolveDamagingAttempt)
+instead of living in one. Extracted it into
+resolveEnemySingleTargetAttempt so both callers -- Dregnar and every
+other single-target enemy action -- now go through the exact same
+function. Pure dedup, zero behavior change.
+
+Deleted Dregnar's P1 exemption (/^resolve[Dd]regnar/, /^dregnarResolve/)
+from tools/audit.js per the handoff's explicit instruction -- it matched
+zero lines before deletion and still does after, confirming his damage
+never needed it.
+
+Added tools/tests/phase1_step1g_i_dregnar_targeting_parity.js: forced-hit
+checks that both callers still reach the player with no allies present,
+and still reach the single alive ally when the player is downed, with
+Dregnar's own DRA-P03 bonus wrapping intact either way.
+
+Verification: suite 408/408, audit 0 errors (P1 still 0 hits with the
+Dregnar exemption gone), boss_sweep/plus3_run bit-for-bit identical to
+the pre-1g-i baseline including Dregnar's own rows.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |  26 ++--
+ tools/audit.js                                     |  17 ++-
+ .../phase1_step1g_i_dregnar_targeting_parity.js    | 137 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 4 files changed, 164 insertions(+), 17 deletions(-)
