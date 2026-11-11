@@ -294,4 +294,207 @@ const PIPELINE_FORMULAS = {
     let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, (stat(state, target, "def") + bankedDefKit) * (1 - defIgnore)) * sangMitKit));
     return { edmg, extra: { baseAtk, splashAtkMult, bankedDefKit } };
   },
+
+  // Step 1f-ii: the enemy-actor damage formula -- shared by EVERY enemy
+  // active ability AND the basic attack (abilityCtx null), the same "one
+  // formula, read generically off declared fields, never by ability
+  // identity" shape as playerCore above. Moved verbatim out of
+  // calculateDamage's own enemy branch (js/engine/pipeline.js) -- today's
+  // math only, no new math, same order of every Math.round call. Returns
+  // the full { shortCircuit: false, edmg, kind, elName? } shape directly
+  // (unlike allyPlain/kitAllyBasic/kitAllyAbility's own {edmg, extra}),
+  // since calculateDamage's enemy branch now just returns this call's
+  // result as-is, with nothing left to wrap.
+  //
+  // Mirror Soul's own shortCircuit reflection check stays in
+  // calculateDamage, immediately BEFORE this formula is ever called (see
+  // that function's own comment) -- step 1f-iii (handoff §4) turns it
+  // into a real reaction through step 5; step 1f-ii does not touch it.
+  // By the time this formula runs, it's already been ruled out for this
+  // hit (not equipped, already used this fight, or the target isn't the
+  // player), so the magic branch below never needs to re-check it.
+  enemyCore(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const combat = state.combat;
+    const creature = actor.ref.creatureObj;
+    const { atkSpread, extraDef, abilityCtx, basicFirstBonus } = action;
+    const bonusDef = extraDef || 0;
+
+    if (target.kind === "ally") {
+      const ally = target.ref;
+      // Brace/Guarded Strike, generalized: the ally's own banked bonus
+      // against its next incoming hit, consumed here (read then zeroed)
+      // -- same side-effecting-at-the-usage-site shape as the enemy-def
+      // banked bonuses elsewhere in this formula, never folded into
+      // stat() itself (the stat()-purity rule, js/engine/combatant.js's
+      // header).
+      const bankedDef = (ally.braceBonusDef || 0) + (ally.guardedStrikeBonusDef || 0);
+      ally.braceBonusDef = 0;
+      ally.guardedStrikeBonusDef = 0;
+      const effectiveDef = stat(state, target, "def") + bankedDef;
+
+      // U1 (off by default): an enemy mage's hit on an ally uses the
+      // same element/magic formula the player branch below does,
+      // instead of always falling through to the flat physical formula
+      // -- see COMBAT_UNIFY's own header comment for the matchup-
+      // multiplier caveat and why Mirror Soul is deliberately excluded.
+      if (COMBAT_UNIFY.U1 && creature.element) {
+        const matchup = 1.0;
+        const base = randInt(creature.magic - 2, creature.magic + 2);
+        const coldBonus = creature.element === "water" && hasColdproof(ally) ? 2 : 0;
+        const def = effectiveDef + coldBonus;
+        let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, ally.health, ally.maxHealth)));
+        if (COMBAT_UNIFY.U2 && edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
+          creature.unquenchedFocusUsed = true;
+          edmg = Math.round(edmg * 1.10);
+        }
+        if (hasEffect(ally, "adaptive_ward")) {
+          if (!ally.adaptiveWardElement) {
+            ally.adaptiveWardElement = creature.element;
+          } else if (creature.element === ally.adaptiveWardElement) {
+            edmg = Math.round(edmg * 0.5);
+          }
+        }
+        const swMult = spellWardMultiplier(ally);
+        if (swMult < 1) edmg = Math.round(edmg * swMult);
+        if (edmg > 0 && !ally.stormBarrierUsed) {
+          ally.stormBarrierUsed = true;
+          if (hasSetTier(ally, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
+        }
+        if (edmg > 0 && !ally.firstHitTakenUsed) {
+          ally.firstHitTakenUsed = true;
+          if (hasSetTier(ally, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+        }
+        return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
+      }
+
+      const rawAtk = effectiveEnemyAtk(state, creature);
+      let edmg = abilityCtx
+        ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
+        : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
+      if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+      edmg = Math.round(edmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
+      if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
+      if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
+      if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
+        creature.unbrokenGripUsed = true;
+        edmg = Math.round(edmg * 1.10);
+      }
+      // Executioner's Seal/Tyrant's Edge: checked against the ALLY's own
+      // HP% here (the actual target of this hit), not the player's.
+      if (hasEffect(creature, "dra_e06_executioners_seal") && ally.health <= ally.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
+      if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10);
+      if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && ally.health <= ally.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+        creature.tyrantsEdgeCooldown = 3;
+        creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
+        edmg = Math.round(edmg * 1.10);
+      }
+      // U3b (off by default): Flowing Discipline's banked +10% on an
+      // ally target too, same bank/consume shape as the player branch's
+      // own.
+      if (COMBAT_UNIFY.U3b && edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
+        creature.flowingDisciplinePending = false;
+        creature.flowingDisciplineTurnsLeft = 0;
+        edmg = Math.round(edmg * 1.10);
+      }
+      // U3c (off by default): Winter's Verdict reads the ALLY's own
+      // Chilled status (ally.statuses.chilled) rather than the player's
+      // combat.playerStatuses.chilled.
+      if (COMBAT_UNIFY.U3c && edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && ally.statuses && ally.statuses.chilled) {
+        creature.wintersVerdictUsed = true;
+        edmg = Math.round(edmg * 1.15);
+      }
+      if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
+        creature.decisiveImpactUsed = true;
+        edmg = Math.round(edmg * 1.08);
+      }
+      // U3d (off by default): Toxic Preparation reads the ALLY's own
+      // Sanguivorum-poison status (ally.statuses["sang_iag_poison"])
+      // rather than the player's combat.playerStatuses["sang_iag_poison"].
+      if (COMBAT_UNIFY.U3d && edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && ally.statuses && ally.statuses["sang_iag_poison"]) {
+        creature.toxicPreparationUsed = true;
+        edmg += Math.max(1, Math.floor(edmg * 0.05));
+      }
+      // Stonewarden 6pc's first-hit-taken reduction has no switch yet --
+      // tools/combat_asymmetry_register.md flags it needs-Tyler (is it
+      // kind A or kind B?) rather than guessing a U3 slot for it here.
+      return { shortCircuit: false, edmg, kind: "ally" };
+    }
+
+    if (creature.element) {
+      const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
+      const base = randInt(creature.magic - 2, creature.magic + 2);
+      const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
+      const def = effectivePlayerDef(state) + bonusDef + coldBonus;
+      let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
+      if (edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
+        creature.unquenchedFocusUsed = true;
+        edmg = Math.round(edmg * 1.10);
+      }
+      if (hasEffect(state, "adaptive_ward")) {
+        if (!combat.adaptiveWardElement) {
+          combat.adaptiveWardElement = creature.element;
+        } else if (creature.element === combat.adaptiveWardElement) {
+          edmg = Math.round(edmg * 0.5);
+        }
+      }
+      const swMult = spellWardMultiplier(state);
+      if (swMult < 1) {
+        edmg = Math.round(edmg * swMult);
+        if (hasSetTier(state, "River Warden", 6)) combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
+      }
+      if (edmg > 0 && !combat.stormBarrierUsed) {
+        combat.stormBarrierUsed = true;
+        if (hasSetTier(state, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
+      }
+      if (edmg > 0 && !combat.firstHitTakenUsed) {
+        combat.firstHitTakenUsed = true;
+        if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+      }
+      return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
+    }
+
+    const atk = effectiveEnemyAtk(state, creature);
+    const playerDef = effectivePlayerDef(state) + bonusDef;
+    let edmg = abilityCtx
+      ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), playerDef))) : 0)
+      : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
+    if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+    edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
+    if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
+    if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
+    if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
+      creature.unbrokenGripUsed = true;
+      edmg = Math.round(edmg * 1.10);
+    }
+    if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
+      creature.decisiveImpactUsed = true;
+      edmg = Math.round(edmg * 1.08);
+    }
+    if (hasEffect(creature, "dra_e06_executioners_seal") && state.health <= state.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
+    if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10);
+    if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && state.health <= state.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
+      creature.tyrantsEdgeCooldown = 3;
+      creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
+      edmg = Math.round(edmg * 1.10);
+    }
+    if (edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
+      creature.flowingDisciplinePending = false;
+      creature.flowingDisciplineTurnsLeft = 0;
+      edmg = Math.round(edmg * 1.10);
+    }
+    if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && combat.playerStatuses && combat.playerStatuses.chilled) {
+      creature.wintersVerdictUsed = true;
+      edmg = Math.round(edmg * 1.15);
+    }
+    if (edmg > 0 && !combat.firstHitTakenUsed) {
+      combat.firstHitTakenUsed = true;
+      if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+    }
+    if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.playerStatuses && combat.playerStatuses["sang_iag_poison"]) {
+      creature.toxicPreparationUsed = true;
+      edmg += Math.max(1, Math.floor(edmg * 0.05));
+    }
+    return { shortCircuit: false, edmg, kind: "physical" };
+  },
 };

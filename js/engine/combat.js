@@ -3184,6 +3184,14 @@ function resolveEnemyActiveAbility(state, creature) {
   return {
     id: abilityId,
     name: ability.name,
+    // Step 1f-ii: read off the ability's own merged definition
+    // (getEnemyAbility's ENEMY_ACTIVE_ACTION_SHAPE merge, js/data/
+    // enemyabilities.js) rather than a hardcoded constant in the
+    // pipeline orchestrator -- every active shares the same value today
+    // (enemyCore), but this is the ability's own declared field, read
+    // generically, the same as a player action's own `formula` is read
+    // off getActionDef(id), never assumed by the caller.
+    formula: ability.formula,
     dmgMult,
     accBonus: (ability.accBonus || 0) + firstAttackAccBonus + condAccBonus || undefined,
     aoe: !!ability.aoe,

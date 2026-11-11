@@ -260,6 +260,36 @@ for (const tableName of ACTION_TABLE_NAMES) {
     }
   }
 }
+// Step 1f-ii: P2, extended to ENEMY_ABILITIES (js/data/enemyabilities.js)
+// -- "the same way 1e extended TACTICS" (the governing handoff's own
+// words). Every ACTIVE entry (passives are untouched -- they're resolved
+// by trigger, not through the attack pipeline, so targeting/toHit/
+// formula don't apply to them) must declare targeting/toHit/actionType,
+// and if toHit:"roll" (every active, always, per js/data/enemyabilities.
+// js's own ENEMY_ACTIVE_ACTION_SHAPE), a formula that's really a
+// PIPELINE_FORMULAS key. getEnemyAbility is the merge point (same
+// flattening shape as getActionDef), so checking its OWN return value
+// here is checking exactly what resolveEnemyActiveAbility (js/engine/
+// combat.js) actually reads at runtime. ENEMY_BASIC_ATTACK_DEF (the "no
+// active chosen" case's own definition) is checked directly, the same
+// as PLAYER_ACTION_DEFS.basic_attack is checked above via its table.
+const ENEMY_ABILITIES_TABLE = G("ENEMY_ABILITIES");
+for (const id of Object.keys(ENEMY_ABILITIES_TABLE)) {
+  if (ENEMY_ABILITIES_TABLE[id].type !== "active") continue;
+  const def = G(`getEnemyAbility(${JSON.stringify(id)})`);
+  if (!def.targeting) { err("action-def", `"${id}" (ENEMY_ABILITIES) has no \`targeting\` declared (P2)`); continue; }
+  if (def.toHit !== "roll" && def.toHit !== "none") { err("action-def", `"${id}" (ENEMY_ABILITIES) has toHit "${def.toHit}" -- must be "roll" or "none" (P2)`); continue; }
+  if (!def.actionType) { err("action-def", `"${id}" (ENEMY_ABILITIES) has no \`actionType\` declared (P2)`); continue; }
+  if (def.toHit === "roll" && (typeof def.formula !== "string" || !PIPELINE_FORMULA_NAMES.has(def.formula))) {
+    err("action-def", `"${id}" (ENEMY_ABILITIES) has toHit:"roll" but formula "${def.formula}" is not a PIPELINE_FORMULAS key (P2)`);
+  }
+}
+{
+  const basicDef = G("ENEMY_BASIC_ATTACK_DEF");
+  if (!basicDef.targeting || !basicDef.actionType || !PIPELINE_FORMULA_NAMES.has(basicDef.formula)) {
+    err("action-def", `ENEMY_BASIC_ATTACK_DEF is incomplete (P2)`);
+  }
+}
 // P4: no checks on action identity in the step functions or hooks --
 // `action.id ===`/`!==`, a `switch` on `action.id`, OR (broader than the
 // handoff's own literal wording, since this audit's own research found
@@ -321,6 +351,40 @@ for (const f of P4_FILES) {
     const insideHooksTable = hooksStart !== -1 && i >= hooksStart && i <= hooksEnd;
     if (!insideHooksTable && P4_DIRECT_HELPER_PATTERN.test(codeOnly[i])) { err("action-identity", `${f}:${i + 1} calls a named-ally helper directly, outside PIPELINE_HOOKS -- "${codeOnly[i].trim()}" (P4)`); p4Hits++; }
     P4_DIRECT_HELPER_PATTERN.lastIndex = 0;
+  }
+}
+
+// Step 1f-ii: the same no-identity-checks rule, for ENEMY ABILITY
+// identity this time -- resolveEnemyActiveAbility/resolveEnemySummon/
+// buildSummonedEnemyRecord (js/engine/combat.js, the three functions the
+// governing handoff's own §1 table names for this sub-step) must read
+// generic fields off whichever ability getEnemyAbility(abilityId) hands
+// back, never branch on WHICH ability that is. Scoped to just these
+// three functions' own bodies, not the whole of combat.js, deliberately:
+// Dregnar's resolver (resolveDregnarAttempt's own `abilityId ===
+// "dra_barrier"`) DOES check ability identity today, and that's correct
+// for now -- Dregnar is explicitly 1g's job, not 1f's (handoff §1: "Not
+// in 1f: Dregnar, which is 1g"), so scoping this narrowly avoids a false
+// P4 failure on code this step was never asked to touch.
+const P4_ENEMY_ABILITY_FNS = ["resolveEnemyActiveAbility", "resolveEnemySummon", "buildSummonedEnemyRecord"];
+const P4_ENEMY_ABILITY_ID_PATTERN = /\babilityId\s*(?:===|!==)|\bability\.id\s*(?:===|!==)|switch\s*\(\s*abilityId\s*\)|\.includes\(\s*abilityId\s*\)/g;
+{
+  const src = sources["js/engine/combat.js"];
+  if (src) {
+    const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]);
+    for (const fnName of P4_ENEMY_ABILITY_FNS) {
+      const startLine = codeOnly.findIndex((l) => new RegExp(`^function\\s+${fnName}\\s*\\(`).test(l));
+      if (startLine === -1) continue;
+      let depth = 0, endLine = -1;
+      for (let i = startLine; i < codeOnly.length; i++) {
+        for (const ch of codeOnly[i]) { if (ch === "{") depth++; else if (ch === "}") { depth--; if (depth === 0) { endLine = i; break; } } }
+        if (endLine !== -1) break;
+      }
+      for (let i = startLine; i <= endLine; i++) {
+        if (P4_ENEMY_ABILITY_ID_PATTERN.test(codeOnly[i])) { err("action-identity", `js/engine/combat.js:${i + 1} (${fnName}) checks enemy ability identity directly -- "${codeOnly[i].trim()}" (P4)`); p4Hits++; }
+        P4_ENEMY_ABILITY_ID_PATTERN.lastIndex = 0;
+      }
+    }
   }
 }
 

@@ -1335,8 +1335,43 @@ const ENEMY_ABILITIES = {
   sang_iag_raise_the_militia: { name: "Raise the Militia", type: "active", cooldown: 6, dmgMult: 0, summon: { creatureId: "rural_militia_fighter", countMin: 1, countMax: 3, capKey: "sang_iag_militia_reinforcements", maxActive: 6, maxLifetime: 10, noArrivalAttack: true } },
 };
 
+// Step 1f-ii: every ACTIVE ability shares the exact same declared action
+// shape -- targeting decided outside the pipeline (pickEnemyAttackTarget,
+// or every alive target for an aoe one -- resolveEnemyAction, js/engine/
+// combat.js), a to-hit roll (even a dmgMult:0 support cast still rolls --
+// rollToHit's enemy branch, js/engine/pipeline.js, never short-circuits
+// on dmgMult alone), and the one shared damage formula (enemyCore, js/
+// data/actions.js's PIPELINE_FORMULAS) every active AND the basic attack
+// read through -- never a per-ability formula, the same "one shared
+// formula, read generically, never by ability identity" shape as the
+// player's own playerCore. None of the ~150 entries above differ on any
+// of this, so it's declared ONCE here and merged onto every active by
+// getEnemyAbility below (same flattening merge shape as getActionDef's
+// own `Object.assign({...}, outer, outer.action || {})`, js/data/
+// actions.js) rather than repeated as an `action: ENEMY_ACTIVE_ACTION_
+// SHAPE` line on each entry the way APOTHECARY_ACTION_SHAPE is on the 6
+// apothecary abilities (js/data/tactics.js) -- there, each entry still
+// visibly opts in; here, with zero exceptions across ~150 entries, a
+// per-entry opt-in line would be pure repetition with nothing left to
+// vary. Passives are untouched -- they never go through the attack
+// pipeline (resolved by trigger, not by toHit/formula), so this shape
+// doesn't apply to them.
+const ENEMY_ACTIVE_ACTION_SHAPE = { targeting: "dynamic", toHit: "roll", actionType: "attack", formula: "enemyCore" };
+
+// Step 1f-ii: the "no active ability chosen" case (abilityCtx null in
+// resolveEnemyAttackOnPlayer/OnAlly, js/engine/pipeline.js) is itself a
+// real action -- a basic attack -- and gets its own definition here, the
+// same "every action has a definition" rule PLAYER_ACTION_DEFS.
+// basic_attack (js/data/actions.js) already follows on the player's own
+// side. It shares the exact same shape every active does (same to-hit
+// roll, same enemyCore formula -- the formula branches on abilityCtx's
+// presence internally, not on which definition is in play).
+const ENEMY_BASIC_ATTACK_DEF = Object.assign({ name: "Basic Attack" }, ENEMY_ACTIVE_ACTION_SHAPE);
+
 function getEnemyAbility(id) {
-  return ENEMY_ABILITIES[id] || null;
+  const entry = ENEMY_ABILITIES[id];
+  if (!entry) return null;
+  return entry.type === "active" ? Object.assign({}, ENEMY_ACTIVE_ACTION_SHAPE, entry) : entry;
 }
 
 function getStatusEffect(id) {
