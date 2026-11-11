@@ -1,0 +1,12 @@
+[
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "riposteCounterEnemy",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "arenaRiposteEnemy",
+  "type": "added"
+ }
+]

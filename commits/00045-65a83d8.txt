@@ -1,0 +1,73 @@
+range: f21e405d7bd2b0e163a986c1cd738fb4c589ac57..65a83d8f764583be6c3e68d305a71322836837a9
+=== 65a83d8f764583be6c3e68d305a71322836837a9 2026-11-11 13:47:01 +0000
+1f-iii §4 (part 4): Riposte + Arena Riposte on an enemy wearer, vs the player
+Per the user's own direction: full steps-2-5 reuse, hardening the
+shared step functions rather than a formula-only shortcut. These two
+are the hardest of the Riposte family, since reusing the existing
+enemy-vs-player step functions wholesale would have silently added
+real behavior neither original ever had -- found and fixed three
+distinct leaks before wiring anything in:
+
+- calculateDamage's Mirror Soul check (a magical hit's own reflection)
+  fires on ANY enemy-actor-vs-player call with an elemental creature,
+  regardless of which formula is about to run -- riposte's own damage
+  is always a flat physical counter (hardcoded "physical" below,
+  matching both originals exactly), so this would have given Mirror
+  Soul a reflection trigger it's never had. Guarded on a new
+  `action.isReaction` flag.
+- chooseAction's Reinforced counter (every 3rd enemy attack on the
+  player grants +2 Defense) increments for ANY enemy-actor-vs-player
+  call too -- neither riposteCounterOnPlayerLegacy nor
+  arenaRiposteCounterOnPlayerLegacy ever touched it. Same
+  action.isReaction guard.
+- applyAndReact's player-target branch unconditionally grants Guarded
+  Strike's banked Defense, procs Serrated Opening/Marked Target/
+  Duelist's Measure, and runs Mercy of the Veil -- none of which either
+  original ever did. Given its own dedicated tail instead
+  (applyAndReactReactionOnPlayer) rather than more gates threaded into
+  that body.
+
+- js/engine/pipeline.js: rollToHit gets two new declared to-hit shapes,
+  both pure additions (no existing caller sets either): `toHit: "none"`
+  (always hits -- Arena Riposte's own unconditional math) and `toHit:
+  "simple"` (a bare acc-vs-agility roll with none of the normal path's
+  accuracy bonuses or evasion/Guardian Spirit/Timeless Guard checks --
+  riposteCounterOnPlayerLegacy's own check exactly, via a new declared
+  `action.missLine` function). applyAndReactReactionOnPlayer is the new
+  dedicated step-5 tail described above. Two new orchestrators,
+  resolveRiposteCounterOnPlayer and resolveArenaRiposteCounterOnPlayer,
+  run steps 2-5 with the target fixed to the player.
+- js/engine/combat.js: riposteCounterOnPlayer/arenaRiposteCounterOnPlayer
+  renamed to *Legacy (byte-identical, kept as the forced-roll parity
+  oracles for playerAttackLegacy's own miss/successful-hit branches).
+  The live names now keep just eligibility/cooldown/cap bookkeeping and
+  call the new orchestrators. basic_attack's own declared missLine
+  (js/data/actions.js) already called riposteCounterOnPlayer by name,
+  not hardcoded into rollToHitPlayerActor -- so it needed no change at
+  all to pick up the new, pipeline-routed behavior.
+- js/data/actions.js: two new PIPELINE_FORMULAS entries,
+  riposteCounterEnemy and arenaRiposteEnemy -- today's exact math
+  (flat 0.5x / the ability's own declared mult, no Opening Reach, no
+  wearer-effect chain), moved verbatim, deliberately NOT reusing
+  enemyCore (whose physical branch carries ice_forged_edge/
+  unbroken_grip/executioners_seal/etc., none of which either riposte
+  variant ever applied).
+
+Verification: already covered by EXISTING forced-roll parity tests
+that fire the real math (not just the no-op path) --
+P1E-I-MISS-01 (riposte equipped, forced miss) and
+P1E-I-ARENARIPOSTE-01 (Arena Riposte passive set), both in
+tools/tests/phase1_step1e_i_player_attack_pipeline_parity.js, comparing
+playerAttackLegacy against playerAttack end-to-end. Full suite 372/372
+(confirmed stable after one unrelated one-off flake), audit 0 errors.
+Layer 2 (boss_sweep.js, plus3_run.js) both bit-for-bit identical to the
+step-1f-i baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js    |  28 +++++++++++
+ js/engine/combat.js   |  49 +++++++++++++++++--
+ js/engine/pipeline.js | 127 ++++++++++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 195 insertions(+), 9 deletions(-)
