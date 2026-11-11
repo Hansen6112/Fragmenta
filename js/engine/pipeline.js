@@ -173,7 +173,10 @@ function chooseAction(actor, ctx) {
     // consumed (or there wasn't one). chooseAction can therefore never
     // return null for an enemy actor any more — see that function's own
     // comment, in combat.js, for where the check lives now.
-    if (ctx.target && ctx.target.kind === "player") {
+    // Step 1f-iii §4: a reaction (riposteCounterOnPlayer/arenaRiposte
+    // CounterOnPlayer) never advanced this counter either -- the original
+    // functions never touched combat.reinforcedAttackCount at all.
+    if (!ctx.pendingAction.isReaction && ctx.target && ctx.target.kind === "player") {
       const combat = ctx.state.combat;
       if (hasEffect(ctx.state, "reinforced")) {
         combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
@@ -245,6 +248,22 @@ function rollToHit(actor, target, action, ctx) {
   const { abilityCtx, basicFirstBonus } = action;
   const miss = (line) => ({ hit: false, result: { lines: [line], damage: 0 } });
   const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
+
+  // Step 1f-iii §4: a reaction declares its own, much simpler to-hit
+  // shape -- "none" always lands (e.g. arenaRiposteCounterOnPlayer,
+  // which never rolled a to-hit check); "simple" rolls a bare
+  // acc-vs-agility check with none of the accuracy bonuses, evasion
+  // consumption, or named-miss effects (Timeless Guard, Guardian
+  // Spirit, ...) the normal enemy-vs-player roll below has -- riposte
+  // CounterOnPlayerLegacy's own check never had any of those either.
+  // `action.missLine` is a function (same declared-field convention as
+  // flavorLine) for the distinct miss text. No existing caller declares
+  // either toHit value, so both are pure additions -- zero effect on
+  // any normal enemy attack.
+  if (action.toHit === "none") return { hit: true };
+  if (action.toHit === "simple") {
+    return attackConnects(creature.acc, effectivePlayerAgility(state)) ? { hit: true } : miss(action.missLine(creature));
+  }
 
   if (target.kind === "ally") {
     const ally = target.ref;
@@ -366,7 +385,16 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
   // then, not now. target.kind === "ally" never reaches this check
   // (Mirror Soul only ever answers a hit on the PLAYER), matching the
   // original's own structure exactly.
-  if (target.kind === "player" && creature.element && hasEffect(state, "mirror_soul") && !combat.mirrorSoulUsed) {
+  // Step 1f-iii §4: a reaction (action.isReaction) never passes through
+  // this check -- its own damage is never elemental/matchup-based
+  // regardless of the acting creature's own element (every riposte
+  // formula is a flat physical counter, hardcoded "physical" below,
+  // same as the originals), and Mirror Soul's own reflection has never
+  // triggered off a riposte. Mirror Soul itself becomes a proper
+  // reaction later in this same sub-step (handoff §4); until then this
+  // guard keeps the step-4 exception scoped to exactly what it covered
+  // before any reaction existed.
+  if (!action.isReaction && target.kind === "player" && creature.element && hasEffect(state, "mirror_soul") && !combat.mirrorSoulUsed) {
     combat.mirrorSoulUsed = true;
     const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
     const base = randInt(creature.magic - 2, creature.magic + 2);
@@ -405,6 +433,15 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
     throw new Error(`applyAndReact(): "${actor.kind}" -> "${target.kind}" not migrated yet.`);
   }
+  // Step 1f-iii §4: a reaction against the player (Riposte/Arena Riposte
+  // for an enemy wearer) gets its OWN dedicated tail -- NOT the body
+  // below, which carries real basic-attack-only side effects a reaction
+  // never had (a Guarded Strike grant, Serrated Opening/Marked Target/
+  // Duelist's Measure procs, Mercy of the Veil, the abilityCtx-driven
+  // verb/inflict/healOnHitPct branches). See applyAndReactReactionOnPlayer's
+  // own header for the full comparison against the original riposte
+  // functions this replaces.
+  if (action.isReaction && target.kind === "player") return applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action);
   const state = ctx.state;
   const combat = state.combat;
   const creature = actor.ref.creatureObj;
@@ -891,7 +928,7 @@ function resolveCompanionRetaliation(state, ally, kit, enemyIdx) {
   const target = makeEnemyCombatant(state, record, enemyIdx);
   const action = {
     kit, formula: "allyRetaliate", hooks: kit.action.hooks, veteranPct: veteranBonusPct(ally, kit),
-    toHit: "none",
+    toHit: "none", isReaction: true,
     flavorLine: (a, c, edmg) => `${a.name} answers the blow, retaliating against ${withThe(c.name, false)} for ${edmg} damage.`,
   };
   const ctx = { state, pendingAction: action, target };
@@ -919,8 +956,90 @@ function resolveRiposteCounterByAllyOnEnemy(state, ally, enemySlot) {
   const target = makeEnemyCombatant(state, enemySlot, idx);
   const action = {
     formula: "riposteCounterAlly",
-    toHit: "none",
+    toHit: "none", isReaction: true,
     flavorLine: (a, c, edmg) => `${a.name} seizes the opening — a free riposte on ${withThe(c.name, false)} for ${edmg} damage.`,
+  };
+  const ctx = { state, pendingAction: action, target };
+
+  const chosen = chooseAction(actor, ctx);
+  const targets = chooseTargets(actor, chosen, ctx);
+  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
+  if (!hitInfo.hit) return hitInfo.result.lines; // dead code today (toHit: "none" always hits).
+
+  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+  return result.lines;
+}
+
+// ---- Step 5, reaction tail: an enemy wearer's counter-attack landing
+// on the PLAYER (Riposte/Arena Riposte, step 1f-iii §4). A dedicated
+// function, not a few extra gates threaded into the body above, because
+// that body carries real basic-attack-only side effects neither
+// riposteCounterOnPlayerLegacy nor the original arenaRiposteCounterOnPlayer
+// ever had: a Guarded Strike grant, Serrated Opening/Marked Target/
+// Duelist's Measure procs, Mercy of the Veil, and the abilityCtx-driven
+// verb/inflict/healOnHitPct branches. This tail is exactly those two
+// originals' own shared remainder: mitigate, set playerLastHitType,
+// build the one flavor line, check for defeat/downed -- nothing else.
+function applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action) {
+  const state = ctx.state;
+  const creature = actor.ref.creatureObj;
+  const hitResult = mitigateAndApplyHitOnPlayer(state, dmgInfo.edmg, dmgInfo.kind);
+  const edmg = hitResult.edmg;
+  if (edmg > 0) state.combat.playerLastHitType = "physical"; // Injury System v0.2
+  const lines = [action.flavorLine(creature, edmg), ...hitResult.absorbLines];
+  if (state.health <= 0) {
+    const defeatMsg = resolvePlayerDefeatOrDowned(state);
+    if (defeatMsg) lines.push(defeatMsg);
+  }
+  return { lines, damage: edmg };
+}
+
+// ---- Orchestrator: Riposte, generalized for an enemy wearer (step
+// 1f-iii §4) -- a free 0.5x follow-up when the PLAYER's own attack
+// misses, through steps 2-5 with the target fixed to the player. A
+// bare acc-vs-agility roll (action.toHit: "simple", added to rollToHit
+// specifically for this -- no extra accuracy bonuses, no evasion/
+// Guardian Spirit/Timeless Guard, matching riposteCounterOnPlayerLegacy's
+// own check exactly). Called from combat.js's own riposteCounterOnPlayer,
+// which keeps "does this creature even have Riposte, is it capped"
+// eligibility outside the pipeline.
+function resolveRiposteCounterOnPlayer(state, creature) {
+  const actor = findEnemyCombatant(state, creature);
+  const target = makePlayerCombatant(state);
+  const action = {
+    formula: "riposteCounterEnemy",
+    toHit: "simple", isReaction: true,
+    missLine: (c) => `${withThe(c.name, true)} seizes the opening, but the riposte doesn't land.`,
+    flavorLine: (c, edmg) => `${withThe(c.name, true)} seizes the opening — a free riposte for ${edmg} damage.`,
+  };
+  const ctx = { state, pendingAction: action, target };
+
+  const chosen = chooseAction(actor, ctx);
+  const targets = chooseTargets(actor, chosen, ctx);
+  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
+  if (!hitInfo.hit) return hitInfo.result.lines;
+
+  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+  return result.lines;
+}
+
+// ---- Orchestrator: Arena Riposte, for an enemy wearer with the
+// counterOnSuccessfulHit passive (step 1f-iii §4) -- a counter-strike at
+// the ability's own declared multiplier (default 0.8x) when the PLAYER's
+// attack LANDS, through steps 2-5, target fixed to the player. No to-hit
+// roll (action.toHit: "none", matching arenaRiposteCounterOnPlayerLegacy's
+// own unconditional math). Called from combat.js's own
+// arenaRiposteCounterOnPlayer, which keeps the passive lookup and its own
+// cooldown/cap bookkeeping outside the pipeline.
+function resolveArenaRiposteCounterOnPlayer(state, creature, mult) {
+  const actor = findEnemyCombatant(state, creature);
+  const target = makePlayerCombatant(state);
+  const action = {
+    formula: "arenaRiposteEnemy", mult,
+    toHit: "none", isReaction: true,
+    flavorLine: (c, edmg) => `${withThe(c.name, true)} turns the blow aside and answers with a counter for ${edmg} damage.`,
   };
   const ctx = { state, pendingAction: action, target };
 

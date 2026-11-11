@@ -5447,7 +5447,11 @@ function markNonPlayerRiposteFired(wearer) {
   wearer.riposteUsedThisRound = true;
   wearer.riposteUsesThisCombat = (wearer.riposteUsesThisCombat || 0) + 1;
 }
-function riposteCounterOnPlayer(state, creature) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged, only
+// as the forced-roll parity oracle for playerAttackLegacy's own miss
+// branch (this file) -- delete in step 1h alongside the other
+// superseded per-pair functions.
+function riposteCounterOnPlayerLegacy(state, creature) {
   if (!hasEffect(creature, "riposte") || !state.combat || state.combat.hp <= 0) return [];
   if (!nonPlayerRiposteCapAllows(creature)) return [];
   markNonPlayerRiposteFired(creature);
@@ -5465,6 +5469,20 @@ function riposteCounterOnPlayer(state, creature) {
     if (defeatMsg) lines.push(defeatMsg);
   }
   return lines;
+}
+// Riposte, generalized, for the enemy wearer whose own retaliation the
+// PLAYER'S attack just missed -- reached today from basic_attack's own
+// declared missLine (js/data/actions.js's PLAYER_ACTION_DEFS.basic_
+// attack), never hardcoded into rollToHitPlayerActor itself. Step 1f-iii
+// §4: the actual counter-strike now runs through steps 2-5, target
+// fixed to the attacker (the player) -- resolveRiposteCounterOnPlayer,
+// pipeline.js. Eligibility/cap bookkeeping stays here, outside the
+// pipeline, matching every other reaction's own pre-check.
+function riposteCounterOnPlayer(state, creature) {
+  if (!hasEffect(creature, "riposte") || !state.combat || state.combat.hp <= 0) return [];
+  if (!nonPlayerRiposteCapAllows(creature)) return [];
+  markNonPlayerRiposteFired(creature);
+  return resolveRiposteCounterOnPlayer(state, creature);
 }
 // Arena Riposte (Ovum Veteran Guard, Sanguivorum Security and
 // Enforcement) — a genuinely new mechanism, the OPPOSITE trigger
@@ -5497,7 +5515,11 @@ function hasArenaRiposteAbility(creature) {
     return p && p.trigger === "counterOnSuccessfulHit";
   });
 }
-function arenaRiposteCounterOnPlayer(state, creature) {
+// SUPERSEDED (Combat Rebuild Phase 1, step 1f-iii): kept, unchanged,
+// only as the forced-roll parity oracle for playerAttackLegacy's own
+// successful-hit branch (this file) -- delete in step 1h alongside the
+// other superseded per-pair functions.
+function arenaRiposteCounterOnPlayerLegacy(state, creature) {
   if (!hasArenaRiposteAbility(creature)) return [];
   if (!state.combat || state.combat.hp <= 0) return [];
   const cooldown = creature.arenaRiposteCooldown || 0;
@@ -5517,6 +5539,21 @@ function arenaRiposteCounterOnPlayer(state, creature) {
     if (defeatMsg) lines.push(defeatMsg);
   }
   return lines;
+}
+// Step 1f-iii §4: the actual counter-strike now runs through steps 2-5,
+// target fixed to the player -- resolveArenaRiposteCounterOnPlayer
+// (pipeline.js). Eligibility/cooldown/cap bookkeeping, and the passive's
+// own declared multiplier, stay here, outside the pipeline.
+function arenaRiposteCounterOnPlayer(state, creature) {
+  if (!hasArenaRiposteAbility(creature)) return [];
+  if (!state.combat || state.combat.hp <= 0) return [];
+  const cooldown = creature.arenaRiposteCooldown || 0;
+  const uses = creature.arenaRiposteUsesThisCombat || 0;
+  if (cooldown > 0 || uses >= 2) return [];
+  creature.arenaRiposteCooldown = 4;
+  creature.arenaRiposteUsesThisCombat = uses + 1;
+  const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnSuccessfulHit");
+  return resolveArenaRiposteCounterOnPlayer(state, creature, passive.mult || 0.8);
 }
 // Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
 // the enemy counters the ally. Called from allyAggressiveAction's miss
@@ -7196,8 +7233,10 @@ function playerAttackLegacy(state) {
     // Riposte, generalized: the enemy wearer's mirror of the player's own
     // maybeRiposte — scoped to the player's plain basic attack only (the
     // ability-cast/Tactic miss paths don't carry this yet, a deliberate
-    // scope limit for this pass, not an oversight).
-    out.push(...riposteCounterOnPlayer(state, creature));
+    // scope limit for this pass, not an oversight). This whole function
+    // is the step 1e-i Legacy oracle, so it calls the Legacy-named
+    // riposte helper (step 1f-iii) to stay byte-identical.
+    out.push(...riposteCounterOnPlayerLegacy(state, creature));
   } else {
     let dmg = rollPlayerDamage(state, creature, activeElement);
     if (isPhysical) dmg = applyOpeningReach(state, dmg);
@@ -7235,7 +7274,7 @@ function playerAttackLegacy(state) {
       // only the creature that actually took (and survived) this hit can
       // ever counter it. Gated additionally on dmg > 0 — a fully
       // mitigated zero-damage hit isn't "a damaging hit landed."
-      if (dmg > 0) out.push(...arenaRiposteCounterOnPlayer(state, creature));
+      if (dmg > 0) out.push(...arenaRiposteCounterOnPlayerLegacy(state, creature));
     }
   }
 

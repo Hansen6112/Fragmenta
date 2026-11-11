@@ -558,4 +558,32 @@ const PIPELINE_FORMULAS = {
     }
     return { shortCircuit: false, edmg, kind: "physical" };
   },
+
+  // Step 1f-iii §4: Riposte, generalized for an enemy wearer -- a free
+  // 0.5x follow-up on a miss by the player. Deliberately NOT enemyCore:
+  // riposteCounterOnPlayerLegacy's own math never applied Opening Reach
+  // or any of enemyCore's wearer-effect chain (ice_forged_edge,
+  // unbroken_grip, executioners_seal, ...) -- today's exact math, moved
+  // verbatim, nothing added.
+  riposteCounterEnemy(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const creature = actor.ref.creatureObj;
+    const atk = effectiveEnemyAtk(state, creature);
+    const playerDef = effectivePlayerDef(state);
+    const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
+    return { shortCircuit: false, edmg, kind: "physical" };
+  },
+
+  // Arena Riposte (step 1f-iii §4): the same shape as riposteCounterEnemy
+  // just above, but with the ability's OWN declared multiplier
+  // (ability.mult, default 0.8) in place of the flat 0.5x -- moved
+  // verbatim out of combat.js's arenaRiposteCounterOnPlayer.
+  arenaRiposteEnemy(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const creature = actor.ref.creatureObj;
+    const atk = effectiveEnemyAtk(state, creature);
+    const playerDef = effectivePlayerDef(state);
+    const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (action.mult || 0.8)));
+    return { shortCircuit: false, edmg, kind: "physical" };
+  },
 };
