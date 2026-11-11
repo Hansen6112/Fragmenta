@@ -201,7 +201,37 @@ const PIPELINE_HOOKS = {
   hadrianOnKill(h) {
     onHadrianKill(h.state, h.ally, h.action.kit);
   },
+  // Step 1f-iii §4: "Interceptions ... become onIncomingDamage hooks on
+  // the defender or protector, running inside step 5 before HP changes."
+  // maybeHadrianAllyProtection/applyAllyProtectionReaction (companion.js/
+  // combat.js) are UNCHANGED -- including maybeHadrianAllyProtection's
+  // own "is Hadrian in the party" check, which is Hadrian's own
+  // legitimately-unique mechanic, not the kind of step-function ally-
+  // identity dispatch P4 forbids (that rule is about pipeline.js/
+  // PIPELINE_HOOKS never branching on identity, not about every helper
+  // anywhere in the engine). Only HOW they're reached from step 5
+  // changes: by NAME, through ON_INCOMING_DAMAGE_ALLY_HOOKS below,
+  // instead of two calls hardcoded directly into applyAndReact's own
+  // source. "Only their shape changes" (handoff's own words) -- behavior
+  // is identical either way.
+  hadrianAllyProtection(h) {
+    return maybeHadrianAllyProtection(h.state, h.ally, h.edmg);
+  },
+  allyProtectionReaction(h) {
+    return applyAllyProtectionReaction(h.state, h.ally, h.edmg);
+  },
 };
+
+// Step 1f-iii §4: the declared, ordered list of onIncomingDamage hooks
+// step 5 (applyAndReact's ally-target branch, pipeline.js) runs before
+// writing ally.health -- same order as today's two hardcoded calls
+// (Legion's Memory/Brothers in Arms first, then the generalized Ally
+// Protection Reaction, matching this file's own companion.js comment on
+// why that order matters: Legion's Memory REDIRECTS part of the hit
+// before the generic 0.9x reduction would otherwise apply to the full
+// amount). A future protector reaction is added here, by name, with no
+// pipeline.js change.
+const ON_INCOMING_DAMAGE_ALLY_HOOKS = ["hadrianAllyProtection", "allyProtectionReaction"];
 
 // ---- formula table: today's formulas only, no new math. Resolved by
 // NAME (a string on the definition), never by action identity. ----
