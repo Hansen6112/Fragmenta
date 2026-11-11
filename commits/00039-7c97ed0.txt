@@ -1,0 +1,44 @@
+range: b85c9d492f6bf90c862217c122cdbea9eaf6ed48..7c97ed044873884d587e9d8db752718bd039b201
+=== 7c97ed044873884d587e9d8db752718bd039b201 2026-11-11 03:48:58 +0000
+1f-i §3: field ledger reports storage-moved and old-name-references separately
+Per the step 1f handoff's §3: splits the ledger's single "closed" count
+into two numbers that move on different schedules, instead of folding
+them together the way the tool did through step 1e (the exact blind
+spot step 1e completion's own §7 disclosure flagged -- the 31 PLAYER_
+FIELDS fields had their real storage already moved via combat.js's
+wirePlayerFieldsProxy, but old-name `combat.<field>` call sites
+remained, and the ledger had no way to tell those two facts apart).
+
+- "Storage not yet moved": a STRUCTURAL check against the real proxy
+  wiring in js/engine/combat.js -- PER_ENEMY_FIELDS/wireActiveEnemyProxy
+  (always moved, per-slot) and a new PLAYER_FIELDS_STORAGE_MOVED list
+  (duplicated from combat.js's own PLAYER_FIELDS, same convention this
+  file already used for PER_ENEMY_FIELDS) -- never a text search. This
+  is step 1h's actual gate: 101/148 tracked fields still have their
+  value sitting flat on state.combat with no real sub-store.
+- "Old-name references remaining": unchanged in mechanism (the existing
+  text-scan "touched by an un-landed step" count), relabeled to make
+  clear it's the cosmetic call-site spelling step 1h's own rename pass
+  clears, not architectural debt -- currently 148/148, since steps
+  1f/1g/1h haven't landed yet.
+- combat_field_ledger.md: added a "Storage moved?" column to the tracked
+  table and a header note explaining why the two numbers diverge.
+
+Disclosed interpretation: the governing handoff's exact wording for this
+split was in an earlier part of this session's context that fell out of
+this window after a worker restart; this implements the mechanism
+precisely as described in this session's own summary of that handoff
+(storage-moved via real proxy wiring, not text search; old-name-
+references as the existing text-scan, unchanged). If the literal
+wording differs in some detail, it's cheap to adjust -- this is a
+reporting-only tool with zero effect on game behavior, confirmed by the
+full suite (367/367) and audit (0 errors) both staying clean before and
+after.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_field_ledger.js |  79 ++++++++++-
+ tools/combat_field_ledger.md | 317 ++++++++++++++++++++++---------------------
+ 2 files changed, 238 insertions(+), 158 deletions(-)
