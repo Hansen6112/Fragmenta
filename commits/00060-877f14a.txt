@@ -1,0 +1,35 @@
+range: 894d9e52393c289fb40822df7957d1499bb521a6..877f14a3996815f3c6f3dd66ec44dfaa2471da98
+=== 877f14a3996815f3c6f3dd66ec44dfaa2471da98 2026-11-11 20:13:05 +0000
+Phase 1, step 1g-iv: field move batch 2 -- avatarOf* state (21 fields)
+Moved the 21 remaining avatarOf* fields (Turns/AtkBonus/DefBonus/
+MagicBonus/KnowledgeBonus/Stacks/SaveUsed -- the *Used flags already
+moved in 1e) into the player's own private store via PLAYER_FIELDS/
+wirePlayerFieldsProxy, same mechanism as batch 1. No redesign of the
+stacking/duration logic.
+
+avatarOfChaosAtkBonus/DefBonus/KnowledgeBonus/MagicBonus/Turns,
+avatarOfCreationAtkStacks/MagicStacks/Turns, avatarOfDevotionSaveUsed/
+Turns, avatarOfEnduranceAtkBonus/DefBonus/Turns, avatarOfFateSaveUsed/
+Turns, avatarOfFreedomTurns, avatarOfKnowledgeTurns, avatarOfPassingTurns,
+avatarOfRenewalTurns, avatarOfTimeTurns, avatarOfWarTurns.
+
+Updated tools/combat_field_ledger.js's duplicate list and regenerated:
+storage not yet moved drops by exactly 21, from 98 to 77.
+
+Added tools/tests/phase1_step1g_iv_field_move_batch2_ledger.js: accessor/
+round-trip/isolation checks for all 21 fields, plus applyHeal's own
+Avatar of Endurance/Devotion healing-bonus reads exercised end to end.
+
+Verification: suite 433/433, audit 0 errors, boss_sweep/plus3_run
+bit-for-bit identical to the pre-1g-iv baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |  11 +++
+ tools/combat_field_ledger.js                       |  10 ++
+ tools/combat_field_ledger.md                       |  46 ++++-----
+ .../phase1_step1g_iv_field_move_batch2_ledger.js   | 106 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 151 insertions(+), 23 deletions(-)
