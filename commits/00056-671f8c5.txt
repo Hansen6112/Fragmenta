@@ -1,0 +1,52 @@
+range: f50f0f84bd19884c21c281e524c26199a9b50f5e..671f8c5bb080bf98339ac65f8c566696b71908ed
+=== 671f8c5bb080bf98339ac65f8c566696b71908ed 2026-11-11 19:50:26 +0000
+Phase 1, step 1g-ii §2a: Groundbreaker splash through steps 4-5
+Groundbreaker's splash damage to every OTHER alive enemy used to be
+useHadrianActive's own private loop, writing enemy HP directly with
+`e.hp -=` outside applyAndReact's call graph entirely -- the one
+exemption P1 still had to carry.
+
+Added the targeting value the 1e schema already describes:
+`targeting: "packSplash"` on Groundbreaker's own ability data
+(js/data/hadrian.js). chooseTargets (step 2) now returns the primary
+target plus every other alive enemy for a packSplash action, in the
+same order useHadrianActive's old loop hit them. Only the primary gets
+a real hit roll (step 3) -- splash still reuses that hit's own already-
+computed baseAtk/splashAtkMult with no roll of its own, exactly as
+before -- but every splash hit now runs through calculateDamage/
+applyAndReact (steps 4-5) like any other hit, via a new
+`kitAllyAbilitySplash` formula that reproduces useHadrianActive's own
+former inline math exactly (same mitigate() call, no bankedDefKit/
+sangMit adjustment, since those never applied to a splash target).
+
+One real ordering bug found and fixed along the way, caught by the
+existing Groundbreaker Layer 1 parity tests (not a new discrepancy from
+the handoff -- a bug in my own first pass at this step): the splash
+target's accuracy debuff has to apply BEFORE that target's own kill
+resolves, matching useHadrianActiveLegacy's exact order (debuff, then
+the hp<=0 check) -- applying it after, as I first wrote it, could read
+state.combat after a splash kill had already ended the fight and null
+it, crashing on the very next enemy's debuff write. Fixed by applying
+the debuff inside resolveHadrianActiveDamage's own splash loop, between
+steps 4 and 5, instead of deferred into companion.js afterward.
+
+Removed `useHadrianActive` from P1_ALLOWED_FNS (tools/audit.js) -- the
+splash write it existed for no longer happens.
+
+Verification: suite 408/408 (including all four existing Groundbreaker
+Layer 1 parity cases -- HIT/MISS/ASCENDED/SPLASHKILL, the last of which
+exercises a kill resolved purely by splash), audit 0 errors (P1 clean
+with the exemption gone), boss_sweep/plus3_run bit-for-bit identical to
+the pre-2a baseline, including pack encounters where Hadrian's splash
+actually fires.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js     | 15 +++++++++
+ js/data/hadrian.js     |  2 +-
+ js/engine/companion.js | 31 ++++++++----------
+ js/engine/pipeline.js  | 85 +++++++++++++++++++++++++++++++++++++++-----------
+ tools/audit.js         | 14 ++++-----
+ 5 files changed, 102 insertions(+), 45 deletions(-)
