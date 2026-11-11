@@ -2496,13 +2496,26 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
     }
     return { lines, damage: playerResult.damage };
   }
-  const target = pickEnemyAttackTarget(state);
   // H08 Prepared Opening et al: an active cast already folded its
   // firstAttack bonus into abilityCtx (resolveEnemyActiveAbility); a plain
   // basic attack (abilityCtx null) never ran that check at all, so it's
   // applied here instead — exactly once per action either way, since
   // firstAttackPassiveBonus always consumes the flag when called.
   const basicFirstBonus = abilityCtx ? null : firstAttackPassiveBonus(state, creatureObj);
+  return resolveEnemySingleTargetAttempt(state, creatureObj, atkSpread, extraDef, abilityCtx, basicFirstBonus);
+}
+
+// Step 1g-i: the single shared "roll a target, then dispatch to whichever
+// per-target-kind pipeline orchestrator applies" step every single-target
+// enemy damaging attempt goes through pipeline chooseTargets — extracted so
+// Dregnar's own damaging attempts (dregnarResolveDamagingAttempt) and the
+// ordinary case above call the exact same function instead of each keeping
+// its own private copy of the pickEnemyAttackTarget + dispatch logic.
+// resolveEnemyAttackOnPlayer/resolveEnemyAttackOnAlly (pipeline.js) each
+// call chooseTargets internally once ctx.target is set, so routing every
+// caller through here is routing every caller through that one shared step.
+function resolveEnemySingleTargetAttempt(state, creatureObj, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
+  const target = pickEnemyAttackTarget(state);
   return target.kind === "ally"
     ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, abilityCtx, basicFirstBonus)
     : resolveEnemyAttackOnPlayer(state, creatureObj, atkSpread, extraDef, abilityCtx, basicFirstBonus);
@@ -2591,12 +2604,11 @@ function dregnarResolveDamagingAttempt(state, e, creatureObj, abilityCtx, atkSpr
   const basicFirstBonus = abilityCtx ? null : { accBonus, dmgMultBonus: 1 };
   // Phase 0 hotfix: Dregnar used to call resolveEnemyRetaliation (the
   // player-only damage path) unconditionally, so he could never damage an
-  // ally and kept hitting an already-downed player. Route through the
-  // same target roll every other creature's action already uses.
-  const target = pickEnemyAttackTarget(state);
-  const result = target.kind === "ally"
-    ? resolveEnemyAttackOnAlly(state, creatureObj, target.ally, ctx, basicFirstBonus)
-    : resolveEnemyAttackOnPlayer(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
+  // ally and kept hitting an already-downed player. Step 1g-i: now calls
+  // the exact same shared resolveEnemySingleTargetAttempt every other
+  // creature's single-target damaging attempt goes through, rather than
+  // keeping its own private copy of the pick-target-and-dispatch logic.
+  const result = resolveEnemySingleTargetAttempt(state, creatureObj, atkSpread, extraDef, ctx, basicFirstBonus);
   if (p03Active) creatureObj.atk -= 3;
   if (legacyActive) creatureObj.atk -= 3;
   if (hadBlackIceReservePending) {

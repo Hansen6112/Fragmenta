@@ -262,15 +262,12 @@ const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 //     target... applied in a loop around this single-target pipeline
 //     call instead") -- not a migration gap, a Phase 2 registry
 //     candidate.
-//   - Dregnar (any function matching /^resolve[Dd]regnar/ or
-//     /^dregnarResolve/): the one exemption the handoff itself names,
-//     "temporarily... until 1g." Currently matches ZERO lines --
-//     Dregnar's own damage already reaches resolveEnemyAttackOnPlayer/
-//     resolveEnemyAttackOnAlly (shared with every other enemy, migrated
-//     in steps 1b/1c) with no direct write of its own found anywhere in
-//     this scan. Kept as a no-op safety net per the handoff's explicit
-//     instruction; step 1g owns deciding whether anything here still
-//     needs it.
+//   - Dregnar: step 1g-i deleted the /^resolve[Dd]regnar/ and
+//     /^dregnarResolve/ exemption the handoff carried over from 1f "until
+//     1g" -- it matched ZERO lines even before deletion (Dregnar's own
+//     damage already reaches resolveEnemyAttackOnPlayer/
+//     resolveEnemyAttackOnAlly, shared with every other enemy since steps
+//     1b/1c), and keeping a no-op exemption only invites future misuse.
 const P1_FILES = ["js/engine/combat.js", "js/engine/pipeline.js", "js/engine/companion.js"];
 const P1_PATTERN = /\.hp\s*-=|\.health\s*-=/g;
 const P1_ALLOWED_FNS = new Set([
@@ -281,7 +278,7 @@ const P1_ALLOWED_FNS = new Set([
   "applyPlayerDamage", "checkDeathPrevention", "maybeHadrianAllyProtection",
   "useHadrianActive", "buildFightCreature", "legacyScaledCreature", "resolveEnemyRetaliation",
 ]);
-const P1_ALLOWED_PATTERNS = [/Legacy$/, /^resolve[Dd]regnar/, /^dregnarResolve/];
+const P1_ALLOWED_PATTERNS = [/Legacy$/];
 let p1Hits = 0;
 for (const f of P1_FILES) {
   const src = sources[f];
