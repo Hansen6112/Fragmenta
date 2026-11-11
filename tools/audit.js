@@ -228,6 +228,76 @@ for (const [n, d] of Object.entries(ITEM_DEFS)) {
 if (r2.length) err("item-source", `R2: ${r2.length} item(s) with a live source nothing actually reaches: ${r2.join(", ")}`);
 const reservedTotal = Object.values(reservedCounts).reduce((a, b) => a + b, 0);
 
+// ---- combat HP writes (Combat Rebuild Phase 1, step 1f §6: "After
+// 1f-iv, turn on audit rule P1 (HP changes only in applyAndReact/
+// applyHealing, with Dregnar temporarily exempted until 1g).") ----
+// P1: a combat creature's HP/Health may only be written inside
+// applyAndReact's own call graph (its top-level dispatch, every tail it
+// dispatches to, and applyPlayerDamage/checkDeathPrevention -- the
+// shared primitives those tails call into, one level down) or inside
+// applyHeal (healing was never part of this restructure, so this rule
+// only ever looks at DECREASES -- `-=`, never `+=` or a heal's own
+// `= Math.min(max, x + heal)` shape). Scoped to the three combat engine
+// files; dungeon.js's trap damage is a structurally separate system
+// (never touches state.combat) and is correctly outside this rule's
+// reach by simply not being scanned.
+//
+// Exemptions, each disclosed here rather than silently matched:
+//   - Every *Legacy-named function (combat.js/companion.js): kept
+//     oracles for Layer 1 forced-roll parity tests, confirmed to have
+//     ZERO live callers anywhere outside tools/tests/ -- their own
+//     direct writes are the ORIGINAL code, deliberately preserved
+//     byte-for-byte, never executed by an actual player.
+//   - buildFightCreature/legacyScaledCreature (combat.js): creature
+//     CONSTRUCTION (setting a freshly-built creature's starting hp),
+//     not combat resolution.
+//   - resolveEnemyRetaliation (combat.js): confirmed dead code (zero
+//     callers anywhere, live or test) -- superseded by
+//     resolveEnemyAttackOnPlayer when the enemy-to-player path was
+//     migrated in step 1b, never deleted. A step 1h candidate ("delete
+//     old per-pair paths"), not touched here.
+//   - useHadrianActive's own Groundbreaker splash (companion.js):
+//     DISCLOSED, PERMANENT, pre-existing design choice (own comment:
+//     "Splash damage to OTHER enemies... is NOT a second pipeline
+//     target... applied in a loop around this single-target pipeline
+//     call instead") -- not a migration gap, a Phase 2 registry
+//     candidate.
+//   - Dregnar (any function matching /^resolve[Dd]regnar/ or
+//     /^dregnarResolve/): the one exemption the handoff itself names,
+//     "temporarily... until 1g." Currently matches ZERO lines --
+//     Dregnar's own damage already reaches resolveEnemyAttackOnPlayer/
+//     resolveEnemyAttackOnAlly (shared with every other enemy, migrated
+//     in steps 1b/1c) with no direct write of its own found anywhere in
+//     this scan. Kept as a no-op safety net per the handoff's explicit
+//     instruction; step 1g owns deciding whether anything here still
+//     needs it.
+const P1_FILES = ["js/engine/combat.js", "js/engine/pipeline.js", "js/engine/companion.js"];
+const P1_PATTERN = /\.hp\s*-=|\.health\s*-=/g;
+const P1_ALLOWED_FNS = new Set([
+  "applyAndReact", "applyAndReactPlayerActor", "applyAndReactAllyActor",
+  "applyAndReactReactionOnPlayer", "applyAndReactReactionOnAlly", "applyAndReactReactionOnEnemy",
+  "applyAndReactMirrorSoul", "applyAndReactTick", "applyAndReactTickOnEnemy",
+  "applyAndReactTickOnPlayer", "applyAndReactTickOnAlly",
+  "applyPlayerDamage", "checkDeathPrevention", "maybeHadrianAllyProtection",
+  "useHadrianActive", "buildFightCreature", "legacyScaledCreature", "resolveEnemyRetaliation",
+]);
+const P1_ALLOWED_PATTERNS = [/Legacy$/, /^resolve[Dd]regnar/, /^dregnarResolve/];
+let p1Hits = 0;
+for (const f of P1_FILES) {
+  const src = sources[f];
+  if (!src) continue;
+  const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]);
+  let fn = "(top-level)";
+  for (let i = 0; i < codeOnly.length; i++) {
+    const m = codeOnly[i].match(/^function\s+([A-Za-z0-9_]+)\s*\(/);
+    if (m) fn = m[1];
+    if (!P1_PATTERN.test(codeOnly[i])) { P1_PATTERN.lastIndex = 0; continue; }
+    P1_PATTERN.lastIndex = 0;
+    const allowed = P1_ALLOWED_FNS.has(fn) || P1_ALLOWED_PATTERNS.some((p) => p.test(fn));
+    if (!allowed) { err("hp-write", `${f}:${i + 1} (${fn}) writes combat HP outside applyAndReact's own call graph -- "${codeOnly[i].trim()}" (P1)`); p1Hits++; }
+  }
+}
+
 // ---- action definitions (Combat Rebuild Phase 1, step 1e completion
 // handoff, 9 Nov 2026 follow-up: P2/P4) ----
 // P2: every action definition (js/data/actions.js's PLAYER_ACTION_DEFS,
@@ -404,5 +474,6 @@ print("ERRORS", errors);
 print("WARNINGS", warnings);
 process.stdout.write(`\n[items] live-reachable: ${liveReachable}/${Object.keys(ITEM_DEFS).length}; reserved: ${reservedTotal} (${JSON.stringify(reservedCounts)}); R2 violations: ${r2.length}\n`);
 process.stdout.write(`[actions] P4 action-identity checks found: ${p4Hits} (must be 0)\n`);
+process.stdout.write(`[combat] P1 HP-writes-outside-applyAndReact found: ${p1Hits} (must be 0)\n`);
 process.stdout.write(`\n${errors.length} error(s), ${warnings.length} warning(s) across ${scripts.length} scripts.\n`);
 process.exit(errors.length || (strict && warnings.length) ? 1 : 0);
