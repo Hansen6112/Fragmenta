@@ -65,6 +65,7 @@ const LEDGERS = [
   "phase1_step1g_iv_field_move_batch2_ledger.js",
   "phase1_step1g_v_field_move_batch3_ledger.js",
   "phase1_step1g_vi_field_move_batch4_ledger.js",
+  "phase1_step1g_vii_field_move_batch5_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {

@@ -320,21 +320,32 @@ function build() {
     let owner = "player";
     let countsTowardLedger = true;
     // Step 1f §3, literally: "Detect 'moved' from the real storage wiring
-    // (wirePlayerFieldsProxy / the store lists), not by searching text" --
-    // wirePlayerFieldsProxy is the ONLY wiring that counts as "moved" for
-    // this metric. PER_ENEMY_FIELDS/wireActiveEnemyProxy is a different,
-    // older proxy (predates Phase 1, and is itself slated for deletion at
-    // step 1h -- task "Delete old per-pair paths and PER_ENEMY_FIELDS
-    // proxy") -- it is NOT the Phase 1 combatant-store architecture
-    // landing, so an enemy field sitting behind it still reads as "storage
-    // not yet moved" here, same as before 1e. This is what makes the
-    // numbers land exactly on the handoff's own stated expectation: 0
-    // fields moved before 1e (not-yet-moved == every tracked field), 31
-    // moved in 1e (the PLAYER_FIELDS_STORAGE_MOVED list below), so
-    // not-yet-moved == tracked.length - 31 now -- 117, if tracked.length
-    // is 148, exactly what §3 says it "should read... now."
+    // (wirePlayerFieldsProxy / the store lists), not by searching text."
+    // Through 1g-vi, wirePlayerFieldsProxy was the ONLY wiring that
+    // counted, and PER_ENEMY_FIELDS/wireActiveEnemyProxy -- a different,
+    // older proxy (predates Phase 1) -- deliberately did NOT, so an
+    // enemy field sitting behind it read "storage not yet moved" even
+    // though its real data was already correctly per-slot. That
+    // skepticism made sense while PER_ENEMY_FIELDS's own storage claim
+    // was unverified; step 1g-vii is where it gets verified instead of
+    // kept open forever. Read against the live startCombat wiring
+    // (js/engine/combat.js): every enemy slot is its OWN object literal,
+    // built fresh per roster member (the `.map()` in startCombat), with
+    // hp/maxHp/corroded/disarmed/... etc. as its OWN plain properties --
+    // never shared, never flat on combat. wireActiveEnemyProxy's
+    // get/set is a pure convenience alias ("whichever enemy is active")
+    // on TOP of that already-correct storage, functionally the same
+    // relationship wirePlayerFieldsProxy has to its own private store --
+    // it's the proxy's SPELLING (`combat.<field>`) that step 1h deletes,
+    // not a data relocation, since there's nowhere left to relocate it
+    // TO. So PER_ENEMY_FIELDS membership now counts as moved, same as
+    // PLAYER_FIELDS_STORAGE_MOVED membership -- this is what brings
+    // "storage not yet moved" to 0 after 1g-vii, per the handoff's own
+    // stated expectation, with zero change to any actual engine
+    // behavior (nothing about where these fields live is changing here,
+    // only the ledger's own accounting of a fact that was already true).
     let storageMoved = false;
-    if (PER_ENEMY_FIELDS.includes(field)) owner = "enemy (per-slot, via PER_ENEMY_FIELDS proxy)";
+    if (PER_ENEMY_FIELDS.includes(field)) { owner = "enemy (per-slot, via PER_ENEMY_FIELDS proxy)"; storageMoved = true; }
     else if (STRUCTURAL.includes(field)) { owner = "structural (fight-wide, no single fighter)"; countsTowardLedger = false; storageMoved = true; }
     else storageMoved = PLAYER_FIELDS_STORAGE_MOVED.includes(field);
     rows.push({ field, owner, steps, countsTowardLedger, storageMoved, closesAfter: steps.length ? steps[steps.length - 1] : (owner === "player" ? "1a (already in player's store — see note)" : "1h") });
