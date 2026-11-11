@@ -136,6 +136,22 @@ const PLAYER_FIELDS = [
   "avatarOfFateSaveUsed", "avatarOfFateTurns",
   "avatarOfFreedomTurns", "avatarOfKnowledgeTurns", "avatarOfPassingTurns",
   "avatarOfRenewalTurns", "avatarOfTimeTurns", "avatarOfWarTurns",
+  // Step 1g-v: batch 3 of the 117-field move -- set/gear stacks and
+  // bonuses (37 fields; the handoff's own "about 41" was approximate,
+  // per its own instruction that the ledger's grouping is the
+  // authority). What Phase 2 will turn into modifier entries; moved
+  // as-is here, no redesign.
+  "adaptiveTideMagicStacks", "adaptiveTidePhysicalStacks", "adaptiveWardElement",
+  "battleTemperedAtkStacks", "battleTemperedDefStacks", "blessingOfFortuneCritStacks",
+  "calmWatersDefBonus", "calmWatersMagicBonus", "calmWatersTurns",
+  "compassionsGraceDefStacks", "endlessCurrentStacks", "endlessStudyMagicBonus",
+  "everyChoiceAtkStacks", "everyChoiceMagicStacks", "forestGuardianBonus",
+  "groundbreakerDebuffs", "lastStandAtkBonus", "livingCurrentStacks", "livingSteelBonus",
+  "orderedMindDefStacks", "perfectMemoryKnowledgeBonus", "queenCarapaceBonus",
+  "reinforcedDefStacks", "riverWardenMagicBonus", "sovereigntyTurnsLeft", "temperedSteelStacks",
+  "unbrokenLineHitCount", "unwaveringDevotionStacks", "wallsEndureDefStacks",
+  "whiteWatchRiposteDefBonus", "windsOfChangeAtk", "windsOfChangeDef", "windsOfChangeKnowledge",
+  "windsOfChangeMagic", "workRefinesAtkStacks", "workRefinesMagicStacks", "worthyChallengeStacks",
 ];
 
 function wirePlayerFieldsProxy(combat) {

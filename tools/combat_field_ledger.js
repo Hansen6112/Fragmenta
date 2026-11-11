@@ -197,6 +197,19 @@ const PLAYER_FIELDS_STORAGE_MOVED = [
   "avatarOfFateSaveUsed", "avatarOfFateTurns",
   "avatarOfFreedomTurns", "avatarOfKnowledgeTurns", "avatarOfPassingTurns",
   "avatarOfRenewalTurns", "avatarOfTimeTurns", "avatarOfWarTurns",
+  // Step 1g-v: batch 3 (37 fields), duplicated from js/engine/combat.js's
+  // own PLAYER_FIELDS additions.
+  "adaptiveTideMagicStacks", "adaptiveTidePhysicalStacks", "adaptiveWardElement",
+  "battleTemperedAtkStacks", "battleTemperedDefStacks", "blessingOfFortuneCritStacks",
+  "calmWatersDefBonus", "calmWatersMagicBonus", "calmWatersTurns",
+  "compassionsGraceDefStacks", "endlessCurrentStacks", "endlessStudyMagicBonus",
+  "everyChoiceAtkStacks", "everyChoiceMagicStacks", "forestGuardianBonus",
+  "groundbreakerDebuffs", "lastStandAtkBonus", "livingCurrentStacks", "livingSteelBonus",
+  "orderedMindDefStacks", "perfectMemoryKnowledgeBonus", "queenCarapaceBonus",
+  "reinforcedDefStacks", "riverWardenMagicBonus", "sovereigntyTurnsLeft", "temperedSteelStacks",
+  "unbrokenLineHitCount", "unwaveringDevotionStacks", "wallsEndureDefStacks",
+  "whiteWatchRiposteDefBonus", "windsOfChangeAtk", "windsOfChangeDef", "windsOfChangeKnowledge",
+  "windsOfChangeMagic", "workRefinesAtkStacks", "workRefinesMagicStacks", "worthyChallengeStacks",
 ];
 
 function extractFunctions(text) {
