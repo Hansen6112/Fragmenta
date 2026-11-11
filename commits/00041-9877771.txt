@@ -1,0 +1,85 @@
+range: 88d30786894afc0c27375aec93a46b3916b7fada..987777103ba9239c605fa63411e67c313111afa3
+=== 987777103ba9239c605fa63411e67c313111afa3 2026-11-11 04:17:08 +0000
+1f-ii: enemy active abilities + summons onto definitions
+Per the step 1f handoff's §1 table row: "the definitions extend
+ENEMY_ABILITIES (data/enemyabilities.js) the same way 1e extended
+TACTICS." Investigation first (live source, not assumption):
+resolveEnemyActiveAbility/resolveEnemySummon/buildSummonedEnemyRecord
+already read every bonus/summon field generically off whichever
+ability's data getEnemyAbility(abilityId) hands back -- zero branching
+on WHICH ability is running, confirmed by this commit's own new,
+narrowly-scoped P4 check (0 hits). The real gap was narrower than a
+full TACTICS-style rewrite: the enemy damage MATH itself still lived
+inline in calculateDamage's own enemy branch (pipeline.js), never
+reached by a declared, named formula the way playerCore/allyPlain/
+kitAllyBasic/kitAllyAbility already are.
+
+- js/data/actions.js: new PIPELINE_FORMULAS.enemyCore -- today's enemy-
+  vs-player and enemy-vs-ally damage math (every wearer-effect
+  multiplier, every order of Math.round), moved verbatim out of
+  calculateDamage's enemy branch. No new math, same order throughout.
+- js/engine/pipeline.js: calculateDamage's enemy section now does just
+  two things -- Mirror Soul's own shortCircuit reflection check (kept
+  inline, UNCHANGED; the handoff's §4 explicitly makes this a step-1f-iii
+  job, not 1f-ii's, so it's deliberately not touched here) and
+  `PIPELINE_FORMULAS[action.formula](...)`. resolveEnemyAttackOnPlayer/
+  OnAlly set `action.formula` from the chosen ability's own data when
+  one was chosen, falling back to the basic attack's own declared
+  formula otherwise -- `(abilityCtx && abilityCtx.formula) ||
+  ENEMY_BASIC_ATTACK_DEF.formula`, robust to the handful of call sites
+  (checkCounteringGuard's own synthetic counter-attack context, Dregnar's
+  own ctx spread) that build a minimal abilityCtx-shaped object without
+  their own `formula` field -- caught by the full suite the first time
+  I tried reading `abilityCtx.formula` unconditionally (22 failures,
+  Dregnar Stage A/B + both pipeline parity suites), fixed by falling back
+  instead of requiring every caller to carry the new field.
+- js/data/enemyabilities.js: every ACTIVE entry (passives untouched --
+  they're never resolved through the attack pipeline) now declares
+  targeting/toHit/actionType/formula, merged in by getEnemyAbility via a
+  single shared ENEMY_ACTIVE_ACTION_SHAPE constant rather than repeated
+  on each of the ~150 entries -- disclosed interpretation: unlike
+  APOTHECARY_ACTION_SHAPE (explicitly opted into per entry, since Tactics
+  still differ from each other), there is zero variation across enemy
+  actives on any of these four fields, so a central merge is the more
+  honest shape, not a shortcut. ENEMY_BASIC_ATTACK_DEF gives the
+  "no active chosen" case its own definition too, same "every action has
+  one" rule PLAYER_ACTION_DEFS.basic_attack already follows.
+- js/engine/combat.js: resolveEnemyActiveAbility's returned abilityCtx
+  now carries `formula: ability.formula`, read off the chosen ability's
+  own merged definition instead of assumed by the caller.
+- tools/audit.js: P2 extended to ENEMY_ABILITIES' active entries +
+  ENEMY_BASIC_ATTACK_DEF (targeting/toHit/actionType/formula-exists-in-
+  PIPELINE_FORMULAS); P4 extended with a new check scoped to exactly the
+  three named functions' own bodies (not all of combat.js) -- Dregnar's
+  own resolver (resolveDregnarAttempt) DOES branch on `abilityId ===
+  "dra_barrier"` today, and that's correct for now (Dregnar is
+  explicitly 1g's job per the handoff's §1, not 1f's), so a whole-file
+  scope would have produced a false P4 failure on code this step was
+  never asked to touch. Verified both P2 and P4 extensions by
+  deliberately reintroducing a bad formula name and an ability-identity
+  check respectively, confirming each is caught, then reverting.
+
+Not touched, by design: resolveEnemySummon/buildSummonedEnemyRecord
+(already fully data-driven -- summon spec fields like creatureId/pool/
+count/maxActive/maxLifetime/capKey/groupOverride read generically, no
+code change needed); Mirror Soul's reflection (1f-iii); Dregnar's own
+resolver (1g).
+
+Verification: full suite 367/367 (confirmed stable after one unrelated
+one-off flake, same pattern seen during 1f-i's own verification), audit
+0 errors (P4 hits: 0, both new checks confirmed catching their own
+deliberate breaks). Layer 2: boss_sweep.js and plus3_run.js (which
+includes a dedicated Dregnar/Arbitarius scenario) both bit-for-bit
+identical to the accepted step-1f-i baseline -- a pure restructure with
+zero behavior change.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js        | 203 +++++++++++++++++++++++++++++++++++++++
+ js/data/enemyabilities.js |  37 ++++++-
+ js/engine/combat.js       |   8 ++
+ js/engine/pipeline.js     | 240 +++++++---------------------------------------
+ tools/audit.js            |  64 +++++++++++++
+ 5 files changed, 345 insertions(+), 207 deletions(-)

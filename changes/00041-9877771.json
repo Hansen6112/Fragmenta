@@ -1,0 +1,15 @@
+[
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "enemyCore",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ACTIVE_ACTION_SHAPE",
+  "type": "registry added"
+ },
+ {
+  "reg": "ENEMY_BASIC_ATTACK_DEF",
+  "type": "registry added"
+ }
+]
