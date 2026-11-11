@@ -1,0 +1,75 @@
+range: 6af464333548f07d5a8aa7f87a924da2eb8f16fb..02886a22ad474402f3129e829a7a2dc968fb4900
+=== 02886a22ad474402f3129e829a7a2dc968fb4900 2026-11-11 14:40:10 +0000
+Phase 1, step 1f-iii: maybeRiposte (player's own Riposte vs an enemy)
+Found while scoping audit rule P1 (the next 1f task): the handoff's §4
+reaction list names "riposteCounterOnPlayer, riposteCounterByAllyOnEnemy,
+riposteCounterByEnemyOnAlly, arenaRiposteCounterOnPlayer, maybeRiposte,
+companion retaliation, Last Bastion" -- six of those seven got converted
+during 1f-iii's own work, but maybeRiposte (the PLAYER's OWN Riposte
+gear, countering an ENEMY -- the mirror-image direction of
+riposteCounterOnPlayer, which is an ENEMY wearer countering the player)
+was missed. P1 would have had to carry a second "temporary" exemption
+for it alongside Dregnar's, which the handoff only asked for one of --
+the right fix is finishing 1f-iii's own scope, not widening P1's
+allow-list for a gap 1f-iii left behind.
+
+Eligibility ("does the player even have Riposte, is the target already
+dead") stays in combat.js's own maybeRiposte, outside the pipeline, same
+as every other reaction's wrapper. The roll/damage/kill now runs through
+a new resolveRiposteCounterPlayer, steps 2-5, with two different reuse
+decisions depending on how much baggage each shared step function
+actually carries:
+
+- rollToHitPlayerActor (step 3) is reused AS-IS, through the ordinary
+  top-level rollToHit dispatch -- its entire body is the one
+  accuracy-vs-agility check maybeRiposte always made itself, with
+  nothing else in it to leak.
+- calculateDamagePlayerActor/applyAndReactPlayerActor (steps 4-5) are
+  NOT reused: the former unconditionally runs
+  rollPlayerDamageCoreForPipeline (which defers Brace/Guarded Strike/
+  Sure Foundation consumption to the latter) and the latter
+  unconditionally consumes a Siege Corps atk charge whenever the hit is
+  physical -- gated on dmgInfo.isPhysical, not on any action field a
+  reaction could opt out of, so there's no safe way to reuse it without
+  a leak. Both get a dedicated formula (PIPELINE_FORMULAS.riposteCounterPlayer,
+  js/data/actions.js) and tail (applyAndReactReactionOnEnemy, pipeline.js)
+  instead, new top-of-function guards in calculateDamage/applyAndReact
+  routing actor.kind === "player" && target.kind === "enemy" reactions
+  to them. The new formula deliberately keeps calling rollPlayerDamage
+  (the ORIGINAL function maybeRiposte has always called, still
+  separately maintained from rollPlayerDamageCoreForPipeline since
+  1e-i), not the newer core -- avoiding any question of whether the two
+  have ever silently drifted. White Watch 6pc's stacking Defense bonus
+  moved into the formula too (unobservable: it never depended on
+  anything the write step computes, and a miss already never reached it
+  either way).
+
+maybeRiposte itself was never duplicated under a Legacy name -- every
+caller, old (playerAttackLegacy/useDecoyLegacy/useDisarmLegacy/
+useElementAbilityLegacy) and live (useItem/useFeint/useApothecaryAbility/
+pipeline.js's own orchestrators), has always called the same shared
+function, so no call site needed to change.
+
+New dedicated test file (phase1_step1f_iii_player_riposte_pipeline_parity.js,
+8 scenarios, registered in run_all.js): no Legacy oracle exists for this
+one either, so each scenario pins the new path against a hand-computed
+expected value (same convention as the ticks suite) -- the exact math
+match against rollPlayerDamage * riposteMultiplier * clashMult on an
+identical forced RNG sequence, White Watch's multiplier AND its Defense
+stack, the kill path, and the no-activeElement call shape (a mage's
+riposte is always "physical").
+
+Verified: audit.js (0 errors, P4 at 0), full suite (402/402, up from
+394 -- the 8 new scenarios), and both whole-fight harnesses bit-for-bit
+identical against the prior 1f-iv baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  32 +++
+ js/engine/combat.js                                |  26 +--
+ js/engine/pipeline.js                              |  68 +++++++
+ ...e1_step1f_iii_player_riposte_pipeline_parity.js | 214 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 325 insertions(+), 16 deletions(-)
