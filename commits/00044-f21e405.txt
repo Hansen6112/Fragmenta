@@ -1,0 +1,50 @@
+range: 2ddb538faed2f4e11cdd64883c821a9b55bb025b..f21e405d7bd2b0e163a986c1cd738fb4c589ac57
+=== f21e405d7bd2b0e163a986c1cd738fb4c589ac57 2026-11-11 13:38:52 +0000
+1f-iii §4 (part 3): Riposte-by-ally-on-enemy through steps 2-5
+Per the user's own direction on this sub-step's architecture: route
+counter-attacks through the literal steps 2-5 dispatch (not a formula-
+only shortcut), confirmed after finding that the player-side/enemy-side
+shared Actor functions carry real basic-attack-specific baggage a
+reaction must not inherit. This is the first of the remaining four
+Riposte-family variants, chosen first because the ally-actor step
+functions (hardened in the companion-retaliation commit) already turned
+out simple enough to reuse safely -- verified field-by-field before
+wiring anything in, same discipline the next three variants will need.
+
+- js/engine/combat.js: today's riposteCounterByAllyOnEnemy renamed to
+  riposteCounterByAllyOnEnemyLegacy (byte-identical, kept only as the
+  forced-roll parity oracle for resolveEnemyAttackOnAllyLegacy).
+  riposteCounterByAllyOnEnemy now keeps just the eligibility/cap
+  pre-check (unchanged) and calls the new resolveRiposteCounterByAllyOn
+  Enemy (pipeline.js). Verified killEnemyAsAlly (which the existing
+  ally-actor kill path already uses) and the original's own resolveKill
+  call are equivalent here: this reaction only ever fires while its own
+  creature is the ACTIVE enemy (it's reached from inside this same
+  creature's own attack resolution), so killEnemyAsAlly's activeIndex
+  redirect is a no-op -- not a behavior change, confirmed by Layer 1 +
+  Layer 2 both staying bit-for-bit identical.
+- js/engine/pipeline.js: new resolveRiposteCounterByAllyOnEnemy
+  orchestrator, reusing the toHit:"none" and flavorLine additions
+  already in rollToHitAllyActor/applyAndReactAllyActor (companion-
+  retaliation commit) -- no further hardening needed for this variant.
+- js/data/actions.js: new PIPELINE_FORMULAS.riposteCounterAlly -- today's
+  exact math, moved verbatim.
+- tools/tests/phase1_step1c_ally_pipeline_parity.js: the existing
+  P1C-MISS-01 scenario never actually equips Riposte (so it only
+  exercises the no-op path) -- 2 new scenarios force the real
+  counter-strike (non-lethal, and a kill) with Riposte actually
+  equipped, checkParity-style against riposteCounterByAllyOnEnemyLegacy.
+
+Verification: full suite 372/372 (+2), audit 0 errors. Layer 2
+(boss_sweep.js, plus3_run.js) both bit-for-bit identical to the
+step-1f-i baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                | 12 ++++++++++
+ js/engine/combat.js                               | 25 ++++++++++++++------
+ js/engine/pipeline.js                             | 28 +++++++++++++++++++++++
+ tools/tests/phase1_step1c_ally_pipeline_parity.js | 14 ++++++++++++
+ 4 files changed, 72 insertions(+), 7 deletions(-)
