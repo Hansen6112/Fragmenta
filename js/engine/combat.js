@@ -125,6 +125,17 @@ const PLAYER_FIELDS = [
   "naturesPersistenceUsed", "preparedResponseWitnessed", "scoutStealthUsed", "sharedBurdenUsed",
   "stormBarrierUsed", "threadsOfConsequencePending", "timelessGuardCooldown", "trailblazerUsed",
   "unbreakableUsed", "unlikelyOutcomeGuaranteedCrit", "unyieldingWallCooldown",
+  // Step 1g-iv: batch 2 of the 117-field move -- every remaining avatarOf*
+  // field (the …Used flags moved already, in 1e). One family, read
+  // together; no redesign of the stacking/duration logic itself.
+  "avatarOfChaosAtkBonus", "avatarOfChaosDefBonus", "avatarOfChaosKnowledgeBonus",
+  "avatarOfChaosMagicBonus", "avatarOfChaosTurns",
+  "avatarOfCreationAtkStacks", "avatarOfCreationMagicStacks", "avatarOfCreationTurns",
+  "avatarOfDevotionSaveUsed", "avatarOfDevotionTurns",
+  "avatarOfEnduranceAtkBonus", "avatarOfEnduranceDefBonus", "avatarOfEnduranceTurns",
+  "avatarOfFateSaveUsed", "avatarOfFateTurns",
+  "avatarOfFreedomTurns", "avatarOfKnowledgeTurns", "avatarOfPassingTurns",
+  "avatarOfRenewalTurns", "avatarOfTimeTurns", "avatarOfWarTurns",
 ];
 
 function wirePlayerFieldsProxy(combat) {

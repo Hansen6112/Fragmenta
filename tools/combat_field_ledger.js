@@ -187,6 +187,16 @@ const PLAYER_FIELDS_STORAGE_MOVED = [
   "naturesPersistenceUsed", "preparedResponseWitnessed", "scoutStealthUsed", "sharedBurdenUsed",
   "stormBarrierUsed", "threadsOfConsequencePending", "timelessGuardCooldown", "trailblazerUsed",
   "unbreakableUsed", "unlikelyOutcomeGuaranteedCrit", "unyieldingWallCooldown",
+  // Step 1g-iv: batch 2 (21 fields), duplicated from js/engine/combat.js's
+  // own PLAYER_FIELDS additions.
+  "avatarOfChaosAtkBonus", "avatarOfChaosDefBonus", "avatarOfChaosKnowledgeBonus",
+  "avatarOfChaosMagicBonus", "avatarOfChaosTurns",
+  "avatarOfCreationAtkStacks", "avatarOfCreationMagicStacks", "avatarOfCreationTurns",
+  "avatarOfDevotionSaveUsed", "avatarOfDevotionTurns",
+  "avatarOfEnduranceAtkBonus", "avatarOfEnduranceDefBonus", "avatarOfEnduranceTurns",
+  "avatarOfFateSaveUsed", "avatarOfFateTurns",
+  "avatarOfFreedomTurns", "avatarOfKnowledgeTurns", "avatarOfPassingTurns",
+  "avatarOfRenewalTurns", "avatarOfTimeTurns", "avatarOfWarTurns",
 ];
 
 function extractFunctions(text) {
