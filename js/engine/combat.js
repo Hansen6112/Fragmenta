@@ -2014,6 +2014,12 @@ function applyEnemyFlatDamageReduction(dmg, creature) {
   return result;
 }
 
+// Step 1f-iii §4: "on-hit-taken triggers... become reactions with those
+// triggers." Already satisfied by this function's own shape, unchanged
+// here: it never names a specific ability, only ever dispatches by its
+// declared trigger === "onHitTaken" plus its own declared fields
+// (reflectPctOfAtk, inflictStatusOnAttacker, counterChance/counterPctOfAtk)
+// read generically off each entry in creature.passives.
 function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
   if (dmgDealt <= 0) return;
   for (const id of creature.passives) {
@@ -2150,6 +2156,13 @@ function checkCounteringGuard(state, creature) {
 // applyPhysicalOnHitEffects (playerAttack/Decoy/Ambush/Disarm) and
 // directly from useElementAbility, after its damage switch — the only two
 // places a hit against the active creature can land.
+// Step 1f-iii §4: "low-health... triggers... become reactions with those
+// triggers." Already satisfied by this function's own shape, unchanged
+// here: it never names a specific passive, only ever dispatches by its
+// declared trigger === "survivedBelowPct" plus its own declared fields
+// (pct, oncePerCombat, selfBuff, packAuraBuff) read generically off each
+// entry in creature.passives — the same shape lowHealthTriggerChecks
+// (combat.js, LOW_HEALTH_REACTIONS table) now also uses on the player side.
 function checkEnemyLowHealthTriggers(state, creature) {
   const combat = state.combat;
   const enemy = combat.enemies[combat.activeIndex];
@@ -6474,30 +6487,38 @@ Events.on("combat.started", ({ state }) => {
 // below 30% each fight, an immediate +6 Defense for 2 turns. Checked
 // anywhere player Health just changed downward, since it's a reactive
 // safety net rather than tied to a specific action.
-// Every "when you drop below X% Health" trigger, in their established
-// order. This list used to be pasted verbatim into seven separate action
+// Step 1f-iii §4: "low-health... triggers (lowHealthTriggerChecks...)
+// become reactions with those triggers." Each entry below keeps its own
+// function body completely unchanged (own threshold, own oncePerFight
+// flag, own effect) -- only the dispatch shape changes, from a hardcoded
+// spread list to a declared table tagged trigger: "lowHealth", read
+// generically by the loop below rather than naming each check inline.
+// This list used to be pasted verbatim into seven separate action
 // handlers — a new Avatar/threshold effect added to six of them and missed
 // in the seventh would silently never fire on that action. Add new
-// low-Health triggers HERE, once.
+// low-Health triggers HERE, once, as a new entry in this table.
+const LOW_HEALTH_REACTIONS = [
+  { id: "hold_the_line", trigger: "lowHealth", resolve: checkHoldTheLine },
+  { id: "rooted_resolve", trigger: "lowHealth", resolve: checkRootedResolve },
+  { id: "avatar_of_bloom", trigger: "lowHealth", resolve: checkAvatarOfBloom },
+  { id: "avatar_of_passing", trigger: "lowHealth", resolve: checkAvatarOfPassing },
+  { id: "avatar_of_fate", trigger: "lowHealth", resolve: checkAvatarOfFate },
+  { id: "rally_the_line", trigger: "lowHealth", resolve: checkRallyTheLine },
+  { id: "avatar_of_war", trigger: "lowHealth", resolve: checkAvatarOfWar },
+  { id: "avatar_of_knowledge", trigger: "lowHealth", resolve: checkAvatarOfKnowledge },
+  { id: "love_endures", trigger: "lowHealth", resolve: checkLoveEndures },
+  { id: "avatar_of_devotion", trigger: "lowHealth", resolve: checkAvatarOfDevotion },
+  { id: "avatar_of_chaos", trigger: "lowHealth", resolve: checkAvatarOfChaos },
+  { id: "avatar_of_endurance", trigger: "lowHealth", resolve: checkAvatarOfEndurance },
+  { id: "avatar_of_freedom", trigger: "lowHealth", resolve: checkAvatarOfFreedom },
+  { id: "avatar_of_creation", trigger: "lowHealth", resolve: checkAvatarOfCreation },
+  { id: "avatar_of_renewal", trigger: "lowHealth", resolve: checkAvatarOfRenewal },
+  { id: "avatar_of_time", trigger: "lowHealth", resolve: checkAvatarOfTime },
+];
 function lowHealthTriggerChecks(state) {
-  return [
-    ...checkHoldTheLine(state),
-    ...checkRootedResolve(state),
-    ...checkAvatarOfBloom(state),
-    ...checkAvatarOfPassing(state),
-    ...checkAvatarOfFate(state),
-    ...checkRallyTheLine(state),
-    ...checkAvatarOfWar(state),
-    ...checkAvatarOfKnowledge(state),
-    ...checkLoveEndures(state),
-    ...checkAvatarOfDevotion(state),
-    ...checkAvatarOfChaos(state),
-    ...checkAvatarOfEndurance(state),
-    ...checkAvatarOfFreedom(state),
-    ...checkAvatarOfCreation(state),
-    ...checkAvatarOfRenewal(state),
-    ...checkAvatarOfTime(state),
-  ];
+  const lines = [];
+  for (const reaction of LOW_HEALTH_REACTIONS) lines.push(...reaction.resolve(state));
+  return lines;
 }
 
 // The incoming-damage mitigation pipeline for a hit on the PLAYER, shared
