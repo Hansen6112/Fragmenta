@@ -5378,25 +5378,19 @@ function tickEnemyPassives(state, e) {
 // (Decoy, which doesn't call resolveEnemyRetaliation at all). White
 // Watch's 4pc set bonus raises the multiplier from 0.5x to 0.75x; its 6pc
 // grants a stacking +2 Defense for the rest of the fight each time this fires.
+// Step 1f-iii §4 (found while scoping audit rule P1, after 1f-iv): this
+// is the "maybeRiposte" the handoff's own reaction list names alongside
+// riposteCounterOnPlayer/riposteCounterByAllyOnEnemy/riposteCounterByEnemyOnAlly/
+// arenaRiposteCounterOnPlayer -- the PLAYER's own Riposte gear, countering
+// the ENEMY, the one direction the rest of 1f-iii's work never touched.
+// Eligibility ("does the player even have Riposte, is the target already
+// dead") stays outside the pipeline, same as every other reaction's own
+// wrapper; the actual roll/damage/kill now runs through
+// resolveRiposteCounterPlayer, steps 2-5.
 function maybeRiposte(state, creature) {
   if (!hasEffect(state, "riposte")) return [];
   if (!state.combat || state.combat.hp <= 0) return [];
-  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
-    return [`You seize the opening, but the riposte doesn't land.`];
-  }
-  // Clash of Steel (Divine Regalia — Gauntlets of the Unyielding): +50% to
-  // Riposte's damage specifically — the only "counterattack" mechanic the
-  // player has in this engine.
-  const clashMult = hasEffect(state, "clash_of_steel") ? 1.5 : 1;
-  const dmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
-  state.combat.hp -= dmg;
-  state.combat.lastDamageType = "physical";
-  const lines = [`You seize the opening — a free riposte for ${dmg} damage.`];
-  if (hasSetTier(state, "White Watch", 6)) {
-    state.combat.whiteWatchRiposteDefBonus = (state.combat.whiteWatchRiposteDefBonus || 0) + 2;
-  }
-  if (state.combat.hp <= 0) lines.push(...resolveKill(state, creature));
-  return lines;
+  return resolveRiposteCounterPlayer(state, creature);
 }
 
 // Generalized Riposte, for an enemy or ally wearer: the same "a free 0.5x

@@ -371,6 +371,13 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
   // other action's (js/data/actions.js's PIPELINE_FORMULAS), just called
   // directly here instead of falling through to a kind-specific branch.
   if (action.isTick) return PIPELINE_FORMULAS[action.formula](actor, target, action, ctx, hitInfo);
+  // Step 1f-iii §4: the PLAYER's own Riposte (maybeRiposte) landing on an
+  // ENEMY is a reaction, not a normal player attack -- calculateDamagePlayerActor's
+  // own body carries real basic-attack-only baggage a riposte never had
+  // (Siege Corps atk-charge peek, openingReach, Lightning's second roll,
+  // elementOnHit hooks, feint consumption), so it gets the formula table
+  // directly instead, same reasoning as every other reaction in this step.
+  if (action.isReaction && actor.kind === "player" && target.kind === "enemy") return PIPELINE_FORMULAS[action.formula](actor, target, action, ctx, hitInfo);
   if (actor.kind === "ally" && target.kind === "enemy") return calculateDamageAllyActor(actor, target, action, ctx, hitInfo);
   if (actor.kind === "player" && target.kind === "enemy") return calculateDamagePlayerActor(actor, target, action, ctx, hitInfo);
   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
@@ -423,6 +430,14 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   // tickAllyStatuses's own inline "write the damage, maybe resolve a
   // kill/defeat" block already did for that kind.
   if (action.isTick) return applyAndReactTick(actor, target, dmgInfo, ctx, action);
+  // Step 1f-iii §4: the PLAYER's own Riposte (maybeRiposte) landing on an
+  // ENEMY -- its own dedicated tail (applyAndReactReactionOnEnemy, below),
+  // NOT applyAndReactPlayerActor's body, which carries an UNCONDITIONAL
+  // Siege Corps atk-charge consumption (gated on dmgInfo.isPhysical, not
+  // on any action field a reaction could opt out of) plus Sure
+  // Foundation re-granting and element-on-hit hooks -- none of which
+  // maybeRiposte ever had.
+  if (action.isReaction && actor.kind === "player" && target.kind === "enemy") return applyAndReactReactionOnEnemy(actor, target, dmgInfo, ctx, action);
   if (actor.kind === "ally" && target.kind === "enemy") return applyAndReactAllyActor(actor, target, dmgInfo, ctx, action);
   if (actor.kind === "player" && target.kind === "enemy") return applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action);
   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
@@ -1020,6 +1035,25 @@ function applyAndReactReactionOnAlly(actor, target, dmgInfo, ctx, action) {
   return { lines, damage: null };
 }
 
+// ---- Step 5, reaction tail: the PLAYER's own Riposte (maybeRiposte)
+// landing on an ENEMY (step 1f-iii §4). The original's own tail, moved
+// verbatim: write the damage, plain resolveKill if it's lethal -- no
+// activeIndex dance (unlike a DOT tick, maybeRiposte's own `creature`
+// argument is always whichever enemy is currently active, by
+// construction of every one of its call sites, so there's never a
+// "redirect back" to do).
+function applyAndReactReactionOnEnemy(actor, target, dmgInfo, ctx, action) {
+  const state = ctx.state;
+  const enemySlot = target.store;
+  const creature = target.ref.creatureObj;
+  const edmg = dmgInfo.edmg;
+  enemySlot.hp -= edmg;
+  enemySlot.lastDamageType = dmgInfo.kind;
+  const lines = [action.flavorLine(creature, edmg)];
+  if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, creature));
+  return { lines };
+}
+
 // ---- Step 5, reaction tail: Mirror Soul's own reflection (step 1f-iii
 // §4). calculateDamage already computed `reflected` (the one randInt
 // draw, same order as before); this is exactly what used to run inline
@@ -1157,6 +1191,40 @@ function resolveAllyDotTick(state, ally, key, rawDmg, entryName) {
   const dmgInfo = calculateDamage(combatant, combatant, action, ctx, null);
   if (dmgInfo.edmg <= 0) return { lines: [] };
   return applyAndReact(combatant, combatant, dmgInfo, ctx, action);
+}
+
+// ---- Orchestrator: the PLAYER's own Riposte, landing on an ENEMY (step
+// 1f-iii §4, completed after 1f-iv) -- a free riposteMultiplier-scaled
+// (0.5x base, 0.75x White Watch 4pc, x1.5 Clash of Steel) follow-up
+// whenever the ENEMY's own retaliation this round dealt zero damage.
+// rollToHitPlayerActor is reused AS-IS here, through the top-level
+// rollToHit dispatch -- its entire body is the one accuracy-vs-agility
+// check maybeRiposteLegacy (the original, before this migration) always
+// made, with no extra baggage to leak, unlike calculateDamagePlayerActor/
+// applyAndReactPlayerActor (see calculateDamage/applyAndReact's own
+// isReaction guards for actor.kind === "player" for why those two get
+// a dedicated formula/tail instead). Called from combat.js's own
+// maybeRiposte, which keeps "does the player even have Riposte, is the
+// target already dead" eligibility outside the pipeline.
+function resolveRiposteCounterPlayer(state, creature) {
+  const actor = makePlayerCombatant(state);
+  const target = findEnemyCombatant(state, creature);
+  const action = {
+    formula: "riposteCounterPlayer",
+    toHit: "roll", isReaction: true,
+    missLine: (state, creature) => [`You seize the opening, but the riposte doesn't land.`],
+    flavorLine: (creature, edmg) => `You seize the opening — a free riposte for ${edmg} damage.`,
+  };
+  const ctx = { state, pendingAction: action, target };
+
+  const chosen = chooseAction(actor, ctx);
+  const targets = chooseTargets(actor, chosen, ctx);
+  const hitInfo = rollToHit(actor, targets[0], chosen, ctx);
+  if (!hitInfo.hit) return hitInfo.result.lines;
+
+  const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+  return result.lines;
 }
 
 // ---- Orchestrator: Riposte, generalized for an enemy wearer (step

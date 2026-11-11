@@ -647,4 +647,36 @@ const PIPELINE_FORMULAS = {
     if (vulnerability && vulnerability.statuses.includes(action.key)) edmg = Math.round(edmg * vulnerability.multiplier);
     return { shortCircuit: false, edmg, kind: "physical" };
   },
+
+  // The PLAYER's own Riposte, countering an ENEMY (step 1f-iii §4,
+  // completed after 1f-iv) -- moved verbatim out of combat.js's own
+  // maybeRiposte. Deliberately calls rollPlayerDamage (the ORIGINAL
+  // function maybeRiposte has always called), not
+  // rollPlayerDamageCoreForPipeline (calculateDamagePlayerActor's own
+  // core): the two are verified equivalent only for what 1e-i's own
+  // parity gate covers (today's basic-attack-shaped actions), and
+  // rollPlayerDamageCoreForPipeline additionally defers Brace/Guarded
+  // Strike/Sure Foundation consumption to applyAndReactPlayerActor's own
+  // body (stat()-purity split) -- reusing it here with no matching
+  // consumption step would leave those bonuses un-zeroed, a real
+  // behavior change. Calling the same function maybeRiposte always has
+  // sidesteps that question entirely: it still consumes those bonuses
+  // itself, inline, exactly as before.
+  // White Watch 6pc's stacking Defense bonus fires whenever the riposte
+  // LANDS -- moved here rather than left in the tail (applyAndReactReactionOnEnemy)
+  // precisely because it doesn't depend on anything the tail computes
+  // (the write, the kill check), so running it here, in step 4, instead
+  // of after step 5's write, is unobservable: it only ever ran once
+  // per successful riposte either way, and a miss never reached it then
+  // or now (rollToHit already short-circuited).
+  riposteCounterPlayer(actor, target, action, ctx, hitInfo) {
+    const state = ctx.state;
+    const creature = target.ref.creatureObj;
+    const clashMult = hasEffect(state, "clash_of_steel") ? 1.5 : 1;
+    const edmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
+    if (hasSetTier(state, "White Watch", 6)) {
+      state.combat.whiteWatchRiposteDefBonus = (state.combat.whiteWatchRiposteDefBonus || 0) + 2;
+    }
+    return { shortCircuit: false, edmg, kind: "physical" };
+  },
 };
