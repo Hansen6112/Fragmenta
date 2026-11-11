@@ -1,0 +1,36 @@
+range: c1ca0591df1fd35c9e0ba6dd87f592128b5a17cd..af61e4f652b9dff484e9dce34a31a19e1520e4fc
+=== af61e4f652b9dff484e9dce34a31a19e1520e4fc 2026-11-11 14:06:26 +0000
+Phase 1, step 1f-iii: low-health/on-hit-taken triggers become reactions
+Handoff §4: "Low-health and on-hit-taken triggers (lowHealthTriggerChecks,
+checkEnemyLowHealthTriggers, applyEnemyOnHitTakenPassives) become
+reactions with those triggers."
+
+checkEnemyLowHealthTriggers and applyEnemyOnHitTakenPassives already
+satisfied this: both dispatch generically off a declared trigger field
+("survivedBelowPct" / "onHitTaken") read from creature.passives, never
+naming a specific passive. Disclosed via a comment on each rather than
+changed, since there's nothing left to do -- they already match the
+"behaviour lives in definitions... nothing checks which reaction is
+running" shape this step asks for.
+
+lowHealthTriggerChecks (the player side) did not match that shape: it
+was a hardcoded spread list of 16 named function calls. Replaced with
+a declared LOW_HEALTH_REACTIONS table (id + trigger: "lowHealth" +
+resolve), generically iterated in the same order -- each of the 16
+check functions (checkHoldTheLine, checkRootedResolve, the 14
+checkAvatarOf* functions, etc.) keeps its own body completely
+untouched (own threshold, own oncePerFight flag, own effect); only the
+dispatch shape changed, from naming each call inline to reading a
+table. Zero behavior change: same functions, same order, same
+arguments.
+
+Verified: audit.js (0 errors, P4 at 0), full suite (373/373), and both
+whole-fight harnesses (boss_sweep.js, plus3_run.js) bit-for-bit
+identical against the prior 1f-iii (Mirror Soul) baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 63 +++++++++++++++++++++++++++++++++++------------------
+ 1 file changed, 42 insertions(+), 21 deletions(-)
