@@ -1,0 +1,266 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index a7af280..ec58014 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -576,21 +576,17 @@ function tickAllyStatuses(state, ally) {
+   const lines = [];
+   const statuses = ally.statuses;
+   if (!statuses) return lines;
+-  const def = ALLY_DEFS[ally.defId];
+-  const vulnerability = def && def.abilityKit && def.abilityKit.vulnerability;
+   for (const [key, entry] of Object.entries(statuses)) {
+     if (entry.dot && ally.alive) {
++      // The ally-kit vulnerability multiplier and (further down, the
++      // pipeline's own applyAndReactTickOnAlly) the arena non-lethal
++      // floor are now tickStatusAlly's/that tail's own job -- step
++      // 1f-iv §5. This loop still owns the raw pre-formula number
++      // (maxHealth * pctMaxHp * stacks) and the per-tick resolver call.
+       const stacks = entry.stacks || 1;
+-      let dmg = Math.max(0, Math.round(ally.maxHealth * entry.dot.pctMaxHp * stacks));
+-      if (vulnerability && vulnerability.statuses.includes(key)) dmg = Math.round(dmg * vulnerability.multiplier);
+-      if (dmg > 0) {
+-        // The Grand Ovum (engine/arena.js): same non-lethal floor a direct
+-        // hit on an ally already respects (resolveEnemyAttackOnAlly).
+-        const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
+-        ally.health = Math.max(arenaFloor, ally.health - dmg);
+-        lines.push(`${entry.name} saps ${ally.name}'s health for ${dmg}.`);
+-        if (ally.health <= 0) lines.push(...killAlly(state, ally));
+-      }
++      const rawDmg = Math.max(0, Math.round(ally.maxHealth * entry.dot.pctMaxHp * stacks));
++      const result = resolveAllyDotTick(state, ally, key, rawDmg, entry.name);
++      lines.push(...result.lines);
+     }
+     entry.turnsLeft -= 1;
+     if (entry.turnsLeft <= 0) delete statuses[key];
+@@ -624,23 +620,14 @@ function tickPlayerStatuses(state) {
+   const lines = [];
+   for (const [key, entry] of Object.entries(combat.playerStatuses)) {
+     if (entry.dot) {
++      // Heatproof's halving is now tickStatusPlayer's own job (step
++      // 1f-iv §5) -- this loop still owns the raw pre-formula number and
++      // the dungeon-rescue-ends-combat early break.
+       const stacks = entry.stacks || 1;
+-      let dmg = Math.max(0, Math.round(state.maxHealth * entry.dot.pctMaxHp * stacks));
+-      if (key === "burning" && hasEffect(state, "heatproof")) dmg = Math.floor(dmg / 2);
+-      if (dmg > 0) {
+-        applyPlayerDamage(state, dmg);
+-        combat.playerLastHitType = statusDamageType(key); // Injury System v0.2
+-        lines.push(`${entry.name} saps ${dmg} health.`);
+-        if (state.health <= 0) {
+-          const dotDefeatMsg = resolvePlayerDefeatOrDowned(state);
+-          if (dotDefeatMsg) lines.push(dotDefeatMsg);
+-          // The dungeon rescue can fire here and end combat outright — if
+-          // it did, stop ticking the remaining statuses entirely rather
+-          // than let a second DOT in this same tick deal more damage the
+-          // (already-spent) rescue can't answer.
+-          if (!state.combat) break;
+-        }
+-      }
++      const rawDmg = Math.max(0, Math.round(state.maxHealth * entry.dot.pctMaxHp * stacks));
++      const result = resolvePlayerDotTick(state, key, rawDmg, entry.name);
++      lines.push(...result.lines);
++      if (result.comboEnded) break;
+     }
+     entry.turnsLeft -= 1;
+     if (entry.turnsLeft <= 0) delete combat.playerStatuses[key];
+@@ -4134,37 +4121,21 @@ function beginTurn(state) {
+     if (e.burn && e.burn.turnsLeft > 0) {
+       // Ashward (DRA-E08): every eligible Burning tick against the wearer
+       // deals 0.75x — Burning still applies/expires on its own schedule
+-      // otherwise, only the per-tick damage is reduced.
+-      const burnDmg = hasEffect(e.creatureObj, "dra_e08_ashward") ? Math.round(e.burn.dmgPerTurn * 0.75) : e.burn.dmgPerTurn;
+-      e.hp -= burnDmg;
+-      e.lastDamageType = "fire";
+-      lines.push(`The flames still burn ${withThe(e.creatureObj.name, false)} for ${burnDmg} damage.`);
++      // otherwise, only the per-tick damage is reduced (now the
++      // tickBurnEnemy formula's own job, step 1f-iv §5).
++      const burnResult = resolveEnemyDotTick(state, e, i, "tickBurnEnemy", (creature, edmg) => `The flames still burn ${withThe(creature.name, false)} for ${edmg} damage.`, playerTargetIndex, e.burn.dmgPerTurn);
++      lines.push(...burnResult.lines);
+       e.burn.turnsLeft -= 1;
+       if (e.burn.turnsLeft <= 0) e.burn = null;
+-      if (e.hp <= 0 && e.alive) {
+-        combat.activeIndex = i;
+-        lines.push(...resolveKill(state, e.creatureObj));
+-        if (!state.combat) return lines;
+-        if (i !== playerTargetIndex && combat.enemies[playerTargetIndex] && combat.enemies[playerTargetIndex].alive) {
+-          combat.activeIndex = playerTargetIndex;
+-        }
+-        continue;
+-      }
++      if (burnResult.comboEnded) return lines;
++      if (burnResult.killed) continue;
+     }
+     if (e.alive && e.bleed && e.bleed.turnsLeft > 0) {
+-      e.hp -= e.bleed.dmgPerTurn;
+-      e.lastDamageType = "bleed";
+-      lines.push(`${withThe(e.creatureObj.name, true)} is still bleeding for ${e.bleed.dmgPerTurn} damage.`);
++      const bleedResult = resolveEnemyDotTick(state, e, i, "tickBleedEnemy", (creature, edmg) => `${withThe(creature.name, true)} is still bleeding for ${edmg} damage.`, playerTargetIndex, e.bleed.dmgPerTurn);
++      lines.push(...bleedResult.lines);
+       e.bleed.turnsLeft -= 1;
+       if (e.bleed.turnsLeft <= 0) e.bleed = null;
+-      if (e.hp <= 0 && e.alive) {
+-        combat.activeIndex = i;
+-        lines.push(...resolveKill(state, e.creatureObj));
+-        if (!state.combat) return lines;
+-        if (i !== playerTargetIndex && combat.enemies[playerTargetIndex] && combat.enemies[playerTargetIndex].alive) {
+-          combat.activeIndex = playerTargetIndex;
+-        }
+-      }
++      if (bleedResult.comboEnded) return lines;
+     }
+     // Enemy Ability Engine: this creature's own self-buff countdown and
+     // recurring Health-based/regen passives — same per-enemy, every-round
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 37eafdb..b2fb0ee 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -364,6 +364,13 @@ function rollToHit(actor, target, action, ctx) {
+ // { shortCircuit: false, edmg, kind: "mirrorSoul" } so applyAndReact
+ // performs the HP write in step 5, as a reaction against the attacker.
+ function calculateDamage(actor, target, action, ctx, hitInfo) {
++  // Step 1f-iv §5: a DOT tick (action.isTick) is self-contained -- actor
++  // and target are the SAME combatant (whoever's carrying the status),
++  // so it never fits the actor-kind-vs-target-kind dispatch below. Its
++  // damage number is still resolved by formula name exactly like every
++  // other action's (js/data/actions.js's PIPELINE_FORMULAS), just called
++  // directly here instead of falling through to a kind-specific branch.
++  if (action.isTick) return PIPELINE_FORMULAS[action.formula](actor, target, action, ctx, hitInfo);
+   if (actor.kind === "ally" && target.kind === "enemy") return calculateDamageAllyActor(actor, target, action, ctx, hitInfo);
+   if (actor.kind === "player" && target.kind === "enemy") return calculateDamagePlayerActor(actor, target, action, ctx, hitInfo);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+@@ -409,6 +416,13 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+ // the original (so every mutation below reads the POST-mitigation edmg) —
+ // this is the only place state.health changes for this path.
+ function applyAndReact(actor, target, dmgInfo, ctx, action) {
++  // Step 1f-iv §5: a DOT tick (action.isTick), same self-contained
++  // actor-equals-target shape as calculateDamage's own guard above --
++  // dispatched by TARGET kind (applyAndReactTick, below) to one of three
++  // dedicated tails, each exactly what beginTurn/tickPlayerStatuses/
++  // tickAllyStatuses's own inline "write the damage, maybe resolve a
++  // kill/defeat" block already did for that kind.
++  if (action.isTick) return applyAndReactTick(actor, target, dmgInfo, ctx, action);
+   if (actor.kind === "ally" && target.kind === "enemy") return applyAndReactAllyActor(actor, target, dmgInfo, ctx, action);
+   if (actor.kind === "player" && target.kind === "enemy") return applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action);
+   if (!(actor.kind === "enemy" && (target.kind === "player" || target.kind === "ally"))) {
+@@ -1030,6 +1044,121 @@ function applyAndReactMirrorSoul(actor, reflected, ctx) {
+   return { lines: [`Mirror Soul readies itself, but there's nothing in the spell worth turning aside.`], damage: 0 };
+ }
+ 
++// ---- Step 5, DOT tick dispatcher (step 1f-iv §5) -- a tick's actor and
++// target are the same combatant (see calculateDamage's own isTick guard
++// above), so the only real choice left is which kind of combatant is
++// taking it; each tail below is exactly what that kind's own inline
++// "write the damage, maybe resolve a kill/defeat" block already did.
++function applyAndReactTick(actor, target, dmgInfo, ctx, action) {
++  if (target.kind === "enemy") return applyAndReactTickOnEnemy(actor, target, dmgInfo, ctx, action);
++  if (target.kind === "player") return applyAndReactTickOnPlayer(actor, target, dmgInfo, ctx, action);
++  if (target.kind === "ally") return applyAndReactTickOnAlly(actor, target, dmgInfo, ctx, action);
++  throw new Error(`applyAndReactTick(): target kind "${target.kind}" not supported.`);
++}
++
++// Moved verbatim out of beginTurn's own enemy burn/bleed blocks: write
++// the damage, and if it drops this enemy's HP to 0 or below, resolve
++// the kill with the exact same combat.activeIndex redirect those blocks
++// already did (become the dying enemy so resolveKill's own flavor/loot
++// resolves for the right creature, then redirect back to whichever
++// enemy the player is actually fighting if a DIFFERENT one just died).
++// `killed`/`comboEnded` let the caller replicate its own `continue` (burn
++// only) and early `return lines` (both) exactly, since those live in
++// beginTurn's loop, not here.
++function applyAndReactTickOnEnemy(actor, target, dmgInfo, ctx, action) {
++  const state = ctx.state;
++  const combat = state.combat;
++  const enemySlot = target.store;
++  const creature = target.ref.creatureObj;
++  const i = target.index;
++  const edmg = dmgInfo.edmg;
++  enemySlot.hp -= edmg;
++  enemySlot.lastDamageType = dmgInfo.kind;
++  const lines = [action.flavorLine(creature, edmg)];
++  let killed = false, comboEnded = false;
++  if (enemySlot.hp <= 0 && enemySlot.alive) {
++    combat.activeIndex = i;
++    lines.push(...resolveKill(state, creature));
++    killed = true;
++    if (!state.combat) return { lines, killed, comboEnded: true };
++    if (i !== action.playerTargetIndex && combat.enemies[action.playerTargetIndex] && combat.enemies[action.playerTargetIndex].alive) {
++      combat.activeIndex = action.playerTargetIndex;
++    }
++  }
++  return { lines, killed, comboEnded };
++}
++
++// Moved verbatim out of tickPlayerStatuses's own "if (dmg > 0)" block --
++// applyPlayerDamage (not the full mitigateAndApplyHitOnPlayer pipeline a
++// reaction uses: a status tick was never mitigated by Shield Wall/etc.,
++// and never showed Temporary Health absorb lines either, both preserved
++// here exactly), then the same resolvePlayerDefeatOrDowned call and
++// dungeon-rescue-ends-combat check the original made.
++function applyAndReactTickOnPlayer(actor, target, dmgInfo, ctx, action) {
++  const state = ctx.state;
++  const combat = state.combat;
++  const edmg = dmgInfo.edmg;
++  applyPlayerDamage(state, edmg);
++  combat.playerLastHitType = dmgInfo.kind;
++  const lines = [action.flavorLine(edmg)];
++  let comboEnded = false;
++  if (state.health <= 0) {
++    const dotDefeatMsg = resolvePlayerDefeatOrDowned(state);
++    if (dotDefeatMsg) lines.push(dotDefeatMsg);
++    if (!state.combat) comboEnded = true;
++  }
++  return { lines, comboEnded };
++}
++
++// Moved verbatim out of tickAllyStatuses's own "if (dmg > 0)" block --
++// the same arena non-lethal floor a direct hit on an ally already
++// respects, then killAlly if this tick was the kill.
++function applyAndReactTickOnAlly(actor, target, dmgInfo, ctx, action) {
++  const state = ctx.state;
++  const ally = target.ref;
++  const edmg = dmgInfo.edmg;
++  const arenaFloor = state.combat && state.combat.isArenaFight && !state.combat.arenaLethal ? 1 : 0;
++  ally.health = Math.max(arenaFloor, ally.health - edmg);
++  const lines = [action.flavorLine(ally.name, edmg)];
++  if (ally.health <= 0) lines.push(...killAlly(state, ally));
++  return { lines };
++}
++
++// ---- Orchestrators: DOT ticks (step 1f-iv §5) -- "through steps 4-5"
++// only, per the handoff's own wording: no chooseAction/chooseTargets/
++// rollToHit call, since a tick is never chosen and never rolls to hit
++// (toHit: "none" is this action's declared shape, for the same reason
++// every other reaction declares one, even though nothing here actually
++// calls rollToHit to read it). Each orchestrator's own caller
++// (beginTurn/tickPlayerStatuses/tickAllyStatuses) keeps owning whether
++// the tick runs at all, decrementing turnsLeft, and deleting an expired
++// status -- exactly where those already lived.
++function resolveEnemyDotTick(state, enemySlot, index, formula, flavorLine, playerTargetIndex, rawDmg) {
++  const combatant = makeEnemyCombatant(state, enemySlot, index);
++  const action = { isTick: true, toHit: "none", formula, flavorLine, playerTargetIndex, rawDmg };
++  const ctx = { state };
++  const dmgInfo = calculateDamage(combatant, combatant, action, ctx, null);
++  return applyAndReact(combatant, combatant, dmgInfo, ctx, action);
++}
++
++function resolvePlayerDotTick(state, key, rawDmg, entryName) {
++  const combatant = makePlayerCombatant(state);
++  const action = { isTick: true, toHit: "none", formula: "tickStatusPlayer", key, rawDmg, flavorLine: (edmg) => `${entryName} saps ${edmg} health.` };
++  const ctx = { state };
++  const dmgInfo = calculateDamage(combatant, combatant, action, ctx, null);
++  if (dmgInfo.edmg <= 0) return { lines: [], comboEnded: false };
++  return applyAndReact(combatant, combatant, dmgInfo, ctx, action);
++}
++
++function resolveAllyDotTick(state, ally, key, rawDmg, entryName) {
++  const combatant = makeAllyCombatant(ally);
++  const action = { isTick: true, toHit: "none", formula: "tickStatusAlly", key, rawDmg, flavorLine: (allyName, edmg) => `${entryName} saps ${allyName}'s health for ${edmg}.` };
++  const ctx = { state };
++  const dmgInfo = calculateDamage(combatant, combatant, action, ctx, null);
++  if (dmgInfo.edmg <= 0) return { lines: [] };
++  return applyAndReact(combatant, combatant, dmgInfo, ctx, action);
++}
++
+ // ---- Orchestrator: Riposte, generalized for an enemy wearer (step
+ // 1f-iii §4) -- a free 0.5x follow-up when the PLAYER's own attack
+ // misses, through steps 2-5 with the target fixed to the player. A

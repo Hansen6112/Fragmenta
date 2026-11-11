@@ -1,0 +1,22 @@
+[
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "tickBurnEnemy",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "tickBleedEnemy",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "tickStatusPlayer",
+  "type": "added"
+ },
+ {
+  "reg": "PIPELINE_FORMULAS",
+  "id": "tickStatusAlly",
+  "type": "added"
+ }
+]

@@ -1,0 +1,74 @@
+range: 00e020a0abb86cd25c5ccb08faf0d3f52b8c4e14..6af464333548f07d5a8aa7f87a924da2eb8f16fb
+=== 6af464333548f07d5a8aa7f87a924da2eb8f16fb 2026-11-11 14:25:30 +0000
+Phase 1, step 1f-iv: DOT ticks through steps 4-5
+Handoff §5: "Each DoT becomes toHit:'none' damage-only action through
+steps 4-5; replaces separate null-checks; must preserve beginTurn's
+exact ordering."
+
+All four DOT tick sites -- enemy burn, enemy bleed (both in
+beginTurn), player status DOTs (tickPlayerStatuses), and ally status
+DOTs (tickAllyStatuses) -- now resolve through calculateDamage (step
+4) and applyAndReact (step 5) only, per the handoff's own wording: no
+chooseAction/chooseTargets/rollToHit call, since a tick is never
+chosen and never rolls to hit. A tick's actor and target are the SAME
+combatant (whoever's carrying the status), which never fits the
+actor-kind-vs-target-kind dispatch those two functions already use, so
+both gained one new top-of-function guard (action.isTick) that routes
+around it entirely -- calculateDamage straight to the named formula
+(PIPELINE_FORMULAS.tickBurnEnemy/tickBleedEnemy/tickStatusPlayer/
+tickStatusAlly, js/data/actions.js), applyAndReact to one of three new
+dedicated tails (applyAndReactTickOnEnemy/OnPlayer/OnAlly) by target
+kind.
+
+Each formula owns exactly the one "final number" adjustment the
+original inline code applied at this point -- Ashward's 0.75x
+(enemy burn only), Heatproof's halving (player burning only), the
+ally-kit vulnerability multiplier (read generically off ALLY_DEFS, not
+special-cased to any one ally) -- nothing more. Each tail is exactly
+what that kind's own inline "write the damage, maybe resolve a
+kill/defeat" block already did: the enemy tail's activeIndex redirect
+back to whichever enemy the player is actually fighting (if a
+DIFFERENT enemy's tick is what killed it); the player tail's plain
+applyPlayerDamage (not the full mitigation pipeline a reaction uses --
+a status tick was never mitigated by Shield Wall/etc. and never showed
+Temporary Health absorb lines, both preserved) plus
+resolvePlayerDefeatOrDowned and the dungeon-rescue-ends-combat check;
+the ally tail's arena non-lethal floor plus killAlly.
+
+beginTurn/tickPlayerStatuses/tickAllyStatuses keep owning everything
+the handoff didn't ask to move: whether a tick even runs this round,
+decrementing turnsLeft, deleting an expired status, and the
+"replaces separate null-checks" the gate for (`result.killed`/
+`result.comboEnded` from the new tails let each caller replicate its
+own exact control-flow nuance -- burn's own `continue` after a kill
+that bleed never had, the dungeon-rescue early `break` in
+tickPlayerStatuses -- instead of three slightly different inline
+copies of "write, then maybe resolve a kill" each hand-rolling the
+same check).
+
+New dedicated test file (phase1_step1f_iv_ticks_pipeline_parity.js,
+15 scenarios, registered in run_all.js): since this conversion edited
+the inline call sites directly rather than keeping a Legacy oracle to
+diff against, each scenario pins the new pipeline path against a
+hand-computed expected value instead -- including the two
+control-flow nuances most at risk in this kind of refactor: a burn
+kill's `continue` skipping that same enemy's own bleed check this
+round (bleed has no such skip), and a DOT kill on a non-active enemy
+correctly redirecting combat.activeIndex back afterward.
+
+Verified: audit.js (0 errors, P4 at 0), full suite (394/394, up from
+379 -- the 15 new scenarios), and both whole-fight harnesses
+bit-for-bit identical against the prior 1f-iii baseline (Dregnar's own
+fights are DOT-heavy -- Ashward, burn, bleed -- so this is a real
+exercise of the new path, not just the boss sweep's own abilities).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  45 ++++
+ js/engine/combat.js                                |  77 ++-----
+ js/engine/pipeline.js                              | 129 +++++++++++
+ .../phase1_step1f_iv_ticks_pipeline_parity.js      | 251 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 450 insertions(+), 53 deletions(-)
