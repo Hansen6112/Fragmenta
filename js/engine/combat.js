@@ -117,6 +117,14 @@ const PLAYER_FIELDS = [
   "nextAttackBonus", "noviceFreeCastUsed", "perfectMemoryKeys", "perfectTimingUsed",
   "rallyTheLineUsed", "recentActionKeys", "rootedResolveUsed", "spellCastCounter",
   "surgingConduitUsesLeft", "swiftPassageReady", "tacticalMemoryUsed",
+  // Step 1g-iii: batch 1 of the 117-field move -- once-per-fight/cooldown
+  // flags (19 fields), moved as-is, no redesign of their own stacking/
+  // duration logic.
+  "betweenWorldsUsed", "elderBarkSaveUsed", "firstHitTakenUsed", "guardianSpiritUsed",
+  "guidedFootstepsUsed", "lastStandUsed", "mercyOfTheVeilUsed", "mirrorSoulUsed",
+  "naturesPersistenceUsed", "preparedResponseWitnessed", "scoutStealthUsed", "sharedBurdenUsed",
+  "stormBarrierUsed", "threadsOfConsequencePending", "timelessGuardCooldown", "trailblazerUsed",
+  "unbreakableUsed", "unlikelyOutcomeGuaranteedCrit", "unyieldingWallCooldown",
 ];
 
 function wirePlayerFieldsProxy(combat) {
