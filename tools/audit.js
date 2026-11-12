@@ -522,6 +522,105 @@ const P4_ENEMY_ABILITY_ID_PATTERN = /\babilityId\s*(?:===|!==)|\bability\.id\s*(
   }
 }
 
+// ---- damage types (Damage Types spec v1.0, §6: D1-D4, warnings only
+// for now — step 2 of the spec's order of work. They become errors in
+// step 4, once the content passes (§5) that D1/D2 need have actually
+// landed; running them as warnings here just means they're visible and
+// not yet blocking, exactly as the spec's own order-of-work describes. ----
+const DAMAGE_TYPES_SET = new Set(G("DAMAGE_TYPES"));
+const DAMAGE_TAG_VALUES = new Set(["immune", "resist", "normal", "weak"]);
+
+// D1: every damaging action definition has a valid damageType. Reuses
+// the same action enumeration the P2 checks above already built
+// (ACTION_TABLE_NAMES + ENEMY_ABILITIES actives + ENEMY_BASIC_ATTACK_DEF)
+// — "damaging" here means toHit:"roll" (P2 already guarantees toHit:
+// "none" actions have damage:null, so they're not damage-dealing at all).
+for (const tableName of ACTION_TABLE_NAMES) {
+  const table = G(tableName);
+  for (const id of Object.keys(table)) {
+    const def = G(`getActionDef(${JSON.stringify(id)})`);
+    if (def.toHit === "roll" && !DAMAGE_TYPES_SET.has(def.damageType)) {
+      warn("damage-type", `"${id}" (${tableName}) has no valid damageType (D1)`);
+    }
+  }
+}
+for (const id of Object.keys(ENEMY_ABILITIES_TABLE)) {
+  if (ENEMY_ABILITIES_TABLE[id].type !== "active") continue;
+  const def = G(`getEnemyAbility(${JSON.stringify(id)})`);
+  if (def.toHit === "roll" && !DAMAGE_TYPES_SET.has(def.damageType)) {
+    warn("damage-type", `"${id}" (ENEMY_ABILITIES) has no valid damageType (D1)`);
+  }
+}
+if (!DAMAGE_TYPES_SET.has(G("ENEMY_BASIC_ATTACK_DEF").damageType)) {
+  warn("damage-type", `ENEMY_BASIC_ATTACK_DEF has no valid damageType (D1)`);
+}
+// D1, weapons: every mainhand item (the one slot that sets a wielder's
+// basic-attack damage type, per the spec's own §2 field table) needs a
+// Physical-family type. Offhand items (shields, quivers, tomes) aren't
+// checked — only one slot's damageType feeds the basic attack.
+for (const [name, d] of Object.entries(ITEM_DEFS)) {
+  if (d.slot !== "mainhand") continue;
+  if (!(d.damageType === "slashing" || d.damageType === "piercing" || d.damageType === "blunt")) {
+    warn("damage-type", `"${name}" (mainhand) has no valid Physical-family damageType (D1)`);
+  }
+}
+// D1, creatures: attackType or a weapon. "A weapon" means an equipped
+// mainhand item (equipment.mainhand) — the same slot checked above.
+for (const [id, c] of Object.entries(BESTIARY)) {
+  const hasWeapon = c.equipment && c.equipment.mainhand;
+  const validAttackType = c.attackType === "slashing" || c.attackType === "piercing" || c.attackType === "blunt";
+  if (!hasWeapon && !validAttackType) warn("damage-type", `BESTIARY.${id} has no attackType and no equipped mainhand weapon (D1)`);
+}
+// D1, statuses: every damage-over-time STATUS_EFFECTS entry needs a
+// damageType, so a tick can resolve a resisting stat/tag the same way a
+// direct hit does.
+for (const [id, s] of Object.entries(STATUS_EFFECTS)) {
+  if (s.dot && !DAMAGE_TYPES_SET.has(s.damageType)) warn("damage-type", `STATUS_EFFECTS.${id} has a dot but no valid damageType (D1)`);
+}
+
+// D2: every dmgTags map (BESTIARY creatures, ALLY_DEFS, mercenary
+// templates) has valid keys (DAMAGE_TYPES members) and valid values
+// (immune/resist/normal/weak). Nothing has a dmgTags map yet (that's the
+// content pass, spec §5) — this is forward scaffolding, not a check with
+// real hits today.
+function checkDmgTags(label, holder) {
+  if (!holder || !holder.dmgTags) return;
+  for (const [k, v] of Object.entries(holder.dmgTags)) {
+    if (!DAMAGE_TYPES_SET.has(k)) warn("damage-type", `${label}.dmgTags has unknown key "${k}" (D2)`);
+    if (!DAMAGE_TAG_VALUES.has(v)) warn("damage-type", `${label}.dmgTags.${k} has invalid value "${v}" (D2)`);
+  }
+}
+for (const [id, c] of Object.entries(BESTIARY)) checkDmgTags(`BESTIARY.${id}`, c);
+for (const [id, a] of Object.entries(ALLY_DEFS)) checkDmgTags(`ALLY_DEFS.${id}`, a);
+
+// D3 (the per-class guard, T12): the general form needs a weapon/action
+// -> class map this data model doesn't have yet, so this checks the one
+// concrete, class-independent case that's real without it: no enemy
+// should resist/immune ALL THREE Physical sub-types at once (slashing +
+// piercing + blunt), since that would wall off every melee class
+// regardless of which weapon type it happens to be wielding. The fuller
+// per-class/per-level-band form (e.g. "no Mage attunement's spell type
+// resisted by every enemy in a band") is deferred to when mage-attunement
+// damage types (step 2d) and tag content (§5) both exist to check.
+for (const [id, c] of Object.entries(BESTIARY)) {
+  if (!c.dmgTags) continue;
+  const allPhysicalWalled = ["slashing", "piercing", "blunt"].every((t) => c.dmgTags[t] === "immune" || c.dmgTags[t] === "resist");
+  if (allPhysicalWalled) warn("damage-type", `BESTIARY.${id} is Resist/Immune to every Physical sub-type — walls off every melee class (D3)`);
+}
+
+// D4: First River (T9) never appears in player-facing text. Scanned
+// across every loaded script with comments stripped (the same codeOnly
+// convention the P4 checks above use), so this file's and damagetypes.
+// js's own prose about First River (which legitimately says the phrase,
+// in comments) doesn't trip it — only a quoted string a player could
+// actually see should.
+for (const s of scripts) {
+  const codeOnly = sources[s].replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]);
+  codeOnly.forEach((line, i) => {
+    if (/first\s+river/i.test(line)) warn("damage-type", `${s}:${i + 1} mentions "First River" in live code — player-facing text must never name it (D4): "${line.trim()}"`);
+  });
+}
+
 // ---- save coverage ----
 const fresh = G("new GameState()");
 const saved = Object.keys(fresh.toJSON());
