@@ -106,7 +106,7 @@ const COMBAT_UNIFY = {
   // also turn U2 on.
   U2: false,
   // Marked Target (sang_cu_ie002_marked_target): a successful hit marks
-  // the TARGET (combat.exposedTarget), not just the player, and the
+  // the TARGET (combat.player.exposedTarget), not just the player, and the
   // marked-target accuracy bonus is read/consumed on an ally-targeted
   // roll too.
   U3a: false,
@@ -176,8 +176,8 @@ function chooseAction(actor, ctx) {
       const combat = ctx.state.combat;
       if (hasEffect(ctx.state, "reinforced")) {
         combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
-        if (combat.reinforcedAttackCount % 3 === 0 && (combat.reinforcedDefStacks || 0) < 20) {
-          combat.reinforcedDefStacks = Math.min(20, (combat.reinforcedDefStacks || 0) + 2);
+        if (combat.reinforcedAttackCount % 3 === 0 && (combat.player.reinforcedDefStacks || 0) < 20) {
+          combat.player.reinforcedDefStacks = Math.min(20, (combat.player.reinforcedDefStacks || 0) + 2);
         }
       }
     }
@@ -288,13 +288,13 @@ function rollToHit(actor, target, action, ctx) {
   if (target.kind === "ally") {
     const ally = target.ref;
     // U3a (off by default): Marked Target's bonus reads/clears the same
-    // fight-wide combat.exposedTarget the player branch below uses — it
+    // fight-wide combat.player.exposedTarget the player branch below uses — it
     // was set by whichever enemy last landed a marking hit on EITHER
     // target kind (see the grant side in applyAndReact's ally branch),
     // so no ally-specific storage is needed here, same as the player
     // branch's own read.
-    const markedTargetBonusAlly = COMBAT_UNIFY.U3a && combat.exposedTarget && combat.exposedTarget.by !== creature ? 8 : 0;
-    if (markedTargetBonusAlly) combat.exposedTarget = null;
+    const markedTargetBonusAlly = COMBAT_UNIFY.U3a && combat.player.exposedTarget && combat.player.exposedTarget.by !== creature ? 8 : 0;
+    if (markedTargetBonusAlly) combat.player.exposedTarget = null;
     const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
     let calculatedAimBonusAlly = 0;
     if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
@@ -320,9 +320,9 @@ function rollToHit(actor, target, action, ctx) {
   }
 
   let markedTargetBonus = 0;
-  if (combat.exposedTarget && combat.exposedTarget.by !== creature) {
+  if (combat.player.exposedTarget && combat.player.exposedTarget.by !== creature) {
     markedTargetBonus = 8;
-    combat.exposedTarget = null;
+    combat.player.exposedTarget = null;
   }
   const duelistPending = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === "player";
   const duelistBonus = duelistPending ? 10 : 0;
@@ -346,12 +346,12 @@ function rollToHit(actor, target, action, ctx) {
   if (applyTimelessGuard(state)) {
     return miss(`Timeless Guard — for a moment, time itself refuses to let the blow land.`);
   }
-  if (hasEffect(state, "guardian_spirit") && !combat.guardianSpiritUsed) {
-    combat.guardianSpiritUsed = true;
+  if (hasEffect(state, "guardian_spirit") && !combat.player.guardianSpiritUsed) {
+    combat.player.guardianSpiritUsed = true;
     return miss(`Guardian Spirit turns the first blow aside completely.`);
   }
-  if (hasEffect(state, "guided_footsteps") && !combat.guidedFootstepsUsed) {
-    combat.guidedFootstepsUsed = true;
+  if (hasEffect(state, "guided_footsteps") && !combat.player.guidedFootstepsUsed) {
+    combat.player.guidedFootstepsUsed = true;
     if (Math.random() < 0.75) return miss(`Guided Footsteps — you're already a step from where it lands.`);
   }
   if (hasEffect(state, "never_where_expected") && Math.random() < 0.15) {
@@ -360,20 +360,20 @@ function rollToHit(actor, target, action, ctx) {
   if (hasSetTier(state, "Regalia of the Endless Horizon", 2) && Math.random() < 0.15) {
     return miss(`Blessing of Freedom carries you clear of the blow.`);
   }
-  if (combat.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
+  if (combat.player.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
     return miss(`Avatar of Freedom carries you beyond its reach entirely.`);
   }
   let evasionRolled = false;
-  if (combat.evasionCharges > 0) {
-    combat.evasionCharges -= 1;
+  if (combat.player.evasionCharges > 0) {
+    combat.player.evasionCharges -= 1;
     evasionRolled = Math.random() < 0.5;
-  } else if (combat.evasionTurns > 0) {
+  } else if (combat.player.evasionTurns > 0) {
     evasionRolled = Math.random() < 0.5;
   }
   if (evasionRolled) {
-    if (hasEffect(state, "evasive_guard")) combat.evasiveGuardBonus = Math.min(3, combat.evasiveGuardBonus + 1);
+    if (hasEffect(state, "evasive_guard")) combat.player.evasiveGuardBonus = Math.min(3, combat.player.evasiveGuardBonus + 1);
     if (creature.element && hasSetTier(state, "River Warden", 6)) {
-      combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
+      combat.player.riverWardenMagicBonus = Math.min(8, combat.player.riverWardenMagicBonus + 2);
     }
     return miss(`You slip past ${withThe(creature.name, false)}'s counter entirely.`);
   }
@@ -427,8 +427,8 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
   // every riposte formula is a flat physical counter (hardcoded
   // "physical" in its own formula), and Mirror Soul's reflection has
   // never triggered off one.
-  if (!action.isReaction && target.kind === "player" && creature.element && hasEffect(state, "mirror_soul") && !combat.mirrorSoulUsed) {
-    combat.mirrorSoulUsed = true;
+  if (!action.isReaction && target.kind === "player" && creature.element && hasEffect(state, "mirror_soul") && !combat.player.mirrorSoulUsed) {
+    combat.player.mirrorSoulUsed = true;
     const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
     const base = randInt(creature.magic - 2, creature.magic + 2);
     const reflected = Math.max(0, Math.round(base * matchup));
@@ -505,9 +505,9 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
     }
     // U3a (off by default): grant side of Marked Target — see this
     // function's own read/consume in rollToHit's ally branch.
-    if (COMBAT_UNIFY.U3a && edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.exposedTarget) {
+    if (COMBAT_UNIFY.U3a && edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.player.exposedTarget) {
       creature.markedTargetUsed = true;
-      combat.exposedTarget = { by: creature };
+      combat.player.exposedTarget = { by: creature };
     }
     if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
       creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
@@ -573,7 +573,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   const absorbLines = hitResult.absorbLines;
 
   if (dmgInfo.kind === "magic") {
-    if (edmg > 0) combat.playerLastHitType = creature.element;
+    if (edmg > 0) combat.player.playerLastHitType = creature.element;
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${dmgInfo.elName} of its own, for ${edmg} damage.` : `Its ${dmgInfo.elName} washes over you harmlessly.`, ...absorbLines];
     if (state.health <= 0) {
       const defeatMsg = resolvePlayerDefeatOrDowned(state);
@@ -582,18 +582,18 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
     return { lines, damage: edmg };
   }
 
-  if (edmg > 0) combat.playerLastHitType = "physical";
+  if (edmg > 0) combat.player.playerLastHitType = "physical";
   if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
   const sangLines = [];
   if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
     creature.serratedOpeningUsed = true;
-    if (!(combat.playerStatuses && combat.playerStatuses.bleed)) {
+    if (!(combat.player.playerStatuses && combat.player.playerStatuses.bleed)) {
       sangLines.push(...applyAbilityInflict(state, { status: "bleed", chance: 1 }, creature.name));
     }
   }
-  if (edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.exposedTarget) {
+  if (edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.player.exposedTarget) {
     creature.markedTargetUsed = true;
-    combat.exposedTarget = { by: creature };
+    combat.player.exposedTarget = { by: creature };
   }
   if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
     creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
@@ -1063,7 +1063,7 @@ function applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action) {
   const creature = actor.ref.creatureObj;
   const hitResult = mitigateAndApplyHitOnPlayer(state, dmgInfo.edmg, dmgInfo.kind);
   const edmg = hitResult.edmg;
-  if (edmg > 0) state.combat.playerLastHitType = "physical"; // Injury System v0.2
+  if (edmg > 0) state.combat.player.playerLastHitType = "physical"; // Injury System v0.2
   const lines = [action.flavorLine(creature, edmg), ...hitResult.absorbLines];
   if (state.health <= 0) {
     const defeatMsg = resolvePlayerDefeatOrDowned(state);
@@ -1198,7 +1198,7 @@ function applyAndReactTickOnPlayer(actor, target, dmgInfo, ctx, action) {
   const combat = state.combat;
   const edmg = dmgInfo.edmg;
   applyPlayerDamage(state, edmg);
-  combat.playerLastHitType = dmgInfo.kind;
+  combat.player.playerLastHitType = dmgInfo.kind;
   const lines = [action.flavorLine(edmg)];
   let comboEnded = false;
   if (state.health <= 0) {
@@ -1552,7 +1552,7 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
 //     its own ORIGINAL code, applied in the same order: Decoy wraps the
 //     core result in applyOpeningReach unconditionally (no isPhysical
 //     gate — another instance of the same asymmetry above, since
-//     applyOpeningReach's own state.combat.firstPhysicalAttackDone flag
+//     applyOpeningReach's own state.combat.player.firstPhysicalAttackDone flag
 //     gets consumed here regardless of branch); Ambush multiplies by
 //     ambushMultiplier then Borrowed Seconds's flat +15% (no cooldown
 //     to refund); Disarm multiplies by a flat 0.7 then applies Opening
@@ -1593,7 +1593,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
   const foreseenDefMult = foreseenStrikeDefMultiplier(state);
   const isSpell = !!(state.flags.isMage && state.primaryElement);
   const critMult = critMultiplier(state, isSpell);
-  const threadsMult = state.combat && state.combat.threadsOfConsequencePending ? 1.4 : 1;
+  const threadsMult = state.combat && state.combat.player.threadsOfConsequencePending ? 1.4 : 1;
   const stonesPatienceMult = state.combat && state.combat.enemyActedFirstThisRound && hasEffect(state, "stones_patience") ? 1.3 : 1;
   const worthyMult = worthyChallengeMultiplier(state);
   const valorMult = blessingOfValorMultiplier(state);
@@ -1602,7 +1602,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
   const chaosMult = avatarOfChaosDamageMultiplier(state);
   const momentumUnboundMult = momentumUnboundMultiplier(state);
   const temperedSteelMult = temperedSteelMultiplier(state);
-  const avatarOfTimeMult = state.combat && state.combat.avatarOfTimeTurns > 0 ? 1.25 : 1;
+  const avatarOfTimeMult = state.combat && state.combat.player.avatarOfTimeTurns > 0 ? 1.25 : 1;
   let dmg;
   if (isSpell) {
     const magic = effectiveMagic(state);
@@ -1615,8 +1615,8 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
     const spellPower = base * multiplier;
     const preMitigation = Math.round(mitigate(spellPower, effDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
-    if (state.combat.avatarOfCreationTurns > 0) {
-      state.combat.avatarOfCreationMagicStacks = (state.combat.avatarOfCreationMagicStacks || 0) + 2;
+    if (state.combat.player.avatarOfCreationTurns > 0) {
+      state.combat.player.avatarOfCreationMagicStacks = (state.combat.player.avatarOfCreationMagicStacks || 0) + 2;
     }
   } else {
     const armorCrack = armorCrackAmount(state);
@@ -1629,35 +1629,35 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const craftsmanMult = hasEffect(state, "master_craftsman") ? masterCraftsmanMultiplier(atk, creature) : 1;
     const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), effDef);
-    state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
-    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
+    state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
+    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.player.weaponAttackCounter % 5 === 0 ? 2 : 1;
     dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0)) * sangMit));
-    if (state.combat.avatarOfCreationTurns > 0) {
-      state.combat.avatarOfCreationAtkStacks = (state.combat.avatarOfCreationAtkStacks || 0) + 2;
+    if (state.combat.player.avatarOfCreationTurns > 0) {
+      state.combat.player.avatarOfCreationAtkStacks = (state.combat.player.avatarOfCreationAtkStacks || 0) + 2;
     }
   }
   if (hasEffect(state, "tempered_steel")) {
-    state.combat.temperedSteelStacks = Math.min(15, (state.combat.temperedSteelStacks || 0) + 1);
+    state.combat.player.temperedSteelStacks = Math.min(15, (state.combat.player.temperedSteelStacks || 0) + 1);
   }
-  state.combat.threadsOfConsequencePending = false;
+  state.combat.player.threadsOfConsequencePending = false;
   state.combat.enemyActedFirstThisRound = false;
   if (hasEffect(state, "momentum")) {
-    state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
+    state.combat.player.momentumStacks = Math.min(5, (state.combat.player.momentumStacks || 0) + 1);
   }
   if (hasEffect(state, "worthy_challenge")) {
-    state.combat.worthyChallengeStacks = Math.min(10, (state.combat.worthyChallengeStacks || 0) + 1);
+    state.combat.player.worthyChallengeStacks = Math.min(10, (state.combat.player.worthyChallengeStacks || 0) + 1);
   }
   if (critMult > 1) {
     if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
-      state.combat.blessingOfFortuneCritStacks = Math.min(5, (state.combat.blessingOfFortuneCritStacks || 0) + 1);
+      state.combat.player.blessingOfFortuneCritStacks = Math.min(5, (state.combat.player.blessingOfFortuneCritStacks || 0) + 1);
     }
-    if (state.combat.avatarOfChaosTurns > 0) {
+    if (state.combat.player.avatarOfChaosTurns > 0) {
       const statName = ["Atk", "Def", "Magic", "Knowledge"][Math.floor(Math.random() * 4)];
       const field = "avatarOfChaos" + statName + "Bonus";
       state.combat[field] = Math.min(30, (state.combat[field] || 0) + 10);
     }
   }
-  if (state.combat && state.combat.avatarOfWarTurns > 0) {
+  if (state.combat && state.combat.player.avatarOfWarTurns > 0) {
     applyHeal(state, Math.round(dmg * 0.1));
   }
   if (hasEffect(state, "soul_leech") && state.health < state.maxHealth) {
@@ -1665,7 +1665,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
     const leech = Math.round(dmg * leechPct);
     applyHeal(state, leech);
   }
-  if (state.combat && state.combat.avatarOfPassingTurns > 0) {
+  if (state.combat && state.combat.player.avatarOfPassingTurns > 0) {
     applyHeal(state, Math.round(dmg * 0.3));
   }
   if (state.combat && creature.passives && creature.passives.length) {
@@ -1723,10 +1723,10 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
   if (action.borrowedSecondsBonusInDamage && borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
 
   let feintBonusApplied = false;
-  if (action.consumesFeintBonus && state.combat.nextAttackBonus) {
+  if (action.consumesFeintBonus && state.combat.player.nextAttackBonus) {
     const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
     dmg = Math.round(dmg * feintMult);
-    state.combat.nextAttackBonus = false;
+    state.combat.player.nextAttackBonus = false;
     feintBonusApplied = true;
   }
 
@@ -1813,7 +1813,7 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
     // Preserved exactly.
     lines.push(...applyPhysicalOnHitEffects(state, creature));
     if (action.evasiveReleaseCheck && hasEffect(state, "evasive_release")) {
-      state.combat.evasionCharges += 1;
+      state.combat.player.evasionCharges += 1;
       lines.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
     }
   }
@@ -1916,7 +1916,7 @@ function playerAttack(state) {
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return checkReflectDeath(state, out);
@@ -1958,15 +1958,15 @@ function useDecoy(state) {
   out.push(...applyEndlessStudy(state, "decoy"), ...applyWanderersReward(state, "decoy"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "decoy"));
   consumeTrailblazer(state);
   let decoyMemory;
-  if (state.combat.avatarOfTimeTurns > 0) {
+  if (state.combat.player.avatarOfTimeTurns > 0) {
     decoyMemory = { cooldown: 0, fired: false };
   } else if (applyPerfectTiming(state)) {
     decoyMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.swiftPassageReady) {
-    state.combat.swiftPassageReady = false;
+  } else if (state.combat.player.swiftPassageReady) {
+    state.combat.player.swiftPassageReady = false;
     decoyMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.hourglassReserveReady) {
-    state.combat.hourglassReserveReady = false;
+  } else if (state.combat.player.hourglassReserveReady) {
+    state.combat.player.hourglassReserveReady = false;
     decoyMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
@@ -2131,15 +2131,15 @@ function useDisarm(state) {
   out.push(...applyEndlessStudy(state, "disarm"), ...applyWanderersReward(state, "disarm"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "disarm"));
   consumeTrailblazer(state);
   let disarmMemory;
-  if (state.combat.avatarOfTimeTurns > 0) {
+  if (state.combat.player.avatarOfTimeTurns > 0) {
     disarmMemory = { cooldown: 0, fired: false };
   } else if (applyPerfectTiming(state)) {
     disarmMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.swiftPassageReady) {
-    state.combat.swiftPassageReady = false;
+  } else if (state.combat.player.swiftPassageReady) {
+    state.combat.player.swiftPassageReady = false;
     disarmMemory = { cooldown: 0, fired: false };
-  } else if (state.combat.hourglassReserveReady) {
-    state.combat.hourglassReserveReady = false;
+  } else if (state.combat.player.hourglassReserveReady) {
+    state.combat.player.hourglassReserveReady = false;
     disarmMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
@@ -2191,7 +2191,7 @@ function useDisarm(state) {
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return checkReflectDeath(state, out);
@@ -2246,8 +2246,8 @@ function useElementAbility(state, elementKey) {
   }
   out.push(...resolveSpeedInitiative(state, creature));
   if (!state.combat || state.health <= 0) return out;
-  state.combat.spellCastCounter = (state.combat.spellCastCounter || 0) + 1;
-  if (hasEffect(state, "seedbearer") && state.combat.spellCastCounter % 3 === 0) {
+  state.combat.player.spellCastCounter = (state.combat.player.spellCastCounter || 0) + 1;
+  if (hasEffect(state, "seedbearer") && state.combat.player.spellCastCounter % 3 === 0) {
     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
     if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
   }
@@ -2255,26 +2255,26 @@ function useElementAbility(state, elementKey) {
   consumeTrailblazer(state);
   let cooldown = a.cooldown;
   if (hasEffect(state, "conduit_mastery")) cooldown = Math.max(1, cooldown - 1);
-  if ((hasSetTier(state, "Novitiate", 6) || hasEffect(state, "rivers_favor")) && !state.combat.noviceFreeCastUsed) {
-    state.combat.noviceFreeCastUsed = true;
+  if ((hasSetTier(state, "Novitiate", 6) || hasEffect(state, "rivers_favor")) && !state.combat.player.noviceFreeCastUsed) {
+    state.combat.player.noviceFreeCastUsed = true;
     cooldown = 0;
     out.push(`First casting's free — the conduit hasn't tired yet.`);
   } else if (hasEffect(state, "conduit_ease") && Math.random() < conduitEaseChance(state)) {
     cooldown = Math.max(1, cooldown - 1);
     out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
   }
-  if (hasEffect(state, "eureka") && state.combat.spellCastCounter % 4 === 0) {
+  if (hasEffect(state, "eureka") && state.combat.player.spellCastCounter % 4 === 0) {
     cooldown = 0;
     out.push(`Eureka — the insight arrives before the cost does.`);
   }
-  if (state.combat.avatarOfKnowledgeTurns > 0) cooldown = 0;
-  if (state.combat.avatarOfTimeTurns > 0) cooldown = 0;
-  if (state.combat.swiftPassageReady) {
-    state.combat.swiftPassageReady = false;
+  if (state.combat.player.avatarOfKnowledgeTurns > 0) cooldown = 0;
+  if (state.combat.player.avatarOfTimeTurns > 0) cooldown = 0;
+  if (state.combat.player.swiftPassageReady) {
+    state.combat.player.swiftPassageReady = false;
     cooldown = 0;
   }
-  if (state.combat.hourglassReserveReady) {
-    state.combat.hourglassReserveReady = false;
+  if (state.combat.player.hourglassReserveReady) {
+    state.combat.player.hourglassReserveReady = false;
     cooldown = 0;
   }
   if (borrowedSecondsActive(state) && cooldown > 0) {
@@ -2293,13 +2293,13 @@ function useElementAbility(state, elementKey) {
 
   const synergy = getSynergy(state, elementKey);
   let dmgMult = synergy ? synergy.dmgMultiplier : 1;
-  if (hasEffect(state, "twin_rivers") && state.combat.lastElementUsed) dmgMult *= 1.4;
-  state.combat.lastElementUsed = elementKey;
+  if (hasEffect(state, "twin_rivers") && state.combat.player.lastElementUsed) dmgMult *= 1.4;
+  state.combat.player.lastElementUsed = elementKey;
 
   const focusActive = hasEffect(state, "elemental_focus");
   const focusMult = elementalFocusMultiplier(state);
-  const surgeActive = hasEffect(state, "surging_conduit") && state.combat.surgingConduitUsesLeft > 0;
-  if (surgeActive) state.combat.surgingConduitUsesLeft -= 1;
+  const surgeActive = hasEffect(state, "surging_conduit") && state.combat.player.surgingConduitUsesLeft > 0;
+  if (surgeActive) state.combat.player.surgingConduitUsesLeft -= 1;
   let elementalDmgMult = dmgMult;
   if (focusActive) elementalDmgMult *= focusMult;
   if (surgeActive) elementalDmgMult *= 1.2;
@@ -2322,11 +2322,11 @@ function useElementAbility(state, elementKey) {
     let defBonus = Math.max(flatStat(3), Math.round((state.magic / 3) * dmgMult));
     if (focusActive) defBonus += flatStat(1);
     if (surgeActive) defBonus += flatStat(3);
-    state.combat.defBuffTurns = 3;
-    state.combat.defBuffAmount = defBonus;
+    state.combat.player.defBuffTurns = 3;
+    state.combat.player.defBuffAmount = defBonus;
     out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
     if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
-      state.combat.siegeCorpsAtkCharge = 2;
+      state.combat.player.siegeCorpsAtkCharge = 2;
     }
   } else {
     const enemySlot = {
@@ -2378,7 +2378,7 @@ function useElementAbility(state, elementKey) {
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return checkReflectDeath(state, out);
