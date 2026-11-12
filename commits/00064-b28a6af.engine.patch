@@ -1,0 +1,437 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index a243ce7..baff65f 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -322,7 +322,7 @@ function abilityPower(atk, dmgMult) {
+ // already-scaled-and-equipped value, never recursively re-applied across
+ // a refresh (each call just re-reads the live base, it doesn't compound).
+ function sovereigntyMultiplier(state) {
+-  return state.combat && state.combat.sovereigntyTurnsLeft > 0 ? 1.15 : 1;
++  return state.combat && state.combat.player.sovereigntyTurnsLeft > 0 ? 1.15 : 1;
+ }
+ 
+ // Earth's Stoneskin adds a temporary universal defense bonus; Evasive
+@@ -332,19 +332,19 @@ function sovereigntyMultiplier(state) {
+ // through this instead of state.def.
+ function effectivePlayerDef(state) {
+   const combat = state.combat;
+-  const buff = combat.defBuffTurns > 0 ? combat.defBuffAmount || 0 : 0;
++  const buff = combat.player.defBuffTurns > 0 ? combat.player.defBuffAmount || 0 : 0;
+   // Ordered Mind (Regalia): +2 Defense (cap +12) every time a negative
+   // status is resisted/ignored — see applyPlayerStatus. Calm Waters
+   // (Regalia): a temporary Defense bonus whenever Cleansing Current clears
+   // a status — see applyStatusCleanseOnHeal.
+-  const calmWatersDef = combat.calmWatersTurns > 0 ? combat.calmWatersDefBonus || 0 : 0;
++  const calmWatersDef = combat.player.calmWatersTurns > 0 ? combat.player.calmWatersDefBonus || 0 : 0;
+   // v0.11: flat in-combat stacks scale through flatStat (PLAYER_STAT_SCALE);
+   // `buff` and playerBuffs are already scaled where they're granted.
+-  const flatStacks = (combat.evasiveGuardBonus || 0) + (combat.forestGuardianBonus || 0) + (combat.queenCarapaceBonus || 0) + (combat.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.livingSteelBonus || 0) + (combat.battleTemperedDefStacks || 0) + (combat.compassionsGraceDefStacks || 0) * 2 + (combat.windsOfChangeDef || 0) + (combat.avatarOfChaosDefBonus || 0) + (combat.wallsEndureDefStacks || 0) + (combat.avatarOfEnduranceDefBonus || 0) + (combat.reinforcedDefStacks || 0) + (combat.orderedMindDefStacks || 0) + calmWatersDef;
++  const flatStacks = (combat.player.evasiveGuardBonus || 0) + (combat.player.forestGuardianBonus || 0) + (combat.player.queenCarapaceBonus || 0) + (combat.player.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.player.livingSteelBonus || 0) + (combat.player.battleTemperedDefStacks || 0) + (combat.player.compassionsGraceDefStacks || 0) * 2 + (combat.player.windsOfChangeDef || 0) + (combat.player.avatarOfChaosDefBonus || 0) + (combat.player.wallsEndureDefStacks || 0) + (combat.player.avatarOfEnduranceDefBonus || 0) + (combat.player.reinforcedDefStacks || 0) + (combat.player.orderedMindDefStacks || 0) + calmWatersDef;
+   const base = state.def + buff + flatStat(flatStacks) + playerBuffStatTotal(state, "def");
+   // Enemy Ability Engine (data/enemyabilities.js): a Defense-reducing
+   // status an enemy's active ability just inflicted (Shield Crush, ...),
+-  // summed across whatever's currently active in combat.playerStatuses.
++  // summed across whatever's currently active in combat.player.playerStatuses.
+   // Already negative (a debuff's own `def` value IS the signed delta —
+   // -10 means "10 less Defense"), so it's added, not subtracted.
+   const penalty = playerStatusStatTotal(state, "def");
+@@ -364,7 +364,7 @@ function effectivePlayerDef(state) {
+ }
+ 
+ // ---- Enemy Ability Engine: player-facing status effects ----
+-// state.combat.playerStatuses is keyed by a status id (STATUS_EFFECTS'
++// state.combat.player.playerStatuses is keyed by a status id (STATUS_EFFECTS'
+ // own keys for named statuses; "custom:<abilityId>:<stat>" for one-off
+ // magnitudes an ability defines inline via `inflict.custom` — namespaced
+ // per stat so, e.g., a Defense-reducing custom debuff and an
+@@ -375,7 +375,7 @@ function effectivePlayerDef(state) {
+ // reapplication refreshes the duration" wording; Bleed/Constrict stack
+ // instead, up to their own cap.
+ // Crafted-potion buffs (data/items.js's useEffect.type "buff", see
+-// applyConsumableEffect below) — combat.playerBuffs is keyed by stat
++// applyConsumableEffect below) — combat.player.playerBuffs is keyed by stat
+ // (abbreviated: def/agi/acc/spd, matching playerStatusStatTotal's own
+ // debuff keys below, not STAT_LABELS' full display names), one entry per
+ // stat rather than playerStatuses' per-source-id keying, since only one
+@@ -386,7 +386,7 @@ function effectivePlayerDef(state) {
+ // scoped to the pre-existing defBuffTurns/atkBuffTurns/magicBuffTurns
+ // gear-set fields, not a general "every buff" rule.
+ function playerBuffStatTotal(state, statKey) {
+-  const buffs = (state.combat && state.combat.playerBuffs) || {};
++  const buffs = (state.combat && state.combat.player.playerBuffs) || {};
+   const entry = buffs[statKey];
+   return entry ? entry.amount : 0;
+ }
+@@ -396,7 +396,7 @@ function playerBuffStatTotal(state, statKey) {
+ // its silent-on-expiry convention, no "wears off" line), just for a
+ // positive effect instead of a negative one.
+ function tickPlayerBuffs(state) {
+-  const buffs = state.combat.playerBuffs;
++  const buffs = state.combat.player.playerBuffs;
+   for (const key of Object.keys(buffs)) {
+     buffs[key].turns -= 1;
+     if (buffs[key].turns <= 0) delete buffs[key];
+@@ -404,7 +404,7 @@ function tickPlayerBuffs(state) {
+ }
+ 
+ function playerStatusStatTotal(state, statKey) {
+-  const statuses = (state.combat && state.combat.playerStatuses) || {};
++  const statuses = (state.combat && state.combat.player.playerStatuses) || {};
+   let total = 0;
+   for (const entry of Object.values(statuses)) {
+     if (!entry.debuff) continue;
+@@ -414,7 +414,7 @@ function playerStatusStatTotal(state, statKey) {
+   return total;
+ }
+ function playerStatusStatPctTotal(state, statKey) {
+-  const statuses = (state.combat && state.combat.playerStatuses) || {};
++  const statuses = (state.combat && state.combat.player.playerStatuses) || {};
+   let total = 0;
+   for (const entry of Object.values(statuses)) {
+     if (!entry.debuff) continue;
+@@ -440,24 +440,24 @@ function effectivePlayerAccuracy(state) {
+ // stat()-purity rule exists for in the first place (step 1e handoff §3.2).
+ function computeEffectivePlayerAtk(state, siegeCorpsTerm) {
+   const combat = state.combat;
+-  const atkBuff = combat.atkBuffTurns > 0 ? combat.atkBuffAmount || 0 : 0;
+-  const everyChoiceAtk = combat.everyChoiceAtkStacks || 0;
+-  const battleTemperedAtk = combat.battleTemperedAtkStacks || 0;
++  const atkBuff = combat.player.atkBuffTurns > 0 ? combat.player.atkBuffAmount || 0 : 0;
++  const everyChoiceAtk = combat.player.everyChoiceAtkStacks || 0;
++  const battleTemperedAtk = combat.player.battleTemperedAtkStacks || 0;
+   // v0.11: every in-combat stack below is a flat "+N Attack" authored in
+   // stat points, so the sum goes through flatStat (PLAYER_STAT_SCALE).
+   // atkBuff and playerBuffs are already scaled where they're granted.
+   const flatStacks =
+     siegeCorpsTerm +
+     perfectBalanceBonus(state) +
+-    (combat.lastStandAtkBonus || 0) +
+-    (combat.livingSteelBonus || 0) +
++    (combat.player.lastStandAtkBonus || 0) +
++    (combat.player.livingSteelBonus || 0) +
+     everyChoiceAtk * 2 +
+     battleTemperedAtk +
+-    (combat.windsOfChangeAtk || 0) +
+-    (combat.avatarOfChaosAtkBonus || 0) +
+-    (combat.avatarOfEnduranceAtkBonus || 0) +
+-    (combat.workRefinesAtkStacks || 0) +
+-    (combat.avatarOfCreationAtkStacks || 0);
++    (combat.player.windsOfChangeAtk || 0) +
++    (combat.player.avatarOfChaosAtkBonus || 0) +
++    (combat.player.avatarOfEnduranceAtkBonus || 0) +
++    (combat.player.workRefinesAtkStacks || 0) +
++    (combat.player.avatarOfCreationAtkStacks || 0);
+   const atk = state.atk + flatStat(flatStacks) + atkBuff + playerBuffStatTotal(state, "atk");
+   return Math.round(atk * dungeonTorchRationMultiplier(state, "atk") * sovereigntyMultiplier(state));
+ }
+@@ -518,13 +518,13 @@ function applyPlayerStatus(state, key, spec, sourceName) {
+     return [`Immutable turns ${label} aside completely.`];
+   }
+   if (hasEffect(state, "fortunes_favor") && Math.random() < 0.35) {
+-    combat.orderedMindDefStacks = Math.min(12, (combat.orderedMindDefStacks || 0) + 2);
++    combat.player.orderedMindDefStacks = Math.min(12, (combat.player.orderedMindDefStacks || 0) + 2);
+     return [`Fortune's Favor lets ${label} simply fail to take hold.`];
+   }
+   const isCrowdControl = !!spec.debuff && !spec.dot;
+-  if (isCrowdControl && hasEffect(state, "natures_persistence") && !combat.naturesPersistenceUsed) {
+-    combat.naturesPersistenceUsed = true;
+-    if (hasEffect(state, "ordered_mind")) combat.orderedMindDefStacks = Math.min(12, (combat.orderedMindDefStacks || 0) + 2);
++  if (isCrowdControl && hasEffect(state, "natures_persistence") && !combat.player.naturesPersistenceUsed) {
++    combat.player.naturesPersistenceUsed = true;
++    if (hasEffect(state, "ordered_mind")) combat.player.orderedMindDefStacks = Math.min(12, (combat.player.orderedMindDefStacks || 0) + 2);
+     return [`Nature's Persistence shrugs off ${label} entirely.`];
+   }
+   let turns = spec.turns != null ? spec.turns : 2;
+@@ -536,20 +536,20 @@ function applyPlayerStatus(state, key, spec, sourceName) {
+     // Unbreakable (Legendary): the FIRST Defense reduction each fight is
+     // ignored outright. Corrosionproof (defensive utility): every
+     // Defense-reducing status lands 2 points softer, floored at 0.
+-    if (hasEffect(state, "unbreakable") && !combat.unbreakableUsed) {
+-      combat.unbreakableUsed = true;
++    if (hasEffect(state, "unbreakable") && !combat.player.unbreakableUsed) {
++      combat.player.unbreakableUsed = true;
+       return [`Unbreakable ignores the Defense loss from ${label} entirely.`];
+     }
+     if (hasEffect(state, "corrosionproof")) {
+       debuff = { ...debuff, def: Math.min(0, debuff.def + 2) };
+     }
+   }
+-  const existing = combat.playerStatuses[key];
++  const existing = combat.player.playerStatuses[key];
+   if (spec.stackable) {
+     const stacks = Math.min(spec.maxStacks || 1, (existing ? existing.stacks : 0) + 1);
+-    combat.playerStatuses[key] = { name: label, debuff, dot: spec.dot, turnsLeft: turns, stacks };
++    combat.player.playerStatuses[key] = { name: label, debuff, dot: spec.dot, turnsLeft: turns, stacks };
+   } else {
+-    combat.playerStatuses[key] = { name: label, debuff, dot: spec.dot, turnsLeft: turns, stacks: 1 };
++    combat.player.playerStatuses[key] = { name: label, debuff, dot: spec.dot, turnsLeft: turns, stacks: 1 };
+   }
+   return [`${sourceName ? withThe(sourceName, true) + " inflicts" : "You suffer"} ${label}.`];
+ }
+@@ -574,7 +574,7 @@ function applyAbilityInflict(state, inflict, sourceName) {
+ }
+ 
+ // ---- Enemy Ability Engine: ally-facing status effects ----
+-// An ally's own parallel to combat.playerStatuses — same STATUS_EFFECTS
++// An ally's own parallel to combat.player.playerStatuses — same STATUS_EFFECTS
+ // table, same { name, debuff, dot, turnsLeft, stacks } shape, keyed the
+ // same way (a named status's own id, or "custom:<source>:<stat,...>" for
+ // an ability's inline inflict.custom) — but stored on the ally itself
+@@ -664,7 +664,7 @@ function tickAllyStatuses(state, ally) {
+   return lines;
+ }
+ 
+-// Injury System v0.2: maps a DOT status's own key (combat.playerStatuses,
++// Injury System v0.2: maps a DOT status's own key (combat.player.playerStatuses,
+ // data/enemyabilities.js's STATUS_EFFECTS — the only ids ever authored
+ // with a `dot` field are bleed/venom/burning/blight/sang_iag_poison) to
+ // one of the 10 real hit-type keys (physical/bleed/an ELEMENTS key),
+@@ -688,7 +688,7 @@ function statusDamageType(key) {
+ function tickPlayerStatuses(state) {
+   const combat = state.combat;
+   const lines = [];
+-  for (const [key, entry] of Object.entries(combat.playerStatuses)) {
++  for (const [key, entry] of Object.entries(combat.player.playerStatuses)) {
+     if (entry.dot) {
+       // Heatproof's halving is now tickStatusPlayer's own job (step
+       // 1f-iv §5) -- this loop still owns the raw pre-formula number and
+@@ -700,7 +700,7 @@ function tickPlayerStatuses(state) {
+       if (result.comboEnded) break;
+     }
+     entry.turnsLeft -= 1;
+-    if (entry.turnsLeft <= 0) delete combat.playerStatuses[key];
++    if (entry.turnsLeft <= 0) delete combat.player.playerStatuses[key];
+   }
+   return lines;
+ }
+@@ -712,17 +712,17 @@ function tickPlayerStatuses(state) {
+ function applyStatusCleanseOnHeal(state) {
+   if (!hasEffect(state, "cleansing_current")) return [];
+   const combat = state.combat;
+-  if (!combat || !combat.playerStatuses) return [];
+-  const keys = Object.keys(combat.playerStatuses);
++  if (!combat || !combat.player.playerStatuses) return [];
++  const keys = Object.keys(combat.player.playerStatuses);
+   if (!keys.length) return [];
+   const key = keys[Math.floor(Math.random() * keys.length)];
+-  const cleared = combat.playerStatuses[key];
+-  delete combat.playerStatuses[key];
++  const cleared = combat.player.playerStatuses[key];
++  delete combat.player.playerStatuses[key];
+   const lines = [`Cleansing Current washes away ${cleared.name}.`];
+   if (hasEffect(state, "calm_waters")) {
+-    combat.calmWatersDefBonus = Math.min(12, (combat.calmWatersDefBonus || 0) + 4);
+-    combat.calmWatersMagicBonus = Math.min(12, (combat.calmWatersMagicBonus || 0) + 4);
+-    combat.calmWatersTurns = 2;
++    combat.player.calmWatersDefBonus = Math.min(12, (combat.player.calmWatersDefBonus || 0) + 4);
++    combat.player.calmWatersMagicBonus = Math.min(12, (combat.player.calmWatersMagicBonus || 0) + 4);
++    combat.player.calmWatersTurns = 2;
+     // v0.11 PLAYER_STAT_SCALE: calmWatersDefBonus/MagicBonus are raw stat
+     // points, folded into effectivePlayerDef/effectiveMagic's flatStat()'d
+     // total — the +4 actually granted here is PLAYER_STAT_SCALE x bigger
+@@ -739,27 +739,27 @@ function applyStatusCleanseOnHeal(state) {
+ // the same reactive-safety-net pattern Hold the Line/Rooted Resolve use.
+ function checkMercyOfTheVeil(state) {
+   const combat = state.combat;
+-  if (!combat || !hasEffect(state, "mercy_of_the_veil") || combat.mercyOfTheVeilUsed) return [];
++  if (!combat || !hasEffect(state, "mercy_of_the_veil") || combat.player.mercyOfTheVeilUsed) return [];
+   if (state.health > state.maxHealth * 0.4) return [];
+-  combat.mercyOfTheVeilUsed = true;
+-  const hadAny = Object.keys(combat.playerStatuses || {}).length > 0;
+-  combat.playerStatuses = {};
++  combat.player.mercyOfTheVeilUsed = true;
++  const hadAny = Object.keys(combat.player.playerStatuses || {}).length > 0;
++  combat.player.playerStatuses = {};
+   return hadAny ? [`Mercy of the Veil strips away every affliction clinging to you.`] : [];
+ }
+ 
+ // Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
+-// capped at +5/+5. Reuses combat.actionCounter (already incremented by
++// capped at +5/+5. Reuses combat.player.actionCounter (already incremented by
+ // applyHeartwoodVitality/beginTurn), so it fires on the exact same
+ // cadence Heartwood Vitality does. The Attack half is added directly in
+ // rollPlayerDamage's atk line; the Defense half lives in effectivePlayerDef.
+ function applyLivingSteel(state) {
+   const combat = state.combat;
+-  if (!hasEffect(state, "living_steel") || combat.actionCounter % 3 !== 0 || combat.livingSteelBonus >= 5) return [];
+-  combat.livingSteelBonus += 1;
++  if (!hasEffect(state, "living_steel") || combat.player.actionCounter % 3 !== 0 || combat.player.livingSteelBonus >= 5) return [];
++  combat.player.livingSteelBonus += 1;
+   // v0.11 PLAYER_STAT_SCALE: livingSteelBonus is a raw stat-point stack,
+   // folded into effectivePlayerAtk/effectivePlayerDef's flatStat()'d
+   // total — the real grant is PLAYER_STAT_SCALE x the raw +1/stack.
+-  return [`Living Steel hardens further — +${flatStat(1)} Attack, +${flatStat(1)} Defense (now +${flatStat(combat.livingSteelBonus)}/+${flatStat(combat.livingSteelBonus)}).`];
++  return [`Living Steel hardens further — +${flatStat(1)} Attack, +${flatStat(1)} Defense (now +${flatStat(combat.player.livingSteelBonus)}/+${flatStat(combat.player.livingSteelBonus)}).`];
+ }
+ 
+ // Perfect Balance (Legendary): whenever base Attack and Defense are within
+@@ -782,13 +782,13 @@ function kingslayerMultiplier(state, creature) {
+ }
+ 
+ // Hunter's Instinct (Legendary): +30% damage on the very first action of
+-// each fight. combat.actionCounter is incremented by beginTurn() before
++// each fight. combat.player.actionCounter is incremented by beginTurn() before
+ // any damage roll happens, so a value of 1 here means "this is the first
+ // action that's executed this fight."
+ function huntersInstinctMultiplier(state) {
+   if (!hasEffect(state, "hunters_instinct")) return 1;
+   const bonus = masterOfArmsDoubles(state, "hunters_instinct") ? 1.6 : 1.3;
+-  return state.combat && state.combat.actionCounter === 1 ? bonus : 1;
++  return state.combat && state.combat.player.actionCounter === 1 ? bonus : 1;
+ }
+ 
+ // Momentum (Legendary): each of the player's own damage rolls this fight
+@@ -798,7 +798,7 @@ function huntersInstinctMultiplier(state) {
+ // startCombat.
+ function momentumMultiplier(state) {
+   if (!hasEffect(state, "momentum")) return 1;
+-  const stacks = (state.combat && state.combat.momentumStacks) || 0;
++  const stacks = (state.combat && state.combat.player.momentumStacks) || 0;
+   return 1 + Math.min(stacks, 5) * 0.1;
+ }
+ 
+@@ -828,14 +828,14 @@ function executionProtocolMultiplier(state) {
+ }
+ 
+ // Temporal Echo (Mythic): every 5th combat action deals double damage.
+-// Reuses combat.actionCounter (already incremented once per action by
++// Reuses combat.player.actionCounter (already incremented once per action by
+ // beginTurn before any damage roll happens), so this folds into the same
+ // multiplication chain as Momentum/Hunter's Instinct rather than needing
+ // its own "replay the action" logic.
+ function temporalEchoMultiplier(state) {
+   if (!hasEffect(state, "temporal_echo") || !state.combat) return 1;
+   const mult = masterOfArmsDoubles(state, "temporal_echo") ? 3 : 2;
+-  return state.combat.actionCounter > 0 && state.combat.actionCounter % 5 === 0 ? mult : 1;
++  return state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 5 === 0 ? mult : 1;
+ }
+ 
+ // River Warden's 6pc set bonus (+2 Magic per "resist," max +8) is a
+@@ -845,9 +845,9 @@ function temporalEchoMultiplier(state) {
+ // Stoneskin amounts (a narrower scope than a real stat change, by design).
+ function effectiveMagic(state) {
+   const combat = state.combat;
+-  const magicBuff = combat && combat.magicBuffTurns > 0 ? combat.magicBuffAmount || 0 : 0;
+-  const everyChoiceMagic = ((combat && combat.everyChoiceMagicStacks) || 0) * 2;
+-  const endlessStudyMagic = (combat && combat.endlessStudyMagicBonus) || 0;
++  const magicBuff = combat && combat.player.magicBuffTurns > 0 ? combat.player.magicBuffAmount || 0 : 0;
++  const everyChoiceMagic = ((combat && combat.player.everyChoiceMagicStacks) || 0) * 2;
++  const endlessStudyMagic = (combat && combat.player.endlessStudyMagicBonus) || 0;
+   // Expanding Mind (Divine Regalia — Vestments of the First Scholar): a
+   // live formula off the CURRENT Knowledge stat (every 5 above 50 grants
+   // +1 Magic), not a stacking/triggered bonus like the others here.
+@@ -862,18 +862,18 @@ function effectiveMagic(state) {
+   // knowledgeReq gate in the codebase).
+   // Perfect Memory (Divine Regalia — Robes of Endless Record) also feeds
+   // this same Knowledge input, the same deliberate scope limit as above.
+-  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.knowledgeBuffAmount) || 0) + ((combat && combat.windsOfChangeKnowledge) || 0) + ((combat && combat.avatarOfChaosKnowledgeBonus) || 0) + ((combat && combat.perfectMemoryKnowledgeBonus) || 0);
++  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.player.knowledgeBuffAmount) || 0) + ((combat && combat.player.windsOfChangeKnowledge) || 0) + ((combat && combat.player.avatarOfChaosKnowledgeBonus) || 0) + ((combat && combat.player.perfectMemoryKnowledgeBonus) || 0);
+   const expandingMindMagic = hasEffect(state, "expanding_mind") ? Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5) : 0;
+-  const unwaveringDevotionMagic = ((combat && combat.unwaveringDevotionStacks) || 0) * 2;
+-  const windsOfChangeMagic = (combat && combat.windsOfChangeMagic) || 0;
+-  const avatarOfChaosMagic = (combat && combat.avatarOfChaosMagicBonus) || 0;
+-  const workRefinesMagic = (combat && combat.workRefinesMagicStacks) || 0;
+-  const avatarOfCreationMagic = (combat && combat.avatarOfCreationMagicStacks) || 0;
++  const unwaveringDevotionMagic = ((combat && combat.player.unwaveringDevotionStacks) || 0) * 2;
++  const windsOfChangeMagic = (combat && combat.player.windsOfChangeMagic) || 0;
++  const avatarOfChaosMagic = (combat && combat.player.avatarOfChaosMagicBonus) || 0;
++  const workRefinesMagic = (combat && combat.player.workRefinesMagicStacks) || 0;
++  const avatarOfCreationMagic = (combat && combat.player.avatarOfCreationMagicStacks) || 0;
+   // Calm Waters (Regalia): a temporary Magic bonus granted whenever
+   // Cleansing Current clears a status — see applyStatusCleanseOnHeal.
+-  const calmWatersMagic = combat && combat.calmWatersTurns > 0 ? combat.calmWatersMagicBonus || 0 : 0;
++  const calmWatersMagic = combat && combat.player.calmWatersTurns > 0 ? combat.player.calmWatersMagicBonus || 0 : 0;
+   // v0.11: flat stacks scale through flatStat; magicBuff is scaled at grant.
+-  const total = state.magic + magicBuff + flatStat(((combat && combat.riverWardenMagicBonus) || 0) + ((combat && combat.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
++  const total = state.magic + magicBuff + flatStat(((combat && combat.player.riverWardenMagicBonus) || 0) + ((combat && combat.player.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
+   return Math.round(total * sovereigntyMultiplier(state));
+ }
+ 
+@@ -917,11 +917,11 @@ function applyHeal(state, amount) {
+   // Avatar of Devotion (Regalia of the Eternal Heart 6pc): all healing
+   // doubled for its 4-round window, stacking multiplicatively on top of
+   // Flourishing Soul/Blessing of Compassion above.
+-  if (combat && combat.avatarOfDevotionTurns > 0) amt = Math.round(amt * 2);
++  if (combat && combat.player.avatarOfDevotionTurns > 0) amt = Math.round(amt * 2);
+   // Avatar of Endurance (Regalia of the Eternal Bastion 6pc): +50% healing
+   // received for its 4-round window, stacking multiplicatively on top of
+   // everything above.
+-  if (combat && combat.avatarOfEnduranceTurns > 0) amt = Math.round(amt * 1.5);
++  if (combat && combat.player.avatarOfEnduranceTurns > 0) amt = Math.round(amt * 1.5);
+   // Mercy's Gift (Divine Regalia — Ring of Gentle Rain): a live check
+   // against CURRENT Health (not a triggered/stacking buff) — +50% healing
+   // received for as long as Health is below 50% max, checked fresh on
+@@ -934,14 +934,14 @@ function applyHeal(state, amount) {
+   const overflow = amt - healed;
+   if (overflow > 0 && combat && hasSetTier(state, "Regalia of the First Bloom", 4)) {
+     const cap = Math.round(state.maxHealth * 0.3);
+-    const beforeTemp = combat.tempHealth || 0;
+-    combat.tempHealth = Math.min(cap, beforeTemp + overflow);
+-    if (combat.tempHealth > beforeTemp) {
+-      lines.push(`Overflowing Life — the excess crystallizes into ${combat.tempHealth - beforeTemp} Temporary Health.`);
++    const beforeTemp = combat.player.tempHealth || 0;
++    combat.player.tempHealth = Math.min(cap, beforeTemp + overflow);
++    if (combat.player.tempHealth > beforeTemp) {
++      lines.push(`Overflowing Life — the excess crystallizes into ${combat.player.tempHealth - beforeTemp} Temporary Health.`);
+     }
+   }
+   if (healed > 0 && combat && hasEffect(state, "living_current")) {
+-    combat.livingCurrentStacks = Math.min(5, (combat.livingCurrentStacks || 0) + 1);
++    combat.player.livingCurrentStacks = Math.min(5, (combat.player.livingCurrentStacks || 0) + 1);
+   }
+   // Compassion's Grace (Divine Regalia — Roseheart Scepter): whenever you
+   // restore Health, also gain +2 Defense, capped +10 (5 stacks). The
+@@ -951,7 +951,7 @@ function applyHeal(state, amount) {
+   // for the rest of the fight once gained), so it's approximated the same
+   // way for consistency.
+   if (healed > 0 && combat && hasEffect(state, "compassions_grace")) {
+-    combat.compassionsGraceDefStacks = Math.min(5, (combat.compassionsGraceDefStacks || 0) + 1);
++    combat.player.compassionsGraceDefStacks = Math.min(5, (combat.player.compassionsGraceDefStacks || 0) + 1);
+   }
+   // Endless Current (Regalia of the Endless Tide 4pc): whenever you
+   // remove a negative effect (never happens — no such mechanic exists;
+@@ -961,28 +961,28 @@ function applyHeal(state, amount) {
+   // "+2 flat" like Rally the Line) since this one genuinely stacks in
+   // magnitude across repeated procs, not just refreshes duration.
+   if (healed > 0 && combat && hasSetTier(state, "Regalia of the Endless Tide", 4)) {
+-    combat.endlessCurrentStacks = Math.min(5, (combat.endlessCurrentStacks || 0) + 1);
++    combat.player.endlessCurrentStacks = Math.min(5, (combat.player.endlessCurrentStacks || 0) + 1);
+     const dur = applyBeneficialEffectBonuses(state, 3);
+-    const grant = applyBlessingOfCreationBonus(state, flatStat(combat.endlessCurrentStacks * 2)); // v0.11 PLAYER_STAT_SCALE
+-    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, grant);
+-    combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
+-    combat.defBuffAmount = Math.max(combat.defBuffAmount, grant);
+-    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, grant);
++    const grant = applyBlessingOfCreationBonus(state, flatStat(combat.player.endlessCurrentStacks * 2)); // v0.11 PLAYER_STAT_SCALE
++    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
++    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, grant);
++    combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
++    combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, grant);
++    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
++    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, grant);
+   }
+   // Avatar of Devotion: whenever you restore Health during its window,
+   // immediately gain +5 Attack/+5 Magic/+5 Defense for 2 rounds.
+-  if (healed > 0 && combat && combat.avatarOfDevotionTurns > 0) {
+-    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, 2);
+-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
+-    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, 2);
+-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
+-    combat.defBuffTurns = Math.max(combat.defBuffTurns, 2);
+-    combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(5)));
++  if (healed > 0 && combat && combat.player.avatarOfDevotionTurns > 0) {
++    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, 2);
++    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
++    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, 2);
++    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
++    combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, 2);
++    combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(5)));
+   }
+   // Cleansing Current / Calm Waters (Regalia): now genuinely live —
+-  // combat.playerStatuses (Enemy Ability Engine) means there's finally
++  // combat.player.playerStatuses (Enemy Ability Engine) means there's finally
+   // something for a heal to cleanse. See applyStatusCleanseOnHeal.
+   if (healed > 0 && combat) lines.push(...applyStatusCleanseOnHeal(state));
+   return { healed, lines };

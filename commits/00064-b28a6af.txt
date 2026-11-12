@@ -1,0 +1,35 @@
+range: c8004deb78f7e302ec8505a33d21f5f8c3996636..b28a6af9ab7599dc0f89207b5dcc5ae6523c07d3
+=== b28a6af9ab7599dc0f89207b5dcc5ae6523c07d3 2026-11-12 00:08:27 +0000
+Step 1h-iii §2 batch 1/4: rewrite combat.js lines 1-1013 onto combat.player
+Combat Rebuild Phase 1, step 1h-iii: first of 4 combat.js call-site
+batches, rewriting every combat.<field>/state.combat.<field> read or
+write (132 occurrences in this batch, region ends cleanly right before
+applyHealing) to combat.player.<field>/state.combat.player.<field> for
+all 130 PLAYER_FIELDS entries. The backward-compatible alias from this
+step's first commit means both spellings read/write the identical
+storage throughout this multi-commit migration, so batch order and
+timing carry no behavioral risk -- confirmed, not just assumed, by
+this commit's own full verification pass below.
+
+Mechanical rewrite (scripted: exact PLAYER_FIELDS name list, anchored
+on a `combat.`/`state.combat.` prefix only, line-range-scoped to this
+batch), then every changed line read back in the diff. Also updates
+PLAYER_FIELDS-naming comments in this range for accuracy (e.g.
+"combat.playerStatuses" -> "combat.player.playerStatuses"), since a
+mechanical text rewrite can't distinguish code from the comments
+describing that exact code, and leaving the old spelling in a comment
+here would be a dangling reference of its own.
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+3 more combat.js batches, then pipeline.js, then companion.js/
+resolver.js.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 178 ++++++++++++++++++++++++++--------------------------
+ 1 file changed, 89 insertions(+), 89 deletions(-)
