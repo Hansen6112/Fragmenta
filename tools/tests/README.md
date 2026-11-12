@@ -44,6 +44,55 @@ balance.
 | `apothecary_action_tracking_ledger.js` | Combat Rebuild Phase 1 step 1e §4 gap fix: apothecary abilities now run `applyEndlessStudy`/`applyWanderersReward`/`applyActionTypeTracking` (previously skipped entirely) -- Endless Study/Wanderer's Reward firing and recording the right key, action-type tracking under its own new "apothecary" category, and Momentum Unbound's rhythm-shift check treating it as genuinely distinct from an attack |
 | `test_strike_proof_ledger.js` | Step 1e completion handoff §4: registers a test-only `test_strike` action definition at runtime (never written to disk) and drives it through `js/engine/resolver.js`'s generic `usePlayerAction` -- proves a brand-new action runs through all five pipeline steps, deals damage via the shared `playerCore` formula, applies its declared `onHitChanceEffect`, respects its own cooldown, and counts toward action tracking, with zero changes to `pipeline.js`/`combat.js`/`PIPELINE_HOOKS` beyond the one generic hook mechanism already committed separately for this purpose |
 
+This table isn't exhaustive -- later Combat Rebuild Phase 1 steps (1f,
+1g, 1h) added further ledgers (field-move batches, Dregnar's targeting,
+reaction/tick coverage, ...) not yet backfilled here. See each step's
+own `tools/combat_1*_coverage.md` for what a given ledger actually
+exercises; `run_all.js`'s own `LEDGERS` array is the authoritative list
+of what runs.
+
+## The frozen Legacy-oracle fixtures (`fixtures/*.json`)
+
+Six of the parity ledgers above (`phase1_step1b/c/d/e_i/e_ii/e_iii_pipeline_parity.js`)
+compare the new pipeline-based code against the ORIGINAL per-pair
+function it replaced (`resolveEnemyRetaliation`, `playerAttackLegacy`,
+`useElementAbilityLegacy`, ...). Combat Rebuild Phase 1 step 1h-ii
+deleted all 15 of those functions once they had no caller left besides
+these harnesses' own oracle calls — so, as of step 1h-i, each
+harness's oracle output is frozen once into an on-disk JSON fixture
+(`tools/tests/fixtures/<ledger-name>.json`) instead of calling the live
+Legacy function every run:
+
+```
+FREEZE_LEGACY_ORACLES=1 node tools/tests/<one-of-the-six>.js   # (re)writes the fixture
+node tools/tests/<one-of-the-six>.js                            # normal run: reads it back
+```
+
+**These fixtures can never be regenerated** — the functions that
+produced them no longer exist anywhere in the codebase. Don't delete
+or hand-edit them; a ledger that needs a new scenario added after step
+1h gets that scenario's old-side expectation some other way (a
+hardcoded known-true fact, same as the 3 Decoy/Ambush scenarios step
+1h-ii's own fix used), not by re-freezing.
+
+A frozen fixture's `snap` field is a `JSON.stringify` of `state.combat`
+captured BEFORE steps 1h-iii/1h-iv existed, so it's permanently in the
+old flat shape (every `PLAYER_FIELDS`/`PER_ENEMY_FIELDS` field sitting
+directly on `combat`, not nested under `combat.player`/
+`combat.enemies[i]`) with property-insertion order from that era. Both
+proxies behind that flat shape are now deleted, so each of these six
+ledgers' own `snapshot()` function reconstructs it on the NEW side
+too — merging `.player` back up and copying the active enemy's
+`PER_ENEMY_FIELDS` values back onto the flattened copy, both by name,
+never a wholesale object merge — then compares via a stable/sorted-key
+serialization rather than raw string equality, since insertion order
+can never match the frozen fixture's again either. If you add a field
+to `PLAYER_FIELDS`/`PER_ENEMY_FIELDS` in `combat.js`, these six
+`snapshot()` functions need no change — they already flatten
+everything currently in `combat.player`/the active enemy slot, by
+iterating the live `PLAYER_FIELDS`/`PER_ENEMY_FIELDS` arrays
+themselves, not a hardcoded list.
+
 ## Adding a ledger
 
 Each file is a standalone Playwright script against `http://localhost:8949`

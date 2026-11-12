@@ -313,6 +313,55 @@ for (const f of P1_FILES) {
   }
 }
 
+// ---- alias/proxy regression guard (Combat Rebuild Phase 1, step 1h-v) ----
+// P3: guards against the two proxy mechanisms step 1h deleted --
+// wirePlayerFieldsProxy for PLAYER_FIELDS (1h-iii) and wireActiveEnemyProxy
+// for PER_ENEMY_FIELDS (1h-iv) -- ever being reintroduced, deliberately or
+// by a careless future edit reaching for the old flat spelling instead of
+// state.combat.player.<field> / activeEnemySlot(combat).<field>:
+//   - no function named *Legacy or resolveEnemyRetaliation (the 15 dead/
+//     oracle functions step 1h-ii deleted) exists anywhere these files;
+//   - no Object.defineProperty(...) call targets anything spelled combat,
+//     state.combat, or a longer <chain>.combat -- the proxy-construction
+//     pattern itself, now that neither proxy needs it for anything;
+//   - no combat.<field>/state.combat.<field> spelling (any dotted prefix
+//     chain ending in .combat, matching the same shape the step 1h-iv
+//     rewrite script normalized onto activeEnemySlot(...)) appears for a
+//     PLAYER_FIELDS or PER_ENEMY_FIELDS name. This does NOT match the
+//     fields' real homes -- state.combat.player.<field> (a different
+//     token between .combat. and the field name) or
+//     enemies[i].<field>/activeEnemySlot(combat).<field> (no .combat.
+//     immediately before the field at all) -- only the deleted alias
+//     spelling itself.
+// Scoped to the engine files step 1h-iii/1h-iv actually touched
+// (js/engine/combat.js, pipeline.js, companion.js, resolver.js) plus the
+// two js/data/ files step 1h-iv's own full-repo sweep found using the
+// exact same combat.<field> spelling for PER_ENEMY_FIELDS -- actions.js's
+// fireOnHit/acidOnHit hooks (h.state.combat.burn/.corroded/
+// .enemyDefPenalty) and five of synergy.js's SYNERGY_COMBOS extraEffect
+// hooks. Leaving those two out would leave the one place this exact
+// regression was actually seen unguarded.
+const P3_FIELDS = [...G("PLAYER_FIELDS"), ...G("PER_ENEMY_FIELDS")];
+const P3_FIELD_ALIAS_PATTERN = new RegExp(`\\b(?:[A-Za-z_$][\\w$]*\\.)*combat\\.(${P3_FIELDS.join("|")})\\b`);
+const P3_DEFINE_PROPERTY_PATTERN = /\bObject\.defineProperty\s*\(\s*(?:[A-Za-z_$][\w$]*\.)*combat\b/;
+const P3_LEGACY_FN_PATTERN = /^function\s+([A-Za-z0-9_]*Legacy|resolveEnemyRetaliation)\s*\(/;
+const P3_FILES = [
+  "js/engine/combat.js", "js/engine/pipeline.js", "js/engine/companion.js", "js/engine/resolver.js",
+  "js/data/actions.js", "js/data/synergy.js",
+];
+let p3Hits = 0;
+for (const f of P3_FILES) {
+  const src = sources[f];
+  if (!src) continue;
+  const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]);
+  for (let i = 0; i < codeOnly.length; i++) {
+    const line = codeOnly[i];
+    if (P3_LEGACY_FN_PATTERN.test(line)) { err("alias-regression", `${f}:${i + 1} declares a *Legacy/resolveEnemyRetaliation function -- these were all deleted in step 1h-ii -- "${line.trim()}" (P3)`); p3Hits++; }
+    if (P3_DEFINE_PROPERTY_PATTERN.test(line)) { err("alias-regression", `${f}:${i + 1} calls Object.defineProperty on a combat object -- the proxy pattern step 1h deleted -- "${line.trim()}" (P3)`); p3Hits++; }
+    if (P3_FIELD_ALIAS_PATTERN.test(line)) { err("alias-regression", `${f}:${i + 1} uses the deleted combat.<field> alias spelling -- "${line.trim()}" (P3)`); p3Hits++; }
+  }
+}
+
 // ---- action definitions (Combat Rebuild Phase 1, step 1e completion
 // handoff, 9 Nov 2026 follow-up: P2/P4) ----
 // P2: every action definition (js/data/actions.js's PLAYER_ACTION_DEFS,
@@ -490,5 +539,6 @@ print("WARNINGS", warnings);
 process.stdout.write(`\n[items] live-reachable: ${liveReachable}/${Object.keys(ITEM_DEFS).length}; reserved: ${reservedTotal} (${JSON.stringify(reservedCounts)}); R2 violations: ${r2.length}\n`);
 process.stdout.write(`[actions] P4 action-identity checks found: ${p4Hits} (must be 0)\n`);
 process.stdout.write(`[combat] P1 HP-writes-outside-applyAndReact found: ${p1Hits} (must be 0)\n`);
+process.stdout.write(`[combat] P3 alias/proxy-regression hits found: ${p3Hits} (must be 0)\n`);
 process.stdout.write(`\n${errors.length} error(s), ${warnings.length} warning(s) across ${scripts.length} scripts.\n`);
 process.exit(errors.length || (strict && warnings.length) ? 1 : 0);

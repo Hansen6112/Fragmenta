@@ -270,21 +270,57 @@ function extractFunctions(text) {
   return fns;
 }
 
+// Step 1h-v: strip comments before the field/callee text-scan below, the
+// same way tools/audit.js's own P1/P3 rules do (block comments first via
+// one whole-text pass, since they can span several of fn.bodyLines; `//`
+// per line after). Through 1g-vii this never mattered -- every tracked
+// field still had a real, live `combat.<field>` call site, so a stray
+// comment mentioning the same spelling was redundant with a genuine hit.
+// Step 1h's own rename pass is what exposes the gap: once the real call
+// sites are gone, a left-behind EXPLANATORY comment describing the old
+// behavior (e.g. combat.js's own "mirrors combat.lastDamageType" at its
+// resolveKill-area header, deliberately kept as history, not deleted) is
+// the ONLY remaining text this scan can find -- without stripping it,
+// "touched by" would wrongly keep reporting an un-landed step forever,
+// even after every real caller has been rewritten (confirmed: with
+// comments left in, 6 PER_ENEMY_FIELDS fields showed "touched by: 1b,
+// 1c, 1d, 1e, 1f, 1g" despite a full-repo non-comment grep finding zero
+// code references to any of them).
+function stripComments(text) {
+  return text.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]).join("\n");
+}
 function build() {
   const allFns = {}; // name -> { body, fields: Set, callees: Set }
   for (const relPath of FILES) {
     const text = fs.readFileSync(path.join(ROOT, relPath), "utf8");
     for (const fn of extractFunctions(text)) {
       if (!allFns[fn.name]) allFns[fn.name] = { body: "", fields: new Set(), callees: new Set() };
-      allFns[fn.name].body += "\n" + fn.bodyLines.join("\n");
+      allFns[fn.name].body += "\n" + stripComments(fn.bodyLines.join("\n"));
     }
   }
   const fnNames = Object.keys(allFns);
   for (const name of fnNames) {
     const entry = allFns[name];
     let m;
-    const fieldRe = /\bcombat\.([A-Za-z_][A-Za-z0-9_]*)/g;
-    while ((m = fieldRe.exec(entry.body))) entry.fields.add(m[1]);
+    // \b before (?!\.) matters: without it, a plain negative lookahead
+    // doesn't fail the whole match when the full identifier IS followed
+    // by "." -- it just lets the greedy [A-Za-z0-9_]* backtrack one
+    // character short, since that shorter position happens to satisfy
+    // the lookahead too (e.g. "combat.player." backtracking "player" to
+    // "playe", or "combat.cooldowns." to "cooldown" -- confirmed by
+    // actually running it: that version put truncated "playe"/"cooldown"
+    // /"down"/"enemie" into the tracked table). \b forces the match to
+    // end only at a real identifier boundary, where no such backtrack
+    // exists, so the whole attempt fails cleanly instead of truncating --
+    // which is what actually excludes combat.player.<realField> from
+    // adding "player" itself as a tracked field (step 1h-iii's own
+    // sub-store, not a field on it) without mangling anything else. The
+    // one structural counterexample, combat.cooldowns.<tactic>, still
+    // gets caught elsewhere too (plain combat.cooldowns assignments exist
+    // without a trailing dot), and it only feeds the Structural table
+    // anyway, which doesn't gate on this.
+    const fieldRe = /\bcombat\.([A-Za-z_][A-Za-z0-9_]*)\b(?!\.)/g;
+    while ((m = fieldRe.exec(entry.body))) { if (m[1] !== "player") entry.fields.add(m[1]); }
     for (const other of fnNames) {
       if (other === name) continue;
       if (new RegExp(`\\b${other}\\s*\\(`).test(entry.body)) entry.callees.add(other);
@@ -373,16 +409,22 @@ function toMarkdown(rows) {
   lines.push("exactly what the step 1e §3.3/§7 gap looked like before this split —");
   lines.push("see tools/combat_1e_completion_gapfix_tables.md's own §7).");
   lines.push("`Storage moved?` is a structural fact, checked against the real");
-  lines.push("js/engine/combat.js wiring — never a text search — but only");
-  lines.push("PLAYER_FIELDS/wirePlayerFieldsProxy counts as \"moved\" for this");
-  lines.push("metric (§3's own words: \"Detect 'moved' from the real storage");
-  lines.push("wiring (wirePlayerFieldsProxy / the store lists)\"). The older");
-  lines.push("PER_ENEMY_FIELDS/wireActiveEnemyProxy proxy predates this Phase's");
-  lines.push("combatant-store architecture and is itself slated for deletion at");
-  lines.push("step 1h, so a field behind it still reads \"storage not yet");
-  lines.push("moved\" here, same as before 1e. `Touched by` stays the same");
-  lines.push("old-name text-scan this file has always done, which is what step");
-  lines.push("1h's own rename pass clears.");
+  lines.push("js/engine/combat.js wiring — never a text search.");
+  lines.push("");
+  lines.push("Step 1h-v update: both proxies this ledger used to track behind");
+  lines.push("are now fully deleted — wirePlayerFieldsProxy (PLAYER_FIELDS, step");
+  lines.push("1h-iii) and wireActiveEnemyProxy (PER_ENEMY_FIELDS, step 1h-iv) —");
+  lines.push("so every tracked field's real storage is where this ledger always");
+  lines.push("said it would end up: state.combat.player.<field> for the player,");
+  lines.push("state.combat.enemies[i].<field> for an enemy slot, nothing flat on");
+  lines.push("combat itself anymore. `Touched by` is the same old-name");
+  lines.push("`combat.<field>` text-scan this file has always done, now over");
+  lines.push("comment-stripped source (a left-behind EXPLANATORY comment");
+  lines.push("mentioning the old spelling — kept on purpose, as history, not");
+  lines.push("deleted — doesn't count as a live reference the way it used to");
+  lines.push("before this fix) and excluding `player` itself, which the bare");
+  lines.push("`combat\\.(\\w+)` pattern would otherwise wrongly capture as a");
+  lines.push("field name out of `combat.player.<realField>` chains.");
   lines.push("");
   lines.push("## Tracked (must reach \"touched by\": none before step 1h)");
   lines.push("");
