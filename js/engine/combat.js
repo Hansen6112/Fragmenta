@@ -4137,20 +4137,34 @@ function beginTurn(state) {
 // caller before state.combat is nulled (dungeonRescue nulls it itself).
 function applyInjuriesFromDowns(state, downs) {
   const lines = [];
+  // Damage Types spec v1.0 step 2 follow-ups, A1 (off by default): the
+  // new 12-group table/roster once DAMAGE_TYPES_V2 is on, instead of
+  // the old 6-group one -- js/data/damagetypes.js's INJURY_GROUPS_V2/
+  // DAMAGE_TYPE_TO_INJURY_GROUP_V2.
+  const typeToGroup = DAMAGE_TYPES_V2 ? DAMAGE_TYPE_TO_INJURY_GROUP_V2 : DAMAGE_TYPE_TO_INJURY_GROUP;
   for (const damageType of downs || []) {
+    // T9: First River never causes an injury (and is never displayed) --
+    // only reachable at all once DAMAGE_TYPES_V2 is on and something
+    // actually sets playerLastHitType to it.
+    if (DAMAGE_TYPES_V2 && damageType === FIRST_RIVER) continue;
     // Judgment call: every real call site always sets playerLastHitType
-    // to one of the 10 known keys (physical/bleed/the 8 ELEMENTS keys)
-    // before a down can be pushed, so this fallback is only a defensive
-    // guard against a stale/unmapped value, never expected to fire.
-    const group = DAMAGE_TYPE_TO_INJURY_GROUP[damageType] || "trauma";
+    // to one of the known keys (physical/bleed/the 8 ELEMENTS keys, or
+    // under the switch, a real DAMAGE_TYPES member) before a down can be
+    // pushed, so this fallback is only a defensive guard against a
+    // stale/unmapped value, never expected to fire.
+    const group = typeToGroup[damageType] || "trauma";
     lines.push(...applyOneInjuryToGroup(state, group));
   }
   return lines;
 }
 
 function applyOneInjuryToGroup(state, group) {
-  const groupDef = INJURY_GROUPS[group];
-  const groupSlotIds = groupDef.slots.map((s) => group + "_" + s);
+  // A1 (off by default): INJURY_GROUPS_V2's own slots are already full
+  // ids (no "<group>_" prefix to prepend) -- see that table's own
+  // comment for why (it's what lets Frostbite keep its legacy id while
+  // moving groups).
+  const groupDef = DAMAGE_TYPES_V2 ? INJURY_GROUPS_V2[group] : INJURY_GROUPS[group];
+  const groupSlotIds = DAMAGE_TYPES_V2 ? groupDef.slots : groupDef.slots.map((s) => group + "_" + s);
   // Rule 2: already have a minor injury in this group -> upgrade it.
   const minorInGroup = state.injuries.find((inj) => groupSlotIds.includes(inj.id) && inj.severity === "minor");
   if (minorInGroup) {

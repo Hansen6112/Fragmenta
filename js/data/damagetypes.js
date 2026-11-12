@@ -133,6 +133,37 @@ function resolveStatusDamageType(statusKey, statusDef) {
   return LEGACY_STATUS_DAMAGE_TYPE_V2[statusKey] || "blunt";
 }
 
+// Damage Types spec v1.0, step 2 follow-ups, A1 (Tyler's Reference
+// document, 12 Nov 2026): the new 12-group injury table, replacing the
+// old 6-group INJURY_GROUPS (js/engine/state.js) once DAMAGE_TYPES_V2
+// is on -- js/engine/combat.js's applyInjuriesFromDowns/
+// applyOneInjuryToGroup pick between the two tables by the switch.
+// `slots` holds full injury ids here (not bare suffixes the way the
+// old table's groups do, since those get `group + "_"` prepended at
+// roll time) -- that's what lets Frostbite keep its legacy id
+// (exposure_frostbite, js/engine/state.js's INJURY_SLOT_DEFS) while
+// moving into this table's own "frost" group. firstRiver deliberately
+// has no entry (T9: no injury, never displayed) -- applyInjuriesFromDowns
+// skips it outright rather than falling through to any group.
+const INJURY_GROUPS_V2 = {
+  trauma: { damageTypes: ["blunt", "earth", "force"], slots: ["trauma_fractured_arm", "trauma_cracked_ribs", "trauma_broken_leg"] },
+  laceration: { damageTypes: ["slashing"], slots: ["laceration_deep_gash", "laceration_torn_tendon", "laceration_severed_grip"] },
+  puncture: { damageTypes: ["piercing"], slots: ["puncture_pierced_shoulder", "puncture_punctured_lung", "puncture_lodged_arrowhead"] },
+  burns: { damageTypes: ["fire"], slots: ["burns_burned_hands", "burns_seared_skin", "burns_smoke_scarred_lungs"] },
+  shock: { damageTypes: ["lightning"], slots: ["shock_nerve_tremor", "shock_scrambled_reflexes", "shock_arrhythmia"] },
+  frost: { damageTypes: ["frost"], slots: ["exposure_frostbite", "frost_numbed_fingers", "frost_brittle_bones"] },
+  exposure: { damageTypes: ["water", "air"], slots: ["exposure_fluid_filled_lungs", "exposure_burst_eardrum", "exposure_waterlogged_wounds"] },
+  corrosion: { damageTypes: ["acid"], slots: ["corrosion_acid_eaten_flesh", "corrosion_damaged_eyes", "corrosion_dissolved_grip"] },
+  toxin: { damageTypes: ["poison"], slots: ["toxin_lingering_venom", "toxin_nerve_damage", "toxin_weakened_blood"] },
+  rot: { damageTypes: ["necrotic"], slots: ["rot_necrotic_wound", "rot_withered_limb", "rot_grave_chill"] },
+  displacement: { damageTypes: ["spatial"], slots: ["displacement_dislocation_sickness", "displacement_fractured_mind", "displacement_unanchored"] },
+  soul: { damageTypes: ["spirit", "divine"], slots: ["soul_hollowed_soul", "soul_spirit_scar", "soul_haunted"] },
+};
+const DAMAGE_TYPE_TO_INJURY_GROUP_V2 = {};
+for (const [groupId, groupDef] of Object.entries(INJURY_GROUPS_V2)) {
+  for (const dt of groupDef.damageTypes) DAMAGE_TYPE_TO_INJURY_GROUP_V2[dt] = groupId;
+}
+
 // A1/A2 (Tyler, 12 Nov 2026, approved) -- Character Creation spec v1.0,
 // Amendment 1: each attunement carries one Resist and one Weak (T4),
 // and Frost joins as a 9th starting choice. Spirit/Necrotic/Divine are

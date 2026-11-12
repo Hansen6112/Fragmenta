@@ -68,6 +68,7 @@ const LEDGERS = [
   "phase1_step1g_vii_field_move_batch5_ledger.js",
   "appendix_a_groundbreaker_accuracy_ledger.js",
   "test_enemy_strike_proof_ledger.js",
+  "damage_types_a1_injury_v2_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {

@@ -120,10 +120,51 @@ const INJURY_SLOT_DEFS = {
   burns_seared_skin: { group: "burns", stat: "def", name: "Seared Skin" },
   corrosion_acid_eaten_flesh: { group: "corrosion", stat: "def", name: "Acid-Eaten Flesh" },
   corrosion_damaged_eyes: { group: "corrosion", stat: "accuracy", name: "Damaged Eyes" },
-  exposure_frostbite: { group: "exposure", stat: "speed", name: "Frostbite" },
+  // Frostbite's own id is unchanged — only its group moves, from
+  // "exposure" to the new "frost" group below (Damage Types spec v1.0
+  // step 2 follow-ups, A1: Tyler's Reference document, 12 Nov 2026 —
+  // "every shipped injury keeps its id; only its group changes
+  // (Frostbite)"). `.group` here is unread by anything except this
+  // object's own definition (recomputeStats/injurySlotName key off
+  // `.stat`/`.name` only), so updating it changes no behavior on its
+  // own — it's the NEW INJURY_GROUPS_V2 (js/data/damagetypes.js), not
+  // this field, that actually decides which group a down maps a
+  // Frost-type hit into once DAMAGE_TYPES_V2 is on.
+  exposure_frostbite: { group: "frost", stat: "speed", name: "Frostbite" },
   exposure_fluid_filled_lungs: { group: "exposure", stat: "magic", name: "Fluid-Filled Lungs" },
   displacement_dislocation_sickness: { group: "displacement", stat: "agility", name: "Dislocation Sickness" },
   displacement_fractured_mind: { group: "displacement", stat: "magic", name: "Fractured Mind" },
+
+  // The 23 new injuries (Damage Types spec v1.0 step 2 follow-ups, A1):
+  // working names from Tyler's Reference document — Narrative owns the
+  // final names (T11's own note). Unreachable while DAMAGE_TYPES_V2 is
+  // off (nothing in the old 6-group INJURY_GROUPS roll path can ever
+  // award one of these ids), so adding them here is a pure data
+  // addition with no behavior change until the switch is on and
+  // INJURY_GROUPS_V2 (js/data/damagetypes.js) actually rolls into them.
+  laceration_severed_grip: { group: "laceration", stat: "accuracy", name: "Severed Grip" },
+  puncture_pierced_shoulder: { group: "puncture", stat: "atk", name: "Pierced Shoulder" },
+  puncture_punctured_lung: { group: "puncture", stat: "maxHealth", name: "Punctured Lung" },
+  puncture_lodged_arrowhead: { group: "puncture", stat: "agility", name: "Lodged Arrowhead" },
+  burns_smoke_scarred_lungs: { group: "burns", stat: "magic", name: "Smoke-Scarred Lungs" },
+  shock_nerve_tremor: { group: "shock", stat: "accuracy", name: "Nerve Tremor" },
+  shock_scrambled_reflexes: { group: "shock", stat: "speed", name: "Scrambled Reflexes" },
+  shock_arrhythmia: { group: "shock", stat: "maxHealth", name: "Arrhythmia" },
+  frost_numbed_fingers: { group: "frost", stat: "atk", name: "Numbed Fingers" },
+  frost_brittle_bones: { group: "frost", stat: "def", name: "Brittle Bones" },
+  exposure_burst_eardrum: { group: "exposure", stat: "agility", name: "Burst Eardrum" },
+  exposure_waterlogged_wounds: { group: "exposure", stat: "maxHealth", name: "Waterlogged Wounds" },
+  corrosion_dissolved_grip: { group: "corrosion", stat: "atk", name: "Dissolved Grip" },
+  toxin_lingering_venom: { group: "toxin", stat: "maxHealth", name: "Lingering Venom" },
+  toxin_nerve_damage: { group: "toxin", stat: "agility", name: "Nerve Damage" },
+  toxin_weakened_blood: { group: "toxin", stat: "atk", name: "Weakened Blood" },
+  rot_necrotic_wound: { group: "rot", stat: "maxHealth", name: "Necrotic Wound" },
+  rot_withered_limb: { group: "rot", stat: "atk", name: "Withered Limb" },
+  rot_grave_chill: { group: "rot", stat: "speed", name: "Grave Chill" },
+  displacement_unanchored: { group: "displacement", stat: "def", name: "Unanchored" },
+  soul_hollowed_soul: { group: "soul", stat: "magic", name: "Hollowed Soul" },
+  soul_spirit_scar: { group: "soul", stat: "maxHealth", name: "Spirit Scar" },
+  soul_haunted: { group: "soul", stat: "accuracy", name: "Haunted" },
 };
 
 function injurySlotName(id) {
