@@ -1,0 +1,170 @@
+range: 0ae15f9c92ff3310b6644f98e602f6381f48445c..4d439313725924d624dde6c112ee60dc86ba095d
+=== 4d439313725924d624dde6c112ee60dc86ba095d 2026-11-12 05:42:08 +0000
+Phase 1 handoff §4: draft tools/phase1_acceptance.md (provisional)
+Draft acceptance record per the handoff's §4: maps spec §7's items to
+their evidence (commits, the field ledger at 0, audit rules P1-P4,
+the three test-strike proofs, listed changes with before/after
+numbers, state of the switches). Provisional: the §2
+50-consecutive-clean-run verification gate is running now: this
+file's summary will be updated with the final run count once it
+completes, before Phase 1 is actually declared closed.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/phase1_acceptance.md | 116 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 116 insertions(+)
+=== ca3446cb7a505598596f1afa24fe62005d5204db 2026-11-12 05:42:01 +0000
+Phase 1 handoff §6, switch 3/9: flip U3c (Winter's Verdict vs. ally)
+U3c lets Winter's Verdict (First Sword's Regalia 8pc) fire when the
+ALLY (not just the player) is Chilled, reading ally.statuses.chilled
+the same way Serrated Opening's bleed check already does in this
+file's ally branches.
+
+Full suite 454/454, tools/audit.js 0 errors. Layer 2 harness
+comparison against U3b's after-state is running in the background;
+its result and the combined U2+U3b+U3c Dregnar total-change report
+will follow in tools/combat_unify_switch_rollout.md once both
+harnesses finish.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+=== 36c77480051044d5d38fd7dfa328d1743390a741 2026-11-12 05:38:41 +0000
+Phase 1 handoff §6, switch 2/9: flip U3b (Flowing Discipline vs. ally)
+U3b lets Flowing Discipline (First Sword's Regalia 6pc) apply its
+banked +10% physical-damage bonus on an ally-targeted hit too, not
+just the player.
+
+Measured zero cells moved (>=3 win-rate points) on either harness
+against U2's own after-state. Flowing Discipline's trigger (Dregnar
+casting Barrier while wearing the 6pc, then landing a physical hit on
+an ally within the following 2 turns) needs the party-share roll to
+pick an ally at all, narrow enough that it didn't cross the 3-point
+threshold at current trial counts -- a real measured result, not an
+assumption. Full details in tools/combat_unify_switch_rollout.md,
+including a real test-infrastructure bug this verification pass
+caught and fixed (already committed in combat_unify_switches_ledger.js):
+its on/off isolation helpers compared a switch's "off" state against
+whatever the CURRENT committed default happened to be, so once a
+switch's own default flipped true, its own dedicated "on changes
+something" test silently compared the same state to itself.
+
+Full suite 454/454, tools/audit.js 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js                |  2 +-
+ tools/combat_unify_switch_rollout.md | 93 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 94 insertions(+), 1 deletion(-)
+=== db1cb939e4e200b131e64b1af3d02fef3f99f8d3 2026-11-12 05:38:23 +0000
+Phase 1 handoff §6, switch 1/9: flip U2 (Dregnar's Unquenched Focus vs. ally)
+Narrowest-to-broadest unification rollout, approved by Tyler (9 Nov
+2026). U2 lets Dregnar's Unquenched Focus (dra_e07) apply on his first
+successful elemental hit against an ally too, not just the player.
+
+Measured zero cells moved (>=3 win-rate points) on either Layer 2
+harness against the all-5-classes, zero-switches baseline — expected,
+not inert: U2 only has something to trigger from when an elemental hit
+against an ally exists at all, which needs U1 (last in this rollout)
+also on. combat_unify_switches_ledger.js's own U2-REQUIRES-U1-01 test
+already proves this in isolation. Flipped first anyway per the
+handoff's own ordering, so U1's own eventual table is what actually
+shows U2's contribution. Full details in
+tools/combat_unify_switch_rollout.md.
+
+Full suite 454/454, tools/audit.js 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+=== 70d5d3962f5e607ae911f33812e0b5cb73c27323 2026-11-12 05:38:01 +0000
+Phase 1 handoff §3: log the Groundbreaker fix (0ae15f9) with numbers
+One-page record of the accuracy-restore over-grant fix already
+committed at 0ae15f9: player-visible effect, and both Layer 2
+harnesses confirmed byte-identical before/after (every boss's scaled
+Accuracy is >= 17, above Groundbreaker's 10-point debuff, so the
+clamp this fix touches never engaged against the current roster).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/groundbreaker_accuracy_fix_before_after.md | 78 ++++++++++++++++++++++++
+ 1 file changed, 78 insertions(+)
+=== 502ec4b99fdfb2949717014672f236902378794b 2026-11-12 05:37:54 +0000
+Phase 1 handoff §1+§2: enemy test-strike proof, seeded RNG, fix flaky INJ-15
+§1: add a test-only ENEMY_ABILITIES entry (test_enemy_strike, pure
+data) registered at runtime, proving a data-only enemy action is
+picked by resolveEnemyActiveAbility, runs all five pipeline steps,
+targets via the shared party-share rule (ally or player), applies its
+inflict status, respects cooldown, and a lethal hit goes through
+applyAndReact's normal step-5 "downed, not dead" tail. Diff outside
+the new test file is one LEDGERS registration line in run_all.js.
+
+§2: tools/tests/run_all.js reported 447/448 roughly 1 run in 7. Found
+the actual cause: injury_ledger.js's INJ-15 let an unforced ally
+attack occasionally kill the lone enemy outright, ending the fight
+through the normal victory flow (which revives a downed player)
+instead of the rally-item path the scenario meant to isolate. Fixed
+by pinning the enemy's HP so the fight can only end the intended way.
+
+Added tools/tests/seed_rng.js: seeds window.Math.random via
+page.addInitScript before each ledger's page loads (mulberry32,
+TEST_SEED env var or a logged random seed), so any future
+intermittent failure prints a reproducible seed instead of needing a
+loop-and-catch hunt. Wired into all 32 ledger files. Also fixed
+run_all.js's failure-detail filter, which was dropping the "seed:"/
+"detail:" lines needed to diagnose a failure once one is caught.
+
+Full suite 454/454, tools/audit.js 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/tests/README.md                              |  44 +++++
+ tools/tests/ally_protection_ledger.js              |   3 +
+ tools/tests/apothecary_action_tracking_ledger.js   |   3 +
+ .../appendix_a_groundbreaker_accuracy_ledger.js    |   3 +
+ tools/tests/combat_unify_switches_ledger.js        |  22 +++
+ tools/tests/consumable_noop_ledger.js              |   3 +
+ tools/tests/d1_stun_fix_ledger.js                  |   3 +
+ tools/tests/downed_ledger.js                       |   3 +
+ tools/tests/dregnar_stage_a_ledger.js              |   3 +
+ tools/tests/dregnar_stage_b_ledger.js              |   3 +
+ tools/tests/injury_items_ledger.js                 |   3 +
+ tools/tests/injury_ledger.js                       |  21 +++
+ tools/tests/party_cap_ledger.js                    |   3 +
+ tools/tests/phase1_step1a_combatant_ledger.js      |   3 +
+ tools/tests/phase1_step1b_pipeline_parity.js       |   3 +
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |   3 +
+ .../phase1_step1d_ally_attack_pipeline_parity.js   |   3 +
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |   3 +
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |   3 +
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |   3 +
+ ...e1_step1f_iii_player_riposte_pipeline_parity.js |   3 +
+ .../phase1_step1f_iv_ticks_pipeline_parity.js      |   3 +
+ .../phase1_step1g_i_dregnar_targeting_parity.js    |   3 +
+ tools/tests/phase1_step1g_ii_healing_parity.js     |   3 +
+ .../phase1_step1g_iii_field_move_batch1_ledger.js  |   3 +
+ .../phase1_step1g_iv_field_move_batch2_ledger.js   |   3 +
+ .../phase1_step1g_v_field_move_batch3_ledger.js    |   3 +
+ .../phase1_step1g_vi_field_move_batch4_ledger.js   |   3 +
+ .../phase1_step1g_vii_field_move_batch5_ledger.js  |   3 +
+ tools/tests/run_all.js                             |  13 +-
+ tools/tests/seed_rng.js                            |  65 ++++++++
+ tools/tests/test_ally_proof_ledger.js              |   3 +
+ tools/tests/test_enemy_strike_proof_ledger.js      | 183 +++++++++++++++++++++
+ tools/tests/test_reaction_proof_ledger.js          |   3 +
+ tools/tests/test_strike_proof_ledger.js            |   3 +
+ 35 files changed, 434 insertions(+), 1 deletion(-)

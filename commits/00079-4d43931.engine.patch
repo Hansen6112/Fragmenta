@@ -1,0 +1,28 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 1ce8077..95e7b17 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -104,7 +104,7 @@ const COMBAT_UNIFY = {
+   // it to trigger from otherwise) — gated on both flags at the call site,
+   // not implied by U1 alone, so flipping U1 on by itself doesn't silently
+   // also turn U2 on.
+-  U2: false,
++  U2: true,
+   // Marked Target (sang_cu_ie002_marked_target): a successful hit marks
+   // the TARGET (combat.player.exposedTarget), not just the player, and the
+   // marked-target accuracy bonus is read/consumed on an ally-targeted
+@@ -112,12 +112,12 @@ const COMBAT_UNIFY = {
+   U3a: false,
+   // Flowing Discipline (First Sword's Regalia 6pc): the banked +10%
+   // physical-damage bonus fires on an ally-targeted hit too.
+-  U3b: false,
++  U3b: true,
+   // Winter's Verdict (First Sword's Regalia 8pc): fires when the ALLY
+   // (not just the player) is Chilled — reads ally.statuses.chilled,
+   // the same per-ally status bag Serrated Opening's bleed check already
+   // reads in this file's ally branches.
+-  U3c: false,
++  U3c: true,
+   // Toxic Preparation (sang_iag_ie008): fires when the ALLY (not just
+   // the player) carries the Sanguivorum poison status — reads
+   // ally.statuses["sang_iag_poison"], same per-ally status bag as U3c.
