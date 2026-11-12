@@ -429,7 +429,17 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
   // never triggered off one.
   if (!action.isReaction && target.kind === "player" && creature.element && hasEffect(state, "mirror_soul") && !combat.player.mirrorSoulUsed) {
     combat.player.mirrorSoulUsed = true;
-    const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
+    // Damage Types spec v1.0 step 2 follow-ups, A2 (off by default):
+    // the reflected hit uses the CREATURE's own tag against the
+    // reflected damage type (its own element, translated onto the new
+    // roster) -- it's the creature taking its own spell back, so it's
+    // the creature's tags that apply, same as any other hit under T2.
+    // "transportation" is the old ELEMENTS key for the type the new
+    // roster calls Spatial (T1) -- translated here since creature.element
+    // is never itself migrated to new-roster spelling.
+    const matchup = DAMAGE_TYPES_V2
+      ? dmgTagMultiplier(creature, creature.element === "transportation" ? "spatial" : creature.element)
+      : elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
     const base = randInt(creature.magic - 2, creature.magic + 2);
     const reflected = Math.max(0, Math.round(base * matchup));
     return { shortCircuit: false, edmg: reflected, kind: "mirrorSoul" };
