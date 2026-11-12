@@ -115,3 +115,24 @@ Focus, Flowing Discipline, or Winter's Verdict crossed the 3-point
 threshold individually or cumulatively against this roster at current
 trial counts — a real, measured "no impact yet," not an assumption
 that three zeros add to zero.
+
+## U3a — Marked Target vs. an ally
+
+**Zero cells moved on either harness, and verified why rather than
+just measured:** Marked Target is granted by the "Spotter's Lens"
+trinket (`js/data/items.js`), worn in the bestiary only by the
+"Roadside Lookout" (`js/data/bestiary.js`) — none of boss_sweep.js's
+16 Boss-class humanoids or plus3_run.js's Dregnar/Arbitarius wear it
+or anything else carrying `sang_cu_ie002_marked_target`, so the switch
+has nothing to trigger from in either harness at all, not merely "not
+enough trials to see it." U3a's own reach (handoff §6's table) is
+"Sanguivorum fights" specifically — neither harness contains one.
+This switch's real impact won't show up until a Sanguivorum
+encounter (e.g. one with Roadside Lookout present) is added to a
+harness roster; noted here rather than left looking like a false
+"no effect."
+
+Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
+against U3c's own after-state
+(`boss_sweep_u3a.json`/`plus3_u3a.json` vs.
+`boss_sweep_u3c.json`/`plus3_u3c.json`).
