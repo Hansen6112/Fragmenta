@@ -204,3 +204,20 @@ Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
 against U3e's own after-state
 (`boss_sweep_u3f.json`/`plus3_u3f.json` vs.
 `boss_sweep_u3e.json`/`plus3_u3e.json`).
+
+## U3g — enemy Riposte counters Hadrian's miss too
+
+**Zero cells moved on either harness, same no-trigger-surface pattern
+as U3a/U3d:** `riposteCounterByEnemyOnAlly` reads
+`hasEffect(creature, "riposte")`; none of the items granting that
+effect (`js/data/items.js`) are worn by any of boss_sweep.js's 16
+bosses or plus3_run.js's Dregnar/Arbitarius. The "riposte" mentions in
+`js/data/bestiary.js` are unrelated named actives
+(`precision_riposte`, `disciplined_riposte`,
+`sang_sec_arena_riposte`), not this switch's own trigger. Confirmed
+before running, not just after.
+
+Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
+against U3f's own after-state
+(`boss_sweep_u3g.json`/`plus3_u3g.json` vs.
+`boss_sweep_u3f.json`/`plus3_u3f.json`).
