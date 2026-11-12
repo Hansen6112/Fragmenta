@@ -1,0 +1,49 @@
+range: af4a7b561f92052a83105509534a1ddda6538876..5cadf8ffc7b0597cad682ebb728a07311e0d3f65
+=== 5cadf8ffc7b0597cad682ebb728a07311e0d3f65 2026-11-12 00:49:58 +0000
+Step 1h-iv §1: rewrite combat.js onto activeEnemySlot(combat)
+Combat Rebuild Phase 1, step 1h §5: replace the PER_ENEMY_FIELDS/
+wireActiveEnemyProxy alias's combat.js call sites. Adds
+activeEnemySlot(combat), returning combat.enemies[combat.activeIndex]
+-- re-read fresh on every call, exactly like the proxy's own get/set
+do, so a call site that invokes it at each individual access point
+(rather than caching the returned slot across a span of code that
+might itself change activeIndex) is unconditionally correct regardless
+of call depth or what's happening elsewhere in the same function.
+
+This is the explicit risk the handoff calls out: resolveKill
+deliberately captures activeIndex into its own `diedIndex` local
+BEFORE doing anything (its own comment: "captured now, before
+anything below could move it"), then much later reassigns
+state.combat.activeIndex to a survivor. Verified by reading
+resolveKill's full body line by line: every PER_ENEMY_FIELDS access
+this commit touches (the opening deathFlavorLine's lastDamageType,
+and -- via applyArchiveEternal, called from inside resolveKill --
+dynamicCreature/creatureId) happens strictly BEFORE that reassignment,
+while activeIndex still equals diedIndex, matching applyArchiveEternal's
+own existing comment ("still needed activeIndex pointing at the
+creature that just died"). Nothing this commit rewrites reads a
+PER_ENEMY_FIELDS entry AFTER the reassignment.
+
+Mechanical, per-occurrence rewrite (every state.combat.<field>/
+combat.<field> match independently replaced with
+activeEnemySlot(state.combat).<field>/activeEnemySlot(combat).<field>,
+never cached across statements) -- this reproduces the proxy's exact
+behavior by construction, including whatever a caller's own activeIndex
+juggling means for a given access, without needing a bespoke safety
+argument for every one of the ~35 call sites in this file individually
+(comment-only lines left untouched, to avoid turning readable prose
+into code-shaped text).
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+Next: pipeline.js, companion.js/resolver.js, js/data/actions.js,
+js/data/synergy.js, then delete wireActiveEnemyProxy.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 75 +++++++++++++++++++++++++++++++++--------------------
+ 1 file changed, 47 insertions(+), 28 deletions(-)
