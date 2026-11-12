@@ -183,12 +183,12 @@ const { chromium } = require('playwright');
       s.recomputeStats(false);
       s.health = s.maxHealth * 1000; s.maxHealth = s.maxHealth * 1000;
       startCombat(s, 'dregnar_ashvein', 30);
-      const creature = s.combat.creatureObj;
-      s.combat.enemyStunCharges = 1; // PER_ENEMY_FIELDS proxy -> the active (only) enemy slot
+      const creature = activeEnemySlot(s.combat).creatureObj;
+      activeEnemySlot(s.combat).enemyStunCharges = 1; // PER_ENEMY_FIELDS proxy -> the active (only) enemy slot
       const result = withForcedHit(() => resolveEnemyAction(s, creature, 2, 0));
       return {
-        pass: s.combat.enemyStunCharges === 0 && result.damage == null,
-        charges: s.combat.enemyStunCharges, result,
+        pass: activeEnemySlot(s.combat).enemyStunCharges === 0 && result.damage == null,
+        charges: activeEnemySlot(s.combat).enemyStunCharges, result,
       };
     });
 

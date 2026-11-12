@@ -124,9 +124,9 @@ const { chromium } = require('playwright');
       s.recruitAlly('kessa');
       s.health = 5000; s.maxHealth = 5000; // survive whatever the enemy throws back
       s.playerDowned = true;
-      const enemyHpBefore = s.combat.hp;
+      const enemyHpBefore = activeEnemySlot(s.combat).hp;
       const r1 = withForcedHit(() => resolveDownedRound(s));
-      const enemyHpAfter = s.combat ? s.combat.hp : 0;
+      const enemyHpAfter = s.combat ? activeEnemySlot(s.combat).hp : 0;
       return { pass: !!r1 && r1.length > 0 && !!s.combat && enemyHpAfter < enemyHpBefore, enemyHpBefore, enemyHpAfter, lines: r1 };
     });
     record('ROUND-02', 'combatOngoing correctly reports true while downed with an ally alive; once the real code path (killAlly) processes that ally\'s own death as the last one, combat itself is already null, so combatOngoing correctly reports false via its own !!state.combat check', () => {
@@ -159,7 +159,7 @@ const { chromium } = require('playwright');
       s.recruitAlly('kessa');
       s.health = 5000; s.maxHealth = 5000;
       s.playerDowned = true;
-      const result = withForcedMiss(() => resolveEnemyActionWithFlurry(s, s.combat.creatureObj, 2, 0));
+      const result = withForcedMiss(() => resolveEnemyActionWithFlurry(s, activeEnemySlot(s.combat).creatureObj, 2, 0));
       return { pass: /fast enough to strike again/.test(result.lines.join(' ')), lines: result.lines };
     });
 
@@ -172,7 +172,7 @@ const { chromium } = require('playwright');
       s.health = 0;
       s.playerDowned = true;
       const creature = getCombatCreature(s);
-      s.combat.hp = 1; // one hit from death
+      activeEnemySlot(s.combat).hp = 1; // one hit from death
       const lines = withForcedHit(() => resolveKill(s, creature));
       return {
         pass: s.playerDowned === false && s.health === Math.ceil(200 * 0.25) && /come to|carried/i.test(lines.join(' ')),
@@ -185,7 +185,7 @@ const { chromium } = require('playwright');
       s.recruitAlly('kessa');
       s.maxHealth = 200; s.health = 0; s.playerDowned = true;
       const creature = getCombatCreature(s);
-      s.combat.hp = 1;
+      activeEnemySlot(s.combat).hp = 1;
       withForcedHit(() => resolveKill(s, creature));
       return { pass: s.health > 0 && !s.playerDowned, health: s.health, playerDowned: s.playerDowned, combatNull: s.combat === null };
     });

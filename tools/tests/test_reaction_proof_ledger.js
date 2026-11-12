@@ -152,16 +152,16 @@ const { chromium } = require('playwright');
       return { pass: !mirrorSoulUsedBefore && !mirrorSoulUsedAfter && noReflectLine, mirrorSoulUsedBefore, mirrorSoulUsedAfter, lines };
     });
 
-    record('TESTREACTION-NO-CHAIN-REINFORCED', 'Reactions don\'t chain: Reinforced\'s own counter (combat.reinforcedAttackCount) does NOT advance from this reaction, because chooseAction\'s existing guard already excludes action.isReaction -- same inherited protection as the real Riposte family, with zero new code', () => {
+    record('TESTREACTION-NO-CHAIN-REINFORCED', 'Reactions don\'t chain: Reinforced\'s own counter (activeEnemySlot(combat).reinforcedAttackCount) does NOT advance from this reaction, because chooseAction\'s existing guard already excludes action.isReaction -- same inherited protection as the real Riposte family, with zero new code', () => {
       const s = makeWarrior();
       const creature = s.combat.enemies[0].creatureObj;
       const origHasEffect = window.hasEffect;
       window.hasEffect = (st, id) => id === 'reinforced' ? true : origHasEffect(st, id);
       let countBefore, countAfter;
       try {
-        countBefore = s.combat.reinforcedAttackCount || 0;
+        countBefore = activeEnemySlot(s.combat).reinforcedAttackCount || 0;
         testHalfCounterReaction(s, creature);
-        countAfter = s.combat.reinforcedAttackCount || 0;
+        countAfter = activeEnemySlot(s.combat).reinforcedAttackCount || 0;
       } finally {
         window.hasEffect = origHasEffect;
       }

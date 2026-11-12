@@ -190,7 +190,7 @@ const { chromium } = require('playwright');
     record('PARITY-ENEMY-01', 'stat(atk) === effectiveEnemyAtk for an enemy, including a Disarm penalty', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.enemyAtkPenalty = 2;
+      activeEnemySlot(s.combat).enemyAtkPenalty = 2;
       const slot = s.combat.enemies[0];
       const c = makeEnemyCombatant(s, slot, 0);
       const creature = slot.creatureObj;

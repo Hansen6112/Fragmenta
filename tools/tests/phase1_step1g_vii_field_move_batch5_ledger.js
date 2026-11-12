@@ -71,15 +71,15 @@ const { chromium } = require('playwright');
       return { pass: leaked.length === 0, leaked, e0: Object.fromEntries(BATCH5_ALL_FIELDS.map((f) => [f, e0[f]])), e1: Object.fromEntries(BATCH5_ALL_FIELDS.map((f) => [f, e1[f]])) };
     });
 
-    record('P1G-VII-ALIAS-FOLLOWS-ACTIVE-01', "The combat.<field> alias (wireActiveEnemyProxy) still tracks whichever enemy is active -- switching activeIndex changes what combat.hp/combat.maxHp/etc. resolve to, with each enemy's own real values untouched by the switch", () => {
+    record('P1G-VII-ALIAS-FOLLOWS-ACTIVE-01', "The combat.<field> alias (wireActiveEnemyProxy) still tracks whichever enemy is active -- switching activeIndex changes what activeEnemySlot(combat).hp/activeEnemySlot(combat).maxHp/etc. resolve to, with each enemy's own real values untouched by the switch", () => {
       const s = makeWarriorWithPack();
       const [e0, e1] = s.combat.enemies;
       e0.hp = 11; e0.maxHp = 61;
       e1.hp = 22; e1.maxHp = 61;
       s.combat.activeIndex = 0;
-      const viaAliasE0 = s.combat.hp;
+      const viaAliasE0 = activeEnemySlot(s.combat).hp;
       s.combat.activeIndex = 1;
-      const viaAliasE1 = s.combat.hp;
+      const viaAliasE1 = activeEnemySlot(s.combat).hp;
       return {
         pass: viaAliasE0 === 11 && viaAliasE1 === 22 && e0.hp === 11 && e1.hp === 22,
         viaAliasE0, viaAliasE1, e0hp: e0.hp, e1hp: e1.hp,
@@ -90,7 +90,7 @@ const { chromium } = require('playwright');
       const s = makeWarriorWithPack();
       const [e0, e1] = s.combat.enemies;
       s.combat.activeIndex = 1;
-      s.combat.hp = 33;
+      activeEnemySlot(s.combat).hp = 33;
       return { pass: e1.hp === 33 && e0.hp !== 33, e0hp: e0.hp, e1hp: e1.hp };
     });
 

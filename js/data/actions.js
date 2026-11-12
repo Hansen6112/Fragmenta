@@ -135,7 +135,7 @@ function getActionDef(id) {
 // via a field like `elementOnHit`) ----
 const PIPELINE_HOOKS = {
   fireOnHit(h) {
-    h.state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(h.state.magic / 4)) };
+    activeEnemySlot(h.state.combat).burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(h.state.magic / 4)) };
     return { lines: [`${ELEMENTS.fire.verb(withThe(h.creature.name, false))} for ${h.edmg} damage, and the flame catches.`], castDamageDealt: h.edmg };
   },
   waterOnHit(h) {
@@ -162,8 +162,8 @@ const PIPELINE_HOOKS = {
     return { lines, castDamageDealt };
   },
   acidOnHit(h) {
-    h.state.combat.corroded = true;
-    h.state.combat.enemyDefPenalty = (h.state.combat.enemyDefPenalty || 0) + 4;
+    activeEnemySlot(h.state.combat).corroded = true;
+    activeEnemySlot(h.state.combat).enemyDefPenalty = (activeEnemySlot(h.state.combat).enemyDefPenalty || 0) + 4;
     return { lines: [`${ELEMENTS.acid.verb(withThe(h.creature.name, false))} for ${h.edmg} damage — its defenses will be weaker against you for the rest of this fight.`], castDamageDealt: h.edmg };
   },
   forceOnHit(h) {

@@ -34,11 +34,11 @@ const SYNERGY_COMBOS = {
     message: () => `The wind catches the flame and it roars up into a wildfire.`,
     dmgMultiplier: 1.1,
     extraEffect: (state) => {
-      if (state.combat.burn) {
-        state.combat.burn.dmgPerTurn = Math.round(state.combat.burn.dmgPerTurn * 1.5);
-        state.combat.burn.turnsLeft = Math.max(state.combat.burn.turnsLeft, 2) + 1;
+      if (activeEnemySlot(state.combat).burn) {
+        activeEnemySlot(state.combat).burn.dmgPerTurn = Math.round(activeEnemySlot(state.combat).burn.dmgPerTurn * 1.5);
+        activeEnemySlot(state.combat).burn.turnsLeft = Math.max(activeEnemySlot(state.combat).burn.turnsLeft, 2) + 1;
       } else {
-        state.combat.burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 5)) };
+        activeEnemySlot(state.combat).burn = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.magic / 5)) };
       }
     },
   },
@@ -47,8 +47,8 @@ const SYNERGY_COMBOS = {
     message: (target) => `Flame and acid fuse — ${target} burns and dissolves at once.`,
     dmgMultiplier: 1.15,
     extraEffect: (state) => {
-      if (!state.combat.burn) state.combat.burn = { turnsLeft: 2, dmgPerTurn: Math.max(1, Math.round(state.magic / 5)) };
-      state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 3; // stacks even if Corrode's own lock is already spent
+      if (!activeEnemySlot(state.combat).burn) activeEnemySlot(state.combat).burn = { turnsLeft: 2, dmgPerTurn: Math.max(1, Math.round(state.magic / 5)) };
+      activeEnemySlot(state.combat).enemyDefPenalty = (activeEnemySlot(state.combat).enemyDefPenalty || 0) + 3; // stacks even if Corrode's own lock is already spent
     },
   },
   "earth+fire": {
@@ -56,7 +56,7 @@ const SYNERGY_COMBOS = {
     message: () => `Molten rock sheathes you as it sheathes them — armor and injury from the same casting.`,
     dmgMultiplier: 1.1,
     extraEffect: (state) => {
-      if (!state.combat.burn) state.combat.burn = { turnsLeft: 2, dmgPerTurn: Math.max(1, Math.round(state.magic / 5)) };
+      if (!activeEnemySlot(state.combat).burn) activeEnemySlot(state.combat).burn = { turnsLeft: 2, dmgPerTurn: Math.max(1, Math.round(state.magic / 5)) };
       state.combat.player.defBuffTurns = Math.max(state.combat.player.defBuffTurns, 2);
       state.combat.player.defBuffAmount = Math.max(state.combat.player.defBuffAmount, Math.max(2, Math.round(state.magic / 4)));
     },
@@ -74,7 +74,7 @@ const SYNERGY_COMBOS = {
     message: (target) => `The ground turns to mud and swallows ${target}'s footing.`,
     dmgMultiplier: 1.05,
     extraEffect: (state) => {
-      state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3; // stacks even if Disarm's own lock is already spent
+      activeEnemySlot(state.combat).enemyAtkPenalty = (activeEnemySlot(state.combat).enemyAtkPenalty || 0) + 3; // stacks even if Disarm's own lock is already spent
     },
   },
   "acid+earth": {
@@ -82,7 +82,7 @@ const SYNERGY_COMBOS = {
     message: (target) => `Stone and acid together — ${target}'s defenses erode like a cliff face.`,
     dmgMultiplier: 1.1,
     extraEffect: (state) => {
-      state.combat.enemyDefPenalty = (state.combat.enemyDefPenalty || 0) + 5;
+      activeEnemySlot(state.combat).enemyDefPenalty = (activeEnemySlot(state.combat).enemyDefPenalty || 0) + 5;
     },
   },
   "force+transportation": {

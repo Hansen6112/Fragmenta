@@ -184,12 +184,12 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
 
     checkParity('P1-REINFORCED-01', 'Reinforced: attack count incremented unconditionally even on a miss, stacks granted every 3rd attack', {
       effects: ['reinforced'],
-      mutate: (s) => { s.combat.reinforcedAttackCount = 2; }, // this attempt is the 3rd
+      mutate: (s) => { activeEnemySlot(s.combat).reinforcedAttackCount = 2; }, // this attempt is the 3rd
       seq: HIGH, // force a miss, to also prove Reinforced counts misses
     });
     checkParity('P1-REINFORCED-OFF-01', 'Reinforced equipped but this attempt isn’t the 3rd (count 0->1): the counter still ticks, but no stack is granted -- the "equipped, not yet triggered" off-case, distinct from not wearing it at all', {
       effects: ['reinforced'],
-      mutate: (s) => { s.combat.reinforcedAttackCount = 0; },
+      mutate: (s) => { activeEnemySlot(s.combat).reinforcedAttackCount = 0; },
       seq: HIGH,
     });
 

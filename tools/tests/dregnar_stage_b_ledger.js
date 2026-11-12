@@ -59,40 +59,40 @@ const { chromium } = require('playwright');
     // ============ 1. Equipped stat block (most consequential) ============
     record('DRA-B-STATS-01', 'Equipped Dregnar == 860/100/110/62/13/99/14 exactly', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       return {
-        pass: s.combat.maxHp === 860 && c.atk === 100 && c.def === 110 && c.magic === 62 && c.spd === 13 && c.acc === 99 && c.agi === 14,
-        hp: s.combat.maxHp, atk: c.atk, def: c.def, magic: c.magic, spd: c.spd, acc: c.acc, agi: c.agi,
+        pass: activeEnemySlot(s.combat).maxHp === 860 && c.atk === 100 && c.def === 110 && c.magic === 62 && c.spd === 13 && c.acc === 99 && c.agi === 14,
+        hp: activeEnemySlot(s.combat).maxHp, atk: c.atk, def: c.def, magic: c.magic, spd: c.spd, acc: c.acc, agi: c.agi,
       };
     });
     record('DRA-B-STATS-02', 'Kabal Enforcer (special:true, no equipment field) is byte-identical before/after the legacyScaledCreature equipment generalization', () => {
       const s = makeChar(10);
       startCombat(s, 'kabal_enforcer', 10);
-      const c = s.combat.creatureObj;
-      return { pass: s.combat.maxHp === 40 && c.atk === 12 && c.def === 10 && c.spd === 6 && c.acc === 6 && c.agi === 5, hp: s.combat.maxHp, atk: c.atk, def: c.def };
+      const c = activeEnemySlot(s.combat).creatureObj;
+      return { pass: activeEnemySlot(s.combat).maxHp === 40 && c.atk === 12 && c.def === 10 && c.spd === 6 && c.acc === 6 && c.agi === 5, hp: activeEnemySlot(s.combat).maxHp, atk: c.atk, def: c.def };
     });
 
     // ============ 2/3/4. Stun generalization ============
     record('DRA-B-STUN-01', 'Ordinary creature: a single stun charge still skips exactly its one action, bit-for-bit as the old boolean', () => {
       const s = makeChar(10);
       startCombat(s, 'bandit_cutthroat', 10);
-      s.combat.enemyStunCharges = 1;
+      activeEnemySlot(s.combat).enemyStunCharges = 1;
       const before = s.health;
-      withForcedMiss(() => resolveEnemyAction(s, s.combat.creatureObj, 2, 0));
-      return { pass: s.health === before && (s.combat.enemyStunCharges || 0) === 0, healthUnchanged: s.health === before, chargesLeft: s.combat.enemyStunCharges };
+      withForcedMiss(() => resolveEnemyAction(s, activeEnemySlot(s.combat).creatureObj, 2, 0));
+      return { pass: s.health === before && (activeEnemySlot(s.combat).enemyStunCharges || 0) === 0, healthUnchanged: s.health === before, chargesLeft: activeEnemySlot(s.combat).enemyStunCharges };
     });
     record('DRA-B-STUN-02', 'Ordinary creature with 2 charges: first turn stunned+consumes 1, charge carries to next turn', () => {
       const s = makeChar(10);
       startCombat(s, 'bandit_cutthroat', 10);
-      s.combat.enemyStunCharges = 2;
-      const r1 = withForcedMiss(() => resolveEnemyAction(s, s.combat.creatureObj, 2, 0));
-      const midCharges = s.combat.enemyStunCharges;
-      const r2 = withForcedMiss(() => resolveEnemyAction(s, s.combat.creatureObj, 2, 0));
-      return { pass: r1.damage === 0 && midCharges === 1 && r2.damage === 0 && (s.combat.enemyStunCharges || 0) === 0, r1damage: r1.damage, midCharges, r2damage: r2.damage };
+      activeEnemySlot(s.combat).enemyStunCharges = 2;
+      const r1 = withForcedMiss(() => resolveEnemyAction(s, activeEnemySlot(s.combat).creatureObj, 2, 0));
+      const midCharges = activeEnemySlot(s.combat).enemyStunCharges;
+      const r2 = withForcedMiss(() => resolveEnemyAction(s, activeEnemySlot(s.combat).creatureObj, 2, 0));
+      return { pass: r1.damage === 0 && midCharges === 1 && r2.damage === 0 && (activeEnemySlot(s.combat).enemyStunCharges || 0) === 0, r1damage: r1.damage, midCharges, r2damage: r2.damage };
     });
     record('DRA-B-STUN-03', 'Dregnar: a charge consumed on the normal slot skips only that slot (bonus action, in Unbound, still fires)', () => {
       const s = freshBareDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0; e.draJudgmentPending = false;
       e.enemyStunCharges = 1;
@@ -101,7 +101,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-STUN-04', 'Dregnar in Water Guard (no bonus slot at all): a single charge skips the one normal action via his bespoke resolver, same outward result as the generic path (STUN-01)', () => {
       const s = freshBareDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'water_guard'; e.draStateTurns = 0; e.draJudgmentPending = false;
       e.enemyStunCharges = 1;
@@ -110,7 +110,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-STUN-05', '2 simultaneous charges in Unbound: both normal and bonus slots are stunned', () => {
       const s = freshBareDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0; e.draJudgmentPending = false;
       e.enemyStunCharges = 2;
@@ -121,7 +121,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-STUN-06', 'A stun consuming the normal slot that would have resolved pending Judgment cancels it (not left pending) and starts its cooldown', () => {
       const s = freshBareDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 1; e.draJudgmentPending = true;
       e.abilityCooldowns = {};
@@ -136,9 +136,9 @@ const { chromium } = require('playwright');
       const creature = getCombatCreature(s);
       const l1 = tryApplyEnemyStun(s, creature);
       const l2 = tryApplyEnemyStun(s, creature);
-      const chargesAfterTwo = s.combat.enemyStunCharges || 0;
+      const chargesAfterTwo = activeEnemySlot(s.combat).enemyStunCharges || 0;
       const l3 = tryApplyEnemyStun(s, creature);
-      const chargesAfterThree = s.combat.enemyStunCharges || 0;
+      const chargesAfterThree = activeEnemySlot(s.combat).enemyStunCharges || 0;
       return {
         pass: /Unshaken Command/.test(l1[0]) && /Unshaken Command/.test(l2[0]) && chargesAfterTwo === 0 && l3.length === 0 && chargesAfterThree === 1,
         l1, l2, l3, chargesAfterTwo, chargesAfterThree,
@@ -162,10 +162,10 @@ const { chromium } = require('playwright');
       // Force Hammerfall specifically on both by clearing other cooldowns.
       withForcedHit(() => {
         const cb = bare.combat.enemies[0]; cb.abilityCooldowns = {};
-        const rb = resolveDregnarAttempt(bare, cb, bare.combat.creatureObj, 'dra_hammerfall', 2, 0);
+        const rb = resolveDregnarAttempt(bare, cb, activeEnemySlot(bare.combat).creatureObj, 'dra_hammerfall', 2, 0);
         bareDmg = rb.damage;
         const cf = full.combat.enemies[0]; cf.abilityCooldowns = {};
-        const rf = resolveDregnarAttempt(full, cf, full.combat.creatureObj, 'dra_hammerfall', 2, 0);
+        const rf = resolveDregnarAttempt(full, cf, activeEnemySlot(full.combat).creatureObj, 'dra_hammerfall', 2, 0);
         fullDmg = rf.damage;
       });
       // Same atk/def/health inputs would make exact 1.10 ratio noisy due to
@@ -176,45 +176,45 @@ const { chromium } = require('playwright');
     record('DRA-B-E01-02', 'Ice-Forged Edge isolated: hasEffect gate fires correctly for a wearer vs non-wearer', () => {
       const full = freshDregnar();
       const bare = freshBareDregnar();
-      return { pass: hasEffect(full.combat.creatureObj, 'dra_e01_ice_forged_edge') === true && hasEffect(bare.combat.creatureObj, 'dra_e01_ice_forged_edge') === false };
+      return { pass: hasEffect(activeEnemySlot(full.combat).creatureObj, 'dra_e01_ice_forged_edge') === true && hasEffect(activeEnemySlot(bare.combat).creatureObj, 'dra_e01_ice_forged_edge') === false };
     });
     record('DRA-B-E04-01', 'Unbroken Grip: first physical weapon attack each combat flagged used after one landed hit, not before', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const before = !!c.unbrokenGripUsed;
       withForcedHit(() => resolveDregnarAttempt(s, s.combat.enemies[0], c, 'dra_hammerfall', 2, 0));
       return { pass: !before && c.unbrokenGripUsed === true, before, after: c.unbrokenGripUsed };
     });
     record('DRA-B-E06-01', 'Executioner\'s Seal: 1.20x fires vs a target at/below 30% HP, not above', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       s.health = Math.round(s.maxHealth * 0.3);
       let dmgLow = 0, dmgHigh = 0;
       withForcedHit(() => { dmgLow = resolveDregnarAttempt(s, s.combat.enemies[0], c, 'dra_hammerfall', 2, 0).damage; });
       const s2 = freshDregnar();
-      const c2 = s2.combat.creatureObj;
+      const c2 = activeEnemySlot(s2.combat).creatureObj;
       s2.health = s2.maxHealth; // full HP, no Executioner's Seal
       withForcedHit(() => { dmgHigh = resolveDregnarAttempt(s2, s2.combat.enemies[0], c2, 'dra_hammerfall', 2, 0).damage; });
       return { pass: dmgLow > 0 && dmgHigh > 0, dmgLow, dmgHigh, note: 'direction check — exact 1.20x isolation needs the mitigate() formula reimplemented; see E06-02' };
     });
     record('DRA-B-E06-02', 'Executioner\'s Seal gate: hasEffect fires for the equipped item id', () => {
       const s = freshDregnar();
-      return { pass: hasEffect(s.combat.creatureObj, 'dra_e06_executioners_seal') === true };
+      return { pass: hasEffect(activeEnemySlot(s.combat).creatureObj, 'dra_e06_executioners_seal') === true };
     });
     record('DRA-B-E03-01', 'Flowing Guard: first incoming physical hit each round reduced 0.90x (gate present on wearer)', () => {
       const s = freshDregnar();
-      return { pass: hasEffect(s.combat.creatureObj, 'dra_e03_flowing_guard') === true };
+      return { pass: hasEffect(activeEnemySlot(s.combat).creatureObj, 'dra_e03_flowing_guard') === true };
     });
     record('DRA-B-E05-01', 'Sure Foundation: after a landed physical hit against Dregnar, a pending +2 Def charge is banked', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const before = c.sureFoundationBonusDef || 0;
       withForcedHit(() => rollPlayerDamage(s, c, null));
       return { pass: before === 0 && c.sureFoundationBonusDef === 2 && c.sureFoundationBonusDefTurnsLeft === 2, before, after: c.sureFoundationBonusDef };
     });
     record('DRA-B-E05-02', 'Sure Foundation: the banked charge is actually read into the Defense term mitigate() receives on the next hit (direct mechanism check — end-to-end damage deltas round away at Dregnar\'s stat scale)', () => {
       const withEffect = freshDregnar();
-      const cWith = withEffect.combat.creatureObj;
+      const cWith = activeEnemySlot(withEffect.combat).creatureObj;
       withForcedHit(() => rollPlayerDamage(withEffect, cWith, null)); // banks the charge
       let defSeen = null;
       const origMitigate = mitigate;
@@ -226,7 +226,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-E05-03', 'Sure Foundation: magic bypasses it — a spell hit against Dregnar doesn\'t consume the pending charge', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       withForcedHit(() => rollPlayerDamage(s, c, null)); // bank via physical
       const before = c.sureFoundationBonusDef;
       s.flags.isMage = true; s.primaryElement = 'fire';
@@ -235,7 +235,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-E07-01', 'Unquenched Focus: dormant for Dregnar himself (no elemental actives in Stage A) but the gate is present on the wearer', () => {
       const s = freshDregnar();
-      return { pass: hasEffect(s.combat.creatureObj, 'dra_e07_unquenched_focus') === true };
+      return { pass: hasEffect(activeEnemySlot(s.combat).creatureObj, 'dra_e07_unquenched_focus') === true };
     });
     record('DRA-B-E08-01', 'Ashward: a Burning tick against the wearer is reduced to 0.75x', () => {
       const s = freshDregnar();
@@ -248,7 +248,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-E09-01', 'Black-Ice Reserve: granted after Dregnar successfully applies Chilled (Black-Ice Cleave hit)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       const origRandom = Math.random;
       Math.random = () => 0; // guarantees the inflict.chance roll succeeds
@@ -259,7 +259,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-E09-02', 'Black-Ice Reserve: consumed on the next attempt even if it misses', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       c.blackIceReservePending = true; c.blackIceReserveTurnsLeft = 2;
       withForcedMiss(() => dregnarResolveDamagingAttempt(s, e, c, { id: 'dra_hammerfall', name: 'x', dmgMult: 1.15 }, 2, 0));
@@ -267,13 +267,13 @@ const { chromium } = require('playwright');
     });
     record('DRA-B-E10-01', 'Venom Tempering: registered (data entry exists) but inert — no player-inflicted poison/venom DOT mechanic exists against an enemy', () => {
       const s = freshDregnar();
-      return { pass: hasEffect(s.combat.creatureObj, 'dra_e10_venom_tempering') === true && EFFECT_DEFS.dra_e10_venom_tempering != null };
+      return { pass: hasEffect(activeEnemySlot(s.combat).creatureObj, 'dra_e10_venom_tempering') === true && EFFECT_DEFS.dra_e10_venom_tempering != null };
     });
 
     // ============ 6. Exclusive-tier set ============
     record('DRA-B-SET-01', 'Dregnar\'s own 2/4/6/8/10pc thresholds activate ONLY the single highest met tier as pieces are added one at a time', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const base = Object.assign({}, c.equipment);
       const order = ['mainhand', 'helmet', 'chest', 'gloves', 'boots', 'rings', 'necklace', 'cloak'];
       const results = {};
@@ -330,7 +330,7 @@ const { chromium } = require('playwright');
       s.recomputeStats(false);
       s.flags.isMage = true; s.primaryElement = 'water'; s.knowledge = 999;
       startCombat(s, 'bandit_cutthroat', 10);
-      s.combat.maxHp *= 1000; s.combat.hp = s.combat.maxHp; // survive the cast so combat stays open for the post-cast reads below
+      activeEnemySlot(s.combat).maxHp *= 1000; activeEnemySlot(s.combat).hp = activeEnemySlot(s.combat).maxHp; // survive the cast so combat stays open for the post-cast reads below
       const atkBefore = effectivePlayerAtk(s);
       const defBefore = effectivePlayerDef(s);
       const healthBefore = s.maxHealth;
@@ -350,7 +350,7 @@ const { chromium } = require('playwright');
       s.recomputeStats(false);
       s.flags.isMage = true; s.primaryElement = 'water'; s.knowledge = 999;
       startCombat(s, 'bandit_cutthroat', 10);
-      s.combat.maxHp *= 1000; s.combat.hp = s.combat.maxHp;
+      activeEnemySlot(s.combat).maxHp *= 1000; activeEnemySlot(s.combat).hp = activeEnemySlot(s.combat).maxHp;
       withForcedHit(() => useElementAbility(s, 'water'));
       const atkAfterFirst = effectivePlayerAtk(s);
       withForcedHit(() => useElementAbility(s, 'water'));
@@ -364,7 +364,7 @@ const { chromium } = require('playwright');
       s.recomputeStats(false);
       s.flags.isMage = true; s.primaryElement = 'water'; s.knowledge = 999;
       startCombat(s, 'bandit_cutthroat', 10);
-      s.combat.maxHp *= 1000; s.combat.hp = s.combat.maxHp;
+      activeEnemySlot(s.combat).maxHp *= 1000; activeEnemySlot(s.combat).hp = activeEnemySlot(s.combat).maxHp;
       withForcedHit(() => useElementAbility(s, 'water'));
       const atkActive = effectivePlayerAtk(s);
       s.combat.player.sovereigntyTurnsLeft -= 1;
@@ -378,7 +378,7 @@ const { chromium } = require('playwright');
       s.recomputeStats(false);
       s.flags.isMage = true; s.primaryElement = 'water'; s.knowledge = 999;
       startCombat(s, 'bandit_cutthroat', 10);
-      s.combat.maxHp *= 1000; s.combat.hp = s.combat.maxHp;
+      activeEnemySlot(s.combat).maxHp *= 1000; activeEnemySlot(s.combat).hp = activeEnemySlot(s.combat).maxHp;
       withForcedHit(() => useElementAbility(s, 'water'));
       return { pass: !(s.combat.player.sovereigntyTurnsLeft > 0), sovereigntyTurnsLeft: s.combat.player.sovereigntyTurnsLeft };
     });
@@ -386,7 +386,7 @@ const { chromium } = require('playwright');
     // ============ 8. DRA-P03 + Legacy combined stacking to +6 ============
     record('DRA-B-STACK-01', 'DRA-P03 and First Sword\'s Legacy both active simultaneously at <=40% HP: Attack ends up +6 over baseline', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       const baselineAtk = c.atk;
       e.hp = Math.round(e.maxHp * 0.35); // observed at the top of a normal action
@@ -408,7 +408,7 @@ const { chromium } = require('playwright');
       // 1b's own forced-roll parity suite, which proved the two functions
       // produce identical results bit-for-bit.
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       const baseline = c.atk;
       e.draP03Charges = 2;
@@ -429,12 +429,12 @@ const { chromium } = require('playwright');
     // inline here, since they're independent files) ============
     record('DRA-B-REGR-01', 'Stage A acceptance: equipped stats no longer match the Stage-A-only 840/76/76/48 figure now that equipment is wired (expected change, not a regression)', () => {
       const s = freshDregnar();
-      return { pass: s.combat.maxHp === 860 && s.combat.maxHp !== 840, maxHp: s.combat.maxHp };
+      return { pass: activeEnemySlot(s.combat).maxHp === 860 && activeEnemySlot(s.combat).maxHp !== 840, maxHp: activeEnemySlot(s.combat).maxHp };
     });
     record('DRA-B-REGR-02', 'Riposte cap (6f9af93) unaffected: non-player Riposte still caps at twice per combat on an unrelated creature', () => {
       const s = makeChar(20);
       startCombat(s, 'naqari_section_leader', 20);
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       c.riposteUsesThisCombat = 2;
       const allowed = typeof nonPlayerRiposteCapAllows === 'function' ? nonPlayerRiposteCapAllows(c) : null;
       return { pass: allowed === false, allowed };

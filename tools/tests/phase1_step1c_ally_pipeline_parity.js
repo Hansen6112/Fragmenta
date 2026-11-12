@@ -184,7 +184,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     });
     checkParity('P1C-NOREINFORCED-01', 'Asymmetry preserved: Reinforced (equipped) never increments its counter on an ally-targeted attack', {
       effects: ['reinforced'],
-      mutate: (s) => { s.combat.reinforcedAttackCount = 2; },
+      mutate: (s) => { activeEnemySlot(s.combat).reinforcedAttackCount = 2; },
       seq: LOW,
       expectEffectMatters: false, // the whole point: equipping Reinforced changes nothing here, by design
     });
@@ -274,7 +274,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       args: () => [{ name: 'Frostbite Brand', dmgMult: 0.8, inflict: { status: 'chilled', chance: 1 } }, null],
       seq: LOW,
     });
-    checkParity('P1C-HEALONHIT-01', 'abilityCtx.healOnHitPct heals the ATTACKING creature’s own slot (actor.store), not via the old combat.hp proxy', {
+    checkParity('P1C-HEALONHIT-01', 'abilityCtx.healOnHitPct heals the ATTACKING creature’s own slot (actor.store), not via the old activeEnemySlot(combat).hp proxy', {
       mutate: (s, creature, slot) => { slot.hp = 50; slot.maxHp = 100; },
       args: () => [{ name: 'Leeching Strike', dmgMult: 0.8, healOnHitPct: 0.5 }, null],
       seq: LOW,

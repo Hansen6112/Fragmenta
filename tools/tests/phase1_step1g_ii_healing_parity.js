@@ -121,7 +121,7 @@ const { chromium } = require('playwright');
       const s = makeWarrior();
       startCombat(s, 'runeSentinel', 25);
       const e = s.combat.enemies[0];
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       e.abilityCooldowns = { rune_pulse: 99 }; // force arcane_barrier as the only eligible active
       const expectedHeal = Math.round(e.maxHp * 0.25); // arcane_barrier's own healSelfPct
       e.hp = e.maxHp - expectedHeal - 10;

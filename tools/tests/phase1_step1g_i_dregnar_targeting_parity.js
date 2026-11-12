@@ -62,7 +62,7 @@ const { chromium } = require('playwright');
 
     record('P1G-I-DREGNAR-PLAYER-01', 'Dregnar, zero allies: a forced-hit basic attack lands on the player (shared resolveEnemySingleTargetAttempt reaches resolveEnemyAttackOnPlayer)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.abilityCooldowns = { dra_barrier: 99, dra_hammerfall: 99, dra_frostbite_brand: 99, dra_cleave: 99, dra_judgment: 99 };
       const hpBefore = s.health;
@@ -72,7 +72,7 @@ const { chromium } = require('playwright');
 
     record('P1G-I-DREGNAR-ALLY-01', 'Dregnar, player downed + exactly one alive ally: a forced-hit basic attack lands on the ally, not the player (deterministic target roll)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.abilityCooldowns = { dra_barrier: 99, dra_hammerfall: 99, dra_frostbite_brand: 99, dra_cleave: 99, dra_judgment: 99 };
       s.recruitAlly('kessa');
@@ -89,7 +89,7 @@ const { chromium } = require('playwright');
 
     record('P1G-I-DREGNAR-BONUS-WRAP-01', "Dregnar's own DRA-P03 (+3 Attack charge) still applies and is still un-applied around the shared dispatch when the roll lands on an ally, not just the player", () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.abilityCooldowns = { dra_barrier: 99, dra_hammerfall: 99, dra_frostbite_brand: 99, dra_cleave: 99, dra_judgment: 99 };
       e.draP03Charges = 1;
@@ -102,7 +102,7 @@ const { chromium } = require('playwright');
 
     record('P1G-I-ORDINARY-PLAYER-01', 'An ordinary (non-Dregnar) creature, zero allies: resolveEnemyAction still reaches the player through the same shared function Dregnar now uses', () => {
       const s = freshOrdinary();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const hpBefore = s.health;
       const r = withForcedHit(() => resolveEnemyAction(s, c, 2, 0));
       return { pass: r.damage > 0 && s.health < hpBefore, damage: r.damage, hpBefore, hpAfter: s.health };
@@ -110,7 +110,7 @@ const { chromium } = require('playwright');
 
     record('P1G-I-ORDINARY-ALLY-01', 'An ordinary creature, player downed + exactly one alive ally: resolveEnemyAction still reaches the ally through the same shared function', () => {
       const s = freshOrdinary();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       s.recruitAlly('kessa');
       s.playerDowned = true;
       const ally = s.party[0];

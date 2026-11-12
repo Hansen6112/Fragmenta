@@ -161,13 +161,13 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     checkParity('P1E-III-LIGHTNING-01', 'Lightning (Flurry): both hits land on a tough target', useElementAbilityWrap, {
       element: 'lightning', seq: LOW, mutate: (s, creature) => { s.combat.enemies[0].hp = 100000; s.combat.enemies[0].maxHp = 100000; },
     });
-    checkParity('P1E-III-LIGHTNING-KILL-01', "Lightning: the first hit alone kills -- the second hit never fires (state.combat.hp > 0 gate)", useElementAbilityWrap, {
+    checkParity('P1E-III-LIGHTNING-KILL-01', "Lightning: the first hit alone kills -- the second hit never fires (activeEnemySlot(state.combat).hp > 0 gate)", useElementAbilityWrap, {
       element: 'lightning', seq: LOW, mutate: (s, creature) => { s.combat.enemies[0].hp = 1; s.combat.enemies[0].maxHp = 1; },
     });
     checkParity('P1E-III-LIGHTNING-MISS-01', 'Lightning: a miss skips both hits entirely', useElementAbilityWrap, { element: 'lightning', seq: HIGH });
     checkParity('P1E-III-ACID-01', "Acid (Corrode): a hit sets corroded and the enemy Defense penalty", useElementAbilityWrap, { element: 'acid', seq: LOW });
     checkParity('P1E-III-ACID-ALREADYCORRODED-01', 'Acid: already corroded blocks the cast entirely', useElementAbilityWrap, {
-      element: 'acid', seq: LOW, mutate: (s) => { s.combat.corroded = true; },
+      element: 'acid', seq: LOW, mutate: (s) => { activeEnemySlot(s.combat).corroded = true; },
     });
     checkParity('P1E-III-FORCE-01', 'Force (Concuss): a hit stuns the enemy via tryApplyEnemyStun', useElementAbilityWrap, { element: 'force', seq: LOW });
     checkParity('P1E-III-TRANSPORT-01', 'Transportation (Blink): a hit applies its own 1.3x multiplier', useElementAbilityWrap, { element: 'transportation', seq: LOW });
@@ -189,7 +189,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       element: 'fire', seq: LOW, effects: ['spell_echo'],
       mutate: (s, creature) => { s.combat.enemies[0].hp = 100000; s.combat.enemies[0].maxHp = 100000; },
     });
-    checkParity('P1E-III-SPELLECHO-KILL-01', "Spell Echo never fires once the primary hit already killed (state.combat.hp > 0 gate) -- with or without the effect, the outcome is identical", useElementAbilityWrap, {
+    checkParity('P1E-III-SPELLECHO-KILL-01', "Spell Echo never fires once the primary hit already killed (activeEnemySlot(state.combat).hp > 0 gate) -- with or without the effect, the outcome is identical", useElementAbilityWrap, {
       element: 'fire', seq: LOW, effects: ['spell_echo'], expectEffectMatters: false,
       mutate: (s, creature) => { s.combat.enemies[0].hp = 1; s.combat.enemies[0].maxHp = 1; },
     });

@@ -48,31 +48,31 @@ const { chromium } = require('playwright');
     // ============ Stat scaling: the single most consequential check ============
     record('DRA-STATS-01', 'startCombat("dregnar_ashvein", 30) yields exactly the flat x2 PLAYER_STAT_SCALE stats on his Stage B (fully equipped) totals (430/50/55/31/13/99/14 base+gear -> 860/100/110/62/13/99/14), NOT Danger-Class-multiplied values. Updated 6 Nov 2026: this assertion predated Stage B’s 10-item Mythic kit (commit fb35087) and was never updated afterward, so it had been failing against the correct, documented-in-bestiary.js numbers since then — not an engine bug. spd/acc/agi aren’t touched by the x2 scale (authored/gear-bonus as given), so 13/99/14 match pre- and post-scale.', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       return {
-        pass: s.combat.maxHp === 860 && c.atk === 100 && c.def === 110 && c.magic === 62 && c.spd === 13 && c.acc === 99 && c.agi === 14,
-        hp: s.combat.maxHp, atk: c.atk, def: c.def, magic: c.magic, spd: c.spd, acc: c.acc, agi: c.agi,
+        pass: activeEnemySlot(s.combat).maxHp === 860 && c.atk === 100 && c.def === 110 && c.magic === 62 && c.spd === 13 && c.acc === 99 && c.agi === 14,
+        hp: activeEnemySlot(s.combat).maxHp, atk: c.atk, def: c.def, magic: c.magic, spd: c.spd, acc: c.acc, agi: c.agi,
       };
     });
     record('DRA-STATS-02', 'special:true routes through legacyScaledCreature (statScaled flag set), confirming the Danger Class multiplier pipeline was never touched', () => {
       const s = freshDregnar();
-      return { pass: s.combat.creatureObj.statScaled === true, statScaled: s.combat.creatureObj.statScaled };
+      return { pass: activeEnemySlot(s.combat).creatureObj.statScaled === true, statScaled: activeEnemySlot(s.combat).creatureObj.statScaled };
     });
     record('DRA-STATS-03', 'bossKit is wired so resolveEnemyAction dispatches to the bespoke Dregnar resolver instead of the shared actives/passives system', () => {
       const s = freshDregnar();
-      return { pass: s.combat.creatureObj.bossKit === 'dregnar_ashvein' && !s.combat.creatureObj.actives && !s.combat.creatureObj.passives, bossKit: s.combat.creatureObj.bossKit };
+      return { pass: activeEnemySlot(s.combat).creatureObj.bossKit === 'dregnar_ashvein' && !activeEnemySlot(s.combat).creatureObj.actives && !activeEnemySlot(s.combat).creatureObj.passives, bossKit: activeEnemySlot(s.combat).creatureObj.bossKit };
     });
 
     // ============ State cadence: Water Guard -> Unbound -> Water Guard ============
     record('DRA-STATE-01', 'starts in water_guard (lazily initialized on the first action)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       withForcedMiss(() => resolveEnemyAction(s, c, 2, 0));
       return { pass: s.combat.enemies[0].draState === 'water_guard', state: s.combat.enemies[0].draState };
     });
     record('DRA-STATE-02', 'transitions to ashquench_unbound after exactly 2 turns (no Judgment pending), announced at the START of turn 3', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       const r1 = withForcedMiss(() => resolveEnemyAction(s, c, 2, 0));
       const stateAfter1 = e.draState;
@@ -87,7 +87,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-STATE-03', 'transitions back to water_guard after 2 turns in Unbound, and a full Water Guard -> Unbound -> Water Guard cycle is exactly 4 turns when nothing is pending', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       const states = [];
       for (let i = 0; i < 5; i++) {
@@ -98,14 +98,14 @@ const { chromium } = require('playwright');
     });
     record('DRA-STATE-04', 'Ashquench Unbound grants a genuine bonus action each turn (two distinct attack lines per turn), Water Guard does not', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       // force into Unbound directly for a clean, isolated read
       s.combat.enemies[0].draState = 'ashquench_unbound';
       s.combat.enemies[0].draStateTurns = 0;
       const unboundResult = withForcedMiss(() => resolveEnemyAction(s, c, 2, 0));
       const unboundHasBonusLine = unboundResult.lines.some((l) => l.includes('moves again'));
       const s2 = freshDregnar();
-      const c2 = s2.combat.creatureObj;
+      const c2 = activeEnemySlot(s2.combat).creatureObj;
       const guardResult = withForcedMiss(() => resolveEnemyAction(s2, c2, 2, 0));
       const guardHasBonusLine = guardResult.lines.some((l) => l.includes('moves again'));
       return { pass: unboundHasBonusLine && !guardHasBonusLine, unboundHasBonusLine, guardHasBonusLine };
@@ -114,7 +114,7 @@ const { chromium } = require('playwright');
     // ============ Judgment: wind-up / resolution / 3-turn extension / force-cancel ============
     record('DRA-JUDGMENT-01', 'Judgment is a telegraphed two-phase ability: the wind-up turn deals no damage and sets draJudgmentPending, the very next normal action resolves it (deals damage) and clears the flag', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0;
       e.abilityCooldowns = { dra_cleave: 99, dra_hammerfall: 99, dra_frostbite_brand: 99 }; // force Judgment to the top of priority
@@ -135,7 +135,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-JUDGMENT-02', 'a pending Judgment extends the state to a 3rd turn instead of transitioning at the normal 2-turn mark', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 1; // about to take the 2nd turn
       e.abilityCooldowns = { dra_cleave: 99, dra_hammerfall: 99, dra_frostbite_brand: 99 };
@@ -150,7 +150,7 @@ const { chromium } = require('playwright');
       const priorityHasNoJudgment = !ids.slice(0, 3).includes('dra_judgment');
       // Structural check: confirm the bonus priority constant itself never names it (read via a real Unbound turn's bonus line never saying "Judgment falls" when forced eligible).
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0;
       e.abilityCooldowns = {}; // everything eligible, including dra_judgment on the normal list
@@ -163,7 +163,7 @@ const { chromium } = require('playwright');
     // ============ Priority order: Water Guard & Unbound ============
     record('DRA-PRIORITY-01', 'Water Guard picks Barrier first when off cooldown, falls to Hammerfall then Frostbite as each is put on cooldown', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       const r1 = withForcedHit(() => resolveEnemyAction(s, c, 2, 0));
       const pickedBarrier = r1.lines.some((l) => l.includes('shifting water barrier'));
@@ -182,7 +182,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-PRIORITY-02', 'Water Guard falls back to a plain basic attack ("hits back") when all 3 actives are on cooldown', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.abilityCooldowns = { dra_barrier: 99, dra_hammerfall: 99, dra_frostbite_brand: 99 };
       const r = withForcedHit(() => resolveEnemyAction(s, c, 2, 0));
@@ -190,7 +190,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-PRIORITY-03', 'Unbound normal priority picks Cleave over Hammerfall/Frostbite when Judgment is on cooldown', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0;
       e.abilityCooldowns = { dra_judgment: 99 };
@@ -199,7 +199,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-PRIORITY-04', 'Unbound bonus-action priority picks Cleave/Hammerfall/Frostbite only, never Barrier (not in its list at all)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0;
       e.abilityCooldowns = { dra_judgment: 99 }; // normal action forced off Judgment so the test isolates the bonus line
@@ -213,14 +213,14 @@ const { chromium } = require('playwright');
     // ============ The 5 actives: multiplier / cooldown / status ============
     record('DRA-ACTIVE-01', 'Shifting Water Barrier: 0 damage, sets dmgReduction 0.25 for 1 turn (reduces the very next incoming hit), cooldown 5', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       const r = withForcedMiss(() => resolveEnemyAction(s, c, 2, 0));
       return { pass: r.damage === null && c.dmgReduction === 0.25 && e.abilityCooldowns.dra_barrier === 5, damage: r.damage, dmgReduction: c.dmgReduction, cooldown: e.abilityCooldowns.dra_barrier };
     });
     record('DRA-ACTIVE-02', 'Barrier\'s dmgReduction expires after exactly 1 round via the existing tickEnemyPassives selfBuffs countdown', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       withForcedMiss(() => resolveEnemyAction(s, c, 2, 0)); // casts Barrier
       const reductionSet = c.dmgReduction === 0.25;
@@ -229,7 +229,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-ACTIVE-03', 'Vosgard Hammerfall: dmgMult 1.15, cooldown 2', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.abilityCooldowns = { dra_barrier: 99 };
       const r = withForcedHit(() => resolveEnemyAction(s, c, 2, 0));
@@ -240,7 +240,7 @@ const { chromium } = require('playwright');
       const TRIALS = 60;
       for (let i = 0; i < TRIALS; i++) {
         const s = freshDregnar();
-        const c = s.combat.creatureObj;
+        const c = activeEnemySlot(s.combat).creatureObj;
         const e = s.combat.enemies[0];
         e.draState = 'ashquench_unbound'; e.draStateTurns = 0;
         e.abilityCooldowns = { dra_judgment: 99 };
@@ -255,7 +255,7 @@ const { chromium } = require('playwright');
       const TRIALS = 60;
       for (let i = 0; i < TRIALS; i++) {
         const s = freshDregnar();
-        const c = s.combat.creatureObj;
+        const c = activeEnemySlot(s.combat).creatureObj;
         const e = s.combat.enemies[0];
         e.abilityCooldowns = { dra_barrier: 99, dra_hammerfall: 99 };
         const r = withForcedHit(() => resolveEnemyAction(s, c, 2, 0));
@@ -266,7 +266,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-ACTIVE-06', 'Ashquench Judgment: dmgMult 1.75 on resolution', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0;
       e.abilityCooldowns = { dra_cleave: 99, dra_hammerfall: 99, dra_frostbite_brand: 99 };
@@ -278,7 +278,7 @@ const { chromium } = require('playwright');
     // ============ DRA-P01/P02: shared pending-Accuracy bonus ============
     record('DRA-P01', 'Guarded Concentration: casting Barrier banks a pending +5 Accuracy bonus, consumed (and zeroed) on the very next attack attempt', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       withForcedMiss(() => resolveEnemyAction(s, c, 2, 0)); // Barrier
       const pendingAfterBarrier = e.draPendingAcc;
@@ -291,7 +291,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-P02', 'Martial Precision: a landed plain basic attack banks the same pending +5 Accuracy (shared slot with P01, never stacking to +10)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.abilityCooldowns = { dra_barrier: 99, dra_hammerfall: 99, dra_frostbite_brand: 99 }; // force a plain basic attack
       withForcedHit(() => resolveEnemyAction(s, c, 2, 0));
@@ -299,7 +299,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-P01P02-noStack', 'the pending bonus never stacks beyond +5 no matter how many times either trigger fires back-to-back', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       withForcedMiss(() => resolveEnemyAction(s, c, 2, 0)); // Barrier, pending=5
       e.abilityCooldowns.dra_barrier = 99;
@@ -312,7 +312,7 @@ const { chromium } = require('playwright');
     // ============ DRA-P03: once-per-combat 40% HP trigger ============
     record('DRA-P03-trigger', 'First Sword\'s Resolve triggers exactly once, the first time HP is observed at or below 40%, granting 2 charges of +3 Attack', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.hp = Math.floor(e.maxHp * 0.39);
       const r = withForcedMiss(() => resolveEnemyAction(s, c, 2, 0));
@@ -321,7 +321,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-P03-onceOnly', 'does not re-trigger on a later call even while still below 40%', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.hp = Math.floor(e.maxHp * 0.39);
       withForcedMiss(() => resolveEnemyAction(s, c, 2, 0)); // triggers, consumes 1 charge this same turn too
@@ -331,9 +331,9 @@ const { chromium } = require('playwright');
       return { pass: !retriggeredLine, retriggeredLine, chargesAfterFirstCall };
     });
     record('DRA-P03-atkBonus', 'each damaging attempt while charges remain brackets +3 Attack around the hit (verified via average damage > baseline), and atk is restored to baseline afterward', () => {
-      const baseAtk = (() => { const s = freshDregnar(); return s.combat.creatureObj.atk; })();
+      const baseAtk = (() => { const s = freshDregnar(); return activeEnemySlot(s.combat).creatureObj.atk; })();
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.hp = Math.floor(e.maxHp * 0.39);
       e.abilityCooldowns = { dra_barrier: 99 }; // force a real damaging attempt (Hammerfall) this same turn
@@ -342,7 +342,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-P03-expiry', 'unused charges expire after 3 NORMAL actions (zeroed even if never consumed)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'water_guard'; e.draStateTurns = 0; // pre-seed lazy-init fields first so the P03 overrides below aren't wiped
       e.draP03Used = true; e.draP03Charges = 2; e.draP03TurnsLeft = 3; // simulate the trigger without re-deriving the 40% HP condition
@@ -354,7 +354,7 @@ const { chromium } = require('playwright');
     });
     record('DRA-P03-bonusDoesNotTickTimer', 'a bonus action may consume a P03 charge but never decrements draP03TurnsLeft (only normal actions do)', () => {
       const s = freshDregnar();
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       const e = s.combat.enemies[0];
       e.draState = 'ashquench_unbound'; e.draStateTurns = 0;
       e.draP03Used = true; e.draP03Charges = 2; e.draP03TurnsLeft = 3;
@@ -368,7 +368,7 @@ const { chromium } = require('playwright');
     record('DRA-REGRESSION-01', 'a normal (non-Dregnar) creature with actives still goes through the shared resolveEnemyActiveAbility random-pick path, completely unaffected by the bossKit dispatch check', () => {
       const s = makeChar(21);
       startCombat(s, 'desert_tribal_fighter', 21);
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       c.actives = ['opportunistic_strike']; c.passives = [];
       const ctx = resolveEnemyActiveAbility(s, c);
       return { pass: ctx !== null && ctx.id === 'opportunistic_strike' && c.bossKit === undefined, ctxId: ctx && ctx.id, bossKit: c.bossKit };
@@ -376,7 +376,7 @@ const { chromium } = require('playwright');
     record('DRA-REGRESSION-02', 'a special:true scripted creature that is NOT Dregnar (kabal_enforcer) still scales via legacyScaledCreature and is entirely unaffected by the new dispatch line', () => {
       const s = makeChar(21);
       startCombat(s, 'kabal_enforcer', 21);
-      const c = s.combat.creatureObj;
+      const c = activeEnemySlot(s.combat).creatureObj;
       return { pass: c.bossKit === undefined && c.statScaled === true, bossKit: c.bossKit, statScaled: c.statScaled };
     });
 

@@ -54,7 +54,7 @@ const { chromium } = require('playwright');
     record('AP-01', 'Ally A (protector, item equipped) reduces damage on ally B (different ally) by exactly 10%', () => {
       const { s, allies } = freshParty(2);
       const [kessa, hadrian] = allies;
-      const creature = s.combat.creatureObj;
+      const creature = activeEnemySlot(s.combat).creatureObj;
       // Baseline: no item equipped, hit hadrian directly.
       const dmgNoItem = withForcedHit(() => {
         const before = hadrian.health;
@@ -67,7 +67,7 @@ const { chromium } = require('playwright');
       kessa2.equipment.offhand = 'Test Gatekeeper Shield';
       const dmgWithItem = withForcedHit(() => {
         const before = hadrian2.health;
-        resolveEnemyAttackOnAlly(s2, s2.combat.creatureObj, hadrian2, null, { accBonus: 0, dmgMultBonus: 1 });
+        resolveEnemyAttackOnAlly(s2, activeEnemySlot(s2.combat).creatureObj, hadrian2, null, { accBonus: 0, dmgMultBonus: 1 });
         return before - hadrian2.health;
       });
       const expected = Math.round(dmgNoItem * 0.9);
@@ -80,7 +80,7 @@ const { chromium } = require('playwright');
       const [kessa, hadrian] = allies;
       kessa.equipment.offhand = 'Test Gatekeeper Shield';
       const chargesBefore = kessa.allyProtectionUsesThisCombat || 0;
-      withForcedHit(() => resolveEnemyAttackOnAlly(s, s.combat.creatureObj, kessa, null, { accBonus: 0, dmgMultBonus: 1 }));
+      withForcedHit(() => resolveEnemyAttackOnAlly(s, activeEnemySlot(s.combat).creatureObj, kessa, null, { accBonus: 0, dmgMultBonus: 1 }));
       return { pass: (kessa.allyProtectionUsesThisCombat || 0) === chargesBefore, chargesBefore, chargesAfter: kessa.allyProtectionUsesThisCombat || 0 };
     });
 
@@ -93,13 +93,13 @@ const { chromium } = require('playwright');
         const { s: s2, allies: a2 } = freshParty(1);
         return withForcedHit(() => {
           const before = a2[0].health;
-          resolveEnemyAttackOnAlly(s2, s2.combat.creatureObj, a2[0], null, { accBonus: 0, dmgMultBonus: 1 });
+          resolveEnemyAttackOnAlly(s2, activeEnemySlot(s2.combat).creatureObj, a2[0], null, { accBonus: 0, dmgMultBonus: 1 });
           return before - a2[0].health;
         });
       })();
       const dmgWithPlayerItem = withForcedHit(() => {
         const before = kessa.health;
-        resolveEnemyAttackOnAlly(s, s.combat.creatureObj, kessa, null, { accBonus: 0, dmgMultBonus: 1 });
+        resolveEnemyAttackOnAlly(s, activeEnemySlot(s.combat).creatureObj, kessa, null, { accBonus: 0, dmgMultBonus: 1 });
         return before - kessa.health;
       });
       return { pass: dmgWithPlayerItem === Math.round(dmgNoItem * 0.9), dmgNoItem, dmgWithPlayerItem, playerUses: s.allyProtectionUsesThisCombat };
@@ -119,7 +119,7 @@ const { chromium } = require('playwright');
       // never calls applyAllyProtectionReaction at all (only
       // resolveEnemyAttackOnAlly does) -- confirm by checking the
       // player's own health path doesn't touch kessa's charge.
-      withForcedHit(() => resolveEnemyAttackOnPlayer(s, s.combat.creatureObj, 2, 0, null, { accBonus: 0, dmgMultBonus: 1 }));
+      withForcedHit(() => resolveEnemyAttackOnPlayer(s, activeEnemySlot(s.combat).creatureObj, 2, 0, null, { accBonus: 0, dmgMultBonus: 1 }));
       return { pass: (kessa.allyProtectionUsesThisCombat || 0) === usesBefore, usesBefore, usesAfter: kessa.allyProtectionUsesThisCombat || 0 };
     });
 
@@ -128,7 +128,7 @@ const { chromium } = require('playwright');
       const { s, allies } = freshParty(2);
       const [kessa, hadrian] = allies;
       kessa.equipment.offhand = 'Test Gatekeeper Shield';
-      const creature = s.combat.creatureObj;
+      const creature = activeEnemySlot(s.combat).creatureObj;
       const fired = [];
       for (let i = 0; i < 7; i++) {
         const usesBefore = kessa.allyProtectionUsesThisCombat || 0;
@@ -152,7 +152,7 @@ const { chromium } = require('playwright');
       const { s, allies } = freshParty(2);
       const [kessa, hadrian] = allies;
       kessa.equipment.offhand = 'Test Gatekeeper Shield';
-      const creature = s.combat.creatureObj;
+      const creature = activeEnemySlot(s.combat).creatureObj;
       let fireCount = 0;
       for (let i = 0; i < 20; i++) {
         const usesBefore = kessa.allyProtectionUsesThisCombat || 0;
@@ -168,7 +168,7 @@ const { chromium } = require('playwright');
       const { s, allies } = freshParty(2);
       const [kessa, hadrian] = allies;
       kessa.equipment.offhand = 'Test Gatekeeper Shield';
-      withForcedHit(() => resolveEnemyAttackOnAlly(s, s.combat.creatureObj, hadrian, null, { accBonus: 0, dmgMultBonus: 1 }));
+      withForcedHit(() => resolveEnemyAttackOnAlly(s, activeEnemySlot(s.combat).creatureObj, hadrian, null, { accBonus: 0, dmgMultBonus: 1 }));
       const usedThisFight = kessa.allyProtectionUsesThisCombat;
       const cooldownThisFight = kessa.allyProtectionCooldown;
       // Start a brand new fight with the SAME persistent ally object.
@@ -205,7 +205,7 @@ const { chromium } = require('playwright');
       // resolver does not reset or corrupt kessa's counters regardless of
       // Hadrian's own (no-op, unascended) protection check running first.
       const before = { uses: kessa.allyProtectionUsesThisCombat || 0, cooldown: kessa.allyProtectionCooldown || 0, hadrianHealth: hadrian.health };
-      withForcedHit(() => resolveEnemyAttackOnAlly(s, s.combat.creatureObj, hadrian, null, { accBonus: 0, dmgMultBonus: 1 }));
+      withForcedHit(() => resolveEnemyAttackOnAlly(s, activeEnemySlot(s.combat).creatureObj, hadrian, null, { accBonus: 0, dmgMultBonus: 1 }));
       const after = { uses: kessa.allyProtectionUsesThisCombat || 0, cooldown: kessa.allyProtectionCooldown || 0, hadrianHealthChanged: hadrian.health !== before.hadrianHealth };
       // Hadrian unascended -> maybeHadrianAllyProtection is a no-op (no
       // passiveOnceFlags touched, no health redirect) -- confirm kessa's
@@ -234,7 +234,7 @@ const { chromium } = require('playwright');
       const target = s.recruitAlly('test_sim_target');
       const kessaUsesBefore = kessa.allyProtectionUsesThisCombat || 0;
       const playerUsesBefore = s.allyProtectionUsesThisCombat || 0;
-      withForcedHit(() => resolveEnemyAttackOnAlly(s, s.combat.creatureObj, target, null, { accBonus: 0, dmgMultBonus: 1 }));
+      withForcedHit(() => resolveEnemyAttackOnAlly(s, activeEnemySlot(s.combat).creatureObj, target, null, { accBonus: 0, dmgMultBonus: 1 }));
       const kessaFired = (kessa.allyProtectionUsesThisCombat || 0) > kessaUsesBefore;
       const playerFired = (s.allyProtectionUsesThisCombat || 0) > playerUsesBefore;
       return { pass: (kessaFired ? 1 : 0) + (playerFired ? 1 : 0) === 1, kessaFired, playerFired };
