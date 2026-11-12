@@ -51,6 +51,15 @@ narrowest-to-broadest ordering, so U1's own eventual table (last in
 this rollout) is the one that actually shows U2's contribution,
 isolated against the U1-alone state that precedes it.
 
+**Update, written after U1 landed below:** U1 being on turns out NOT
+to be enough either — see U1's own section for the full, verified
+reason. In short, Unquenched Focus can't currently fire against
+Dregnar at all, on the player path or the ally path, with any switch
+combination, because the `creature.element` gate it sits behind is
+never true for him. Left here rather than rewritten, so the
+narrowest-to-broadest reasoning that justified flipping U2 before U1
+is still visible as it stood at the time.
+
 Full suite 454/454, `tools/audit.js` 0 errors, both Layer 2 harnesses
 re-run against the §5 all-5-classes baseline
 (`boss_sweep_u2.json`/`plus3_u2.json` vs.
@@ -221,3 +230,72 @@ Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
 against U3f's own after-state
 (`boss_sweep_u3g.json`/`plus3_u3g.json` vs.
 `boss_sweep_u3f.json`/`plus3_u3f.json`).
+
+## U1 — allies take element/magic damage like the player
+
+**Zero cells moved on either harness — not even a sub-threshold
+nonzero delta** (checked the raw `winRate` values directly, not just
+the >=3pt filter: every single cell is byte-identical before/after).
+This is the broadest switch and was expected to be the one most
+likely to move something or trip the stop rule, so the exact-zero
+result got a real investigation rather than being written off as
+"too small to measure":
+
+U1's own gate (`js/data/actions.js:417`, `if (COMBAT_UNIFY.U1 &&
+creature.element)`) only fires when the attacking creature has a
+literal `element` property (`"fire"`, `"water"`, etc.). Searched the
+whole engine for every place that property is ever set: the ONLY
+place is `js/data/enemymages.js`'s `generateEnemyMage`, which builds
+the entirely-random "Enemy Mage" exploration encounter
+(`js/engine/parser.js`'s random encounter rolls) — a dynamic
+creature, never a named BESTIARY boss. None of boss_sweep.js's 16
+bosses or plus3_run.js's Dregnar/Arbitarius have `element` set
+anywhere (confirmed directly in `js/data/bestiary.js` and
+`buildFightCreature`'s own template merge) — so U1 has **no live
+trigger surface in either harness at all**, the same category as
+U3a/U3d/U3g, not U3e/U3f's "real but small" category. A harness that
+included a random Enemy Mage encounter would be the one place this
+switch's real effect shows up.
+
+This also gives the complete, verified answer for why **U2** (Dregnar's
+Unquenched Focus vs. ally) measured zero even with U1 now on: Dregnar
+has no `element` field on his BESTIARY entry (`dregnar_ashvein`,
+`js/data/bestiary.js`) at all, so the `creature.element` gate that both
+U1 and U2 sit behind is never true for him — on the player path OR the
+ally path, with any switch combination. This isn't a bug surfaced by
+this rollout: `dra_e07_unquenched_focus`'s own effect text already
+carves out exactly this case — "Doesn't trigger from a physical hit
+with elemental flavor text" — and Dregnar's kit (Ashquench, a maul; his
+"water barrier" is Barrier/Guard flavor text on a physical kit) is
+exactly that: physical damage with watery/icy narration, not a
+mechanically-elemental attack. Unquenched Focus's real audience is
+whatever future creature actually has `element` set and happens to
+also wear First Sword's Regalia's necklace — not Dregnar himself, not
+through this path. Worth flagging to Tyler as a standing fact about the
+item, not something this handoff needs to fix.
+
+Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
+against U3g's own after-state (the full set of all 9 switches on) —
+(`boss_sweep_u1.json`/`plus3_u1.json` vs.
+`boss_sweep_u3g.json`/`plus3_u3g.json`).
+
+## Rollout complete: all 9 switches on
+
+Every switch in handoff §6's table is now `true` in
+`js/engine/pipeline.js`, flipped and measured in the specified order
+(U2, U3b, U3c, U3a, U3d, U3e, U3f, U3g, U1), each against the state
+left by the previous one. Stop rule never triggered — no cell moved
+>=10 points, most didn't move at all. Three switches (U3a, U3d, U3g)
+and U1/U2's combination have a confirmed, verified **zero trigger
+surface** in both current harnesses (not just "too small to see");
+two (U3e, U3f) have a confirmed real trigger that's small enough to
+stay under the 3-point reporting threshold at current trial counts;
+three (U2, U3b, U3c) are Dregnar-specific and likewise below
+threshold. None of this says the switches don't work — every one has
+its own dedicated "on changes something" test in
+`combat_unify_switches_ledger.js` proving the mechanic fires in
+isolation — it says the current two-harness roster doesn't happen to
+exercise most of them hard enough, at 100-200 trials/cell, to move a
+whole-fight win rate. A roster that included a Sanguivorum fight (for
+U3a/U3d) or a random Enemy Mage encounter (for U1/U2) would be where
+each switch's real effect becomes visible.
