@@ -1,0 +1,43 @@
+range: 3a778a6e90352021bfafe08ae3ac77f395485643..0ae15f9c92ff3310b6644f98e602f6381f48445c
+=== 0ae15f9c92ff3310b6644f98e602f6381f48445c 2026-11-12 01:28:10 +0000
+Appendix A: fix Groundbreaker's accuracy-restore over-grant (task #114)
+applyGroundbreakerAccuracyDebuff/tickGroundbreakerDebuffs
+(js/engine/companion.js): the -10 Accuracy debuff clamps at 0 (an
+enemy's Accuracy can't go negative), but the restore recorded and
+re-added the FULL requested amount regardless -- so an enemy with less
+base Accuracy than the debuff (e.g. 6, hit by -10) only ever lost 6,
+but got the full 10 added back once the debuff expired, leaving it
+permanently 4 Accuracy ABOVE its own starting value. Confirmed against
+live source before changing anything.
+
+Fix: record the real applied delta (before - after, i.e. what was
+actually removed) on the debuff entry instead of the raw amount, and
+restore that instead. The already-correct case (debuff smaller than
+base Accuracy, where applied === amount) is unchanged by construction.
+
+New dedicated ledger (tools/tests/appendix_a_groundbreaker_accuracy_ledger.js,
+registered in run_all.js's LEDGERS array): the bug case (debuff larger
+than base Accuracy, confirmed to actually fail against the pre-fix code
+-- reverted to it and reran before trusting the fix), the normal case
+(debuff smaller than base Accuracy, confirming the fix changes nothing
+about what already worked), and the exact boundary case (debuff ==
+base Accuracy).
+
+Verified: full suite 448/448 (6 consecutive clean runs -- one earlier
+447/448 traced to a leftover manual test server of my own still holding
+the port, not a real flake), tools/audit.js 0 errors (unchanged).
+Layer 2 (boss_sweep.js, plus3_run.js) bit-for-bit identical to the
+pre-fix baseline -- expected, not a sign the fix is inert: Groundbreaker's
+debuff is 10 Accuracy, and no boss in either harness has base Accuracy
+below that, so the clamp path this fix corrects is never exercised by
+either scenario set; the new ledger's own APPENDIXA-GB-CLAMPED-01 is
+what actually exercises it.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/companion.js                             | 16 +++-
+ .../appendix_a_groundbreaker_accuracy_ledger.js    | 92 ++++++++++++++++++++++
+ tools/tests/run_all.js                             |  1 +
+ 3 files changed, 106 insertions(+), 3 deletions(-)
