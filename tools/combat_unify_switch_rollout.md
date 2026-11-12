@@ -299,3 +299,16 @@ exercise most of them hard enough, at 100-200 trials/cell, to move a
 whole-fight win rate. A roster that included a Sanguivorum fight (for
 U3a/U3d) or a random Enemy Mage encounter (for U1/U2) would be where
 each switch's real effect becomes visible.
+
+## Post-Phase-1 baseline (handoff §7)
+
+Recorded at this rollout's final commit (`46ad4ef`, all 9 switches
+on): `post_phase1_baseline_46ad4ef.json`, 5 classes, every legal-party
+cell, the full 16-boss sweep (alone + asSpawned) and the Dregnar/
+Arbitarius plus3 sweep (3 gear tiers), N=1000/cell. Supersedes
+`post_phase0_baseline_fb35087.json` as the Phase 2 reference; that
+file is kept, labeled superseded. Lives in the scratchpad's
+`expectedgear_rerun/deliverables/` directory alongside its own
+README, same convention as every other Layer 2 harness output in
+this handoff — not git-tracked, same as `post_phase0_baseline_fb35087.json`
+itself never was.
