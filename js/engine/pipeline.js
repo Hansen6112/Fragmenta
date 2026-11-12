@@ -136,7 +136,7 @@ const COMBAT_UNIFY = {
   // Smuggler's Guard / Commander's Poise (sangCuDefenderMitigation): the
   // enemy's own flat damage-reduction item effects fire against a plain
   // ally's hit but not Hadrian's.
-  U3f: false,
+  U3f: true,
   // Riposte-on-miss: the enemy's own Riposte effect counters a plain
   // ally's miss (riposteCounterByEnemyOnAlly) but not Hadrian's.
   U3g: false,
