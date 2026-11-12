@@ -1,0 +1,18 @@
+range: 2408f25a207010fdf1c268c1022181877994cd39..edb855fe78dd91afe1c21c1c9a95979dd5cc7447
+=== edb855fe78dd91afe1c21c1c9a95979dd5cc7447 2026-11-12 06:10:49 +0000
+Phase 1 handoff §6: document U3a result (zero trigger surface in either harness)
+U3a (Marked Target vs. ally): zero cells moved on either harness
+against U3c's after-state. Verified why, not just measured: Marked
+Target is granted by the "Spotter's Lens" trinket, worn in the
+bestiary only by the Roadside Lookout -- neither boss_sweep.js's 16
+Boss-class humanoids nor plus3_run.js's Dregnar/Arbitarius wear it or
+anything else carrying the ability, so the switch has nothing to
+trigger from in either harness at all. U3a's own reach is
+Sanguivorum fights specifically, and neither harness contains one.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
