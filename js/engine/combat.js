@@ -40,7 +40,8 @@ function randInt(min, max) {
 // a BESTIARY species" signal — see applyArchiveEternal.
 function getCombatCreature(state) {
   if (!state.combat) return null;
-  return state.combat.creatureObj || BESTIARY[state.combat.creatureId];
+  const slot = activeEnemySlot(state.combat);
+  return slot.creatureObj || BESTIARY[slot.creatureId];
 }
 
 // Multi-enemy support (pack/squad encounters): state.combat.enemies is an
@@ -85,6 +86,24 @@ function wireActiveEnemyProxy(combat) {
       set(v) { combat.enemies[combat.activeIndex][field] = v; },
     });
   });
+}
+
+// Step 1h-iv: the explicit replacement for the alias above -- takes
+// `combat` (state.combat), same as wireActiveEnemyProxy itself, so a
+// call site already holding that local needs no extra lookup. Re-reads
+// activeIndex fresh on every call, exactly like the proxy's own get/set
+// above do -- so a call site that invokes activeEnemySlot(combat) at
+// each individual access point (rather than caching its return value
+// across a span of code that might itself change activeIndex, e.g.
+// resolveKill advancing to a survivor) is unconditionally safe at any
+// call depth, matching the proxy's behavior exactly. Where a function
+// already holds a stable local reference to the specific enemy record
+// it means (one that provably doesn't change out from under it for the
+// span it's used), that local is used directly instead, for both
+// clarity and because it's often the record this step's own call site
+// needs regardless of whatever "active" currently means elsewhere.
+function activeEnemySlot(combat) {
+  return combat.enemies[combat.activeIndex];
 }
 
 // Step 1e §3.3: the 34 fields the handoff listed as player-owned turned out
@@ -264,7 +283,7 @@ function effectiveEnemyAtk(state, creature) {
   // (a failed flee, any swing at an ally) NaN, which then poisoned
   // state.health / ally.health permanently. Fall back to their magic.
   const base = creature.atk != null ? creature.atk : creature.magic != null ? creature.magic : 1;
-  return Math.max(1, base - (state.combat.enemyAtkPenalty || 0));
+  return Math.max(1, base - (activeEnemySlot(state.combat).enemyAtkPenalty || 0));
 }
 
 // Whether an attack connects at all, before any damage math or special
@@ -827,7 +846,7 @@ function arcaneOverflowMultiplier(state) {
 function executionProtocolMultiplier(state) {
   if (!hasEffect(state, "execution_protocol") || !state.combat) return 1;
   const mult = masterOfArmsDoubles(state, "execution_protocol") ? 3 : 2;
-  return state.combat.hp <= state.combat.maxHp * 0.2 ? mult : 1;
+  return activeEnemySlot(state.combat).hp <= activeEnemySlot(state.combat).maxHp * 0.2 ? mult : 1;
 }
 
 // Temporal Echo (Mythic): every 5th combat action deals double damage.
@@ -1108,7 +1127,7 @@ function useItem(state, arg) {
   // even resolves.
   if (!state.combat) return out;
   state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
+  if (activeEnemySlot(state.combat).hp <= 0) {
     out.push(...resolveKill(state, creature));
     if (!state.combat || state.health <= 0) return out;
     creature = getCombatCreature(state);
@@ -1292,7 +1311,7 @@ function applyShieldWall(state, dmg) {
 function executionerMultiplier(state) {
   if (!hasEffect(state, "executioner")) return 1;
   const combat = state.combat;
-  return combat.hp <= combat.maxHp * executionerThreshold(state) ? 1.2 : 1;
+  return activeEnemySlot(combat).hp <= activeEnemySlot(combat).maxHp * executionerThreshold(state) ? 1.2 : 1;
 }
 
 // Generalized Executioner, for an enemy or ally attacker: any ATTACKER
@@ -1319,7 +1338,7 @@ function dragonslayerMultiplier(state, creature) {
 // currently bleeding (state.combat.bleed is the Deep Cut DoT the player
 // already inflicted on it).
 function bleedExploitationMultiplier(state) {
-  if (!state.combat || !state.combat.bleed) return 1;
+  if (!state.combat || !activeEnemySlot(state.combat).bleed) return 1;
   return hasSetTier(state, "Bonecaller", 6) ? 1.2 : 1;
 }
 
@@ -1891,7 +1910,7 @@ function enemyRepeatableMitigationMultiplier(creature) {
 }
 
 function rollPlayerDamage(state, creature, activeElement) {
-  const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
+  const defPenalty = (state.combat && activeEnemySlot(state.combat).enemyDefPenalty) || 0;
   // Smuggler's Guard / Commander's Poise (Sanguivorum Criminal
   // Underworld) and Hardened Formation / Officer's Bearing (Sanguivorum
   // Imperial Military, above) — all consumed once here regardless of
@@ -2094,7 +2113,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     dmg = applyEnemyFlatDamageReduction(dmg, creature);
     applyEnemyOnHitTakenPassives(state, creature, dmg);
   }
-  if (state.combat) state.combat.hitsTakenFromPlayer = (state.combat.hitsTakenFromPlayer || 0) + 1;
+  if (state.combat) activeEnemySlot(state.combat).hitsTakenFromPlayer = (activeEnemySlot(state.combat).hitsTakenFromPlayer || 0) + 1;
   return dmg;
 }
 
@@ -2206,12 +2225,12 @@ function applyPhysicalOnHitEffects(state, creature) {
   const lines = [];
   const combat = state.combat;
   if (hasEffect(state, "deep_cut") && Math.random() < deepCutChance(state)) {
-    combat.bleed = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.atk / 6)) };
+    activeEnemySlot(combat).bleed = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.atk / 6)) };
     lines.push(`${withThe(creature.name, true)} is left bleeding.`);
   }
-  if (hasEffect(state, "hamstring") && !combat.hamstringApplied) {
-    combat.hamstringApplied = true;
-    combat.enemyAtkPenalty = (combat.enemyAtkPenalty || 0) + 1;
+  if (hasEffect(state, "hamstring") && !activeEnemySlot(combat).hamstringApplied) {
+    activeEnemySlot(combat).hamstringApplied = true;
+    activeEnemySlot(combat).enemyAtkPenalty = (activeEnemySlot(combat).enemyAtkPenalty || 0) + 1;
     lines.push(`Your strike catches the tendon — ${withThe(creature.name, false)}'s attacks are weaker for the rest of this fight.`);
   }
   lines.push(...checkCounteringGuard(state, creature));
@@ -2540,7 +2559,7 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
     if (abilityCtx.selfDebuff) applyEnemySelfModifier(state.combat, creatureObj, abilityCtx.selfDebuff);
     if (abilityCtx.selfBuff) applyEnemySelfModifier(state.combat, creatureObj, abilityCtx.selfBuff);
     if (abilityCtx.healSelfPct) {
-      const heal = Math.round(state.combat.maxHp * abilityCtx.healSelfPct);
+      const heal = Math.round(activeEnemySlot(state.combat).maxHp * abilityCtx.healSelfPct);
       if (heal > 0) applyHealing(makeEnemyCombatant(state, state.combat.enemies[state.combat.activeIndex], state.combat.activeIndex), heal, "enemy_self_heal", { state });
     }
     // Prepare Ballista (Ingenum Ballistarius, Sanguivorum Imperial
@@ -3297,7 +3316,7 @@ function resolveEnemyActiveAbility(state, creature) {
     // "The commander's" own Health threshold — combat.hp/maxHp (the
     // PER_ENEMY_FIELDS proxy) already reads whichever enemy is active,
     // which is this same casting creature, not the player.
-    packAuraBuff = combat.hp > combat.maxHp * c.pct ? c.abovePct : c.atOrBelowPct;
+    packAuraBuff = activeEnemySlot(combat).hp > activeEnemySlot(combat).maxHp * c.pct ? c.abovePct : c.atOrBelowPct;
   }
   // Disciplined Riposte/Shielded Thrust (Sanguivorum Imperial Military):
   // "+5 ACC when a defensive effect is active" — same hasActiveDefBuff
@@ -4548,7 +4567,7 @@ function tryApplyEnemyStun(state, creature) {
       return [`Unshaken Command turns the Stun aside.`];
     }
   }
-  state.combat.enemyStunCharges = (state.combat.enemyStunCharges || 0) + 1;
+  activeEnemySlot(state.combat).enemyStunCharges = (activeEnemySlot(state.combat).enemyStunCharges || 0) + 1;
   return [];
 }
 
@@ -4820,7 +4839,7 @@ function tickEnemyPassives(state, e) {
 // resolveRiposteCounterPlayer, steps 2-5.
 function maybeRiposte(state, creature) {
   if (!hasEffect(state, "riposte")) return [];
-  if (!state.combat || state.combat.hp <= 0) return [];
+  if (!state.combat || activeEnemySlot(state.combat).hp <= 0) return [];
   return resolveRiposteCounterPlayer(state, creature);
 }
 
@@ -4865,7 +4884,7 @@ function markNonPlayerRiposteFired(wearer) {
 // pipeline.js. Eligibility/cap bookkeeping stays here, outside the
 // pipeline, matching every other reaction's own pre-check.
 function riposteCounterOnPlayer(state, creature) {
-  if (!hasEffect(creature, "riposte") || !state.combat || state.combat.hp <= 0) return [];
+  if (!hasEffect(creature, "riposte") || !state.combat || activeEnemySlot(state.combat).hp <= 0) return [];
   if (!nonPlayerRiposteCapAllows(creature)) return [];
   markNonPlayerRiposteFired(creature);
   return resolveRiposteCounterOnPlayer(state, creature);
@@ -4907,7 +4926,7 @@ function hasArenaRiposteAbility(creature) {
 // own declared multiplier, stay here, outside the pipeline.
 function arenaRiposteCounterOnPlayer(state, creature) {
   if (!hasArenaRiposteAbility(creature)) return [];
-  if (!state.combat || state.combat.hp <= 0) return [];
+  if (!state.combat || activeEnemySlot(state.combat).hp <= 0) return [];
   const cooldown = creature.arenaRiposteCooldown || 0;
   const uses = creature.arenaRiposteUsesThisCombat || 0;
   if (cooldown > 0 || uses >= 2) return [];
@@ -5050,7 +5069,7 @@ function tacticAvailable(state, tacticId) {
   const bypass = activationRestrictionsBypassed(state);
   if (state.knowledge < t.knowledgeReq && !bypass) return false;
   if (tacticId === "ambush") return bypass || !state.combat.turnTaken;
-  if (tacticId === "disarm" && state.combat.disarmed && !bypass) return false;
+  if (tacticId === "disarm" && activeEnemySlot(state.combat).disarmed && !bypass) return false;
   return (state.combat.cooldowns[tacticId] || 0) <= 0;
 }
 
@@ -5079,7 +5098,7 @@ function elementAbilityAvailable(state, elementKey) {
   const a = ELEMENT_ABILITIES[elementKey];
   const bypass = activationRestrictionsBypassed(state);
   if (state.knowledge < a.knowledgeReq && !bypass) return false;
-  if (elementKey === "acid" && state.combat.corroded && !bypass) return false;
+  if (elementKey === "acid" && activeEnemySlot(state.combat).corroded && !bypass) return false;
   return (state.combat.cooldowns[elementKey] || 0) <= 0;
 }
 
@@ -5763,7 +5782,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // rolled once here rather than in playerAttack/etc. since it's a
   // combat-start effect, not a per-action one.
   if (!creature.friendly && hasEffect(state, "unsettling") && Math.random() < 0.2) {
-    state.combat.enemyAtkPenalty += 2;
+    activeEnemySlot(state.combat).enemyAtkPenalty += 2;
     lines.push(`Something about you unsettles it before the fight even starts — its guard is already down.`);
   }
   if (creature.friendly) {
@@ -6039,7 +6058,7 @@ function checkAvatarOfKnowledge(state) {
   combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.5)));
   combat.player.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, flatStat(25));
   const creature = getCombatCreature(state);
-  return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${combat.hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
+  return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${activeEnemySlot(combat).hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
 }
 
 // Avatar of Devotion (Regalia of the Eternal Heart 6pc): same below-25%-
@@ -6273,7 +6292,7 @@ function applySoulLedger(state, creature) {
 function applyArchiveEternal(state, creature) {
   if (!hasEffect(state, "archive_eternal") || !state.combat) return [];
   const combat = state.combat;
-  const speciesKey = combat.dynamicCreature ? "enemy_mage_" + (creature.element || "unknown") : combat.creatureId;
+  const speciesKey = activeEnemySlot(combat).dynamicCreature ? "enemy_mage_" + (creature.element || "unknown") : activeEnemySlot(combat).creatureId;
   if (!state.archiveEternalSeen) state.archiveEternalSeen = [];
   if (state.archiveEternalSeen.includes(speciesKey)) return [];
   state.archiveEternalSeen.push(speciesKey);
@@ -6319,7 +6338,7 @@ function resolveKill(state, creature) {
   // captured now, before the end-of-fight cleanup further down can null
   // state.combat out from under it.
   const huntJobId = state.combat && state.combat.huntJobId;
-  const out = [`${deathFlavorLine(creature, state.combat && state.combat.lastDamageType)} ${creature.combatNotes || ""}`.trim()];
+  const out = [`${deathFlavorLine(creature, state.combat && activeEnemySlot(state.combat).lastDamageType)} ${creature.combatNotes || ""}`.trim()];
   // Summoned enemies (summonSourceKey set — resolveEnemySummon) are
   // reward-ineligible: no gold, no loot. Stated as an already-agreed rule
   // in the Criminal Underworld equipment codex (Gate 5B.8) for its own
@@ -6556,7 +6575,7 @@ function resolveDownedRound(state) {
   const out = [`You can only watch — the fight isn't yours to finish anymore.`];
   out.push(...beginTurn(state));
   if (!state.combat) return out;
-  if (state.combat.hp <= 0) {
+  if (activeEnemySlot(state.combat).hp <= 0) {
     out.push(...resolveKill(state, creature));
     if (!state.combat) return out;
     creature = getCombatCreature(state);
@@ -6598,7 +6617,7 @@ function attemptFlee(state) {
   // standing, the whole encounter) before the player's own action runs.
   if (!state.combat) return out;
   state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
+  if (activeEnemySlot(state.combat).hp <= 0) {
     out.push(...resolveKill(state, creature));
     if (!state.combat || state.health <= 0) return out;
     creature = getCombatCreature(state);
@@ -6725,7 +6744,7 @@ function useFeint(state) {
   // standing, the whole encounter) before the player's own action runs.
   if (!state.combat) return out;
   state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
+  if (activeEnemySlot(state.combat).hp <= 0) {
     out.push(...resolveKill(state, creature));
     if (!state.combat || state.health <= 0) return out;
     creature = getCombatCreature(state);
@@ -6827,7 +6846,7 @@ function useApothecaryAbility(state, key, targetArg) {
   const out = beginTurn(state);
   if (!state.combat) return out;
   state.combat.turnTaken = true;
-  if (state.combat.hp <= 0) {
+  if (activeEnemySlot(state.combat).hp <= 0) {
     out.push(...resolveKill(state, creature));
     if (!state.combat || state.health <= 0) return out;
     creature = getCombatCreature(state);
