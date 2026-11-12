@@ -109,8 +109,10 @@ occasionally end the fight a different way than the scenario meant to
 isolate — not a random retry, a real test-construction bug) and added
 seeding infrastructure (`tools/tests/seed_rng.js`) so any future
 intermittent failure prints a reproducible seed. The suite's own
-50-consecutive-clean-run verification was in progress at the time of
-writing (streak intact at the time of this commit — see the commit
-message for the final count) and the full 448-scenario suite plus
-`tools/audit.js` (0 errors) were run after every change in this
-record. **Phase 1 is closed.**
+50-consecutive-clean-run verification gate (commit `502ec4b`'s fix
+plus the `combat_unify_switches_ledger.js` isolation fix landed in
+the U3b commit) **passed 50/50, 0 failures**, run after both fixes
+were in place. The full suite (454/454 by that point, with the §1
+enemy proof and switch-flip tests added) and `tools/audit.js` (0
+errors) were run after every change in this record. **Phase 1 is
+closed.**
