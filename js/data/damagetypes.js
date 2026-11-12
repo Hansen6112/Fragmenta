@@ -98,6 +98,29 @@ function resolveDamageType(action, weaponDamageType, creatureAttackType) {
   return "blunt";
 }
 
+// Bridge (step 2b) for the 5 statuses js/engine/combat.js's own
+// statusDamageType already mapped under the OLD roster, translated onto
+// the new 16-type one, for use until content (§5) puts a real damageType
+// field directly on each STATUS_EFFECTS entry (which then takes priority
+// below). bleed -> slashing (a cut, not a type of its own in the new
+// roster); venom/blight/sang_iag_poison -> poison (T7: both Venom and
+// Poison are Poison-type damage, whatever their stacking/status
+// differences); burning -> fire (unchanged).
+const LEGACY_STATUS_DAMAGE_TYPE_V2 = {
+  bleed: "slashing",
+  burning: "fire",
+  venom: "poison",
+  blight: "poison",
+  sang_iag_poison: "poison",
+};
+// A DOT tick's damage type: the status's own declared damageType once
+// content exists, else the legacy bridge above, else Blunt (the same
+// resolveDamageType fallback every other hit uses).
+function resolveStatusDamageType(statusKey, statusDef) {
+  if (statusDef && statusDef.damageType) return statusDef.damageType;
+  return LEGACY_STATUS_DAMAGE_TYPE_V2[statusKey] || "blunt";
+}
+
 // §7.1: the system lives behind this switch, off by default. With it
 // off, every formula keeps today's math (attacker-power-vs-flat-Defense,
 // the element cycle via js/data/matchups.js) exactly — see each call

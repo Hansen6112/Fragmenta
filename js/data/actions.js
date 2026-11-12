@@ -646,7 +646,13 @@ const PIPELINE_FORMULAS = {
     const creature = actor.ref.creatureObj;
     const atk = effectiveEnemyAtk(state, creature);
     const playerDef = effectivePlayerDef(state);
-    const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
+    // Damage Types v2 (off by default): a riposte is always a flat
+    // physical counter (no spell branch), so only the target's tag
+    // multiplier applies here -- the resisting-stat step is a no-op for
+    // Physical-family damage regardless.
+    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
     return { shortCircuit: false, edmg, kind: "physical" };
   },
 
@@ -659,7 +665,9 @@ const PIPELINE_FORMULAS = {
     const creature = actor.ref.creatureObj;
     const atk = effectiveEnemyAtk(state, creature);
     const playerDef = effectivePlayerDef(state);
-    const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (action.mult || 0.8)));
+    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (action.mult || 0.8)));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
     return { shortCircuit: false, edmg, kind: "physical" };
   },
 
@@ -675,7 +683,9 @@ const PIPELINE_FORMULAS = {
     const ally = target.ref;
     const atk = effectiveEnemyAtk(state, creature);
     const effectiveDef = effectiveAllyDef(ally);
-    const edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), effectiveDef) * 0.5));
+    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), effectiveDef) * 0.5));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
     return { shortCircuit: false, edmg, kind: "physical" };
   },
 
@@ -694,11 +704,19 @@ const PIPELINE_FORMULAS = {
   // value, to match exactly).
   tickBurnEnemy(actor, target, action, ctx, hitInfo) {
     const creature = target.ref.creatureObj;
-    const edmg = hasEffect(creature, "dra_e08_ashward") ? Math.round(action.rawDmg * 0.75) : action.rawDmg;
+    let edmg = hasEffect(creature, "dra_e08_ashward") ? Math.round(action.rawDmg * 0.75) : action.rawDmg;
+    // Damage Types v2 (off by default): a DOT tick's own damage type
+    // (here, always Fire) against the target's own tag — no resisting-
+    // stat step, same as every other tick (ticks were never mitigated by
+    // Defense/Magic to begin with, see this table's own header).
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(creature, "fire"));
     return { shortCircuit: false, edmg, kind: "fire" };
   },
   tickBleedEnemy(actor, target, action, ctx, hitInfo) {
-    return { shortCircuit: false, edmg: action.rawDmg, kind: "bleed" };
+    const creature = target.ref.creatureObj;
+    let edmg = action.rawDmg;
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(creature, "slashing"));
+    return { shortCircuit: false, edmg, kind: "bleed" };
   },
   // Heatproof (halves Burning specifically) is the player-side status
   // tick's only final-number adjustment, moved verbatim out of
@@ -709,6 +727,10 @@ const PIPELINE_FORMULAS = {
     const state = ctx.state;
     let edmg = action.rawDmg;
     if (action.key === "burning" && hasEffect(state, "heatproof")) edmg = Math.floor(edmg / 2);
+    if (DAMAGE_TYPES_V2) {
+      const dType = resolveStatusDamageType(action.key, STATUS_EFFECTS[action.key]);
+      edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
+    }
     return { shortCircuit: false, edmg, kind: statusDamageType(action.key) };
   },
   // The ally-kit vulnerability multiplier (e.g. a kit whose own weakness
@@ -721,6 +743,10 @@ const PIPELINE_FORMULAS = {
     const vulnerability = def && def.abilityKit && def.abilityKit.vulnerability;
     let edmg = action.rawDmg;
     if (vulnerability && vulnerability.statuses.includes(action.key)) edmg = Math.round(edmg * vulnerability.multiplier);
+    if (DAMAGE_TYPES_V2) {
+      const dType = resolveStatusDamageType(action.key, STATUS_EFFECTS[action.key]);
+      edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
+    }
     return { shortCircuit: false, edmg, kind: "physical" };
   },
 
@@ -749,7 +775,15 @@ const PIPELINE_FORMULAS = {
     const state = ctx.state;
     const creature = target.ref.creatureObj;
     const clashMult = hasEffect(state, "clash_of_steel") ? 1.5 : 1;
-    const edmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
+    let edmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
+    // Damage Types v2 (off by default): rollPlayerDamage's own internal
+    // mitigation is untouched (it's always a flat physical counter, out
+    // of this migration's scope per this formula's own header) -- only
+    // the resolved weapon type's tag multiplier applies here.
+    if (DAMAGE_TYPES_V2) {
+      const dType = resolveDamageType(action, equipmentWeaponDamageType(state), null);
+      edmg = Math.round(edmg * dmgTagMultiplier(creature, dType));
+    }
     if (hasSetTier(state, "White Watch", 6)) {
       state.combat.player.whiteWatchRiposteDefBonus = (state.combat.player.whiteWatchRiposteDefBonus || 0) + 2;
     }
