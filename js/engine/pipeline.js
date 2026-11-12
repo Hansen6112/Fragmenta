@@ -1570,7 +1570,16 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
 // calculateDamagePlayerActor's own header for the two stat()-purity
 // peek/defer splits (banked Defense, the player's own Attack via
 // stat()) that make this differ from rollPlayerDamage itself.
-function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
+// `action` (added for Damage Types v2, step 2b): the ORIGINAL action
+// object, used only to resolve a damageType when DAMAGE_TYPES_V2 is on —
+// every existing caller either already had it (calculateDamagePlayerActor)
+// or is updated to pass it through (lightningOnHit's second roll).
+// Optional and unused when the switch is off, so a caller that still
+// omits it (PIPELINE_FORMULAS.playerCore's own wrapper, never actually
+// invoked for a real player attack — see calculateDamage's own dispatch
+// order, which always routes actor.kind==="player" to
+// calculateDamagePlayerActor directly) changes nothing.
+function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, action) {
   const state = ctx.state;
   const enemySlot = target.store;
   const creature = enemySlot.creatureObj;
@@ -1611,16 +1620,28 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
     const multiplier = 1 + magic / 60;
     const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+    // Damage Types v2 (off by default, spec §3 steps 2-3): resist-by-
+    // family defense value in place of the flat effDef above, then the
+    // enemy's own tag multiplier on the final number below.
+    const spellDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(state), null) : null;
+    const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
     const overflowMult = arcaneOverflowMultiplier(state);
     const spellPower = base * multiplier;
-    const preMitigation = Math.round(mitigate(spellPower, effDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
+    const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
+    if (DAMAGE_TYPES_V2) dmg = Math.round(dmg * dmgTagMultiplier(creature, spellDType));
     if (state.combat.player.avatarOfCreationTurns > 0) {
       state.combat.player.avatarOfCreationMagicStacks = (state.combat.player.avatarOfCreationMagicStacks || 0) + 2;
     }
   } else {
     const armorCrack = armorCrackAmount(state);
     const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus + sureFoundationDef - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
+    // Damage Types v2 (off by default) — see the spell branch's own
+    // comment, above, for the full reasoning. A basic/weapon attack's
+    // damageType falls back to the player's own mainhand weapon (resolved
+    // before any action-declared type, per resolveDamageType's priority).
+    const weaponDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(state), null) : null;
+    const weaponMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(weaponDType, effDef, creature.magic) : effDef;
     // atk: peeked via stat() (pure) -- see this section's header on the
     // Siege Corps purity fix. Produces the identical number as
     // effectivePlayerAtk would have on this same single read.
@@ -1628,10 +1649,11 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
     const crushBase = crushingImpactMultiplier(state);
     const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
     const craftsmanMult = hasEffect(state, "master_craftsman") ? masterCraftsmanMultiplier(atk, creature) : 1;
-    const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), effDef);
+    const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), weaponMitigateDef);
     state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
     const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.player.weaponAttackCounter % 5 === 0 ? 2 : 1;
     dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0)) * sangMit));
+    if (DAMAGE_TYPES_V2) dmg = Math.round(dmg * dmgTagMultiplier(creature, weaponDType));
     if (state.combat.player.avatarOfCreationTurns > 0) {
       state.combat.player.avatarOfCreationAtkStacks = (state.combat.player.avatarOfCreationAtkStacks || 0) + 2;
     }
@@ -1694,7 +1716,7 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
   const isElement = !!action.elementOnHit;
   const activeElement = isElement ? action.id : (action.picksElement ? action.activeElement : undefined);
 
-  const core = rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement);
+  const core = rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, action);
   let dmg = core.dmg;
   const physicalBranch = core.physicalBranch;
 

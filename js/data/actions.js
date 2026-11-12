@@ -153,7 +153,7 @@ const PIPELINE_HOOKS = {
     // state.combat.hitsTakenFromPlayer an extra, unused time whenever the
     // first hit is lethal).
     if (h.enemySlot.hp > 0) {
-      const core2 = rollPlayerDamageCoreForPipeline(h.actor, h.target, h.pipelineCtx, h.dmgInfo.activeElement);
+      const core2 = rollPlayerDamageCoreForPipeline(h.actor, h.target, h.pipelineCtx, h.dmgInfo.activeElement, h.action);
       const secondHitDmg = Math.round(core2.dmg * h.action.dmgMult);
       h.enemySlot.hp -= secondHitDmg;
       castDamageDealt += secondHitDmg;
@@ -233,14 +233,17 @@ const PIPELINE_HOOKS = {
 // pipeline.js change.
 const ON_INCOMING_DAMAGE_ALLY_HOOKS = ["hadrianAllyProtection", "allyProtectionReaction"];
 
-// Damage Types spec v1.0, step 2b: an enemy creature's own mainhand
-// weapon's damageType (§2's "weapon" field priority, between an action's
-// own declared type and the creature's attackType fallback). Only
+// Damage Types spec v1.0, step 2b: a combatant's own mainhand weapon's
+// damageType (§2's "weapon" field priority, between an action's own
+// declared type and an attackType fallback). Generic over any holder
+// with an `equipment.mainhand` slot — an enemy creature or an ally both
+// use this exact shape (js/engine/combat.js's ally equipment handling
+// reads `ally.equipment[slot]` the same way BESTIARY creatures do). Only
 // meaningful once DAMAGE_TYPES_V2 is on and content (§5) has actually put
 // a damageType on mainhand items — until then this just reads undefined,
 // same as any other not-yet-authored field.
-function creatureWeaponDamageType(creature) {
-  const weaponName = creature.equipment && creature.equipment.mainhand;
+function equipmentWeaponDamageType(holder) {
+  const weaponName = holder.equipment && holder.equipment.mainhand;
   const weaponDef = weaponName && ITEM_DEFS[weaponName];
   return (weaponDef && weaponDef.damageType) || null;
 }
@@ -279,9 +282,15 @@ const PIPELINE_FORMULAS = {
     const bankedDef = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0);
     const effectiveDef = stat(state, target, "def") + bankedDef;
     const sangMit = sangCuDefenderMitigation(creature);
-    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), effectiveDef) * reduction * sangMit));
+    // Damage Types v2 (off by default) — same mechanism as enemyCore's
+    // own branches: resist-by-family defense value, then the enemy
+    // target's own tag multiplier.
+    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(ally), ally.attackType) : null;
+    const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, effectiveDef, creature.magic) : effectiveDef;
+    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), mitigateDef) * reduction * sangMit));
     edmg = applyOpeningReachForActor(ally, edmg);
     edmg = Math.round(edmg * executionerMultiplierFor(ally, enemySlot.hp, enemySlot.maxHp));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(creature, dType));
     return { edmg, extra: {} };
   },
 
@@ -303,7 +312,11 @@ const PIPELINE_FORMULAS = {
     const atkBonusHook = action.hooks && action.hooks.atkBonus;
     const atkBonus = atkBonusHook ? PIPELINE_HOOKS[atkBonusHook]({ state, actor, target, ally, creature, action }) : 0;
     const atk = ally.atk + atkBonus;
-    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), stat(state, target, "def") + bankedDefKit) * sangMitKit));
+    const basicDef = stat(state, target, "def") + bankedDefKit;
+    const basicDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(ally), ally.attackType) : null;
+    const basicMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(basicDType, basicDef, creature.magic) : basicDef;
+    let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(atk * 0.85), Math.round(atk * 1.15)), basicMitigateDef) * sangMitKit));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(creature, basicDType));
     return { edmg, extra: { bankedDefKit } };
   },
 
@@ -333,7 +346,11 @@ const PIPELINE_FORMULAS = {
     const baseAtk = (ally.atk + atkBonus) * atkBonusPct * empoweredMult;
     const defIgnore = (ability.defIgnorePct || 0) + (action.ascended ? (ability.ascendedDefIgnoreBonus || 0) : 0);
     const splashAtkMult = ability.splashAtkMult != null ? ability.splashAtkMult + (action.ascended ? 0.15 : 0) : 0;
-    let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, (stat(state, target, "def") + bankedDefKit) * (1 - defIgnore)) * sangMitKit));
+    const abilityDef = (stat(state, target, "def") + bankedDefKit) * (1 - defIgnore);
+    const abilityDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(ally), ally.attackType) : null;
+    const abilityMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(abilityDType, abilityDef, creature.magic) : abilityDef;
+    let edmg = Math.max(1, Math.round(mitigate(baseAtk * ability.atkMult, abilityMitigateDef) * sangMitKit));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(creature, abilityDType));
     return { edmg, extra: { baseAtk, splashAtkMult, bankedDefKit } };
   },
 
@@ -348,7 +365,13 @@ const PIPELINE_FORMULAS = {
   // computation, exactly as before.
   kitAllyAbilitySplash(actor, target, action, ctx, hitInfo) {
     const state = ctx.state;
-    const edmg = Math.max(1, Math.round(mitigate(action.baseAtk * action.splashAtkMult, stat(state, target, "def"))));
+    const ally = actor.ref;
+    const creature = target.store.creatureObj;
+    const splashDef = stat(state, target, "def");
+    const splashDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(ally), ally.attackType) : null;
+    const splashMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(splashDType, splashDef, creature.magic) : splashDef;
+    let edmg = Math.max(1, Math.round(mitigate(action.baseAtk * action.splashAtkMult, splashMitigateDef)));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(creature, splashDType));
     return { edmg, extra: {} };
   },
 
@@ -436,7 +459,7 @@ const PIPELINE_FORMULAS = {
         // multiplier, in place of/alongside the flat `def` this formula
         // has always mitigated against. Off, dType is never resolved and
         // mitigateDef === def -- no behavior change.
-        const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+        const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
         const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, ally.magic) : def;
         let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, ally.health, ally.maxHealth)));
         if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
@@ -470,7 +493,7 @@ const PIPELINE_FORMULAS = {
       // enemy active with no `.element` at all can still deal a non-
       // Physical damageType once content (§5) declares one, so this
       // isn't conditioned on creature.element.
-      const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+      const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
       const flatMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(flatDType, effectiveDef, ally.magic) : effectiveDef;
       let edmg = abilityCtx
         ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
@@ -532,7 +555,7 @@ const PIPELINE_FORMULAS = {
       const def = effectivePlayerDef(state) + bonusDef + coldBonus;
       // Damage Types v2 (off by default) — see the ally-target magic
       // branch's own comment, above, for the full reasoning.
-      const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+      const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
       const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, state.magic) : def;
       let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
       if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
@@ -567,7 +590,7 @@ const PIPELINE_FORMULAS = {
     const playerDef = effectivePlayerDef(state) + bonusDef;
     // Damage Types v2 (off by default) — see the ally-target flat
     // branch's own comment, above, for the full reasoning.
-    const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+    const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
     const flatMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(flatDType, playerDef, state.magic) : playerDef;
     let edmg = abilityCtx
       ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
