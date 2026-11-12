@@ -1,0 +1,54 @@
+range: 0407da2755c28d80ca16d87b6320c2a6461d9fd5..965d201fbe0a2c5e0a1377b1cbf3cbb379a6e0fa
+=== 965d201fbe0a2c5e0a1377b1cbf3cbb379a6e0fa 2026-11-12 00:29:12 +0000
+Step 1h-iii §6: rewrite tools/tests/ call sites onto combat.player, ready to delete the alias
+Combat Rebuild Phase 1, step 1h-iii: before deleting
+wirePlayerFieldsProxy, every tools/tests/ file that reads or writes
+state.combat.<field>/s.combat.<field> directly for one of the 130
+PLAYER_FIELDS entries also needs to move onto combat.player.<field> --
+once the proxy is gone, the old spelling silently returns/writes
+undefined instead of throwing, which would corrupt test assertions
+rather than fail loudly.
+
+Checked all 19 affected files for a hand-rolled `.combat = {...}`
+construction (the shape that broke injury_ledger.js's INJ-10/INJ-11 in
+an earlier commit this step, since it bypasses startCombat and the
+proxy both): none of these 19 have one -- all 19 call the real
+startCombat() for every scenario that touches a PLAYER_FIELDS entry,
+so state.combat.player already exists and this is the same safe
+mechanical rewrite as every production-code batch.
+
+Verification: full suite 445/445 (one transient unrelated flake on
+injury_ledger.js during the first run of this batch -- 23/24, not
+reproducible on a standalone rerun or two more full-suite reruns, and
+injury_ledger.js wasn't touched by this commit at all, so not
+investigated further). tools/audit.js 0 errors/72 warnings (both
+unchanged). Layer 2: boss_sweep.js and plus3_run.js both bit-for-bit
+identical to their pre-this-commit output.
+
+Last commit: delete wirePlayerFieldsProxy and its call, flip
+combat.player back to enumerable.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/tests/apothecary_action_tracking_ledger.js   | 22 +++++++++---------
+ tools/tests/combat_unify_switches_ledger.js        | 20 ++++++++---------
+ tools/tests/consumable_noop_ledger.js              |  8 +++----
+ tools/tests/downed_ledger.js                       |  6 ++---
+ tools/tests/dregnar_stage_b_ledger.js              | 14 ++++++------
+ tools/tests/phase1_step1a_combatant_ledger.js      | 20 ++++++++---------
+ tools/tests/phase1_step1b_pipeline_parity.js       | 26 +++++++++++-----------
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |  2 +-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js | 14 ++++++------
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |  8 +++----
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |  4 ++--
+ ...e1_step1f_iii_player_riposte_pipeline_parity.js |  4 ++--
+ .../phase1_step1f_iv_ticks_pipeline_parity.js      | 10 ++++-----
+ .../phase1_step1g_iii_field_move_batch1_ledger.js  | 16 ++++++-------
+ .../phase1_step1g_iv_field_move_batch2_ledger.js   | 12 +++++-----
+ .../phase1_step1g_v_field_move_batch3_ledger.js    | 12 +++++-----
+ .../phase1_step1g_vi_field_move_batch4_ledger.js   | 10 ++++-----
+ tools/tests/test_reaction_proof_ledger.js          |  4 ++--
+ tools/tests/test_strike_proof_ledger.js            |  2 +-
+ 19 files changed, 107 insertions(+), 107 deletions(-)
