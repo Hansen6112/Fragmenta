@@ -187,3 +187,20 @@ Full suite 454/454 (with that fix in place), `tools/audit.js` 0
 errors, both harnesses re-run against U3d's own after-state
 (`boss_sweep_u3e.json`/`plus3_u3e.json` vs.
 `boss_sweep_u3d.json`/`plus3_u3d.json`).
+
+## U3f — Smuggler's Guard/Commander's Poise vs. Hadrian
+
+**Zero cells moved on either harness, real trigger surface
+confirmed:** the Highway Captain (`boss_sweep.js`'s own roster)
+wears Commander's Insignia, granting Commander's Poise
+(`sang_cu_ie011_commanders_poise` — "the first successful damaging
+attack each combat deals 10% less final damage, once per combat").
+A single, one-time 10% reduction on whichever hit happens to land
+first is a small enough and rare enough edge to plausibly not move a
+200-trial cell's win rate by 3 points, even with the trigger
+genuinely present and now applying to Hadrian's hits too.
+
+Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
+against U3e's own after-state
+(`boss_sweep_u3f.json`/`plus3_u3f.json` vs.
+`boss_sweep_u3e.json`/`plus3_u3e.json`).
