@@ -1,0 +1,56 @@
+diff --git a/js/engine/companion.js b/js/engine/companion.js
+index 81c689d..1716384 100644
+--- a/js/engine/companion.js
++++ b/js/engine/companion.js
+@@ -174,13 +174,13 @@ function tickCompanionCombatTimers(state) {
+ // game) — a small transient list of { enemy, amount, turnsLeft } that
+ // restores the Accuracy it took once its duration ends.
+ function applyGroundbreakerAccuracyDebuff(state, enemyRecord, amount, turns) {
+-  if (!state.combat.groundbreakerDebuffs) state.combat.groundbreakerDebuffs = [];
++  if (!state.combat.player.groundbreakerDebuffs) state.combat.player.groundbreakerDebuffs = [];
+   enemyRecord.creatureObj.acc = Math.max(0, (enemyRecord.creatureObj.acc || 0) - amount);
+-  state.combat.groundbreakerDebuffs.push({ enemy: enemyRecord, amount, turnsLeft: turns });
++  state.combat.player.groundbreakerDebuffs.push({ enemy: enemyRecord, amount, turnsLeft: turns });
+ }
+ function tickGroundbreakerDebuffs(state) {
+-  if (!state.combat || !state.combat.groundbreakerDebuffs) return;
+-  state.combat.groundbreakerDebuffs = state.combat.groundbreakerDebuffs.filter((d) => {
++  if (!state.combat || !state.combat.player.groundbreakerDebuffs) return;
++  state.combat.player.groundbreakerDebuffs = state.combat.player.groundbreakerDebuffs.filter((d) => {
+     d.turnsLeft -= 1;
+     if (d.turnsLeft > 0) return true;
+     if (d.enemy.alive) d.enemy.creatureObj.acc = (d.enemy.creatureObj.acc || 0) + d.amount;
+diff --git a/js/engine/resolver.js b/js/engine/resolver.js
+index 2b33f44..c3b77b8 100644
+--- a/js/engine/resolver.js
++++ b/js/engine/resolver.js
+@@ -49,15 +49,15 @@ function usePlayerAction(state, actionId) {
+ 
+   if (def.cooldownKey) {
+     let cooldown;
+-    if (state.combat.avatarOfTimeTurns > 0) {
++    if (state.combat.player.avatarOfTimeTurns > 0) {
+       cooldown = 0;
+     } else if (applyPerfectTiming(state)) {
+       cooldown = 0;
+-    } else if (state.combat.swiftPassageReady) {
+-      state.combat.swiftPassageReady = false;
++    } else if (state.combat.player.swiftPassageReady) {
++      state.combat.player.swiftPassageReady = false;
+       cooldown = 0;
+-    } else if (state.combat.hourglassReserveReady) {
+-      state.combat.hourglassReserveReady = false;
++    } else if (state.combat.player.hourglassReserveReady) {
++      state.combat.player.hourglassReserveReady = false;
+       cooldown = 0;
+     } else {
+       let baseCooldown = def.cooldown;
+@@ -106,7 +106,7 @@ function usePlayerAction(state, actionId) {
+   if (def.runsLowHealthChecks && state.health > 0) out.push(...lowHealthTriggerChecks(state));
+   if (def.followupForm === "gated") {
+     if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
+-    if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
++    if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+   } else if (def.followupForm === "unconditional") {
+     out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
+   }

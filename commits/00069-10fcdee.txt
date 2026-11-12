@@ -1,0 +1,40 @@
+range: 26d45ce805d0c33e46dac3044118cc618dcb1c8d..10fcdeec280169bb35be597139a4a9e0e4c851c7
+=== 10fcdeec280169bb35be597139a4a9e0e4c851c7 2026-11-12 00:22:08 +0000
+Step 1h-iii §4: rewrite companion.js/resolver.js/actions.js/tactics.js onto combat.player
+Last call-site batch for step 1h-iii. The handoff's own batch list
+named companion.js/resolver.js; re-deriving the scope myself (per its
+own "re-derive every count yourself" instruction) found two more files
+with real combat.<field>/state.combat.<field> occurrences it didn't
+mention: js/data/actions.js (22) and js/data/tactics.js (1) -- both
+hold action-definition formulas/hooks that read/write player combat
+state directly, same as combat.js/pipeline.js do. Folded into this
+same batch rather than leaving them stranded on the old spelling.
+
+js/data/actions.js is also exactly where the five field-name
+collisions found during step 1h-iii's own planning live (adaptiveWardElement,
+stormBarrierUsed, firstHitTakenUsed, tacticalMemoryUsed,
+firstPhysicalAttackDone -- also used as per-ally/per-enemy flags by the
+wearer-neutral equipment mechanics, step #29 in this engagement's own
+history). Confirmed after this batch's rewrite, same as before it:
+every ally.<field>/enemy.<field>/actor.<field> occurrence of these five
+names is untouched (verified by grep, not assumed) -- only the
+combat./state.combat.-prefixed ones (the player's own copy) moved to
+combat.player.<field>.
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+Every production call site is now off the PLAYER_FIELDS alias
+spelling. Last commit: delete wirePlayerFieldsProxy and flip
+combat.player back to enumerable, proving nothing was missed.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js     | 36 ++++++++++++++++++------------------
+ js/data/tactics.js     |  2 +-
+ js/engine/companion.js |  8 ++++----
+ js/engine/resolver.js  | 12 ++++++------
+ 4 files changed, 29 insertions(+), 29 deletions(-)
