@@ -1,0 +1,100 @@
+range: 965d201fbe0a2c5e0a1377b1cbf3cbb379a6e0fa..af4a7b561f92052a83105509534a1ddda6538876
+=== af4a7b561f92052a83105509534a1ddda6538876 2026-11-12 00:43:24 +0000
+Step 1h-iii §7 (final): delete wirePlayerFieldsProxy, combat.player is now the real thing
+Combat Rebuild Phase 1, step 1h-iii's last commit: the alias is gone.
+combat.player is an ordinary, enumerable state.combat key now (same
+status as enemies/activeIndex), exactly like every other PLAYER_FIELDS
+access is already written to expect.
+
+Two real bugs found and fixed while landing this, both caught by
+actually running the full verification pass rather than assuming the
+mechanical batches covered everything:
+
+1. Two dynamic bracket-notation call sites my batches' literal-name
+   regex couldn't match (js/engine/combat.js and pipeline.js, both the
+   same Avatar of Chaos mechanic -- one random stat's Bonus field
+   built as a string and indexed): `state.combat[field]` was still
+   reading/writing a field name computed at runtime. Re-pointed both
+   to state.combat.player[field] -- confirmed via a full-repo grep for
+   any remaining `.combat[` bracket access against a variable, which
+   found exactly these two in production code (plus 8 more in
+   tools/tests/, one of them step 1h-iii's OWN freshly-written
+   ROUNDTRIP-01 tests, which use BATCH_FIELDS.forEach with a loop
+   variable the same way -- all 8 fixed the same way).
+
+2. The real bug: deleting wirePlayerFieldsProxy's accessor layer
+   without separately deleting the flat data properties it used to
+   REPLACE (via Object.defineProperty, which has the same practical
+   effect as a delete) left every PLAYER_FIELDS entry's ORIGINAL,
+   frozen fight-start value sitting on combat itself, stale and fully
+   disconnected from combat.player -- silently returning a stuck
+   initial value to anything that still read the old spelling, not
+   undefined. The handoff's own stated proof condition ("accessing the
+   old way should return undefined") is exactly what this would have
+   broken. Fixed by having makePlayerCombatStore delete each field off
+   combat right after copying its value into the store. Caught by the
+   four P1G-*-ACCESSOR-01 tests (rewritten this commit to check the
+   new reality -- plain data properties on combat.player, absent from
+   combat itself -- since their old premise, real get/set accessors
+   directly on combat, is the exact thing step 1h-iii replaces) failing
+   until this fix landed.
+
+Also fixed, disclosed: the Layer 1 parity harnesses' own snapshot()
+helpers (phase1_step1b/1c/1d/1e_i/1e_ii/1e_iii) broke a second time
+once combat.player became enumerable and the flat accessors
+disappeared -- the frozen pre-1h fixtures can never be re-captured
+(their oracle functions are gone since step 1h-ii), so snapshot() now
+permanently reconstructs the old flat shape (merging .player back up,
+dropping the key) for DATA equivalence, and snap comparisons go
+through a stable (sorted-key) re-serialization for order equivalence,
+since the two representations' own property insertion order can never
+match again. phase1_step1d/1e_i/1e_ii/1e_iii already had their own
+sortedStringify and only needed the data fix; 1b/1c got both.
+
+Verification: full suite 445/445 (stable across 3 consecutive runs),
+tools/audit.js 0 errors/72 warnings (both unchanged).
+
+Layer 2: the FIRST rerun after deleting the proxy showed boss_sweep.js/
+plus3_run.js massively diverged (avgRounds up to 10-20x normal,
+stalemating at the 300-round cap) -- a real regression signal the
+harness caught, traced to a THIRD gap: my own standalone Layer 2
+verification tooling (tools/tests/ and the game repo were already
+clean; this is the scratchpad harness.js driving boss_sweep.js/
+plus3_run.js's simulated AI, built earlier in this engagement, outside
+any repo) reads state.combat.nextAttackBonus directly in its own
+Feint-vs-attack decision, never migrated. Not a game bug -- the actual
+repo's own full-sweep grep was already at zero before this commit --
+but it did mean my OWN Layer 2 signal was temporarily invalid, which
+is itself worth disclosing: the harness thought nextAttackBonus was
+always unset (reading undefined off the now-deleted flat property) and
+so always chose Feint, stalling every fight. Fixed that one line
+(state.combat.player.nextAttackBonus) in the scratchpad harness, and
+confirmed every other PLAYER_FIELDS reference outside this repo
+belongs to pinned old-commit snapshot copies or one-off historical
+scripts from earlier, unrelated milestones -- not part of the active
+verification path, correctly left untouched. Reran both harnesses
+after that fix: bit-for-bit identical to the pre-1h-iii baseline
+again, confirming the actual game was never broken.
+
+Step 1h-iii is complete: every PLAYER_FIELDS call site, in this repo
+and in the one external tool that actually exercises full simulated
+fights, now reads/writes combat.player.<field>, with nothing left
+reading the deleted flat spelling.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                | 73 ++++++++++------------
+ js/engine/pipeline.js                              |  2 +-
+ tools/tests/phase1_step1b_pipeline_parity.js       | 27 +++++++-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  | 27 +++++++-
+ .../phase1_step1d_ally_attack_pipeline_parity.js   | 14 ++++-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js | 14 ++++-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    | 14 ++++-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  | 14 ++++-
+ .../phase1_step1g_iii_field_move_batch1_ledger.js  | 11 ++--
+ .../phase1_step1g_iv_field_move_batch2_ledger.js   | 11 ++--
+ .../phase1_step1g_v_field_move_batch3_ledger.js    | 11 ++--
+ .../phase1_step1g_vi_field_move_batch4_ledger.js   | 11 ++--
+ 12 files changed, 161 insertions(+), 68 deletions(-)

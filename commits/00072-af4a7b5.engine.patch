@@ -1,0 +1,120 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index d327866..50fe5cf 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -169,37 +169,40 @@ const PLAYER_FIELDS = [
+   "momentumStacks", "momentumUnboundStacks", "siegeCorpsAtkCharge",
+ ];
+ 
+-// Step 1h-iii §1: the explicit player combat store. Captures each
++// Step 1h-iii: the explicit player combat store. Captures each
+ // PLAYER_FIELDS entry's current value (set moments earlier by the big
+ // state.combat object literal in startCombat) into a real, inspectable
+-// object hanging off state.combat.player, rather than a private closure
+-// only wirePlayerFieldsProxy itself could see. makePlayerCombatant's own
++// object hanging off state.combat.player -- makePlayerCombatant's own
+ // `store` points here (combatant.js), the same shape every ally/enemy
+ // combatant view already has (store: ally / store: enemySlot) -- a
+ // tight, fighter-specific bag instead of the whole combat object.
++//
++// wirePlayerFieldsProxy (the backward-compatible combat.<field>/
++// state.combat.<field> accessor layer this replaced -- step 1h-iii's own
++// first commit built it on top of this same store, specifically so the
++// alias and the real spelling could coexist with zero risk of drifting
++// apart while every call site was rewritten one batch at a time) is
++// deleted now that none exist anymore: a full-repo grep (every tracked
++// .js/.html file) found zero remaining combat.<field>/state.combat.
++// <field> occurrences for any of these 130 names before this deletion.
++//
++// Deletes each field off combat itself after copying its initial value
++// (set moments earlier by the big state.combat object literal) into the
++// store: wirePlayerFieldsProxy used to achieve the same end result by
++// REDEFINING the property as an accessor, which has the same practical
++// effect of removing the flat data property -- without an explicit
++// delete here, that stale initial value would keep sitting on combat,
++// untouched and disconnected from combat.player, forever (returning its
++// frozen fight-start value to anything that reads it, not undefined --
++// worse than a loud failure). The delete is what actually proves
++// "accessing the old way returns undefined, nothing was missed" true.
+ function makePlayerCombatStore(combat) {
+   const store = {};
+-  PLAYER_FIELDS.forEach((field) => { store[field] = combat[field]; });
+-  return store;
+-}
+-
+-// Backward-compatible alias, wired on top of makePlayerCombatStore's
+-// object: every un-migrated combat.<field>/state.combat.<field> read or
+-// write (the call-site rewrite step 1h-iii is working through, batch by
+-// batch) keeps landing on the exact same storage as the already-migrated
+-// combat.player.<field> spelling, so the two forms can coexist mid-
+-// migration with zero risk of drifting apart. Deleted, call included,
+-// once every call site is off this spelling -- see step 1h-iii's own
+-// last commit.
+-function wirePlayerFieldsProxy(combat) {
+   PLAYER_FIELDS.forEach((field) => {
+-    Object.defineProperty(combat, field, {
+-      configurable: true,
+-      enumerable: true,
+-      get() { return combat.player[field]; },
+-      set(v) { combat.player[field] = v; },
+-    });
++    store[field] = combat[field];
++    delete combat[field];
+   });
++  return store;
+ }
+ 
+ // Every enemy still standing, in roster order.
+@@ -2057,7 +2060,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+     if (state.combat.player.avatarOfChaosTurns > 0) {
+       const stat = ["Atk", "Def", "Magic", "Knowledge"][Math.floor(Math.random() * 4)];
+       const field = "avatarOfChaos" + stat + "Bonus";
+-      state.combat[field] = Math.min(30, (state.combat[field] || 0) + 10);
++      state.combat.player[field] = Math.min(30, (state.combat.player[field] || 0) + 10);
+     }
+   }
+   // Avatar of War (Regalia of the Crimson Vanguard 6pc): for its 4-round
+@@ -5641,22 +5644,14 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     playerLastHitType: null,
+   };
+   wireActiveEnemyProxy(state.combat);
+-  // Non-enumerable while wirePlayerFieldsProxy's flat compat accessors
+-  // still exist alongside it (step 1h-iii, mid-migration): the two
+-  // represent the exact same 130 values, so letting .player ALSO
+-  // enumerate here would double them up in anything that iterates/
+-  // serializes state.combat as a whole (e.g. the Layer 1 parity
+-  // harnesses' own JSON.stringify(state.combat) snapshot) without any
+-  // real behavior changing. Step 1h-iii's last commit deletes the flat
+-  // accessors and makes this property ordinary + enumerable, once
+-  // combat.player is the only representation left.
+-  Object.defineProperty(state.combat, "player", {
+-    value: makePlayerCombatStore(state.combat),
+-    writable: true,
+-    enumerable: false,
+-    configurable: true,
+-  });
+-  wirePlayerFieldsProxy(state.combat);
++  // Step 1h-iii: the player's own combat state, same shape as every
++  // other state.combat key (enemies, activeIndex, ...) now that nothing
++  // reads any of the 130 PLAYER_FIELDS entries off the flat
++  // combat.<field> spelling anymore -- the backward-compatible proxy
++  // that briefly made both spellings work (wirePlayerFieldsProxy,
++  // deleted this commit) only existed to bridge the multi-batch call-
++  // site rewrite; nothing needs it now.
++  state.combat.player = makePlayerCombatStore(state.combat);
+   // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
+   // creature once actually fought — dynamic creatures (enemy mages) have
+   // no fixed BESTIARY id/species to log, so they're excluded; every real
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 6f66a59..08a308d 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1654,7 +1654,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
+     if (state.combat.player.avatarOfChaosTurns > 0) {
+       const statName = ["Atk", "Def", "Magic", "Knowledge"][Math.floor(Math.random() * 4)];
+       const field = "avatarOfChaos" + statName + "Bonus";
+-      state.combat[field] = Math.min(30, (state.combat[field] || 0) + 10);
++      state.combat.player[field] = Math.min(30, (state.combat.player[field] || 0) + 10);
+     }
+   }
+   if (state.combat && state.combat.player.avatarOfWarTurns > 0) {
