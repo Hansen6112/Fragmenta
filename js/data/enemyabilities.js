@@ -844,7 +844,7 @@ const ENEMY_ABILITIES = {
   // Press the Advantage (IA-28): new bonusVsAccOrSpdDebuff field, checked
   // alongside bonusVsHealthBelowPct/AbovePct in resolveEnemyActiveAbility —
   // "increases to 1.85x if target has an Accuracy or Speed debuff" reads
-  // the player's own combat.playerStatuses (custom inflicts included),
+  // the player's own combat.player.playerStatuses (custom inflicts included),
   // same table bonusVsStatus already reads.
   press_the_advantage: { name: "Press the Advantage", type: "active", cooldown: 5, dmgMult: 1.6, bonusVsAccOrSpdDebuff: { mult: 1.85 / 1.6 } }, // IA-28
   ruthless_authority: { name: "Ruthless Authority", type: "passive", trigger: "whileAllyAlive", selfBuff: { def: 5 } }, // IA-29

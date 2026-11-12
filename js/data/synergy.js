@@ -11,7 +11,7 @@
  * plain resonance line naming both elements.
  *
  * Resolution lives in engine/combat.js (useElementAbility): it tracks
- * state.combat.lastElementUsed, looks up the pair via getSynergy(), and
+ * state.combat.player.lastElementUsed, looks up the pair via getSynergy(), and
  * applies dmgMultiplier to the damage roll(s) plus extraEffect() for any
  * additional mechanical effect, before pushing the combo's message line.
  */
@@ -26,7 +26,7 @@ const SYNERGY_COMBOS = {
     message: (target) => `Fire and water collide into a wall of scalding steam — ${target} can barely track you through it.`,
     dmgMultiplier: 1.15,
     extraEffect: (state) => {
-      state.combat.evasionTurns = Math.max(state.combat.evasionTurns, 2);
+      state.combat.player.evasionTurns = Math.max(state.combat.player.evasionTurns, 2);
     },
   },
   "air+fire": {
@@ -57,8 +57,8 @@ const SYNERGY_COMBOS = {
     dmgMultiplier: 1.1,
     extraEffect: (state) => {
       if (!state.combat.burn) state.combat.burn = { turnsLeft: 2, dmgPerTurn: Math.max(1, Math.round(state.magic / 5)) };
-      state.combat.defBuffTurns = Math.max(state.combat.defBuffTurns, 2);
-      state.combat.defBuffAmount = Math.max(state.combat.defBuffAmount, Math.max(2, Math.round(state.magic / 4)));
+      state.combat.player.defBuffTurns = Math.max(state.combat.player.defBuffTurns, 2);
+      state.combat.player.defBuffAmount = Math.max(state.combat.player.defBuffAmount, Math.max(2, Math.round(state.magic / 4)));
     },
   },
   "lightning+water": {
@@ -106,7 +106,7 @@ const SYNERGY_COMBOS = {
     message: () => `You're already somewhere else by the time the air finishes moving.`,
     dmgMultiplier: 1.1,
     extraEffect: (state) => {
-      state.combat.evasionTurns = Math.max(state.combat.evasionTurns, 3);
+      state.combat.player.evasionTurns = Math.max(state.combat.player.evasionTurns, 3);
     },
   },
 };
@@ -138,7 +138,7 @@ function genericSynergy(state, elementA, elementB) {
 function getSynergy(state, elementKey) {
   const combat = state.combat;
   const known = [state.primaryElement, state.secondaryElement, state.tertiaryElement].filter(Boolean);
-  let prev = combat.lastElementUsed;
+  let prev = combat.player.lastElementUsed;
   // River Harmony (Artifact): a synergy bonus activates on every cast,
   // regardless of what (if anything) actually came before it. Rather than
   // requiring a real alternating pairing, this pairs the current cast with

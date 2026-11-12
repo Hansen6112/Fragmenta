@@ -361,7 +361,7 @@ class GameState {
       // Crafted-potion buffs used on this ally (see engine/combat.js's
       // applyConsumableEffectToAlly and companion.js's allyBuffStatTotal/
       // tickAllyBuffs) — keyed by stat, same { amount, turns } shape
-      // as combat.playerBuffs. Lives on the ally itself, not per-fight
+      // as combat.player.playerBuffs. Lives on the ally itself, not per-fight
       // companion state, since 'use <item> on <ally>' only ever happens
       // OUT of combat (see useItemOnAlly) — a buff applied before a fight
       // needs to survive until that fight's own beginTurn starts ticking

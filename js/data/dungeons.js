@@ -68,7 +68,7 @@ const DUNGEON_ESCALATION_CAP = 5;
 // traps hurt you outright, puzzle traps waste your time/composure but
 // never draw blood, environmental traps do a little of both. failStatus
 // is left as flavor text only in this pass (no mechanical hook into
-// combat.playerStatuses) — wiring a trap's status into whatever fight
+// combat.player.playerStatuses) — wiring a trap's status into whatever fight
 // comes next is exactly the "trap flavor/status content" the handoff
 // scoped out of this build.
 const TRAP_TYPES = {
