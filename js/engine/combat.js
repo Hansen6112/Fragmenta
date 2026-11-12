@@ -515,6 +515,14 @@ function applyPlayerStatus(state, key, spec, sourceName) {
   const combat = state.combat;
   if (!combat) return [];
   const label = spec.name || key;
+  // Damage Types v2 (off by default, T3): status immunity is a separate
+  // flag from damage tags (Ash Hide: Resist Fire *and* immune to
+  // Burning) -- checked first, ahead of every existing defensive
+  // interceptor below, since it's an absolute block, not a chance/one-
+  // shot mitigation like those.
+  if (DAMAGE_TYPES_V2 && isStatusImmune(state, key)) {
+    return [`You're immune to ${label}.`];
+  }
   if (hasEffect(state, "immutable")) {
     return [`Immutable turns ${label} aside completely.`];
   }
@@ -609,6 +617,11 @@ function allyStatusStatPctTotal(ally, statKey) {
   return total;
 }
 function applyAllyStatus(ally, key, spec, sourceName) {
+  // Damage Types v2 (off by default, T3) -- see applyPlayerStatus's own
+  // comment for the full reasoning.
+  if (DAMAGE_TYPES_V2 && isStatusImmune(ally, key)) {
+    return [`${ally.name} is immune to ${spec.name || key}.`];
+  }
   if (!ally.statuses) ally.statuses = {};
   const label = spec.name || key;
   const turns = spec.turns != null ? spec.turns : 2;

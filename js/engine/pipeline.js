@@ -573,7 +573,15 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   const absorbLines = hitResult.absorbLines;
 
   if (dmgInfo.kind === "magic") {
-    if (edmg > 0) combat.player.playerLastHitType = creature.element;
+    // Damage Types v2 (off by default): record the real resolved
+    // damage type for the injury roll instead of the raw element key --
+    // re-derived the same way enemyCore's own player-target magic
+    // branch resolved it in step 4.
+    if (edmg > 0) {
+      combat.player.playerLastHitType = DAMAGE_TYPES_V2
+        ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
+        : creature.element;
+    }
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${dmgInfo.elName} of its own, for ${edmg} damage.` : `Its ${dmgInfo.elName} washes over you harmlessly.`, ...absorbLines];
     if (state.health <= 0) {
       const defeatMsg = resolvePlayerDefeatOrDowned(state);
@@ -582,7 +590,11 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
     return { lines, damage: edmg };
   }
 
-  if (edmg > 0) combat.player.playerLastHitType = "physical";
+  if (edmg > 0) {
+    combat.player.playerLastHitType = DAMAGE_TYPES_V2
+      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
+      : "physical";
+  }
   if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
   const sangLines = [];
   if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
@@ -1063,7 +1075,17 @@ function applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action) {
   const creature = actor.ref.creatureObj;
   const hitResult = mitigateAndApplyHitOnPlayer(state, dmgInfo.edmg, dmgInfo.kind);
   const edmg = hitResult.edmg;
-  if (edmg > 0) state.combat.player.playerLastHitType = "physical"; // Injury System v0.2
+  // Damage Types v2 (off by default): record the real resolved damage
+  // type for the injury roll instead of the hardcoded "physical" every
+  // riposte/arena-riposte formula's own `kind` already reported --
+  // re-derived here the same way calculateDamage's own riposte formulas
+  // resolved it in step 4 (resolveDamageType is pure, so re-deriving
+  // from the same inputs is safe).
+  if (edmg > 0) {
+    state.combat.player.playerLastHitType = DAMAGE_TYPES_V2
+      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
+      : "physical"; // Injury System v0.2
+  }
   const lines = [action.flavorLine(creature, edmg), ...hitResult.absorbLines];
   if (state.health <= 0) {
     const defeatMsg = resolvePlayerDefeatOrDowned(state);
@@ -1198,7 +1220,10 @@ function applyAndReactTickOnPlayer(actor, target, dmgInfo, ctx, action) {
   const combat = state.combat;
   const edmg = dmgInfo.edmg;
   applyPlayerDamage(state, edmg);
-  combat.player.playerLastHitType = dmgInfo.kind;
+  // Damage Types v2 (off by default): the status's own resolved damage
+  // type (new roster), not dmgInfo.kind's old-roster statusDamageType
+  // value -- see resolveStatusDamageType's own comment.
+  combat.player.playerLastHitType = DAMAGE_TYPES_V2 ? resolveStatusDamageType(action.key, STATUS_EFFECTS[action.key]) : dmgInfo.kind;
   const lines = [action.flavorLine(edmg)];
   let comboEnded = false;
   if (state.health <= 0) {
