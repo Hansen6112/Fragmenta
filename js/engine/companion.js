@@ -175,15 +175,25 @@ function tickCompanionCombatTimers(state) {
 // restores the Accuracy it took once its duration ends.
 function applyGroundbreakerAccuracyDebuff(state, enemyRecord, amount, turns) {
   if (!state.combat.player.groundbreakerDebuffs) state.combat.player.groundbreakerDebuffs = [];
-  enemyRecord.creatureObj.acc = Math.max(0, (enemyRecord.creatureObj.acc || 0) - amount);
-  state.combat.player.groundbreakerDebuffs.push({ enemy: enemyRecord, amount, turnsLeft: turns });
+  // Appendix A fix: the debuff clamps at 0 (an enemy with less Accuracy
+  // than `amount` can't go negative), so the amount actually REMOVED can
+  // be less than `amount` itself. Record that real `applied` delta, not
+  // the full `amount`, so the restore below adds back exactly what was
+  // taken instead of occasionally creating Accuracy out of nowhere (an
+  // enemy with 6 base Accuracy hit by this -10 debuff only ever loses 6;
+  // restoring the full 10 would leave it permanently 4 Accuracy ABOVE its
+  // own starting value).
+  const before = enemyRecord.creatureObj.acc || 0;
+  const after = Math.max(0, before - amount);
+  enemyRecord.creatureObj.acc = after;
+  state.combat.player.groundbreakerDebuffs.push({ enemy: enemyRecord, applied: before - after, turnsLeft: turns });
 }
 function tickGroundbreakerDebuffs(state) {
   if (!state.combat || !state.combat.player.groundbreakerDebuffs) return;
   state.combat.player.groundbreakerDebuffs = state.combat.player.groundbreakerDebuffs.filter((d) => {
     d.turnsLeft -= 1;
     if (d.turnsLeft > 0) return true;
-    if (d.enemy.alive) d.enemy.creatureObj.acc = (d.enemy.creatureObj.acc || 0) + d.amount;
+    if (d.enemy.alive) d.enemy.creatureObj.acc = (d.enemy.creatureObj.acc || 0) + d.applied;
     return false;
   });
 }
