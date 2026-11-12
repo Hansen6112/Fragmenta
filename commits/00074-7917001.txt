@@ -1,0 +1,31 @@
+range: 5cadf8ffc7b0597cad682ebb728a07311e0d3f65..7917001c04ac2624e71a3b32efc76f61141fc533
+=== 7917001c04ac2624e71a3b32efc76f61141fc533 2026-11-12 00:52:15 +0000
+Step 1h-iv §2: rewrite pipeline.js onto activeEnemySlot(combat)
+Same mechanism and verification as combat.js's batch (44 occurrences).
+
+One call site is worth calling out explicitly: the enemySlot "thin
+shim" object built inline for the pre-emptive-strike basic-attack path
+already had its own header comment describing exactly the dynamic-vs-
+static split this proxy replacement needed to preserve -- creatureObj
+fixed/stale, hp/maxHp/lastDamageType "forward to state.combat's own
+proxy, reproducing exactly which parts of the original read stale and
+which stay live." activeEnemySlot(state.combat), re-read fresh inside
+each of that shim's own getters/setters, is precisely that "forward to
+whichever enemy is active right now" behavior -- strong independent
+confirmation (from the author's own prior documentation of this
+specific pre-existing quirk, written well before this step) that the
+mechanical per-occurrence rewrite is correct here, not just assumed.
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+Next: companion.js/resolver.js, js/data/actions.js, js/data/synergy.js,
+then delete wireActiveEnemyProxy.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 82 +++++++++++++++++++++++++--------------------------
+ 1 file changed, 41 insertions(+), 41 deletions(-)

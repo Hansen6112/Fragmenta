@@ -1,0 +1,211 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 08a308d..1ce8077 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -175,8 +175,8 @@ function chooseAction(actor, ctx) {
+     if (!ctx.pendingAction.isReaction && ctx.target && ctx.target.kind === "player") {
+       const combat = ctx.state.combat;
+       if (hasEffect(ctx.state, "reinforced")) {
+-        combat.reinforcedAttackCount = (combat.reinforcedAttackCount || 0) + 1;
+-        if (combat.reinforcedAttackCount % 3 === 0 && (combat.player.reinforcedDefStacks || 0) < 20) {
++        activeEnemySlot(combat).reinforcedAttackCount = (activeEnemySlot(combat).reinforcedAttackCount || 0) + 1;
++        if (activeEnemySlot(combat).reinforcedAttackCount % 3 === 0 && (combat.player.reinforcedDefStacks || 0) < 20) {
+           combat.player.reinforcedDefStacks = Math.min(20, (combat.player.reinforcedDefStacks || 0) + 2);
+         }
+       }
+@@ -1575,7 +1575,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
+   const enemySlot = target.store;
+   const creature = enemySlot.creatureObj;
+ 
+-  const defPenalty = (state.combat && state.combat.enemyDefPenalty) || 0;
++  const defPenalty = (state.combat && activeEnemySlot(state.combat).enemyDefPenalty) || 0;
+   const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
+   // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
+   // this section's header. Consumption moves to applyAndReactPlayerActor
+@@ -1672,7 +1672,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
+     dmg = applyEnemyFlatDamageReduction(dmg, creature);
+     applyEnemyOnHitTakenPassives(state, creature, dmg);
+   }
+-  if (state.combat) state.combat.hitsTakenFromPlayer = (state.combat.hitsTakenFromPlayer || 0) + 1;
++  if (state.combat) activeEnemySlot(state.combat).hitsTakenFromPlayer = (activeEnemySlot(state.combat).hitsTakenFromPlayer || 0) + 1;
+ 
+   return { dmg, physicalBranch: !isSpell };
+ }
+@@ -1847,7 +1847,7 @@ function playerAttack(state) {
+   const out = beginTurn(state);
+   if (!state.combat) return out;
+   state.combat.turnTaken = true;
+-  if (state.combat.hp <= 0) {
++  if (activeEnemySlot(state.combat).hp <= 0) {
+     out.push(...resolveKill(state, creature));
+     if (!state.combat || state.health <= 0) return out;
+     creature = getCombatCreature(state);
+@@ -1883,11 +1883,11 @@ function playerAttack(state) {
+   // stale and which stay live.
+   const enemySlot = {
+     creatureObj: creature,
+-    get hp() { return state.combat.hp; },
+-    set hp(v) { state.combat.hp = v; },
+-    get maxHp() { return state.combat.maxHp; },
+-    get lastDamageType() { return state.combat.lastDamageType; },
+-    set lastDamageType(v) { state.combat.lastDamageType = v; },
++    get hp() { return activeEnemySlot(state.combat).hp; },
++    set hp(v) { activeEnemySlot(state.combat).hp = v; },
++    get maxHp() { return activeEnemySlot(state.combat).maxHp; },
++    get lastDamageType() { return activeEnemySlot(state.combat).lastDamageType; },
++    set lastDamageType(v) { activeEnemySlot(state.combat).lastDamageType = v; },
+   };
+   const actor = makePlayerCombatant(state);
+   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
+@@ -1947,7 +1947,7 @@ function useDecoy(state) {
+   const out = beginTurn(state);
+   if (!state.combat) return out;
+   state.combat.turnTaken = true;
+-  if (state.combat.hp <= 0) {
++  if (activeEnemySlot(state.combat).hp <= 0) {
+     out.push(...resolveKill(state, creature));
+     if (!state.combat || state.health <= 0) return out;
+     creature = getCombatCreature(state);
+@@ -1986,11 +1986,11 @@ function useDecoy(state) {
+   // see pipeline.js's step 1e-i header.
+   const enemySlot = {
+     creatureObj: creature,
+-    get hp() { return state.combat.hp; },
+-    set hp(v) { state.combat.hp = v; },
+-    get maxHp() { return state.combat.maxHp; },
+-    get lastDamageType() { return state.combat.lastDamageType; },
+-    set lastDamageType(v) { state.combat.lastDamageType = v; },
++    get hp() { return activeEnemySlot(state.combat).hp; },
++    set hp(v) { activeEnemySlot(state.combat).hp = v; },
++    get maxHp() { return activeEnemySlot(state.combat).maxHp; },
++    get lastDamageType() { return activeEnemySlot(state.combat).lastDamageType; },
++    set lastDamageType(v) { activeEnemySlot(state.combat).lastDamageType = v; },
+   };
+   const actor = makePlayerCombatant(state);
+   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
+@@ -2043,7 +2043,7 @@ function useAmbush(state) {
+   const out = beginTurn(state);
+   if (!state.combat) return out;
+   state.combat.turnTaken = true;
+-  if (state.combat.hp <= 0) {
++  if (activeEnemySlot(state.combat).hp <= 0) {
+     out.push(...resolveKill(state, creature));
+     if (!state.combat || state.health <= 0) return out;
+     creature = getCombatCreature(state);
+@@ -2056,11 +2056,11 @@ function useAmbush(state) {
+ 
+   const enemySlot = {
+     creatureObj: creature,
+-    get hp() { return state.combat.hp; },
+-    set hp(v) { state.combat.hp = v; },
+-    get maxHp() { return state.combat.maxHp; },
+-    get lastDamageType() { return state.combat.lastDamageType; },
+-    set lastDamageType(v) { state.combat.lastDamageType = v; },
++    get hp() { return activeEnemySlot(state.combat).hp; },
++    set hp(v) { activeEnemySlot(state.combat).hp = v; },
++    get maxHp() { return activeEnemySlot(state.combat).maxHp; },
++    get lastDamageType() { return activeEnemySlot(state.combat).lastDamageType; },
++    set lastDamageType(v) { activeEnemySlot(state.combat).lastDamageType = v; },
+   };
+   const actor = makePlayerCombatant(state);
+   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
+@@ -2115,13 +2115,13 @@ function useDisarm(state) {
+   const t = TACTICS.disarm;
+   const disarmBypass = activationRestrictionsBypassed(state);
+   if (state.knowledge < t.knowledgeReq && !disarmBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
+-  if (state.combat.disarmed && !disarmBypass) return [`It's already lost whatever you could have disarmed.`];
++  if (activeEnemySlot(state.combat).disarmed && !disarmBypass) return [`It's already lost whatever you could have disarmed.`];
+   if ((state.combat.cooldowns.disarm || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
+ 
+   const out = beginTurn(state);
+   if (!state.combat) return out;
+   state.combat.turnTaken = true;
+-  if (state.combat.hp <= 0) {
++  if (activeEnemySlot(state.combat).hp <= 0) {
+     out.push(...resolveKill(state, creature));
+     if (!state.combat || state.health <= 0) return out;
+     creature = getCombatCreature(state);
+@@ -2150,8 +2150,8 @@ function useDisarm(state) {
+     disarmMemory.cooldown = Math.round(disarmMemory.cooldown / 2);
+   }
+   state.combat.cooldowns.disarm = disarmMemory.cooldown;
+-  state.combat.disarmed = true;
+-  state.combat.enemyAtkPenalty = (state.combat.enemyAtkPenalty || 0) + 3;
++  activeEnemySlot(state.combat).disarmed = true;
++  activeEnemySlot(state.combat).enemyAtkPenalty = (activeEnemySlot(state.combat).enemyAtkPenalty || 0) + 3;
+ 
+   out.push(`You disarm ${withThe(creature.name, false)} — its attacks will be noticeably weaker for the rest of this fight.`);
+   if (disarmMemory.cooldown === 0 && !disarmMemory.fired) out.push(`Perfect Timing — this move cost nothing.`);
+@@ -2159,11 +2159,11 @@ function useDisarm(state) {
+ 
+   const enemySlot = {
+     creatureObj: creature,
+-    get hp() { return state.combat.hp; },
+-    set hp(v) { state.combat.hp = v; },
+-    get maxHp() { return state.combat.maxHp; },
+-    get lastDamageType() { return state.combat.lastDamageType; },
+-    set lastDamageType(v) { state.combat.lastDamageType = v; },
++    get hp() { return activeEnemySlot(state.combat).hp; },
++    set hp(v) { activeEnemySlot(state.combat).hp = v; },
++    get maxHp() { return activeEnemySlot(state.combat).maxHp; },
++    get lastDamageType() { return activeEnemySlot(state.combat).lastDamageType; },
++    set lastDamageType(v) { activeEnemySlot(state.combat).lastDamageType = v; },
+   };
+   const actor = makePlayerCombatant(state);
+   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
+@@ -2233,13 +2233,13 @@ function useElementAbility(state, elementKey) {
+     return [`You haven't opened yourself to ${ELEMENTS[elementKey].name}.`];
+   }
+   if (state.knowledge < a.knowledgeReq && !elementalBypass) return [`You don't have the Knowledge for that yet. (needs Knowledge ${a.knowledgeReq}+)`];
+-  if (elementKey === "acid" && state.combat.corroded && !elementalBypass) return [`It's already lost whatever defenses you could corrode.`];
++  if (elementKey === "acid" && activeEnemySlot(state.combat).corroded && !elementalBypass) return [`It's already lost whatever defenses you could corrode.`];
+   if ((state.combat.cooldowns[elementKey] || 0) > 0) return [`${a.name} is still recovering — ${state.combat.cooldowns[elementKey]} more turn(s).`];
+ 
+   const out = beginTurn(state);
+   if (!state.combat) return out;
+   state.combat.turnTaken = true;
+-  if (state.combat.hp <= 0) {
++  if (activeEnemySlot(state.combat).hp <= 0) {
+     out.push(...resolveKill(state, creature));
+     if (!state.combat || state.health <= 0) return out;
+     creature = getCombatCreature(state);
+@@ -2312,7 +2312,7 @@ function useElementAbility(state, elementKey) {
+   // comment the original carries). applyAndReactPlayerActor's own
+   // element branch also sets it on a confirmed hit, to the same value,
+   // so this line is the one that actually covers Earth and a miss.
+-  state.combat.lastDamageType = elementKey;
++  activeEnemySlot(state.combat).lastDamageType = elementKey;
+ 
+   let castDamageDealt = 0;
+ 
+@@ -2331,11 +2331,11 @@ function useElementAbility(state, elementKey) {
+   } else {
+     const enemySlot = {
+       creatureObj: creature,
+-      get hp() { return state.combat.hp; },
+-      set hp(v) { state.combat.hp = v; },
+-      get maxHp() { return state.combat.maxHp; },
+-      get lastDamageType() { return state.combat.lastDamageType; },
+-      set lastDamageType(v) { state.combat.lastDamageType = v; },
++      get hp() { return activeEnemySlot(state.combat).hp; },
++      set hp(v) { activeEnemySlot(state.combat).hp = v; },
++      get maxHp() { return activeEnemySlot(state.combat).maxHp; },
++      get lastDamageType() { return activeEnemySlot(state.combat).lastDamageType; },
++      set lastDamageType(v) { activeEnemySlot(state.combat).lastDamageType = v; },
+     };
+     const actor = makePlayerCombatant(state);
+     const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
+@@ -2360,11 +2360,11 @@ function useElementAbility(state, elementKey) {
+   }
+ 
+   const spellEchoChance = masterOfArmsDoubles(state, "spell_echo") ? 0.4 : 0.2;
+-  if (state.combat.hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < spellEchoChance) {
++  if (activeEnemySlot(state.combat).hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < spellEchoChance) {
+     out.push(...resolveSpellEchoOnEnemy(state, creature, castDamageDealt, elementKey));
+   }
+ 
+-  if (state.combat.hp <= 0) {
++  if (activeEnemySlot(state.combat).hp <= 0) {
+     out.push(...resolveKill(state, creature));
+     if (!state.combat || state.health <= 0) return out;
+     creature = getCombatCreature(state);
