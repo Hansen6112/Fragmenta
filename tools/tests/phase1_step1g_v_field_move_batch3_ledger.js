@@ -53,18 +53,19 @@ const { chromium } = require('playwright');
     ];
     const BATCH3_ALL_FIELDS = [...BATCH3_SCALAR_FIELDS, 'groundbreakerDebuffs'];
 
-    record('P1G-V-ACCESSOR-01', 'All 37 batch-3 fields are real accessors (get/set) on combat, backed by the private store', () => {
+    record('P1G-V-ACCESSOR-01', 'All 37 batch-3 fields live as plain data properties on combat.player and nowhere on combat itself -- step 1h-iii deleted the accessor alias once every call site moved onto combat.player', () => {
       const s = makeWarrior();
       const bad = BATCH3_ALL_FIELDS.filter((f) => {
-        const d = Object.getOwnPropertyDescriptor(s.combat, f);
-        return !d || typeof d.get !== 'function' || typeof d.set !== 'function';
+        const onPlayer = Object.getOwnPropertyDescriptor(s.combat.player, f);
+        const onCombat = Object.getOwnPropertyDescriptor(s.combat, f);
+        return !onPlayer || typeof onPlayer.get === 'function' || !!onCombat;
       });
       return { pass: bad.length === 0, bad };
     });
     record('P1G-V-ROUNDTRIP-01', 'Every scalar batch-3 field reads back exactly what was written through the alias', () => {
       const s = makeWarrior();
-      BATCH3_SCALAR_FIELDS.forEach((f, i) => { s.combat[f] = i + 1; });
-      const bad = BATCH3_SCALAR_FIELDS.filter((f, i) => s.combat[f] !== i + 1);
+      BATCH3_SCALAR_FIELDS.forEach((f, i) => { s.combat.player[f] = i + 1; });
+      const bad = BATCH3_SCALAR_FIELDS.filter((f, i) => s.combat.player[f] !== i + 1);
       return { pass: bad.length === 0, bad };
     });
     record('P1G-V-ISOLATION-01', "A fresh fight doesn't inherit batch-3 values set on a previous one", () => {

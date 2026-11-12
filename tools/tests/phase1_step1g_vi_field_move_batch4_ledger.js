@@ -48,18 +48,19 @@ const { chromium } = require('playwright');
       'momentumStacks', 'momentumUnboundStacks', 'siegeCorpsAtkCharge',
     ];
 
-    record('P1G-VI-ACCESSOR-01', 'All 22 batch-4 fields are real accessors (get/set) on combat, backed by the private store', () => {
+    record('P1G-VI-ACCESSOR-01', 'All 22 batch-4 fields live as plain data properties on combat.player and nowhere on combat itself -- step 1h-iii deleted the accessor alias once every call site moved onto combat.player', () => {
       const s = makeWarrior();
       const bad = BATCH4_FIELDS.filter((f) => {
-        const d = Object.getOwnPropertyDescriptor(s.combat, f);
-        return !d || typeof d.get !== 'function' || typeof d.set !== 'function';
+        const onPlayer = Object.getOwnPropertyDescriptor(s.combat.player, f);
+        const onCombat = Object.getOwnPropertyDescriptor(s.combat, f);
+        return !onPlayer || typeof onPlayer.get === 'function' || !!onCombat;
       });
       return { pass: bad.length === 0, bad };
     });
     record('P1G-VI-ROUNDTRIP-01', 'Every batch-4 field reads back exactly what was written through the alias', () => {
       const s = makeWarrior();
-      BATCH4_FIELDS.forEach((f, i) => { s.combat[f] = i + 1; });
-      const bad = BATCH4_FIELDS.filter((f, i) => s.combat[f] !== i + 1);
+      BATCH4_FIELDS.forEach((f, i) => { s.combat.player[f] = i + 1; });
+      const bad = BATCH4_FIELDS.filter((f, i) => s.combat.player[f] !== i + 1);
       return { pass: bad.length === 0, bad };
     });
     record('P1G-VI-ISOLATION-01', "A fresh fight doesn't inherit batch-4 values set on a previous one", () => {

@@ -50,11 +50,12 @@ const { chromium } = require('playwright');
       'unbreakableUsed', 'unlikelyOutcomeGuaranteedCrit', 'unyieldingWallCooldown',
     ];
 
-    record('P1G-III-ACCESSOR-01', 'All 19 batch-1 fields are real accessors (get/set) on combat, not plain data properties, confirming each one is backed by the private store rather than sitting flat on the object', () => {
+    record('P1G-III-ACCESSOR-01', 'All 19 batch-1 fields live as plain data properties on combat.player and nowhere on combat itself -- step 1h-iii deleted the accessor alias once every call site moved onto combat.player', () => {
       const s = makeWarrior();
       const bad = BATCH1_FIELDS.filter((f) => {
-        const d = Object.getOwnPropertyDescriptor(s.combat, f);
-        return !d || typeof d.get !== 'function' || typeof d.set !== 'function';
+        const onPlayer = Object.getOwnPropertyDescriptor(s.combat.player, f);
+        const onCombat = Object.getOwnPropertyDescriptor(s.combat, f);
+        return !onPlayer || typeof onPlayer.get === 'function' || !!onCombat;
       });
       return { pass: bad.length === 0, bad };
     });
@@ -62,8 +63,8 @@ const { chromium } = require('playwright');
     record('P1G-III-ROUNDTRIP-01', 'Every batch-1 field still reads back exactly what was written through the alias (boolean flags)', () => {
       const s = makeWarrior();
       const boolFields = BATCH1_FIELDS.filter((f) => f !== 'timelessGuardCooldown' && f !== 'unyieldingWallCooldown');
-      for (const f of boolFields) s.combat[f] = true;
-      const bad = boolFields.filter((f) => s.combat[f] !== true);
+      for (const f of boolFields) s.combat.player[f] = true;
+      const bad = boolFields.filter((f) => s.combat.player[f] !== true);
       return { pass: bad.length === 0, bad };
     });
     record('P1G-III-ROUNDTRIP-02', 'The two cooldown-counter fields (timelessGuardCooldown/unyieldingWallCooldown) still read back exactly what was written, as numbers', () => {

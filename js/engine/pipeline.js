@@ -1654,7 +1654,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement) {
     if (state.combat.player.avatarOfChaosTurns > 0) {
       const statName = ["Atk", "Def", "Magic", "Knowledge"][Math.floor(Math.random() * 4)];
       const field = "avatarOfChaos" + statName + "Bonus";
-      state.combat[field] = Math.min(30, (state.combat[field] || 0) + 10);
+      state.combat.player[field] = Math.min(30, (state.combat.player[field] || 0) + 10);
     }
   }
   if (state.combat && state.combat.player.avatarOfWarTurns > 0) {

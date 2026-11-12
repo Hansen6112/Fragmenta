@@ -49,11 +49,34 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       return s;
     }
 
+    // Step 1h-iii flattened the 130 PLAYER_FIELDS entries out of
+    // state.combat's own top level into state.combat.player -- this
+    // fixture was frozen in step 1h-i, before that existed, so its own
+    // snap strings still have those fields flat. Reconstructing that
+    // same flat shape here (merging .player back up, dropping the key)
+    // keeps this snapshot DATA-equivalent to the frozen one; stableStringify
+    // (used wherever a snap is actually compared, not here) is what makes
+    // the two comparable despite the now-different property insertion
+    // order neither side can undo.
     function snapshot(s) {
+      let combat = s.combat;
+      if (combat && combat.player) {
+        combat = Object.assign({}, combat, combat.player);
+        delete combat.player;
+      }
       return JSON.stringify({
         health: s.health, maxHealth: s.maxHealth, playerDowned: s.playerDowned,
-        injuries: s.injuries, combat: s.combat, party: s.party,
+        injuries: s.injuries, combat: combat, party: s.party,
       });
+    }
+    function stableStringify(x) {
+      if (x === null || typeof x !== 'object') return JSON.stringify(x);
+      if (Array.isArray(x)) return '[' + x.map(stableStringify).join(',') + ']';
+      const keys = Object.keys(x).sort();
+      return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify(x[k])).join(',') + '}';
+    }
+    function normalizeSnap(snapStr) {
+      return stableStringify(JSON.parse(snapStr));
     }
 
     // scenario: { effects: [ids], sets: ["Name:tier"], mutate(s, creature, slot, ally),
@@ -103,7 +126,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
         if (FREEZE) frozenOut[code] = { result: oldRun.result, randomCount: oldRun.randomCount, snap: oldRun.snap };
         const newRun = runOne(resolveEnemyAttackOnAlly, scenario);
         const resultMatch = JSON.stringify(oldRun.result) === JSON.stringify(newRun.result);
-        const snapMatch = oldRun.snap === newRun.snap;
+        const snapMatch = normalizeSnap(oldRun.snap) === normalizeSnap(newRun.snap);
         const countMatch = oldRun.randomCount === newRun.randomCount;
         const control = effectControlCheck(scenario);
         const controlOk = !control.applicable || control.skippedCheck || control.mattered === control.expectMatters;

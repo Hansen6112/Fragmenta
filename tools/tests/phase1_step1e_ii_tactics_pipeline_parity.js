@@ -74,8 +74,20 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
         return value;
       });
     }
+    // Step 1h-iii flattened the 130 PLAYER_FIELDS entries out of
+    // state.combat's own top level into state.combat.player -- this
+    // fixture was frozen in step 1h-i, before that existed, so its own
+    // snap strings still have those fields flat. Reconstructing that
+    // same flat shape here (merging .player back up, dropping the key)
+    // keeps this snapshot DATA-equivalent to the frozen one; sortedStringify
+    // already makes key order a non-issue on both sides.
     function snapshot(s) {
-      return sortedStringify({ combat: s.combat, health: s.health, party: s.party });
+      let combat = s.combat;
+      if (combat && combat.player) {
+        combat = Object.assign({}, combat, combat.player);
+        delete combat.player;
+      }
+      return sortedStringify({ combat: combat, health: s.health, party: s.party });
     }
 
     function runOne(fn, scenario) {
