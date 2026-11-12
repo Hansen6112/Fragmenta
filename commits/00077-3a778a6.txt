@@ -1,0 +1,82 @@
+range: 99c903ac40efa8c78b06666d6729b64e2d10c9b9..3a778a6e90352021bfafe08ae3ac77f395485643
+=== 3a778a6e90352021bfafe08ae3ac77f395485643 2026-11-12 01:19:55 +0000
+Step 1h-v: turn on audit P3, regenerate field ledger (0 left), coverage doc + README
+Completes step 1h (Combat Rebuild Phase 1).
+
+tools/audit.js: new rule P3, a permanent regression guard against the
+two proxy mechanisms this step deleted -- wirePlayerFieldsProxy
+(PLAYER_FIELDS, step 1h-iii) and wireActiveEnemyProxy (PER_ENEMY_FIELDS,
+step 1h-iv) -- ever being reintroduced. Flags: a *Legacy/
+resolveEnemyRetaliation function declaration; an Object.defineProperty
+call targeting any dotted chain ending in .combat; or the deleted
+combat.<field>/state.combat.<field> alias spelling for any
+PLAYER_FIELDS/PER_ENEMY_FIELDS name. Scoped to the files step 1h-iii/
+1h-iv actually migrated (combat.js, pipeline.js, companion.js,
+resolver.js, data/actions.js, data/synergy.js) -- the last two aren't
+named in the handoff's own "js/engine/" wording, but step 1h-iv's own
+full-repo sweep found the exact same regression pattern there
+(fireOnHit/acidOnHit's h.state.combat.burn/.corroded/.enemyDefPenalty,
+five of synergy.js's SYNERGY_COMBOS hooks), so leaving them unguarded
+would leave the one place this was actually seen unprotected. 0 hits on
+live code; verified to actually catch a regression (not just trivially
+pass) with a deliberate fooLegacy()-plus-stale-alias injection, then
+reverted.
+
+tools/combat_field_ledger.js: regenerated to 0 fields left to move --
+first time this Phase. Two real bugs in the ledger's own text-scan
+found and fixed first, both confirmed by actually running it and
+inspecting the output before trusting the number:
+
+1. The field/callee scan never stripped comments. Through 1g-vii this
+   never mattered (every tracked field still had a real call site, so
+   a comment mentioning the same spelling was redundant with a genuine
+   hit); step 1h's own rename pass exposes it, since a left-behind
+   EXPLANATORY comment describing old behavior (kept on purpose, as
+   history -- e.g. combat.js's "mirrors combat.lastDamageType") is now
+   the ONLY text left that matches, for 6 fields that have zero real
+   callers. Fixed by stripping block and line comments before the scan,
+   the same way tools/audit.js's own P1/P3 rules already do.
+
+2. The bare `combat\.(\w+)` field-capture regex wrongly grabbed
+   "player" itself out of combat.player.<realField> chains, adding a
+   phantom tracked field. A straightforward (?!\.) negative-lookahead
+   fix made it WORSE, not better -- it doesn't fail the whole match,
+   it just lets the greedy quantifier backtrack one character short
+   (confirmed by running it: "cooldowns"/"downs"/"enemies"/"player"
+   came out truncated to "cooldown"/"down"/"enemie"/"playe" in the
+   tracked table). Fixed by adding \b before the lookahead, which
+   forces the match to fail cleanly at the only identifier boundary
+   that exists, instead of backtracking into a wrong one.
+
+The ledger's own generated prose (the "only PLAYER_FIELDS counts as
+moved, PER_ENEMY_FIELDS is slated for deletion" paragraph) was already
+stale going into this step -- it contradicted the ledger's own
+`storageMoved` logic, which has counted PER_ENEMY_FIELDS as moved since
+1g-vii. Rewritten to describe the actual step 1h-v end state instead.
+
+tools/combat_1h_coverage.md (new): the same Check/Gates/Test(s) table
+convention as combat_1e/1f/1g_coverage.md, covering all five sub-steps.
+
+tools/tests/README.md: new section documenting the frozen Legacy-oracle
+fixtures (tools/tests/fixtures/*.json) step 1h-i introduced -- what
+FREEZE_LEGACY_ORACLES=1 does, why these six files can never be
+regenerated (their oracle functions are deleted), and why their
+snapshot() functions reconstruct the pre-1h flat shape for comparison.
+
+Verified: full suite 445/445, tools/audit.js 0 errors (72 warnings,
+unchanged), both Layer 2 whole-fight harnesses (boss_sweep.js,
+plus3_run.js) bit-for-bit identical to the pre-1h-v baseline -- expected,
+since nothing touched in this commit is loaded by the game itself.
+
+Step 1h (Combat Rebuild Phase 1) is now complete.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js               |  50 ++++++++++++
+ tools/combat_1h_coverage.md  | 116 ++++++++++++++++++++++++++++
+ tools/combat_field_ledger.js |  68 +++++++++++++----
+ tools/combat_field_ledger.md | 178 +++++--------------------------------------
+ tools/tests/README.md        |  49 ++++++++++++
+ 5 files changed, 289 insertions(+), 172 deletions(-)
