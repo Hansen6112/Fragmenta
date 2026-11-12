@@ -2,10 +2,13 @@
 // engine via localhost:8949, same pattern as every other verification
 // script this engagement has used.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 
@@ -203,10 +206,28 @@ const { chromium } = require('playwright');
     });
 
     record('INJ-15', 'With no rally item in inventory, a downed player stays down and the ally falls through to its normal action', () => {
+      // The intermittent failure (Phase 1 close-out handoff §2): this
+      // scenario's own point is "no rally item -> playerDowned stays
+      // true," isolated from whether the ally's unforced attack happens
+      // to land a killing blow -- a real risk against a low-level
+      // enemy's own HP pool. A kill ends the fight in a WIN, and a win
+      // revives a downed player through the ordinary victory flow,
+      // which is a DIFFERENT, unrelated path to "playerDowned === true"
+      // staying true -- so an unlucky high roll made this scenario fail
+      // for a reason that has nothing to do with the rally-item check it
+      // exists to prove. Caught by looping this file: "Kessa Vire
+      // strikes the Stoneback Beetle for 62 damage. The Stoneback Beetle
+      // falls... You come to..." Inflating the enemy's HP (same
+      // technique every other combat-side INJ-* scenario already uses
+      // when it needs the fight to stay open) makes a kill structurally
+      // impossible, so this scenario can no longer pass or fail on
+      // anything but the one thing it's actually testing.
       const s = makePlayer(20);
       const ally = addAlly(s);
       s.inventory = [];
       startCombat(s, 'stoneback_beetle', 20);
+      s.combat.enemies[0].hp = 100000;
+      s.combat.enemies[0].maxHp = 100000;
       s.playerDowned = true;
       const lines = resolveOneAllyAction(s, ally);
       return { pass: s.playerDowned === true, lines };

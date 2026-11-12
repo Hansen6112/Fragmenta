@@ -9,10 +9,13 @@
 // shared function), so this pins each path's hand-computed expected
 // value, same convention as phase1_step1f_iv_ticks_pipeline_parity.js.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 

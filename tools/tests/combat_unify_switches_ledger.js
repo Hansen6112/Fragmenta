@@ -10,9 +10,12 @@
 //      exact same setup and the exact same forced RNG sequence. A switch
 //      that does nothing can't pass.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 
@@ -59,6 +62,22 @@ const { chromium } = require('playwright');
       const origConnects = window.attackConnects;
       const origHasEffect = window.hasEffect;
       const origHasSetTier = window.hasSetTier;
+      // Phase 1 close-out handoff §6 (caught mid-rollout, disclosed and
+      // fixed here rather than silently worked around): every key is
+      // forced false FIRST, so "off" (on: []) genuinely means every
+      // switch off, regardless of what's already true as the committed
+      // production default. Without this, once a switch's own default
+      // flips to true (this rollout's whole point), its OWN dedicated
+      // "on changes something" test can no longer show a difference --
+      // "off" silently inherited the new true default, so comparing it
+      // against "on" (the same effective state) compares a state
+      // against itself. Caught via the suite's own 50-consecutive-run
+      // verification (U3B-ON-01 failing once U3b's own default flipped
+      // to true) -- not a flake in the fight simulation, a stale
+      // assumption in this helper that "off" was already isolated from
+      // the module-level default, which stopped being true the moment
+      // any switch here got its default flipped for real.
+      for (const k of Object.keys(COMBAT_UNIFY)) COMBAT_UNIFY[k] = false;
       for (const k of on) COMBAT_UNIFY[k] = true;
       let i = 0;
       Math.random = () => MID[i++ % MID.length];
@@ -172,6 +191,9 @@ const { chromium } = require('playwright');
       const origConnects = window.attackConnects;
       const origHasEffect = window.hasEffect;
       const origHasSetTier = window.hasSetTier;
+      // Same fix as runWithSwitches above, same reason -- see that
+      // function's own comment.
+      for (const k of Object.keys(COMBAT_UNIFY)) COMBAT_UNIFY[k] = false;
       for (const k of on) COMBAT_UNIFY[k] = true;
       let i = 0;
       Math.random = () => MID[i++ % MID.length];

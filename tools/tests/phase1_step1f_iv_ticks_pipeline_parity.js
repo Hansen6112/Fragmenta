@@ -14,9 +14,12 @@
 // the dungeon-rescue early break in tickPlayerStatuses, and the arena
 // non-lethal floor / ally-kit vulnerability multiplier on the ally side.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 

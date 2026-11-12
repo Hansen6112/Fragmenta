@@ -20,6 +20,50 @@ pass/fail ledger, but 0 errors is the expected state. `tools/combatsim.js`
 runner at all — run it by hand when a change could plausibly shift
 balance.
 
+## Seeding, and reproducing an intermittent failure
+
+Phase 1 close-out handoff §2: every ledger seeds the real page's
+`Math.random()` (via `seed_rng.js`'s `seedPageRandom`, installed through
+`page.addInitScript` before `index.html`'s own `<script>` tags run) with
+a fresh value each run, and always prints it as its own first line:
+
+```
+seed: 2546747721
+```
+
+This covers BOTH a scenario's own unforced setup randomness and
+whatever the real engine rolls internally that a scenario doesn't
+explicitly force — before this, a scenario that forgot to force every
+roll it depended on (the exact bug found and fixed here, `injury_ledger.js`'s
+own `INJ-15`: an unforced ally attack that could occasionally land a
+kill, ending the fight a different way than the scenario meant to
+isolate) could fail roughly once every several runs with no way to
+replay the exact sequence that caused it.
+
+**To reproduce a specific failure:** take the `seed:` value `run_all.js`
+printed next to that ledger's own failure block (it now prints both the
+seed line and every failing case's own `detail:` line — previously it
+only matched lines containing the literal text "FAIL", which silently
+dropped the detail a human actually needs), then re-run just that one
+file directly with the same seed:
+
+```
+TEST_SEED=2546747721 node tools/tests/<the-failing-file>.js
+```
+
+This reproduces the exact same sequence of random draws byte-for-byte —
+confirmed by running the same `TEST_SEED` twice and diffing the output.
+Omit `TEST_SEED` for an ordinary run (a fresh seed every time, which is
+what actually exercises different random paths across repeated runs and
+is how `INJ-15`'s own bug was originally caught — looping the suite
+until it failed, then reproducing that one run's logged seed directly).
+
+A scenario's own explicit `const orig = Math.random; Math.random = () =>
+0.02; ...; Math.random = orig;` pattern (used throughout this suite to
+force a hit/miss/crit/chance roll) is unaffected either way — `orig`
+just captures the seeded function instead of the unseeded native one,
+and restores it the same way.
+
 ## What each ledger covers
 
 | File | Covers |

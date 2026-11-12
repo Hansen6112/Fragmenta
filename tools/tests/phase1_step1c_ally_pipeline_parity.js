@@ -14,6 +14,7 @@
 // instead of comparing it. After that fixture exists, normal runs read
 // oldRun from it instead of calling resolveEnemyAttackOnAllyLegacy.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 const fs = require('fs');
 const path = require('path');
 const FREEZE = process.env.FREEZE_LEGACY_ORACLES === '1';
@@ -22,6 +23,8 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 

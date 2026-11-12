@@ -18,9 +18,12 @@
 // controls proving the skip is really caused by the stun charge and not
 // some other difference between the forced-ally and forced-player setups.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 

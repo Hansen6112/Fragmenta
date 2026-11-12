@@ -11,9 +11,12 @@
 // separately for exactly this purpose (a41cfb7) -- registering
 // test_strike's own definition really is the only thing this file adds.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 

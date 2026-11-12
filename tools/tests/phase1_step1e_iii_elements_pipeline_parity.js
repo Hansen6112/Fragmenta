@@ -13,6 +13,7 @@
 // captured in step 1h-i (freeze_legacy_oracles.js) while the oracle
 // still existed.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 const fs = require('fs');
 const path = require('path');
 const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'phase1_step1e_iii_elements_pipeline_parity.json');
@@ -20,6 +21,8 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 

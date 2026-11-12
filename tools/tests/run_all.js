@@ -67,6 +67,7 @@ const LEDGERS = [
   "phase1_step1g_vi_field_move_batch4_ledger.js",
   "phase1_step1g_vii_field_move_batch5_ledger.js",
   "appendix_a_groundbreaker_accuracy_ledger.js",
+  "test_enemy_strike_proof_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
@@ -122,7 +123,17 @@ async function main() {
     rows.push({ file, ok, passed, total, elapsed, exitCode: result.status });
     if (!ok) {
       console.error(`\n--- ${file}: ${passed}/${total} (exit ${result.status}) ---`);
-      console.error((stdout + "\n" + stderr).split("\n").filter((l) => /FAIL/i.test(l)).join("\n"));
+      // Phase 1 close-out handoff §2: print the seed line plus every
+      // failing case's own detail, not just lines containing the
+      // literal substring "FAIL" -- that filter used to silently drop a
+      // failing ledger's own `detail: {...}` lines (anything printed on
+      // the line AFTER a "FAILURES:"/case-name header, since only the
+      // header itself happened to contain "FAIL"), which is exactly the
+      // information needed to diagnose and reproduce an intermittent
+      // failure. Each ledger's own seed_rng.js-installed seed is printed
+      // unconditionally as "seed: <n>" on every run (not only a failing
+      // one), so it's always present here too.
+      console.error((stdout + "\n" + stderr).split("\n").filter((l) => /FAIL|seed:|detail:/i.test(l)).join("\n"));
     }
   }
 

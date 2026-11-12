@@ -11,10 +11,13 @@
 // Soul, Guardian Spirit, Last Stand, ...) as the real behavioral proof --
 // all of them still pass, unchanged, elsewhere in the suite.
 const { chromium } = require('playwright');
+const { seedPageRandom } = require('./seed_rng');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  const seed = await seedPageRandom(page);
+  console.log(`seed: ${seed}`);
   await page.goto('http://localhost:8949/index.html');
   await page.waitForSelector('#input');
 
