@@ -87,6 +87,22 @@ function dmgTagMultiplier(holder, damageType) {
   return DAMAGE_TAG_MULTIPLIER[tag] != null ? DAMAGE_TAG_MULTIPLIER[tag] : 1;
 }
 
+// Decisions Addendum (Tyler, 12 Nov 2026, approved), A3: while Avatar of
+// Knowledge is active, the target's tag counts one step better for the
+// attacker -- Immune -> Resist, Resist -> Normal. Normal and Weak are
+// untouched (Weak keeps its own 1.5x, the same cap the old matchup
+// override's strong side had). A separate function from dmgTagMultiplier
+// (not a flag on it) since this only ever applies to the PLAYER's own
+// attack (Avatar of Knowledge is a player buff) -- every other caller
+// keeps calling the plain version unchanged.
+const AVATAR_OF_KNOWLEDGE_SHIFT = { immune: "resist", resist: "normal" };
+function dmgTagMultiplierForAttacker(holder, damageType, avatarOfKnowledgeActive) {
+  if (damageType === FIRST_RIVER) return 1;
+  let tag = (holder && holder.dmgTags && holder.dmgTags[damageType]) || "normal";
+  if (avatarOfKnowledgeActive && AVATAR_OF_KNOWLEDGE_SHIFT[tag]) tag = AVATAR_OF_KNOWLEDGE_SHIFT[tag];
+  return DAMAGE_TAG_MULTIPLIER[tag] != null ? DAMAGE_TAG_MULTIPLIER[tag] : 1;
+}
+
 // T3: status immunity is a separate flag from damage tags (Ash Hide:
 // Resist Fire *and* immune to Burning) — holder.statusImmune is a plain
 // array of status keys, same holders as dmgTags above.

@@ -1656,9 +1656,9 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     // Damage Types v2 (step 2d, off by default): tags replace the old
     // element-vs-element matchup cycle -- see enemyCore's own identical
     // comment (js/data/actions.js) for the full reasoning. Avatar of
-    // Knowledge's own override still runs (matchup===1 passes through
-    // it unchanged either way) -- that buff isn't re-targeted at the new
-    // tag system here, out of this spec's own scope.
+    // Knowledge's own old override is bypassed under the switch
+    // (matchup forced to 1) -- it's re-targeted at the tag system
+    // instead, below, per the Decisions Addendum's A3.
     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     // Damage Types v2 (off by default, spec §3 steps 2-3): resist-by-
@@ -1670,7 +1670,13 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     const spellPower = base * multiplier;
     const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
-    if (DAMAGE_TYPES_V2) dmg = Math.round(dmg * dmgTagMultiplier(creature, spellDType));
+    // A3 (off by default): Avatar of Knowledge shifts the TARGET's own
+    // tag one step better for the attacker, read here instead of the
+    // plain dmgTagMultiplier every other caller uses.
+    if (DAMAGE_TYPES_V2) {
+      const avatarOfKnowledgeActive = state.combat && state.combat.player.avatarOfKnowledgeTurns > 0;
+      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(creature, spellDType, avatarOfKnowledgeActive));
+    }
     if (state.combat.player.avatarOfCreationTurns > 0) {
       state.combat.player.avatarOfCreationMagicStacks = (state.combat.player.avatarOfCreationMagicStacks || 0) + 2;
     }
