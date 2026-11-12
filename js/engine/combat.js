@@ -169,15 +169,35 @@ const PLAYER_FIELDS = [
   "momentumStacks", "momentumUnboundStacks", "siegeCorpsAtkCharge",
 ];
 
-function wirePlayerFieldsProxy(combat) {
+// Step 1h-iii §1: the explicit player combat store. Captures each
+// PLAYER_FIELDS entry's current value (set moments earlier by the big
+// state.combat object literal in startCombat) into a real, inspectable
+// object hanging off state.combat.player, rather than a private closure
+// only wirePlayerFieldsProxy itself could see. makePlayerCombatant's own
+// `store` points here (combatant.js), the same shape every ally/enemy
+// combatant view already has (store: ally / store: enemySlot) -- a
+// tight, fighter-specific bag instead of the whole combat object.
+function makePlayerCombatStore(combat) {
   const store = {};
+  PLAYER_FIELDS.forEach((field) => { store[field] = combat[field]; });
+  return store;
+}
+
+// Backward-compatible alias, wired on top of makePlayerCombatStore's
+// object: every un-migrated combat.<field>/state.combat.<field> read or
+// write (the call-site rewrite step 1h-iii is working through, batch by
+// batch) keeps landing on the exact same storage as the already-migrated
+// combat.player.<field> spelling, so the two forms can coexist mid-
+// migration with zero risk of drifting apart. Deleted, call included,
+// once every call site is off this spelling -- see step 1h-iii's own
+// last commit.
+function wirePlayerFieldsProxy(combat) {
   PLAYER_FIELDS.forEach((field) => {
-    store[field] = combat[field];
     Object.defineProperty(combat, field, {
       configurable: true,
       enumerable: true,
-      get() { return store[field]; },
-      set(v) { store[field] = v; },
+      get() { return combat.player[field]; },
+      set(v) { combat.player[field] = v; },
     });
   });
 }
@@ -5621,6 +5641,21 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     playerLastHitType: null,
   };
   wireActiveEnemyProxy(state.combat);
+  // Non-enumerable while wirePlayerFieldsProxy's flat compat accessors
+  // still exist alongside it (step 1h-iii, mid-migration): the two
+  // represent the exact same 130 values, so letting .player ALSO
+  // enumerate here would double them up in anything that iterates/
+  // serializes state.combat as a whole (e.g. the Layer 1 parity
+  // harnesses' own JSON.stringify(state.combat) snapshot) without any
+  // real behavior changing. Step 1h-iii's last commit deletes the flat
+  // accessors and makes this property ordinary + enumerable, once
+  // combat.player is the only representation left.
+  Object.defineProperty(state.combat, "player", {
+    value: makePlayerCombatStore(state.combat),
+    writable: true,
+    enumerable: false,
+    configurable: true,
+  });
   wirePlayerFieldsProxy(state.combat);
   // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
   // creature once actually fought — dynamic creatures (enemy mages) have

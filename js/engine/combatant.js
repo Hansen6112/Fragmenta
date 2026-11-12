@@ -56,7 +56,7 @@ function makePlayerCombatant(state) {
     get alive() { return state.health > 0 || !!state.playerDowned; },
     get downed() { return !!state.playerDowned; },
     controller: "player",
-    store: state.combat,
+    get store() { return state.combat && state.combat.player; },
     ref: state,
   };
 }
