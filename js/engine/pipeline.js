@@ -117,7 +117,7 @@ const COMBAT_UNIFY = {
   // (not just the player) is Chilled — reads ally.statuses.chilled,
   // the same per-ally status bag Serrated Opening's bleed check already
   // reads in this file's ally branches.
-  U3c: false,
+  U3c: true,
   // Toxic Preparation (sang_iag_ie008): fires when the ALLY (not just
   // the player) carries the Sanguivorum poison status — reads
   // ally.statuses["sang_iag_poison"], same per-ally status bag as U3c.
