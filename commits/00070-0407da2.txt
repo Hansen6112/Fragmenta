@@ -1,0 +1,41 @@
+range: 10fcdeec280169bb35be597139a4a9e0e4c851c7..0407da2755c28d80ca16d87b6320c2a6461d9fd5
+=== 0407da2755c28d80ca16d87b6320c2a6461d9fd5 2026-11-12 00:24:44 +0000
+Step 1h-iii §5: rewrite js/data/synergy.js onto combat.player (gap found in full-repo sweep)
+Ran a final, full-repo (every tracked .js/.html file, not just the
+ones already known to touch combat state) sweep before deleting
+wirePlayerFieldsProxy, per the handoff's own caution about code
+treating state.combat as a whole or living somewhere unexpected.
+Found a real gap: js/data/synergy.js (10 occurrences) -- the Elemental
+Synergy combo effects (Steamveil's evasionTurns boost, Magma Burst's
+Defense buff, river_harmony's lastElementUsed lookup) read/write
+PLAYER_FIELDS directly and weren't in any of this step's earlier
+batches, since combat.js/pipeline.js/companion.js/resolver.js/
+actions.js/tactics.js don't cover js/data/ as a whole.
+
+Zero behavior risk either way -- the backward-compatible alias kept
+these working correctly the entire time on the OLD flat spelling
+(confirmed: boss_sweep.js/plus3_run.js stayed bit-for-bit identical
+before and after this fix), so this was a migration-completeness gap,
+never a correctness bug.
+
+Also updated three comment-only references (js/data/dungeons.js,
+js/data/enemyabilities.js, js/engine/state.js) for accuracy.
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical. A repeat full-repo grep (every tracked .js/.html
+file, tools/tests/ excluded) now finds zero remaining
+combat.<field>/state.combat.<field> occurrences for any of the 130
+PLAYER_FIELDS entries outside tools/tests/ -- confirmed, not assumed,
+before the next commit deletes the alias that was making both
+spellings safe to use.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/dungeons.js       |  2 +-
+ js/data/enemyabilities.js |  2 +-
+ js/data/synergy.js        | 12 ++++++------
+ js/engine/state.js        |  2 +-
+ 4 files changed, 9 insertions(+), 9 deletions(-)
