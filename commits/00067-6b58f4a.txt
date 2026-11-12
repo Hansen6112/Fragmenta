@@ -1,0 +1,26 @@
+range: b133dd2cf7ab7f21e55ccd1dca5b9d6be9aff245..6b58f4a44c5f283702e9c21b9ce86b120772c1ad
+=== 6b58f4a44c5f283702e9c21b9ce86b120772c1ad 2026-11-12 00:17:38 +0000
+Step 1h-iii §2 batch 4/4: rewrite combat.js lines 4610-end onto combat.player
+Last of 4 combat.js call-site batches (133 occurrences), same
+mechanism as batches 1-3. Region runs from tickEnemyPassives through
+end of file, including startCombat itself (its own call to
+makePlayerCombatStore/wirePlayerFieldsProxy, and the big state.combat
+object literal's PLAYER_FIELDS key:value initializers, are untouched
+by this rewrite -- confirmed: both use bracket notation or plain
+object-literal keys, never the dot-property-access shape this
+batch's pattern matches).
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+combat.js is now fully off the PLAYER_FIELDS alias spelling. Next:
+pipeline.js, then companion.js/resolver.js, then delete
+wirePlayerFieldsProxy and flip combat.player back to enumerable.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 210 ++++++++++++++++++++++++++--------------------------
+ 1 file changed, 105 insertions(+), 105 deletions(-)

@@ -1,0 +1,504 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index a516565..d327866 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -4946,10 +4946,10 @@ function applyDodgeBlockNegateBonuses(state) {
+   const combat = state.combat;
+   const lines = [];
+   if (hasEffect(state, "every_choice_matters")) {
+-    const atkStacks = combat.everyChoiceAtkStacks || 0;
++    const atkStacks = combat.player.everyChoiceAtkStacks || 0;
+     if (atkStacks < 5) {
+-      combat.everyChoiceAtkStacks = atkStacks + 1;
+-      combat.everyChoiceMagicStacks = (combat.everyChoiceMagicStacks || 0) + 1;
++      combat.player.everyChoiceAtkStacks = atkStacks + 1;
++      combat.player.everyChoiceMagicStacks = (combat.player.everyChoiceMagicStacks || 0) + 1;
+       // v0.11 PLAYER_STAT_SCALE: each stack is worth 2 Attack/Magic by
+       // design (the *2 below, unchanged) — that design total is then
+       // itself folded into effectivePlayerAtk/effectiveMagic's own
+@@ -4958,8 +4958,8 @@ function applyDodgeBlockNegateBonuses(state) {
+       lines.push(`Every Choice Matters — the near miss sharpens you; +${flatStat(2)} Attack, +${flatStat(2)} Magic (now +${flatStat((atkStacks + 1) * 2)}/+${flatStat((atkStacks + 1) * 2)}).`);
+     }
+   }
+-  if (hasSetTier(state, "Regalia of the Woven Thread", 4) && !combat.threadsOfConsequencePending) {
+-    combat.threadsOfConsequencePending = true;
++  if (hasSetTier(state, "Regalia of the Woven Thread", 4) && !combat.player.threadsOfConsequencePending) {
++    combat.player.threadsOfConsequencePending = true;
+     lines.push(`Threads of Consequence — your next strike will land harder for it.`);
+   }
+   return lines;
+@@ -5012,8 +5012,8 @@ function applyLaughingGaleMissBonuses(state) {
+   if (!state.combat) return [];
+   const combat = state.combat;
+   const lines = [];
+-  if (hasEffect(state, "unlikely_outcome") && !combat.unlikelyOutcomeGuaranteedCrit) {
+-    combat.unlikelyOutcomeGuaranteedCrit = true;
++  if (hasEffect(state, "unlikely_outcome") && !combat.player.unlikelyOutcomeGuaranteedCrit) {
++    combat.player.unlikelyOutcomeGuaranteedCrit = true;
+     lines.push(`Unlikely Outcome — the miss steadies your hand; your next strike is a guaranteed critical hit.`);
+   }
+   lines.push(...applyTwistOfFate(state));
+@@ -5667,7 +5667,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+   });
+   // Enemy-inflicted ally statuses (ally.statuses — Bleed, Venom, Pinned,
+   // ...; see tickAllyStatuses) are combat-scoped like the player's own
+-  // combat.playerStatuses, unlike ally.buffs (a deliberately-given potion
++  // combat.player.playerStatuses, unlike ally.buffs (a deliberately-given potion
+   // buff, which IS meant to survive into the next fight) — reset here so
+   // a status that never finished ticking down before this fight started
+   // doesn't silently resume dealing damage in an unrelated one.
+@@ -5787,7 +5787,7 @@ Events.on("combat.started", ({ state }) => {
+   // beginTurn the same way burn/bleed are.
+   if (hasEffect(state, "endless_bloom")) {
+     const healPerTurn = Math.ceil(state.maxHealth * 0.05);
+-    if (healPerTurn > 0) state.combat.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
++    if (healPerTurn > 0) state.combat.player.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
+   }
+ });
+ Events.on("combat.started", ({ state }) => {
+@@ -5796,7 +5796,7 @@ Events.on("combat.started", ({ state }) => {
+   // fires once combat is already over, so this is how its +2 Defense
+   // actually reaches a fight).
+   if (state.flags.forestGuardianCharge) {
+-    state.combat.forestGuardianBonus = 2;
++    state.combat.player.forestGuardianBonus = 2;
+     state.flags.forestGuardianCharge = false;
+   }
+ });
+@@ -5806,7 +5806,7 @@ Events.on("combat.started", ({ state }) => {
+   // next Ability/Tactic's own cooldown assignment (Feint/Decoy/Disarm/
+   // useElementAbility; Ambush has no cooldown to zero).
+   if (state.flags.swiftPassageCharge) {
+-    state.combat.swiftPassageReady = true;
++    state.combat.player.swiftPassageReady = true;
+     state.flags.swiftPassageCharge = false;
+   }
+ });
+@@ -5873,18 +5873,18 @@ function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
+     const key = kind === "magic" ? "adaptiveTideMagicStacks" : "adaptiveTidePhysicalStacks";
+     combat[key] = Math.min(5, (combat[key] || 0) + 1);
+   }
+-  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.queenCarapaceBonus = Math.min(9, combat.queenCarapaceBonus + 3);
++  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.player.queenCarapaceBonus = Math.min(9, combat.player.queenCarapaceBonus + 3);
+   return { edmg, absorbLines };
+ }
+ 
+ function checkHoldTheLine(state) {
+   const combat = state.combat;
+-  if (!combat || combat.holdTheLineUsed || !hasSetTier(state, "Legion", 8)) return [];
++  if (!combat || combat.player.holdTheLineUsed || !hasSetTier(state, "Legion", 8)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.3) return [];
+-  combat.holdTheLineUsed = true;
++  combat.player.holdTheLineUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 2);
+-  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
+-  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(6)));
++  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
++  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(6)));
+   return [`Hold the Line — your training snaps into place as your Health falls; +${flatStat(6)} Defense for 2 turns.`];
+ }
+ 
+@@ -5894,12 +5894,12 @@ function checkHoldTheLine(state) {
+ // effect instead of a set tier, and checked at the same call sites.
+ function checkRootedResolve(state) {
+   const combat = state.combat;
+-  if (!combat || combat.rootedResolveUsed || !hasEffect(state, "rooted_resolve")) return [];
++  if (!combat || combat.player.rootedResolveUsed || !hasEffect(state, "rooted_resolve")) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
+-  combat.rootedResolveUsed = true;
++  combat.player.rootedResolveUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 3);
+-  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
+-  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(8)));
++  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
++  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(8)));
+   return [`Rooted Resolve — you plant yourself as your Health falls; +${flatStat(8)} Defense for 3 turns.`];
+ }
+ 
+@@ -5912,9 +5912,9 @@ function checkRootedResolve(state) {
+ // gets checked at all in that case).
+ function checkLoveEndures(state) {
+   const combat = state.combat;
+-  if (!combat || combat.loveEnduresUsed || !hasEffect(state, "love_endures")) return [];
++  if (!combat || combat.player.loveEnduresUsed || !hasEffect(state, "love_endures")) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.2) return [];
+-  combat.loveEnduresUsed = true;
++  combat.player.loveEnduresUsed = true;
+   const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.15));
+   if (healed <= 0) return [];
+   return [`Love Endures — even now, it holds you up; mended for ${healed} health.`, ...lines];
+@@ -5927,14 +5927,14 @@ function checkLoveEndures(state) {
+ // same composition Avatar of Bloom already uses.
+ function checkRallyTheLine(state) {
+   const combat = state.combat;
+-  if (!combat || combat.rallyTheLineUsed || !hasEffect(state, "rally_the_line")) return [];
++  if (!combat || combat.player.rallyTheLineUsed || !hasEffect(state, "rally_the_line")) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
+-  combat.rallyTheLineUsed = true;
++  combat.player.rallyTheLineUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+-  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
+-  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
+-  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(10)));
++  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
++  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
++  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
++  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(10)));
+   return [`Rally the Line — your Health falls, and the line holds; +${flatStat(10)} Attack, +${flatStat(10)} Defense for 4 rounds.`];
+ }
+ 
+@@ -5948,17 +5948,17 @@ function checkRallyTheLine(state) {
+ // same call sites as Hold the Line/Rooted Resolve.
+ function checkAvatarOfBloom(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfBloomUsed || !hasSetTier(state, "Regalia of the First Bloom", 6)) return [];
++  if (!combat || combat.player.avatarOfBloomUsed || !hasSetTier(state, "Regalia of the First Bloom", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfBloomUsed = true;
++  combat.player.avatarOfBloomUsed = true;
+   const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.5));
+   const dur = applyBeneficialEffectBonuses(state, 3);
+-  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.25)));
+-  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+-  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.25)));
+-  combat.defBuffTurns = Math.max(combat.defBuffTurns, dur);
+-  combat.defBuffAmount = Math.max(combat.defBuffAmount, applyBlessingOfCreationBonus(state, Math.round(state.def * 0.25)));
++  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
++  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.25)));
++  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
++  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.25)));
++  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
++  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, Math.round(state.def * 0.25)));
+   return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
+ }
+ 
+@@ -5974,10 +5974,10 @@ function checkAvatarOfBloom(state) {
+ // magic that could ever target the player in the first place.
+ function checkAvatarOfPassing(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfPassingUsed || !hasSetTier(state, "Regalia of the Final Veil", 6)) return [];
++  if (!combat || combat.player.avatarOfPassingUsed || !hasSetTier(state, "Regalia of the Final Veil", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfPassingUsed = true;
+-  combat.avatarOfPassingTurns = applyBeneficialEffectBonuses(state, 4);
++  combat.player.avatarOfPassingUsed = true;
++  combat.player.avatarOfPassingTurns = applyBeneficialEffectBonuses(state, 4);
+   return [`Avatar of Passing awakens — for 4 rounds, the damage you deal returns to you as life.`];
+ }
+ 
+@@ -5992,10 +5992,10 @@ function checkAvatarOfPassing(state) {
+ // first place.
+ function checkAvatarOfFate(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfFateUsed || !hasSetTier(state, "Regalia of the Woven Thread", 6)) return [];
++  if (!combat || combat.player.avatarOfFateUsed || !hasSetTier(state, "Regalia of the Woven Thread", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfFateUsed = true;
+-  combat.avatarOfFateTurns = applyBeneficialEffectBonuses(state, 4);
++  combat.player.avatarOfFateUsed = true;
++  combat.player.avatarOfFateTurns = applyBeneficialEffectBonuses(state, 4);
+   return [`Avatar of Fate awakens — for 4 rounds, fate bends further in your favor.`];
+ }
+ 
+@@ -6013,13 +6013,13 @@ function checkAvatarOfFate(state) {
+ // so there's no next enemy for the extra attack to land on.
+ function checkAvatarOfWar(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfWarUsed || !hasSetTier(state, "Regalia of the Crimson Vanguard", 6)) return [];
++  if (!combat || combat.player.avatarOfWarUsed || !hasSetTier(state, "Regalia of the Crimson Vanguard", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfWarUsed = true;
++  combat.player.avatarOfWarUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+-  combat.avatarOfWarTurns = dur;
+-  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.5)));
++  combat.player.avatarOfWarTurns = dur;
++  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
++  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.5)));
+   return [`Avatar of War awakens — for 4 rounds, you fight like the battle itself.`];
+ }
+ 
+@@ -6035,14 +6035,14 @@ function checkAvatarOfWar(state) {
+ // rather than repeated on every subsequent attack.
+ function checkAvatarOfKnowledge(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfKnowledgeUsed || !hasSetTier(state, "Regalia of the Endless Archive", 6)) return [];
++  if (!combat || combat.player.avatarOfKnowledgeUsed || !hasSetTier(state, "Regalia of the Endless Archive", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfKnowledgeUsed = true;
++  combat.player.avatarOfKnowledgeUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+-  combat.avatarOfKnowledgeTurns = dur;
+-  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+-  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.5)));
+-  combat.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, flatStat(25));
++  combat.player.avatarOfKnowledgeTurns = dur;
++  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
++  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.5)));
++  combat.player.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, flatStat(25));
+   const creature = getCombatCreature(state);
+   return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${combat.hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
+ }
+@@ -6057,10 +6057,10 @@ function checkAvatarOfKnowledge(state) {
+ // trivially already true — no such mechanics exist on the player side.
+ function checkAvatarOfDevotion(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfDevotionUsed || !hasSetTier(state, "Regalia of the Eternal Heart", 6)) return [];
++  if (!combat || combat.player.avatarOfDevotionUsed || !hasSetTier(state, "Regalia of the Eternal Heart", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfDevotionUsed = true;
+-  combat.avatarOfDevotionTurns = applyBeneficialEffectBonuses(state, 4);
++  combat.player.avatarOfDevotionUsed = true;
++  combat.player.avatarOfDevotionTurns = applyBeneficialEffectBonuses(state, 4);
+   return [`Avatar of Devotion awakens — for 4 rounds, your heart shields you as much as your steel does.`];
+ }
+ 
+@@ -6080,10 +6080,10 @@ function checkAvatarOfDevotion(state) {
+ // status mechanic exists on the player side yet.
+ function checkAvatarOfChaos(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfChaosUsed || !hasSetTier(state, "Regalia of the Laughing Gale", 6)) return [];
++  if (!combat || combat.player.avatarOfChaosUsed || !hasSetTier(state, "Regalia of the Laughing Gale", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfChaosUsed = true;
+-  combat.avatarOfChaosTurns = applyBeneficialEffectBonuses(state, 4);
++  combat.player.avatarOfChaosUsed = true;
++  combat.player.avatarOfChaosTurns = applyBeneficialEffectBonuses(state, 4);
+   return [`Avatar of Chaos awakens — for 4 rounds, fortune bends entirely to your whims.`];
+ }
+ 
+@@ -6098,10 +6098,10 @@ function checkAvatarOfChaos(state) {
+ // Grounded below: no such mechanics exist on the player side yet.
+ function checkAvatarOfEndurance(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfEnduranceUsed || !hasSetTier(state, "Regalia of the Eternal Bastion", 6)) return [];
++  if (!combat || combat.player.avatarOfEnduranceUsed || !hasSetTier(state, "Regalia of the Eternal Bastion", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfEnduranceUsed = true;
+-  combat.avatarOfEnduranceTurns = applyBeneficialEffectBonuses(state, 4);
++  combat.player.avatarOfEnduranceUsed = true;
++  combat.player.avatarOfEnduranceTurns = applyBeneficialEffectBonuses(state, 4);
+   return [`Avatar of Endurance awakens — for 4 rounds, you become an unmoving wall.`];
+ }
+ 
+@@ -6121,10 +6121,10 @@ function checkAvatarOfEndurance(state) {
+ // to act on.
+ function checkAvatarOfFreedom(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfFreedomUsed || !hasSetTier(state, "Regalia of the Endless Horizon", 6)) return [];
++  if (!combat || combat.player.avatarOfFreedomUsed || !hasSetTier(state, "Regalia of the Endless Horizon", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfFreedomUsed = true;
+-  combat.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, 4);
++  combat.player.avatarOfFreedomUsed = true;
++  combat.player.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, 4);
+   return [`Avatar of Freedom awakens — for 4 rounds, nothing can hold you.`];
+ }
+ 
+@@ -6143,15 +6143,15 @@ function checkAvatarOfFreedom(state) {
+ // Intertwined (Regalia of the Woven Thread) already established.
+ function checkAvatarOfCreation(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfCreationUsed || !hasSetTier(state, "Regalia of the Eternal Forge", 6)) return [];
++  if (!combat || combat.player.avatarOfCreationUsed || !hasSetTier(state, "Regalia of the Eternal Forge", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfCreationUsed = true;
++  combat.player.avatarOfCreationUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+-  combat.avatarOfCreationTurns = dur;
+-  combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
+-  combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.4)));
+-  combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
+-  combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.4)));
++  combat.player.avatarOfCreationTurns = dur;
++  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
++  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.4)));
++  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
++  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.4)));
+   return [`Avatar of Creation awakens — for 4 rounds, every strike and every cast reforges you anew.`];
+ }
+ 
+@@ -6170,10 +6170,10 @@ function checkAvatarOfCreation(state) {
+ // Flowing Waters/Blessing of the Tide/Living Forge already cite.
+ function checkAvatarOfRenewal(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfRenewalUsed || !hasSetTier(state, "Regalia of the Endless Tide", 6)) return [];
++  if (!combat || combat.player.avatarOfRenewalUsed || !hasSetTier(state, "Regalia of the Endless Tide", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfRenewalUsed = true;
+-  combat.avatarOfRenewalTurns = applyBeneficialEffectBonuses(state, 4);
++  combat.player.avatarOfRenewalUsed = true;
++  combat.player.avatarOfRenewalTurns = applyBeneficialEffectBonuses(state, 4);
+   return [`Avatar of Renewal awakens — for 4 rounds, the tide itself mends you.`];
+ }
+ 
+@@ -6195,10 +6195,10 @@ function checkAvatarOfRenewal(state) {
+ // beginTurn for why.
+ function checkAvatarOfTime(state) {
+   const combat = state.combat;
+-  if (!combat || combat.avatarOfTimeUsed || !hasSetTier(state, "Regalia of the Eternal Hour", 6)) return [];
++  if (!combat || combat.player.avatarOfTimeUsed || !hasSetTier(state, "Regalia of the Eternal Hour", 6)) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.avatarOfTimeUsed = true;
+-  combat.avatarOfTimeTurns = applyBeneficialEffectBonuses(state, 3);
++  combat.player.avatarOfTimeUsed = true;
++  combat.player.avatarOfTimeTurns = applyBeneficialEffectBonuses(state, 3);
+   for (const key of Object.keys(combat.cooldowns)) combat.cooldowns[key] = 0;
+   return [`Avatar of Time awakens — for 3 rounds, every clock in the world bends to yours.`];
+ }
+@@ -6380,7 +6380,7 @@ function resolveKill(state, creature) {
+   // opening attack of the fight is what landed this kill, restore 15% max
+   // Health — checked here (before state.combat is nulled below) since
+   // only resolveKill knows the kill actually happened.
+-  if (hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.actionCounter === 1) {
++  if (hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.player.actionCounter === 1) {
+     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.15));
+     if (healed > 0) out.push(`Blessing of Valor — a killing opening blow steadies you; mended for ${healed} health.`, ...lines);
+   }
+@@ -6639,14 +6639,14 @@ function attemptFlee(state) {
+   // v0.11: shared ratio mitigation — see mitigate().
+   const fleeAtk = effectiveEnemyAtk(state, creature);
+   let edmg = creature.atk === 0 ? 0 : Math.max(1, Math.round(mitigate(randInt(Math.max(1, fleeAtk - 1), fleeAtk + 1), effectivePlayerDef(state))));
+-  if (edmg > 0 && !combat.firstHitTakenUsed) {
+-    combat.firstHitTakenUsed = true;
++  if (edmg > 0 && !combat.player.firstHitTakenUsed) {
++    combat.player.firstHitTakenUsed = true;
+     if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+   }
+   const fleeHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
+   edmg = fleeHit.edmg;
+   const absorbLines = fleeHit.absorbLines;
+-  if (edmg > 0) combat.playerLastHitType = "physical"; // Injury System v0.2
++  if (edmg > 0) combat.player.playerLastHitType = "physical"; // Injury System v0.2
+   out.push(`You fail to get clear. ${withThe(creature.name, true)} catches you for ${edmg} damage as you turn.`, ...absorbLines);
+   if (state.health <= 0) {
+     const defeatMsg = resolvePlayerDefeatOrDowned(state);
+@@ -6667,11 +6667,11 @@ function attemptFlee(state) {
+ // one hits) gets cut by 1 turn (minimum 1). Shared by Feint, Decoy, and
+ // Disarm — Ambush has no cooldown to shorten.
+ function applyTacticalMemory(state, cooldown) {
+-  if (!cooldown || state.combat.tacticalMemoryUsed || !hasEffect(state, "tactical_memory")) {
++  if (!cooldown || state.combat.player.tacticalMemoryUsed || !hasEffect(state, "tactical_memory")) {
+     return { cooldown, fired: false };
+   }
+   if (Math.random() < tacticalMemoryChance(state)) {
+-    state.combat.tacticalMemoryUsed = true;
++    state.combat.player.tacticalMemoryUsed = true;
+     return { cooldown: Math.max(1, cooldown - 1), fired: true };
+   }
+   return { cooldown, fired: false };
+@@ -6682,8 +6682,8 @@ function applyTacticalMemory(state, cooldown) {
+ // Strategist's flat reduction and Tactical Memory's probabilistic one,
+ // both moot once the cooldown is already 0.
+ function applyPerfectTiming(state) {
+-  if (!hasEffect(state, "perfect_timing") || state.combat.perfectTimingUsed) return false;
+-  state.combat.perfectTimingUsed = true;
++  if (!hasEffect(state, "perfect_timing") || state.combat.player.perfectTimingUsed) return false;
++  state.combat.player.perfectTimingUsed = true;
+   return true;
+ }
+ 
+@@ -6715,7 +6715,7 @@ function useFeint(state) {
+   if (!classHasTactics(state)) return ["Feinting isn't how your training works. Try your class's own ability instead."];
+   let creature = getCombatCreature(state);
+   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. A feint would be wasted.`];
+-  if (state.combat.nextAttackBonus) return [`You're already coiled for a strike — feint again once you've used it.`];
++  if (state.combat.player.nextAttackBonus) return [`You're already coiled for a strike — feint again once you've used it.`];
+   const t = TACTICS.feint;
+   if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know how to feint yet. (needs Knowledge ${t.knowledgeReq}+)`];
+   // Perfect Recall (Artifact): the gate itself is skipped entirely, rather
+@@ -6745,17 +6745,17 @@ function useFeint(state) {
+   if (!state.combat || state.health <= 0) return out;
+   out.push(...applyEndlessStudy(state, "feint"), ...applyWanderersReward(state, "feint"), ...applyActionTypeTracking(state, "tactic"), ...applyPerfectMemory(state, "feint"));
+   consumeTrailblazer(state);
+-  state.combat.nextAttackBonus = true;
++  state.combat.player.nextAttackBonus = true;
+   let feintMemory;
+-  if (state.combat.avatarOfTimeTurns > 0) {
++  if (state.combat.player.avatarOfTimeTurns > 0) {
+     feintMemory = { cooldown: 0, fired: false };
+   } else if (applyPerfectTiming(state)) {
+     feintMemory = { cooldown: 0, fired: false };
+-  } else if (state.combat.swiftPassageReady) {
+-    state.combat.swiftPassageReady = false;
++  } else if (state.combat.player.swiftPassageReady) {
++    state.combat.player.swiftPassageReady = false;
+     feintMemory = { cooldown: 0, fired: false };
+-  } else if (state.combat.hourglassReserveReady) {
+-    state.combat.hourglassReserveReady = false;
++  } else if (state.combat.player.hourglassReserveReady) {
++    state.combat.player.hourglassReserveReady = false;
+     feintMemory = { cooldown: 0, fired: false };
+   } else {
+     let baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
+@@ -6783,13 +6783,13 @@ function useFeint(state) {
+     out.push(`Disciplined Formation — your training holds; +3 Defense against the counter.`);
+   }
+   if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
+-    state.combat.siegeCorpsAtkCharge = 2;
++    state.combat.player.siegeCorpsAtkCharge = 2;
+   }
+   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
+   out.push(...retaliation.lines);
+   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
+   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
+-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
++  if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+   const tl = tacticsLine(state);
+   if (tl) out.push(tl);
+   return checkReflectDeath(state, out);
+@@ -6807,10 +6807,10 @@ function useFeint(state) {
+ // ability's own name in the typed/menu command — empty for self, or
+ // "on <ally>" (matchApothecaryAbilityVerb/the combat-menu's own target
+ // sub-stage both produce this same shape) for an ally cast. Self-cast
+-// Defense/Attack reuse combat.defBuffTurns/atkBuffTurns — the same
++// Defense/Attack reuse combat.player.defBuffTurns/atkBuffTurns — the same
+ // Math.max-composed buffs Stoneskin and several Divine Regalia effects
+ // already share — while Accuracy/Speed/Agility go through the generic
+-// combat.playerBuffs map crafted potions already use, since those three
++// combat.player.playerBuffs map crafted potions already use, since those three
+ // stats never got their own dedicated fields. Ally-cast always goes
+ // through ally.buffs (companion.js's tickAllyBuffs already ages it down),
+ // the same storage crafted-potion-on-ally already uses out of combat.
+@@ -6869,7 +6869,7 @@ function useApothecaryAbility(state, key, targetArg) {
+   out.push(...retaliation.lines);
+   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
+   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
+-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
++  if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+   const tl = tacticsLine(state);
+   if (tl) out.push(tl);
+   return checkReflectDeath(state, out);
+@@ -6885,8 +6885,8 @@ function applyApothecaryAbilityEffect(state, a, ally) {
+   const isSelf = !ally;
+   if (a.cleanse) {
+     if (isSelf) {
+-      const cleared = Object.keys(state.combat.playerStatuses);
+-      cleared.forEach((s) => delete state.combat.playerStatuses[s]);
++      const cleared = Object.keys(state.combat.player.playerStatuses);
++      cleared.forEach((s) => delete state.combat.player.playerStatuses[s]);
+       return cleared.length ? [`${a.name} clears you: ${cleared.join(", ")}.`] : [`${a.name}, but nothing needed clearing.`];
+     }
+     // No status has ever been able to land on an ally in this engine (see
+@@ -6902,13 +6902,13 @@ function applyApothecaryAbilityEffect(state, a, ally) {
+   const amount = scaledStat(isSelf ? a.stat : a.allyStat || a.stat, rawAmount);
+   if (isSelf) {
+     if (a.stat === "def") {
+-      state.combat.defBuffTurns = Math.max(state.combat.defBuffTurns, 3);
+-      state.combat.defBuffAmount = Math.max(state.combat.defBuffAmount, amount);
++      state.combat.player.defBuffTurns = Math.max(state.combat.player.defBuffTurns, 3);
++      state.combat.player.defBuffAmount = Math.max(state.combat.player.defBuffAmount, amount);
+     } else if (a.stat === "atk") {
+-      state.combat.atkBuffTurns = Math.max(state.combat.atkBuffTurns, 3);
+-      state.combat.atkBuffAmount = Math.max(state.combat.atkBuffAmount, amount);
++      state.combat.player.atkBuffTurns = Math.max(state.combat.player.atkBuffTurns, 3);
++      state.combat.player.atkBuffAmount = Math.max(state.combat.player.atkBuffAmount, amount);
+     } else {
+-      state.combat.playerBuffs[a.stat] = { amount, turns: 3 };
++      state.combat.player.playerBuffs[a.stat] = { amount, turns: 3 };
+     }
+     return [`You use ${a.name} on yourself — +${amount} ${STAT_LABELS[a.stat] || a.stat} for 3 turns.`];
+   }
