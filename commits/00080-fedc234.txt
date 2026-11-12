@@ -1,0 +1,19 @@
+range: 4d439313725924d624dde6c112ee60dc86ba095d..fedc234cacfdd51fb75c6a6c96102cced0e27b12
+=== fedc234cacfdd51fb75c6a6c96102cced0e27b12 2026-11-12 05:44:53 +0000
+Phase 1 handoff §6: document U3c result + Dregnar's combined U2+U3b+U3c report
+U3c (Winter's Verdict vs. ally): zero cells moved on either harness
+against U3b's after-state -- needs Chill already on an ally plus the
+same party-share-roll gate as U3b, not enough to cross the 3-point
+threshold at current trial counts.
+
+Dregnar's combined total change across all three of his own switches
+(U2 + U3b + U3c): also zero cells moved, measured directly against
+the §5 zero-switches baseline rather than assumed from three
+individual zeros.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
