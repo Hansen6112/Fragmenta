@@ -1,0 +1,46 @@
+range: f48ed76745f7b0da3bc303b964d635ed0f907d8f..b133dd2cf7ab7f21e55ccd1dca5b9d6be9aff245
+=== b133dd2cf7ab7f21e55ccd1dca5b9d6be9aff245 2026-11-12 00:15:29 +0000
+Step 1h-iii §2 batch 3/4: rewrite combat.js lines 2202-4609 onto combat.player
+Third of 4 combat.js call-site batches (137 occurrences), same
+mechanism as batches 1-2. Region runs from applyPhysicalOnHitEffects
+through just before tickEnemyPassives.
+
+Caught by this batch's own full-suite run, fixed before committing:
+injury_ledger.js's INJ-10 and INJ-11 scenarios hand-construct a
+minimal `s.combat = { downs: [...], playerLastHitType: '...' }`
+object directly, bypassing startCombat entirely (so it never gets a
+.player sub-object at all -- no proxy ever ran on it either, since
+wirePlayerFieldsProxy is also only called from startCombat). Both
+scenarios exercise resolvePlayerDefeatOrDowned's D14 "wipe-causing hit
+inside a dungeon" branch (line ~4318 in this batch's range), which
+this batch rewrote to read combat.player.playerLastHitType --
+throwing "Cannot read properties of undefined (reading
+'playerLastHitType')" against their hand-built fixture. Checked every
+other hand-rolled `s.combat = {...}` construction in injury_ledger.js/
+injury_items_ledger.js (10 more) by reading which branch of
+resolvePlayerDefeatOrDowned/killAlly each one's own scenario actually
+reaches: none of the others touch a playerLastHitType read at all
+(early 7th-fall returns, the non-dungeon "goes dark" branch, or
+killAlly's party-wipe branch, which reads the already-banked
+combat.downs array directly and never appends a fresh one from
+playerLastHitType) -- matching the suite's own 22/24 failure count
+exactly, so no other fixture needed changing. Fixed the two real ones
+by adding `player: { playerLastHitType: '<value>' }` alongside the
+existing flat field (kept, in case any not-yet-migrated path in a
+later batch still reads it off this same hand-built object, which --
+unlike a real startCombat()-built one -- has no proxy keeping the two
+spellings in sync on its own).
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+1 more combat.js batch, then pipeline.js, then companion.js/resolver.js.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js          | 200 +++++++++++++++++++++----------------------
+ tools/tests/injury_ledger.js |   4 +-
+ 2 files changed, 102 insertions(+), 102 deletions(-)
