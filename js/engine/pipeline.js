@@ -104,7 +104,7 @@ const COMBAT_UNIFY = {
   // it to trigger from otherwise) — gated on both flags at the call site,
   // not implied by U1 alone, so flipping U1 on by itself doesn't silently
   // also turn U2 on.
-  U2: false,
+  U2: true,
   // Marked Target (sang_cu_ie002_marked_target): a successful hit marks
   // the TARGET (combat.player.exposedTarget), not just the player, and the
   // marked-target accuracy bonus is read/consumed on an ally-targeted
