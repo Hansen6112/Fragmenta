@@ -1,0 +1,33 @@
+range: d79be969498100d6183007d2939f7dd6406becd3..46ad4ef3ade82788daa240ec4d729f715ebdba28
+=== 46ad4ef3ade82788daa240ec4d729f715ebdba28 2026-11-12 06:38:57 +0000
+Phase 1 handoff §6: document U1 result and close out the rollout (all 9 switches on)
+U1 (allies take element/magic damage like the player): zero cells
+moved on either harness -- not even a sub-threshold nonzero delta,
+checked directly. Investigated why rather than assuming "too small":
+U1's own gate (creature.element) is only ever set by generateEnemyMage
+(js/data/enemymages.js), a random exploration encounter type never
+present in either harness. Neither boss_sweep.js's 16 bosses nor
+plus3_run.js's Dregnar/Arbitarius have an element field anywhere.
+
+This also gives the full, verified reason U2 measured zero even with
+U1 on: Dregnar's own bestiary entry has no element field, so the gate
+both U1 and U2 sit behind is never true for him on either path, with
+any switch combination. Confirmed this isn't a bug -- Unquenched
+Focus's own effect text already excludes "a physical hit with
+elemental flavor text," which is exactly what Dregnar's kit is
+(Ashquench, a physical maul; his water barrier is Guard-state flavor
+text, not a mechanical element). Flagged as a standing fact about the
+item for Tyler, not something this handoff needs to fix.
+
+All 9 switches in handoff §6's table are now true in
+js/engine/pipeline.js. Stop rule never triggered across the full
+rollout. Summarized what each switch's zero/below-threshold result
+actually means (confirmed no trigger surface vs. confirmed real but
+small) and what roster would make each one's effect visible.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 78 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 78 insertions(+)
