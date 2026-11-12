@@ -1,0 +1,14 @@
+range: fedc234cacfdd51fb75c6a6c96102cced0e27b12..a10360d8eb683902e5f3c69d384d1ec484f36858
+=== a10360d8eb683902e5f3c69d384d1ec484f36858 2026-11-12 06:06:10 +0000
+Phase 1 handoff §4: close out Phase 1 acceptance record (50/50 gate passed)
+The §2 intermittent-failure fix's own verification gate (50
+consecutive clean full-suite runs) has now actually completed: 50/50,
+0 failures. tools/phase1_acceptance.md updated from "in progress" to
+the final result. Phase 1 is closed.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/phase1_acceptance.md | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
