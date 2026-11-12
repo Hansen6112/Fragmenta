@@ -1,0 +1,297 @@
+range: 204a04d19ce16385d3d705510a29d453e59c1a37..b044a5f4d951593fabf184b2356dc7c69f078f14
+=== b044a5f4d951593fabf184b2356dc7c69f078f14 2026-11-12 13:00:46 +0000
+Damage Types spec v1.0, step 2e: parity verification + writeup
+Closes out step 2 ("the system... behind the switch") with the final
+verification and a single doc summarizing what was built across
+483f22d..8f0edd7 (tools/damage_types_step2_system.md), what's
+deliberately deferred to later steps and why, and the verification
+evidence.
+
+Confirmed switch-off parity against the pre-work state directly,
+not just via the full suite: ran boss_sweep.js and plus3_run.js at
+current HEAD against a git worktree frozen at 204a04d (the last
+commit before any Damage Types work), same seeded box, same N --
+byte-identical JSON output on every cell, both harnesses. Combined
+with the full suite (454/454) and audit (0 errors) passing at every
+commit in the range, this confirms steps 2a-2d changed no behavior
+with DAMAGE_TYPES_V2 off, exactly as the spec's own §7.1 requires
+before any content pass or switch-on.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/damage_types_step2_system.md | 105 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 105 insertions(+)
+=== 8f0edd771611128e8975ace0762b42560b309354 2026-11-12 12:53:38 +0000
+Damage Types spec v1.0, step 2d: mage attunement Resist/Weak + retire the old matchup cycle
+Implements A1/A2 (Tyler, 12 Nov, approved -- Character Creation spec
+v1.0 Amendment 1), behind DAMAGE_TYPES_V2, still off:
+
+- ATTUNEMENT_TAG_PAIRS (js/data/damagetypes.js): the locked Resist/Weak
+  pair for each of the 9 attunements (A1's own table).
+- GameState.dmgTags (js/engine/state.js): a getter, not a stored field
+  -- primaryElement can change after creation (level 15's Deepen,
+  Conduit Ascendant), so deriving it fresh on every read is the only
+  way it can't drift out of sync. Lives on the prototype, so it's
+  invisible to Object.keys(instance) and doesn't trip the save-
+  coverage audit rule.
+- Frost as a 9th starting choice (A2): added to ELEMENTS only under
+  the switch, inside damagetypes.js rather than elements.js itself --
+  elementList() and the element-keyword matcher already iterate
+  Object.keys(ELEMENTS) generically, so adding the key was the only
+  change needed to make it selectable everywhere, and gating it here
+  keeps it unavailable while the switch is off.
+- Retired the old element-vs-element matchup cycle (js/data/
+  matchups.js's elementMultiplier) at its two generic call sites
+  (enemyCore's player-magic branch, rollPlayerDamageCoreForPipeline's
+  spell branch) -- forced to a neutral 1 under the switch, since the
+  new tag system (already wired in steps 2b-2c) does this job instead
+  once both sides carry tags. matchups.js itself is untouched and
+  still runs exactly as before when the switch is off.
+
+Scope notes: Mirror Soul's own elementMultiplier call (pipeline.js,
+a narrow reflection mechanic already excluded from U1's scope in the
+Phase 1 rollout for the same reason) is left alone -- not part of the
+generic formula set this spec replaces. Avatar of Knowledge's matchup
+override still runs under the switch (a neutral 1 passes through it
+unchanged) but isn't re-targeted at the new tag system -- that's a
+design decision this spec doesn't make, not an oversight.
+
+Verified: full suite 454/454, audit 0 errors, switch off
+(byte-identical -- the DAMAGE_TYPES_V2 const had to move to the top of
+the file so the load-time Frost-addition check could reference it
+before its own declaration). Switch-on sanity check: same 397/454,
+same 5 failing files, same failure counts as the prior step's check --
+no new breakage, all of it the already-documented snapshot-staleness
+class.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js     |  8 ++++++-
+ js/data/damagetypes.js | 61 ++++++++++++++++++++++++++++++++++++++++++++------
+ js/engine/pipeline.js  |  8 ++++++-
+ js/engine/state.js     | 12 ++++++++++
+ 4 files changed, 80 insertions(+), 9 deletions(-)
+=== e92327643f12f8dc70f7b03d4a806c566f3b41f5 2026-11-12 12:48:45 +0000
+Damage Types spec v1.0, step 2c: status immunity + playerLastHitType
+T3 (status immunity is separate from damage tags): added an immunity
+check to applyPlayerStatus and applyAllyStatus -- the two real
+choke points every named-status application already goes through
+(ability inflicts, enemy passive inflicts, the custom-debuff path) --
+ahead of every existing defensive interceptor, since it's an absolute
+block rather than a chance/one-shot mitigation like those. Behind
+DAMAGE_TYPES_V2, still off. There's no equivalent for an enemy
+creature: the player has no mechanism today that inflicts a named
+STATUS_EFFECTS entry onto an enemy (player-side enemy debuffs are
+ad-hoc flat fields -- enemyDefPenalty, corroded, etc. -- not this
+table), so there's nothing to wire there.
+
+Hit-type recording: playerLastHitType's four real pipeline.js call
+sites (the enemy-magic and enemy-flat branches of applyAndReact, the
+riposte/arena-riposte reaction tail, and the DOT-tick tail) now
+record the real resolved damage type under the switch, instead of the
+raw creature.element / a hardcoded "physical" / the old-roster
+statusDamageType(key) value -- re-deriving it the same pure way step
+4 already did, since nothing else carries it from step 4 to step 5
+today.
+
+Scope note: the spec's own wording ("playerLastHitType and the ally
+equivalent") assumes an ally-side lastHitType/injury system that does
+not exist anywhere in this codebase (confirmed by exhaustive grep --
+no ally.lastHitType, no ally injury mechanic at all; allies' only
+per-tick adjustment, a kit's own vulnerability multiplier, already
+reads action.key directly and needs no equivalent fix). Not inventing
+one here -- that would be new, unrequested mechanic design, not a
+fix to something that exists.
+
+Verified: full suite 454/454, audit 0 errors, switch off
+(byte-identical). Also force-enabled the switch as a crash-safety
+sanity check: no crashes, no changed damage NUMBERS or message text
+anywhere in the suite -- the only failures are snapMatch-only ones in
+the pre-existing Legacy-parity tests (phase1_step1b/1e-i/1e-ii/1e-iii/
+1f-iv), whose frozen fixtures snapshot playerLastHitType's exact
+string and were never updated for a value this step can now change --
+the same "parity test assumes every system is off" bug class already
+documented and fixed twice for COMBAT_UNIFY switches. Left alone here
+since the switch stays off and these fixtures aren't touched until
+the real switch-on (step 4) that specifically budgets for it.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js   | 13 +++++++++++++
+ js/engine/pipeline.js | 33 +++++++++++++++++++++++++++++----
+ 2 files changed, 42 insertions(+), 4 deletions(-)
+=== 0069c4f2bf1d7b3d6a1568a79aa847d7f8199930 2026-11-12 12:42:58 +0000
+Damage Types spec v1.0, step 2b: wire DOT ticks and riposte/reactions
+Completes step 2b (the remaining PIPELINE_FORMULAS entries): the four
+DOT tick formulas (tickBurnEnemy/tickBleedEnemy/tickStatusPlayer/
+tickStatusAlly) and the enemy-wearer riposte family
+(riposteCounterEnemy/arenaRiposteEnemy/riposteCounterEnemyOnAlly) plus
+the player's own riposteCounterPlayer. All behind DAMAGE_TYPES_V2,
+still off. spellEchoReaction needs no change -- its damage is already
+half of the first casting's own already-tagged number, so re-applying
+a tag multiplier here would double it.
+
+Ticks apply only the target's tag multiplier (no resisting-stat step
+-- ticks were never mitigated by Defense/Magic to begin with). Added
+resolveStatusDamageType + a small legacy bridge
+(LEGACY_STATUS_DAMAGE_TYPE_V2) to js/data/damagetypes.js, translating
+the 5 statuses js/engine/combat.js's own statusDamageType already
+mapped (bleed/burning/venom/blight/sang_iag_poison) onto the new
+roster, until content (§5) puts a real damageType directly on each
+STATUS_EFFECTS entry (which then takes priority).
+
+riposteCounterPlayer leaves rollPlayerDamage's own internal mitigation
+untouched (explicitly out of pipeline-migration scope per that
+formula's own header) and only applies the resolved weapon type's tag
+multiplier to its result.
+
+Verified: full suite 454/454, audit 0 errors, switch off
+(byte-identical); also sanity-ran with the switch forced on (no
+crashes) and reverted before committing. This closes out step 2b --
+every PIPELINE_FORMULAS entry that deals damage now resolves a damage
+type and applies the resist-by-family/tag mechanism when the switch
+is on.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js     | 46 ++++++++++++++++++++++++++++++++++++++++------
+ js/data/damagetypes.js | 23 +++++++++++++++++++++++
+ 2 files changed, 63 insertions(+), 6 deletions(-)
+=== 8579044a80262b95497af40bbe8e9f8df03c8a3b 2026-11-12 12:39:57 +0000
+Damage Types spec v1.0, step 2b: wire player- and ally-attacking formulas
+Extends the mechanism from the previous commit (enemy-facing formulas)
+to the other direction: the player's own damage core
+(rollPlayerDamageCoreForPipeline, both the spell and weapon branches)
+and the four ally-attacking-enemy formulas (allyPlain/kitAllyBasic/
+kitAllyAbility/kitAllyAbilitySplash, js/data/actions.js). All behind
+DAMAGE_TYPES_V2, still off.
+
+rollPlayerDamageCoreForPipeline gained an `action` parameter (needed
+to resolve a damageType) -- threaded through its two real callers
+(calculateDamagePlayerActor, and lightningOnHit's second-roll call).
+Its third caller, PIPELINE_FORMULAS.playerCore's own wrapper, is never
+actually invoked for a real player attack (calculateDamage's dispatch
+always routes actor.kind==="player" straight to
+calculateDamagePlayerActor, not through the formula table) -- left
+unchanged, noted in the new parameter's own comment.
+
+Renamed the previous commit's creatureWeaponDamageType to
+equipmentWeaponDamageType: it already worked unchanged for an ally
+(ally.equipment.mainhand is the same shape as a BESTIARY creature's),
+so this step just reuses it rather than duplicating it.
+
+Verified: full suite 454/454, audit 0 errors, switch off
+(byte-identical). Also sanity-ran the whole suite with the switch
+forced on (no crashes -- no content yet, so everything still
+resolves to Blunt/Normal and matches today's math); reverted before
+committing.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js    | 51 +++++++++++++++++++++++++++++++++++++--------------
+ js/engine/pipeline.js | 30 ++++++++++++++++++++++++++----
+ 2 files changed, 63 insertions(+), 18 deletions(-)
+=== 56554fd231afc58fb7973997ed12e75bd175944f 2026-11-12 12:35:59 +0000
+Damage Types spec v1.0, step 2b: wire enemy-facing formulas
+Wires the Damage Types mechanism (spec §3 steps 2-3: resist-by-family
+defense value, then the target's own tag multiplier) into enemyCore's
+four branches in js/data/actions.js -- ally-target magic, ally-target
+flat/ability, player-target magic, player-target flat/ability --
+behind DAMAGE_TYPES_V2 (still off).
+
+The resolved damage type comes from the new resolveDamageType chain
+(action's own declared damageType -> the enemy's mainhand weapon's ->
+its attackType -> Blunt), via the new creatureWeaponDamageType helper.
+Deliberately NOT conditioned on creature.element: an enemy active with
+no element field at all can still deal a non-Physical type once
+content (step 3) declares one, so the new mechanism applies uniformly
+to both the magic and flat/ability branches. What creature.element
+still gates, unchanged, is which FORMULA computes the ATTACKER's power
+number (magic-based roll vs. flat atk-based) -- that's an orthogonal,
+pre-existing distinction this step doesn't touch.
+
+Verified: full suite 454/454 and audit 0 errors with the switch off
+(byte-identical -- dType is never even resolved when V2 is false).
+Also sanity-ran the whole suite with the switch temporarily forced on
+(no content yet, so everything falls back to Blunt/Normal and matches
+today's physical math anyway) to confirm the new code paths don't
+crash; reverted before committing -- the switch stays off, per spec.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js | 50 ++++++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 44 insertions(+), 6 deletions(-)
+=== c95293676454c198881a73a8acb4a18fa30ba214 2026-11-12 12:32:04 +0000
+Damage Types spec v1.0, step 2a: audit rules D1-D4 (warnings only)
+Adds the spec's §6 audit rules to tools/audit.js, running as warnings
+per the spec's own order of work (they become errors in step 4, once
+the content passes they depend on have landed):
+
+- D1: every toHit:"roll" action/enemy-ability/basic-attack definition,
+  every mainhand item, every BESTIARY creature (attackType or a
+  mainhand weapon), and every dot-bearing STATUS_EFFECTS entry has a
+  valid damageType. Currently all-warn, since no damageType field
+  exists on any of this data yet (that's the step 3 content pass).
+- D2: forward scaffolding for dmgTags map validity (no holder has one
+  yet).
+- D3: the one concrete, class-independent case the data model
+  supports today — no BESTIARY creature is Resist/Immune to all three
+  Physical sub-types at once. The fuller per-class/per-level-band form
+  needs mage-attunement damage types (step 2d) and tag content (§5),
+  neither of which exist yet.
+- D4: "First River" never appears in live (non-comment) code — scanned
+  now, works today regardless of content-pass timing.
+
+454/454 suite, 0 audit errors, 877 warnings (805 are the expected D1
+"no damageType content yet" hits -- real signal, not noise, since the
+content pass (step 3) is what's supposed to clear them).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js | 99 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 99 insertions(+)
+=== 483f22db486e3c01b64b76b7e6e9697c596d1e57 2026-11-12 12:29:33 +0000
+Damage Types spec v1.0, step 2a: roster, switch, and helper functions
+New js/data/damagetypes.js: the locked 16-type roster grouped into 4
+families (T1), the DAMAGE_TYPES_V2 switch (off by default, per spec
+§7.1), and the generic math every damage formula will need once it's
+wired in (steps 2b-2d, not yet done here):
+
+- damageFamily/resistingDefenseValue: T5/T6's "Physical uses Defense,
+  everything else uses (2*Magic+Defense)/3, defaulting Magic to
+  Defense when a creature has none."
+- dmgTagMultiplier: T2/T4's four-tag multiplier. Named dmgTags, not
+  tags -- BESTIARY/ally creatures already have an unrelated tags
+  array (habitat/faction categorization, 233+ entries) that this
+  would otherwise silently collide with.
+- isStatusImmune: T3's separate immunity flag.
+- resolveDamageType: action -> weapon -> creature attackType -> Blunt
+  fallback chain (§2's field priority).
+
+Nothing calls any of this yet, and the switch is off, so this changes
+no behavior: full suite 454/454, audit 0 errors (same 72 pre-existing
+warnings as before). Wiring these into the live formulas is steps
+2b-2d; content passes (weapon/creature/ability/status damageType and
+tag data) are step 3, not this commit.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ index.html             |   1 +
+ js/data/damagetypes.js | 107 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 108 insertions(+)

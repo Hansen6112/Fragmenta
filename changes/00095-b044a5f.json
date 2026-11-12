@@ -1,0 +1,34 @@
+[
+ {
+  "reg": "DAMAGE_TYPES_V2",
+  "type": "registry added"
+ },
+ {
+  "reg": "DAMAGE_TYPE_FAMILIES",
+  "type": "registry added"
+ },
+ {
+  "reg": "DAMAGE_TYPES",
+  "type": "registry added"
+ },
+ {
+  "reg": "DAMAGE_TYPE_FAMILY",
+  "type": "registry added"
+ },
+ {
+  "reg": "FIRST_RIVER",
+  "type": "registry added"
+ },
+ {
+  "reg": "DAMAGE_TAG_MULTIPLIER",
+  "type": "registry added"
+ },
+ {
+  "reg": "LEGACY_STATUS_DAMAGE_TYPE_V2",
+  "type": "registry added"
+ },
+ {
+  "reg": "ATTUNEMENT_TAG_PAIRS",
+  "type": "registry added"
+ }
+]
