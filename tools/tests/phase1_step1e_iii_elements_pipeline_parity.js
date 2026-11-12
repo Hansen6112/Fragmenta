@@ -85,9 +85,16 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // already makes key order a non-issue on both sides.
     function snapshot(s) {
       let combat = s.combat;
-      if (combat && combat.player) {
-        combat = Object.assign({}, combat, combat.player);
-        delete combat.player;
+      if (combat) {
+        combat = Object.assign({}, combat);
+        if (combat.player) {
+          Object.assign(combat, combat.player);
+          delete combat.player;
+        }
+        if (Array.isArray(combat.enemies) && combat.enemies[combat.activeIndex]) {
+          const slot = combat.enemies[combat.activeIndex];
+          PER_ENEMY_FIELDS.forEach((f) => { combat[f] = slot[f]; });
+        }
       }
       return sortedStringify({ combat: combat, health: s.health, party: s.party });
     }

@@ -49,19 +49,30 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     }
 
     // Step 1h-iii flattened the 130 PLAYER_FIELDS entries out of
-    // state.combat's own top level into state.combat.player -- this
-    // fixture was frozen in step 1h-i, before that existed, so its own
-    // snap strings still have those fields flat. Reconstructing that
-    // same flat shape here (merging .player back up, dropping the key)
-    // keeps this snapshot DATA-equivalent to the frozen one; stableStringify
-    // (used wherever a snap is actually compared, not here) is what makes
-    // the two comparable despite the now-different property insertion
-    // order neither side can undo.
+    // state.combat's own top level into state.combat.player, and step
+    // 1h-iv did the same for the 24 PER_ENEMY_FIELDS entries (deleting
+    // wireActiveEnemyProxy, so combat.<field> no longer mirrors
+    // combat.enemies[combat.activeIndex][field]) -- this fixture was
+    // frozen in step 1h-i, before either of those existed, so its own
+    // snap strings still have both sets of fields flat. Reconstructing
+    // that same flat shape here (merging .player back up and copying the
+    // active enemy's own PER_ENEMY_FIELDS values back onto the top
+    // level, dropping .player) keeps this snapshot DATA-equivalent to the
+    // frozen one; stableStringify (used wherever a snap is actually
+    // compared, not here) is what makes the two comparable despite the
+    // now-different property insertion order neither side can undo.
     function snapshot(s) {
       let combat = s.combat;
-      if (combat && combat.player) {
-        combat = Object.assign({}, combat, combat.player);
-        delete combat.player;
+      if (combat) {
+        combat = Object.assign({}, combat);
+        if (combat.player) {
+          Object.assign(combat, combat.player);
+          delete combat.player;
+        }
+        if (Array.isArray(combat.enemies) && combat.enemies[combat.activeIndex]) {
+          const slot = combat.enemies[combat.activeIndex];
+          PER_ENEMY_FIELDS.forEach((f) => { combat[f] = slot[f]; });
+        }
       }
       return JSON.stringify({
         health: s.health, maxHealth: s.maxHealth, playerDowned: s.playerDowned,

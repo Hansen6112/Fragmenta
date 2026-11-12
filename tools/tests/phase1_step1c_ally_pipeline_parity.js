@@ -60,9 +60,16 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     // order neither side can undo.
     function snapshot(s) {
       let combat = s.combat;
-      if (combat && combat.player) {
-        combat = Object.assign({}, combat, combat.player);
-        delete combat.player;
+      if (combat) {
+        combat = Object.assign({}, combat);
+        if (combat.player) {
+          Object.assign(combat, combat.player);
+          delete combat.player;
+        }
+        if (Array.isArray(combat.enemies) && combat.enemies[combat.activeIndex]) {
+          const slot = combat.enemies[combat.activeIndex];
+          PER_ENEMY_FIELDS.forEach((f) => { combat[f] = slot[f]; });
+        }
       }
       return JSON.stringify({
         health: s.health, maxHealth: s.maxHealth, playerDowned: s.playerDowned,
