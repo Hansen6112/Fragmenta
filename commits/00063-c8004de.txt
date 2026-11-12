@@ -1,0 +1,69 @@
+range: 7128bf48a973d1218cbedb704a0d19dfe41b07a5..c8004deb78f7e302ec8505a33d21f5f8c3996636
+=== c8004deb78f7e302ec8505a33d21f5f8c3996636 2026-11-12 00:05:33 +0000
+Step 1h-iii §1: build the explicit state.combat.player store
+Combat Rebuild Phase 1, step 1h §4, first commit: make the
+PLAYER_FIELDS/wirePlayerFieldsProxy alias real, per the handoff's own
+instruction, before any call site is rewritten off it.
+
+- makePlayerCombatStore(combat): extracts the current value of each of
+  the 130 PLAYER_FIELDS entries (re-derived from the array's own
+  current content via eval, not the handoff's ~101 estimate -- it
+  grew across 1e/1g's own field moves) into a real object. Called once
+  in startCombat, right where wirePlayerFieldsProxy already was.
+- wirePlayerFieldsProxy itself now wires its per-field accessors to
+  read/write combat.player[field] instead of a private closure
+  variable -- so every existing combat.<field>/state.combat.<field>
+  call site (the ones step 1h-iii's later commits progressively
+  rewrite to combat.player.<field>) keeps landing on the exact same
+  storage as the new spelling, with zero risk of the two drifting
+  apart mid-migration.
+- makePlayerCombatant's own `store` (combatant.js, step 1a) now points
+  at state.combat.player instead of the whole state.combat object --
+  the same tight, fighter-specific-bag shape ally/enemy combatants
+  already have (store: ally / store: enemySlot). Verified safe first:
+  all 12 makePlayerCombatant call sites (pipeline.js x11, resolver.js
+  x1) read zero `.store` properties on the resulting view anywhere in
+  their own function bodies, and partyCombatants (the one place that
+  would read `.store` on a player view generically) has no callers
+  anywhere in the codebase.
+- combat.player is defined non-enumerable for now (Object.defineProperty,
+  not a plain assignment): while the flat compat accessors above also
+  exist, letting .player enumerate too would double-count the same 130
+  values in anything that serializes state.combat as a whole --
+  caught by this commit's own verification pass, see below. Step
+  1h-iii's last commit (deleting wirePlayerFieldsProxy, once nothing
+  reads the flat spelling anymore) also flips this back to ordinary/
+  enumerable, matching every other state.combat key (enemies,
+  activeIndex, ...).
+
+Caught during verification, fixed before committing: the Layer 1
+parity harnesses' own snapshot(s) helper (phase1_step1b/1c/1d/1e_i/
+1e_ii/1e_iii) does `JSON.stringify({ ..., combat: s.combat })` and
+string-compares it against each scenario's frozen pre-1h fixture.
+Making combat.player enumerable (the first version of this commit)
+changed that JSON's shape -- the exact same 130 values appearing a
+second time, nested -- so every one of those files' scenarios failed
+on a snap mismatch despite the game's actual observable behavior
+(narrative lines, numeric outcomes) being provably identical
+(snapDiffHint showed the new snap ~3200 characters longer than the
+frozen one, consistent with one extra nested copy of the same data,
+nothing else). Making combat.player non-enumerable instead keeps
+JSON.stringify(state.combat) byte-identical to its pre-1h-iii shape
+for as long as the compat accessors exist alongside it, so the frozen
+fixtures stay valid without touching any of those six test files.
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+No call site rewritten yet -- this is 1h-iii's own first commit,
+infrastructure only. Next: rewrite combat.js's own call sites onto
+combat.player.<field> in batches by region.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js    | 43 +++++++++++++++++++++++++++++++++++++++----
+ js/engine/combatant.js |  2 +-
+ 2 files changed, 40 insertions(+), 5 deletions(-)
