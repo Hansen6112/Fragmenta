@@ -1,0 +1,78 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 7b53e63..9838f27 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -5352,7 +5352,12 @@ function enemyEquipmentBonus(equipment, statKey) {
+   }
+   return total;
+ }
+-function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
++// locationTags (Decisions Addendum §2, off by default): the current
++// encounter's own resolved terrain tags, passed by startCombat -- used
++// only to bias pickElementVariant below. Omitted by the one other
++// caller (resolveEnemySummon), which falls back to a plain uniform pick
++// -- a mid-fight summon has no location of its own to bias toward.
++function buildFightCreature(template, level, dangerClassOverride, bestiaryId, locationTags) {
+   const clampedLevel = clampLevelToRarityBand(level, template.spawnRarity, template.levelBandExempt);
+   const effectiveTemplate = dangerClassOverride ? Object.assign({}, template, { dangerClass: dangerClassOverride }) : template;
+   const scaled = computeCreatureStats(effectiveTemplate, clampedLevel);
+@@ -5408,7 +5413,7 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
+   // this whole fight, same as any other creature-build-time decision
+   // (equipment, passives) above.
+   if (DAMAGE_TYPES_V2 && creature.elementVariants && creature.elementVariants.length) {
+-    const variant = pickElementVariant(creature.elementVariants);
++    const variant = pickElementVariant(creature.elementVariants, locationTags);
+     if (variant) {
+       creature.elementType = variant.damageType;
+       creature.variantStatus = variant.status;
+@@ -5506,9 +5511,17 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     // its OWN species' Spawn Rarity band, so a Common packmate spawning
+     // alongside a Rare leader doesn't scale past what Common ever allows.
+     const rolled = preRolledLevel != null ? preRolledLevel : rollEncounterLevel(state.level);
++    // Decisions Addendum §2 (off by default): the current location's own
++    // resolved terrain tags (js/data/world.js's TERRAIN_TAGS[loc.terrain]
++    // — the same expansion a location's single terrain id already goes
++    // through for habitat/creature-eligibility elsewhere), passed down so
++    // buildFightCreature's own elementVariants pick can bias toward
++    // whichever variant actually fits this encounter.
++    const loc = DAMAGE_TYPES_V2 ? state.currentLocation() : null;
++    const locationTags = loc ? TERRAIN_TAGS[loc.terrain] || [] : null;
+     roster = rollEncounterGroup(creatureIdOrObject, rolled, state.level).map((member) => ({ // v0.11c: group size capped by player level band
+       id: member.id,
+-      creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass, member.id),
++      creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass, member.id, locationTags),
+       dynamicCreature: false,
+     }));
+   }
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 6df7773..db7dfc4 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1656,9 +1656,9 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+     // Damage Types v2 (step 2d, off by default): tags replace the old
+     // element-vs-element matchup cycle -- see enemyCore's own identical
+     // comment (js/data/actions.js) for the full reasoning. Avatar of
+-    // Knowledge's own override still runs (matchup===1 passes through
+-    // it unchanged either way) -- that buff isn't re-targeted at the new
+-    // tag system here, out of this spec's own scope.
++    // Knowledge's own old override is bypassed under the switch
++    // (matchup forced to 1) -- it's re-targeted at the tag system
++    // instead, below, per the Decisions Addendum's A3.
+     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
+     const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+     // Damage Types v2 (off by default, spec §3 steps 2-3): resist-by-
+@@ -1670,7 +1670,13 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+     const spellPower = base * multiplier;
+     const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
+     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
+-    if (DAMAGE_TYPES_V2) dmg = Math.round(dmg * dmgTagMultiplier(creature, spellDType));
++    // A3 (off by default): Avatar of Knowledge shifts the TARGET's own
++    // tag one step better for the attacker, read here instead of the
++    // plain dmgTagMultiplier every other caller uses.
++    if (DAMAGE_TYPES_V2) {
++      const avatarOfKnowledgeActive = state.combat && state.combat.player.avatarOfKnowledgeTurns > 0;
++      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(creature, spellDType, avatarOfKnowledgeActive));
++    }
+     if (state.combat.player.avatarOfCreationTurns > 0) {
+       state.combat.player.avatarOfCreationMagicStacks = (state.combat.player.avatarOfCreationMagicStacks || 0) + 2;
+     }

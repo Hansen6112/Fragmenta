@@ -1,0 +1,108 @@
+range: 97022e44c4f1c79c122ec8b6086c03f4596892fd..a79b50cc0c63c5aa7edb02f727ba55637af1f1e6
+=== a79b50cc0c63c5aa7edb02f727ba55637af1f1e6 2026-11-12 20:30:09 +0000
+DamageTypes Addendum §2: location-weighted elementVariants picking
+pickElementVariant(variants, locationTags) now biases toward variants
+whose preferredTags overlap the current encounter's own terrain tags
+(weight x4), falling back to a plain uniform pick with no bias. Every
+DRAVEN_DRAK/SKREL_DRAK/ELEMENTAL_VARIANTS entry gets a preferredTags
+list per the Addendum's family/variant table; SKREL_DRAK_VARIANTS gains
+the decided Heated Mist (Water, Mist-blooded Skrel-Drak) entry.
+
+startCombat computes the encounter's own TERRAIN_TAGS (via
+state.currentLocation().terrain) and threads it through
+buildFightCreature's new locationTags param into the variant pick;
+resolveEnemySummon's call site is left without it on purpose -- a
+mid-fight summon has no location of its own to bias toward, so it
+still gets a plain uniform pick.
+
+Known gap, left unimplemented on purpose: Heated Mist's Codex effect
+("AoE at 150%, plus Burning") only got the damage-type/status/display/
+preferredTags reskin here. The elementVariants schema has no per-variant
+ability-override field (dmgMult/aoe), and the Addendum didn't specify
+exact numbers, so the "becomes an AoE attack at 150%" mechanic itself
+is NOT implemented yet -- it still resolves as a normal single-target
+hit with the Burning status. Flagging this explicitly rather than
+guessing at unspecified numbers.
+
+New VM-sandbox ledger (same text-patched-switch technique as the A1
+injury ledger, since DAMAGE_TYPES_V2 is a plain const) proves, per the
+Addendum's own bar ("over 1,000 spawns per location tag, the matching
+variants dominate, and every variant still appears at least once
+across all tags"): for each family x each of its preferred tags, the
+matching variants' observed share clears the unbiased baseline and
+lands within 15 points of the analytically expected share
+4m/(4m+(k-m)); full tag/no-tag coverage holds too. 36/36, stable
+across repeated runs. Registered in run_all.js's LEDGERS; full suite
+499/499, audit 0 errors/869 warnings with the switch off.
+
+All of this stays behind DAMAGE_TYPES_V2 (off by default); off-switch
+behavior is unchanged.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/bestiary.js                                |  58 +++++----
+ js/data/damagetypes.js                             |  32 +++--
+ js/engine/combat.js                                |  19 ++-
+ .../damage_types_a5_variant_weighting_ledger.js    | 135 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 212 insertions(+), 33 deletions(-)
+=== d1b9226acc18a91b5d7f29e58adaa427c6ec8174 2026-11-12 20:21:31 +0000
+Damage Types spec v1.0, Decisions Addendum, §3/§4: the small decided content calls
+Applies Tyler's approved content decisions for the mirror/illusion
+pair and Death From Above:
+
+- damageType: "slashing" on death_from_above (talons).
+- damageType: "piercing" on reflection_strike/mirrored_assault (Elder
+  Voreth-Sael is a fish -- it bites; the mirror theme lives in
+  Disoriented and the Agility buffs, not the damage type).
+- damageType: "slashing" on phantom_strike/mirror_hunt (claws, not
+  Spirit -- same reasoning for Rau-Thauln Voreth's illusion).
+- attackType: "piercing" on elderVorethSael; attackType: "slashing" on
+  rauThaulnVoreth and elderRauThaulnVoreth.
+
+This corrects the original candidate list's own keyword-matched
+guesses (Phantom Strike -> Spirit from "Phantom", Reflection Strike ->
+Blunt from "Strike") -- both wrong for the reason Tyler's own
+addendum gives: these creatures decide WHERE an attack comes from
+(illusion), not WHAT it's made of.
+
+All of this is inert data until DAMAGE_TYPES_V2 is on (every field
+here is only ever read inside a switch-gated branch). Verified: full
+suite 463/463, audit 0 errors -- 877 -> 869 warnings, exactly the 8
+D1 "no damageType/attackType yet" hits this commit clears.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/bestiary.js       |  6 ++++++
+ js/data/enemyabilities.js | 17 ++++++++++++-----
+ 2 files changed, 18 insertions(+), 5 deletions(-)
+=== b9e87fa0ca4a87cca19d32fa2c5050c7adbda7cb 2026-11-12 20:20:07 +0000
+Damage Types spec v1.0, Decisions Addendum, A3: Avatar of Knowledge tag shift
+Tyler's approved decision: while Avatar of Knowledge is active, the
+target's tag counts one step better for the attacker (Immune->Resist,
+Resist->Normal; Normal/Weak unchanged, Weak keeping its own 1.5x --
+the same cap the old matchup override's strong side had).
+
+Added dmgTagMultiplierForAttacker (js/data/damagetypes.js), a separate
+function from the plain dmgTagMultiplier every other caller uses --
+this one only ever applies to the player's own attack, since Avatar of
+Knowledge is a player buff. Wired into rollPlayerDamageCoreForPipeline's
+spell branch (js/engine/pipeline.js), replacing the bypassed
+avatarOfKnowledgeMatchupOverride call under the switch -- off, nothing
+changes (the override still runs exactly as before).
+
+Verified: full suite 463/463, audit 0 errors, switch off
+(byte-identical). Also sanity-checked the shift table directly
+(immune/resist/normal/weak against both avatarOfKnowledge true/false).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/damagetypes.js | 16 ++++++++++++++++
+ js/engine/pipeline.js  | 14 ++++++++++----
+ 2 files changed, 26 insertions(+), 4 deletions(-)

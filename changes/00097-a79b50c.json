@@ -1,0 +1,1192 @@
+[
+ {
+  "reg": "DRAVEN_DRAK_VARIANTS",
+  "id": "red",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "volcanic",
+     "desert"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "DRAVEN_DRAK_VARIANTS",
+  "id": "white",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "tundra",
+     "mountain"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "DRAVEN_DRAK_VARIANTS",
+  "id": "green",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "forest",
+     "jungle"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "DRAVEN_DRAK_VARIANTS",
+  "id": "black",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "swamp"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "DRAVEN_DRAK_VARIANTS",
+  "id": "blue",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "coast",
+     "plains"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "SKREL_DRAK_VARIANTS",
+  "id": "fire",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "volcanic",
+     "desert"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "SKREL_DRAK_VARIANTS",
+  "id": "ice",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "tundra",
+     "mountain"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "SKREL_DRAK_VARIANTS",
+  "id": "lightning",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "coast",
+     "plains"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "SKREL_DRAK_VARIANTS",
+  "id": "acid",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "swamp"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "SKREL_DRAK_VARIANTS",
+  "id": "heated_mist",
+  "type": "added"
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "id": "fire",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "volcanic",
+     "desert"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "id": "ash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "volcanic"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "id": "stone",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "mountain",
+     "cave"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "id": "plant",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "forest",
+     "jungle"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "id": "water",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "coast",
+     "lake",
+     "river",
+     "sea"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "id": "mist",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "swamp",
+     "coast"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "id": "ice",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "preferredTags",
+    "new": [
+     "tundra",
+     "mountain"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "juvenileDravenDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "red",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Red Draven-Drak"
+     },
+     {
+      "id": "white",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "White Draven-Drak"
+     },
+     {
+      "id": "green",
+      "damageType": "poison",
+      "status": "venom",
+      "displayName": "Green Draven-Drak"
+     },
+     {
+      "id": "black",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Black Draven-Drak"
+     },
+     {
+      "id": "blue",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Blue Draven-Drak"
+     }
+    ],
+    "new": [
+     {
+      "id": "red",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Red Draven-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "white",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "White Draven-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "blue",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Blue Draven-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "black",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Black Draven-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "green",
+      "damageType": "poison",
+      "status": "venom",
+      "displayName": "Green Draven-Drak",
+      "preferredTags": [
+       "forest",
+       "jungle"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "adultDravenDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "red",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Red Draven-Drak"
+     },
+     {
+      "id": "white",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "White Draven-Drak"
+     },
+     {
+      "id": "green",
+      "damageType": "poison",
+      "status": "venom",
+      "displayName": "Green Draven-Drak"
+     },
+     {
+      "id": "black",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Black Draven-Drak"
+     },
+     {
+      "id": "blue",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Blue Draven-Drak"
+     }
+    ],
+    "new": [
+     {
+      "id": "red",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Red Draven-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "white",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "White Draven-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "blue",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Blue Draven-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "black",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Black Draven-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "green",
+      "damageType": "poison",
+      "status": "venom",
+      "displayName": "Green Draven-Drak",
+      "preferredTags": [
+       "forest",
+       "jungle"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "youngSkrelDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak"
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak"
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak"
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "heated_mist",
+      "damageType": "water",
+      "status": "burning",
+      "displayName": "Mist-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientSkrelDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak"
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak"
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak"
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "heated_mist",
+      "damageType": "water",
+      "status": "burning",
+      "displayName": "Mist-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderVorethSael",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rauThaulnVoreth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderRauThaulnVoreth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "lesserElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental",
+      "preferredTags": [
+       "volcanic"
+      ]
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental",
+      "preferredTags": [
+       "mountain",
+       "cave"
+      ]
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental",
+      "preferredTags": [
+       "forest",
+       "jungle"
+      ]
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river",
+       "sea"
+      ]
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental",
+      "preferredTags": [
+       "swamp",
+       "coast"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental",
+      "preferredTags": [
+       "volcanic"
+      ]
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental",
+      "preferredTags": [
+       "mountain",
+       "cave"
+      ]
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental",
+      "preferredTags": [
+       "forest",
+       "jungle"
+      ]
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river",
+       "sea"
+      ]
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental",
+      "preferredTags": [
+       "swamp",
+       "coast"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greaterElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental",
+      "preferredTags": [
+       "volcanic"
+      ]
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental",
+      "preferredTags": [
+       "mountain",
+       "cave"
+      ]
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental",
+      "preferredTags": [
+       "forest",
+       "jungle"
+      ]
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river",
+       "sea"
+      ]
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental",
+      "preferredTags": [
+       "swamp",
+       "coast"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "primalElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental",
+      "preferredTags": [
+       "volcanic"
+      ]
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental",
+      "preferredTags": [
+       "mountain",
+       "cave"
+      ]
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental",
+      "preferredTags": [
+       "forest",
+       "jungle"
+      ]
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river",
+       "sea"
+      ]
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental",
+      "preferredTags": [
+       "swamp",
+       "coast"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "reflection_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mirrored_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "death_from_above",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "phantom_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mirror_hunt",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "AVATAR_OF_KNOWLEDGE_SHIFT",
+  "type": "registry added"
+ }
+]
