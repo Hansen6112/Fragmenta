@@ -1,0 +1,148 @@
+range: b044a5f4d951593fabf184b2356dc7c69f078f14..97022e44c4f1c79c122ec8b6086c03f4596892fd
+=== 97022e44c4f1c79c122ec8b6086c03f4596892fd 2026-11-12 17:59:35 +0000
+Damage Types spec v1.0, step 2 follow-ups, A5: creature elementVariants
+The Codex makes dragons and Elementals "come in elemental variants"
+(white Draven-Drak breathes Frost, black breathes Acid, and so on) --
+today one shared Breath Weapon burns for every dragon, a gap Tyler's
+own spec missed. A5 adds the mechanism, behind DAMAGE_TYPES_V2 (still
+off), plus the confirmed variant data from 5_variants.csv.
+
+- js/data/damagetypes.js: pickElementVariant (weighted pick, default
+  weight 1), and resolveDamageType's new "fromCreature" priority --
+  an ability declaring damageType: "fromCreature" reads whichever
+  elementType the wielding creature's own picked variant set, ahead
+  of every other priority in the chain.
+- js/engine/combat.js: buildFightCreature picks one elementVariants
+  entry at spawn time, setting elementType/variantStatus/display
+  name and an automatic Resist tag to its own type.
+  resolveEnemyActiveAbility's abilityCtx now carries the ability's
+  own damageType, and overrides `inflict`'s status (and
+  bonusVsStatus's status key) with the creature's own variantStatus
+  when the ability is fromCreature -- "each variant's signature
+  status replaces the ability's fixed inflict."
+- js/engine/pipeline.js / js/data/actions.js: action.damageType is
+  now threaded from abilityCtx into the action object at both enemy-
+  attack orchestrators (previously it was never populated at all, a
+  real gap -- no enemy ability's own damageType, even once content
+  tags one, could ever have reached calculateDamage). Every
+  resolveDamageType call site that has an enemy creature in scope now
+  passes creature.elementType too.
+- js/data/enemyabilities.js: damageType: "fromCreature" on the 5
+  abilities Tyler named (breath_weapon, catastrophic_breath,
+  inherited_breath, elemental_strike, elemental_surge).
+- js/data/bestiary.js: elementVariants on the Draven-Drak (5: Red/
+  White/Green/Black/Blue), Skrel-Drak (4: Fire/Ice/Lightning/Acid --
+  Heated Mist excluded, still flagged REVIEW/undecided in Tyler's own
+  list), and Elementals (7: Fire/Ash/Stone/Plant/Water/Mist/Ice)
+  families -- every creature in BESTIARY that uses one of the 5
+  abilities above. A variant's `status` references the status id the
+  Codex names even where STATUS_EFFECTS doesn't define it yet
+  (shocked/corrosion/ashen_lungs/crushed/drenched/frozen) --
+  applyAbilityInflict already no-ops safely on an unknown status
+  (getStatusEffect returns null), so that content (the original
+  spec's own step 3 item 4) lands with zero further wiring here.
+- tools/audit.js: a new error-level rule -- a fromCreature ability
+  used by a creature with no elementVariants. Verified it actually
+  fires (temporarily stripped one creature's variants, confirmed the
+  error, restored).
+
+Verified: full suite 463/463, audit 0 errors (both switch states),
+switch off byte-identical. Switch-on sanity check: same known
+snapshot-staleness failures as every prior step 2 follow-up commit,
+no new breakage.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js        | 14 +++++++-------
+ js/data/bestiary.js       | 46 ++++++++++++++++++++++++++++++++++++++++++++++
+ js/data/damagetypes.js    | 41 ++++++++++++++++++++++++++++++++---------
+ js/data/enemyabilities.js | 21 ++++++++++++++-------
+ js/engine/combat.js       | 41 ++++++++++++++++++++++++++++++++++++++---
+ js/engine/pipeline.js     | 10 +++++-----
+ tools/audit.js            | 15 +++++++++++++++
+ 7 files changed, 157 insertions(+), 31 deletions(-)
+=== 6b05f5eea8502c5a0903d1caeb508cac001563cf 2026-11-12 14:32:44 +0000
+Damage Types spec v1.0, step 2 follow-ups, A2: Mirror Soul onto the tag system
+Mirror Soul's reflection (js/engine/pipeline.js, inside calculateDamage's
+mirrorSoulUsed branch) still called the retired elementMultiplier --
+step 2d retired it at the two generic formula call sites but explicitly
+left this one alone as a narrow, out-of-scope mechanic (same call this
+project made for Phase 1's U1 switch). Tyler's own follow-up (A2) asks
+for it anyway, as a mechanical, no-decision-needed move: "the reflected
+hit uses the attacker's tag for the reflected damage type, the same as
+any other hit."
+
+Behind DAMAGE_TYPES_V2 (still off): the multiplier is now
+dmgTagMultiplier(creature, dType), where dType is the creature's own
+element translated onto the new roster (only "transportation" needs
+translating, to "spatial" -- every other ELEMENTS key already spells
+the same in both rosters). It's the creature's OWN tags that apply,
+since the reflection lands back on the creature that cast the original
+spell.
+
+Verified: full suite 463/463, audit 0 errors, switch off
+(byte-identical).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+=== 39d2a121c1a672f224be8725fa2a6e56267c52b7 2026-11-12 14:29:39 +0000
+Damage Types spec v1.0, step 2 follow-ups, A1: the real 12-group injury table
+Tyler's Reference document gives the actual damage-type-to-injury-group
+table and the 23 new injury names that step 2 couldn't build without
+it (tools/damage_types_step2_system.md's own "known gaps" section).
+This lands it, behind DAMAGE_TYPES_V2 (still off):
+
+- js/data/damagetypes.js: INJURY_GROUPS_V2 (the 12 real groups:
+  trauma/laceration/puncture/burns/shock/frost/exposure/corrosion/
+  toxin/rot/displacement/soul) and DAMAGE_TYPE_TO_INJURY_GROUP_V2,
+  built the same way the old 6-group table already is. First River
+  deliberately has no entry (T9) -- applyInjuriesFromDowns skips it
+  outright rather than defaulting into trauma.
+- js/engine/state.js: the 23 new INJURY_SLOT_DEFS entries (working
+  names from the Reference; Narrative owns the final ones per T11),
+  added unconditionally -- they're unreachable while the switch is
+  off, so this is a pure data addition with no behavior change.
+  exposure_frostbite's own `.group` field is updated to "frost" (an
+  unread, cosmetic field -- recomputeStats/injurySlotName key off
+  `.stat`/`.name` only), matching Tyler's own wording exactly: "every
+  shipped injury keeps its id; only its group changes (Frostbite)."
+- js/engine/combat.js: applyInjuriesFromDowns/applyOneInjuryToGroup
+  pick between the old and new group tables by the switch.
+  INJURY_GROUPS_V2's own `slots` are already full ids (not bare
+  suffixes needing "<group>_" prepended) -- that's what lets
+  Frostbite's id survive the move into a differently-named group.
+
+New tools/tests/damage_types_a1_injury_v2_ledger.js (added to
+run_all.js's LEDGERS): proves save compatibility (a pre-existing
+exposure_frostbite/burns_burned_hands injury still docks the right
+stat and resolves its name, under BOTH switch states, since
+recomputeStats keys purely off INJURY_SLOT_DEFS[id].stat, never off
+an injury's own stale .group or the switch), the new roll path (a
+Frost down lands in the new frost group; Spirit and Divine both land
+in soul; firstRiver causes no injury at all), and the table's own
+shape (12 groups, 36 slots, no missing defs). Not a Playwright ledger
+like its siblings -- DAMAGE_TYPES_V2 is a plain const, not an object
+like COMBAT_UNIFY, so there's no in-page way to flip it; this loads
+the real game into a VM sandbox twice (tools/audit.js's own
+technique), once unpatched and once with that one line text-patched
+to true in memory only -- the real file is never touched.
+
+Verified: full suite 463/463 (454 + this file's 9), audit 0 errors,
+switch off unaffected.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/damagetypes.js                          |  31 +++++
+ js/engine/combat.js                             |  26 +++-
+ js/engine/state.js                              |  43 +++++-
+ tools/tests/damage_types_a1_injury_v2_ledger.js | 177 ++++++++++++++++++++++++
+ tools/tests/run_all.js                          |   1 +
+ 5 files changed, 271 insertions(+), 7 deletions(-)

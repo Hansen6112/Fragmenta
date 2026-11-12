@@ -1,0 +1,449 @@
+[
+ {
+  "reg": "BESTIARY",
+  "id": "juvenileDravenDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "red",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Red Draven-Drak"
+     },
+     {
+      "id": "white",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "White Draven-Drak"
+     },
+     {
+      "id": "green",
+      "damageType": "poison",
+      "status": "venom",
+      "displayName": "Green Draven-Drak"
+     },
+     {
+      "id": "black",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Black Draven-Drak"
+     },
+     {
+      "id": "blue",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Blue Draven-Drak"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "adultDravenDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "red",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Red Draven-Drak"
+     },
+     {
+      "id": "white",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "White Draven-Drak"
+     },
+     {
+      "id": "green",
+      "damageType": "poison",
+      "status": "venom",
+      "displayName": "Green Draven-Drak"
+     },
+     {
+      "id": "black",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Black Draven-Drak"
+     },
+     {
+      "id": "blue",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Blue Draven-Drak"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "youngSkrelDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak"
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak"
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientSkrelDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak"
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak"
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "lesserElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greaterElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "primalElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire Elemental"
+     },
+     {
+      "id": "ash",
+      "damageType": "fire",
+      "status": "ashen_lungs",
+      "displayName": "Ash Elemental"
+     },
+     {
+      "id": "stone",
+      "damageType": "earth",
+      "status": "crushed",
+      "displayName": "Stone Elemental"
+     },
+     {
+      "id": "plant",
+      "damageType": "earth",
+      "status": "rooted",
+      "displayName": "Plant Elemental"
+     },
+     {
+      "id": "water",
+      "damageType": "water",
+      "status": "drenched",
+      "displayName": "Water Elemental"
+     },
+     {
+      "id": "mist",
+      "damageType": "water",
+      "status": "obscured",
+      "displayName": "Mist Elemental"
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "frozen",
+      "displayName": "Ice Elemental"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "breath_weapon",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "catastrophic_breath",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "inherited_breath",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "elemental_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "elemental_surge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "DRAVEN_DRAK_VARIANTS",
+  "type": "registry added"
+ },
+ {
+  "reg": "SKREL_DRAK_VARIANTS",
+  "type": "registry added"
+ },
+ {
+  "reg": "ELEMENTAL_VARIANTS",
+  "type": "registry added"
+ },
+ {
+  "reg": "INJURY_GROUPS_V2",
+  "type": "registry added"
+ },
+ {
+  "reg": "DAMAGE_TYPE_TO_INJURY_GROUP_V2",
+  "type": "registry added"
+ }
+]

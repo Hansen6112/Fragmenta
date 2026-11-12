@@ -1,0 +1,239 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index a93417f..7b53e63 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -3221,8 +3221,14 @@ function resolveEnemyActiveAbility(state, creature) {
+   const firstBonus = firstAttackPassiveBonus(state, creature);
+   dmgMult *= firstBonus.dmgMultBonus;
+   const firstAttackAccBonus = firstBonus.accBonus;
+-  if (ability.bonusVsStatus && combat.player.playerStatuses && combat.player.playerStatuses[ability.bonusVsStatus.status]) {
+-    dmgMult *= ability.bonusVsStatus.mult;
++  if (ability.bonusVsStatus) {
++    // A5 (off by default): an elemental-variant creature's own
++    // signature status (e.g. a White Draven-Drak's Chilled) replaces
++    // the ability's fixed status here too, not just in `inflict` below
++    // -- Elemental Surge's whole point is "bonus if the target already
++    // carries the SAME status this creature's own variant inflicts."
++    const statusKey = DAMAGE_TYPES_V2 && ability.damageType === "fromCreature" && creature.variantStatus ? creature.variantStatus : ability.bonusVsStatus.status;
++    if (combat.player.playerStatuses && combat.player.playerStatuses[statusKey]) dmgMult *= ability.bonusVsStatus.mult;
+   }
+   if (ability.bonusVsHealthBelowPct && state.health <= state.maxHealth * ability.bonusVsHealthBelowPct.pct) {
+     dmgMult *= ability.bonusVsHealthBelowPct.mult;
+@@ -3321,7 +3327,14 @@ function resolveEnemyActiveAbility(state, creature) {
+   // the same banked-state flag Contract Bolt's bonusIfPreparedState above
+   // reads, BEFORE this attack's own normal consumption clears it, and omit
+   // the inflict entirely when it isn't set.
+-  const inflict = ability.inflictRequiresPreparedState && !(creature.bankedAttackAccBonusTurnsLeft > 0) ? undefined : ability.inflict;
++  let inflict = ability.inflictRequiresPreparedState && !(creature.bankedAttackAccBonusTurnsLeft > 0) ? undefined : ability.inflict;
++  // A5 (off by default): an elemental-variant creature's own signature
++  // status replaces the ability's fixed one -- "Each variant's signature
++  // status replaces the ability's fixed inflict (today they're all
++  // Burning)."
++  if (DAMAGE_TYPES_V2 && ability.damageType === "fromCreature" && creature.variantStatus && inflict) {
++    inflict = Object.assign({}, inflict, { status: creature.variantStatus });
++  }
+   return {
+     id: abilityId,
+     name: ability.name,
+@@ -3333,6 +3346,11 @@ function resolveEnemyActiveAbility(state, creature) {
+     // generically, the same as a player action's own `formula` is read
+     // off getActionDef(id), never assumed by the caller.
+     formula: ability.formula,
++    // Damage Types spec v1.0 step 2 follow-ups, A5: the ability's own
++    // declared damageType (e.g. "fromCreature" for Breath Weapon) --
++    // read generically by resolveDamageType via the action object
++    // resolveEnemyAttackOnPlayer/OnAlly build from this abilityCtx.
++    damageType: ability.damageType,
+     dmgMult,
+     accBonus: (ability.accBonus || 0) + firstAttackAccBonus + condAccBonus || undefined,
+     aoe: !!ability.aoe,
+@@ -4137,20 +4155,34 @@ function beginTurn(state) {
+ // caller before state.combat is nulled (dungeonRescue nulls it itself).
+ function applyInjuriesFromDowns(state, downs) {
+   const lines = [];
++  // Damage Types spec v1.0 step 2 follow-ups, A1 (off by default): the
++  // new 12-group table/roster once DAMAGE_TYPES_V2 is on, instead of
++  // the old 6-group one -- js/data/damagetypes.js's INJURY_GROUPS_V2/
++  // DAMAGE_TYPE_TO_INJURY_GROUP_V2.
++  const typeToGroup = DAMAGE_TYPES_V2 ? DAMAGE_TYPE_TO_INJURY_GROUP_V2 : DAMAGE_TYPE_TO_INJURY_GROUP;
+   for (const damageType of downs || []) {
++    // T9: First River never causes an injury (and is never displayed) --
++    // only reachable at all once DAMAGE_TYPES_V2 is on and something
++    // actually sets playerLastHitType to it.
++    if (DAMAGE_TYPES_V2 && damageType === FIRST_RIVER) continue;
+     // Judgment call: every real call site always sets playerLastHitType
+-    // to one of the 10 known keys (physical/bleed/the 8 ELEMENTS keys)
+-    // before a down can be pushed, so this fallback is only a defensive
+-    // guard against a stale/unmapped value, never expected to fire.
+-    const group = DAMAGE_TYPE_TO_INJURY_GROUP[damageType] || "trauma";
++    // to one of the known keys (physical/bleed/the 8 ELEMENTS keys, or
++    // under the switch, a real DAMAGE_TYPES member) before a down can be
++    // pushed, so this fallback is only a defensive guard against a
++    // stale/unmapped value, never expected to fire.
++    const group = typeToGroup[damageType] || "trauma";
+     lines.push(...applyOneInjuryToGroup(state, group));
+   }
+   return lines;
+ }
+ 
+ function applyOneInjuryToGroup(state, group) {
+-  const groupDef = INJURY_GROUPS[group];
+-  const groupSlotIds = groupDef.slots.map((s) => group + "_" + s);
++  // A1 (off by default): INJURY_GROUPS_V2's own slots are already full
++  // ids (no "<group>_" prefix to prepend) -- see that table's own
++  // comment for why (it's what lets Frostbite keep its legacy id while
++  // moving groups).
++  const groupDef = DAMAGE_TYPES_V2 ? INJURY_GROUPS_V2[group] : INJURY_GROUPS[group];
++  const groupSlotIds = DAMAGE_TYPES_V2 ? groupDef.slots : groupDef.slots.map((s) => group + "_" + s);
+   // Rule 2: already have a minor injury in this group -> upgrade it.
+   const minorInGroup = state.injuries.find((inj) => groupSlotIds.includes(inj.id) && inj.severity === "minor");
+   if (minorInGroup) {
+@@ -5367,6 +5399,23 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
+       creature[p.stat] = (creature[p.stat] || 0) + (p.amount || 0);
+     }
+   }
++  // Damage Types spec v1.0 step 2 follow-ups, A5 (off by default): a
++  // creature carrying elementVariants gets ONE picked, weighted, right
++  // here at build time -- the fighter's own elementType/variantStatus
++  // are what resolveDamageType's "fromCreature" branch and
++  // resolveEnemyActiveAbility's inflict-override (js/engine/combat.js)
++  // both read, and the variant's own displayName/auto-Resist apply for
++  // this whole fight, same as any other creature-build-time decision
++  // (equipment, passives) above.
++  if (DAMAGE_TYPES_V2 && creature.elementVariants && creature.elementVariants.length) {
++    const variant = pickElementVariant(creature.elementVariants);
++    if (variant) {
++      creature.elementType = variant.damageType;
++      creature.variantStatus = variant.status;
++      if (variant.displayName) creature.name = variant.displayName;
++      creature.dmgTags = Object.assign({}, creature.dmgTags, { [variant.damageType]: "resist" });
++    }
++  }
+   return creature;
+ }
+ 
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index e084626..6df7773 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -429,7 +429,17 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+   // never triggered off one.
+   if (!action.isReaction && target.kind === "player" && creature.element && hasEffect(state, "mirror_soul") && !combat.player.mirrorSoulUsed) {
+     combat.player.mirrorSoulUsed = true;
+-    const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
++    // Damage Types spec v1.0 step 2 follow-ups, A2 (off by default):
++    // the reflected hit uses the CREATURE's own tag against the
++    // reflected damage type (its own element, translated onto the new
++    // roster) -- it's the creature taking its own spell back, so it's
++    // the creature's tags that apply, same as any other hit under T2.
++    // "transportation" is the old ELEMENTS key for the type the new
++    // roster calls Spatial (T1) -- translated here since creature.element
++    // is never itself migrated to new-roster spelling.
++    const matchup = DAMAGE_TYPES_V2
++      ? dmgTagMultiplier(creature, creature.element === "transportation" ? "spatial" : creature.element)
++      : elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
+     const base = randInt(creature.magic - 2, creature.magic + 2);
+     const reflected = Math.max(0, Math.round(base * matchup));
+     return { shortCircuit: false, edmg: reflected, kind: "mirrorSoul" };
+@@ -579,7 +589,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+     // branch resolved it in step 4.
+     if (edmg > 0) {
+       combat.player.playerLastHitType = DAMAGE_TYPES_V2
+-        ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
++        ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
+         : creature.element;
+     }
+     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${dmgInfo.elName} of its own, for ${edmg} damage.` : `Its ${dmgInfo.elName} washes over you harmlessly.`, ...absorbLines];
+@@ -592,7 +602,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+ 
+   if (edmg > 0) {
+     combat.player.playerLastHitType = DAMAGE_TYPES_V2
+-      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
++      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
+       : "physical";
+   }
+   if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
+@@ -643,7 +653,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+ function resolveEnemyAttackOnPlayer(state, creature, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
+   const actor = findEnemyCombatant(state, creature);
+   const target = makePlayerCombatant(state);
+-  const action = { atkSpread, extraDef, abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula };
++  const action = { atkSpread, extraDef, abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula, damageType: abilityCtx && abilityCtx.damageType };
+   const ctx = { state, pendingAction: action, target };
+ 
+   // chooseAction never actually returns null for an enemy actor any more
+@@ -673,7 +683,7 @@ function resolveEnemyAttackOnPlayer(state, creature, atkSpread, extraDef, abilit
+ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstBonus) {
+   const actor = findEnemyCombatant(state, creature);
+   const target = makeAllyCombatant(ally);
+-  const action = { abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula };
++  const action = { abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula, damageType: abilityCtx && abilityCtx.damageType };
+   const ctx = { state, pendingAction: action, target };
+ 
+   // Same dead-code note as resolveEnemyAttackOnPlayer above: chooseAction
+@@ -1083,7 +1093,7 @@ function applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action) {
+   // from the same inputs is safe).
+   if (edmg > 0) {
+     state.combat.player.playerLastHitType = DAMAGE_TYPES_V2
+-      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
++      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
+       : "physical"; // Injury System v0.2
+   }
+   const lines = [action.flavorLine(creature, edmg), ...hitResult.absorbLines];
+diff --git a/js/engine/state.js b/js/engine/state.js
+index 59cf275..11eda3b 100644
+--- a/js/engine/state.js
++++ b/js/engine/state.js
+@@ -120,10 +120,51 @@ const INJURY_SLOT_DEFS = {
+   burns_seared_skin: { group: "burns", stat: "def", name: "Seared Skin" },
+   corrosion_acid_eaten_flesh: { group: "corrosion", stat: "def", name: "Acid-Eaten Flesh" },
+   corrosion_damaged_eyes: { group: "corrosion", stat: "accuracy", name: "Damaged Eyes" },
+-  exposure_frostbite: { group: "exposure", stat: "speed", name: "Frostbite" },
++  // Frostbite's own id is unchanged — only its group moves, from
++  // "exposure" to the new "frost" group below (Damage Types spec v1.0
++  // step 2 follow-ups, A1: Tyler's Reference document, 12 Nov 2026 —
++  // "every shipped injury keeps its id; only its group changes
++  // (Frostbite)"). `.group` here is unread by anything except this
++  // object's own definition (recomputeStats/injurySlotName key off
++  // `.stat`/`.name` only), so updating it changes no behavior on its
++  // own — it's the NEW INJURY_GROUPS_V2 (js/data/damagetypes.js), not
++  // this field, that actually decides which group a down maps a
++  // Frost-type hit into once DAMAGE_TYPES_V2 is on.
++  exposure_frostbite: { group: "frost", stat: "speed", name: "Frostbite" },
+   exposure_fluid_filled_lungs: { group: "exposure", stat: "magic", name: "Fluid-Filled Lungs" },
+   displacement_dislocation_sickness: { group: "displacement", stat: "agility", name: "Dislocation Sickness" },
+   displacement_fractured_mind: { group: "displacement", stat: "magic", name: "Fractured Mind" },
++
++  // The 23 new injuries (Damage Types spec v1.0 step 2 follow-ups, A1):
++  // working names from Tyler's Reference document — Narrative owns the
++  // final names (T11's own note). Unreachable while DAMAGE_TYPES_V2 is
++  // off (nothing in the old 6-group INJURY_GROUPS roll path can ever
++  // award one of these ids), so adding them here is a pure data
++  // addition with no behavior change until the switch is on and
++  // INJURY_GROUPS_V2 (js/data/damagetypes.js) actually rolls into them.
++  laceration_severed_grip: { group: "laceration", stat: "accuracy", name: "Severed Grip" },
++  puncture_pierced_shoulder: { group: "puncture", stat: "atk", name: "Pierced Shoulder" },
++  puncture_punctured_lung: { group: "puncture", stat: "maxHealth", name: "Punctured Lung" },
++  puncture_lodged_arrowhead: { group: "puncture", stat: "agility", name: "Lodged Arrowhead" },
++  burns_smoke_scarred_lungs: { group: "burns", stat: "magic", name: "Smoke-Scarred Lungs" },
++  shock_nerve_tremor: { group: "shock", stat: "accuracy", name: "Nerve Tremor" },
++  shock_scrambled_reflexes: { group: "shock", stat: "speed", name: "Scrambled Reflexes" },
++  shock_arrhythmia: { group: "shock", stat: "maxHealth", name: "Arrhythmia" },
++  frost_numbed_fingers: { group: "frost", stat: "atk", name: "Numbed Fingers" },
++  frost_brittle_bones: { group: "frost", stat: "def", name: "Brittle Bones" },
++  exposure_burst_eardrum: { group: "exposure", stat: "agility", name: "Burst Eardrum" },
++  exposure_waterlogged_wounds: { group: "exposure", stat: "maxHealth", name: "Waterlogged Wounds" },
++  corrosion_dissolved_grip: { group: "corrosion", stat: "atk", name: "Dissolved Grip" },
++  toxin_lingering_venom: { group: "toxin", stat: "maxHealth", name: "Lingering Venom" },
++  toxin_nerve_damage: { group: "toxin", stat: "agility", name: "Nerve Damage" },
++  toxin_weakened_blood: { group: "toxin", stat: "atk", name: "Weakened Blood" },
++  rot_necrotic_wound: { group: "rot", stat: "maxHealth", name: "Necrotic Wound" },
++  rot_withered_limb: { group: "rot", stat: "atk", name: "Withered Limb" },
++  rot_grave_chill: { group: "rot", stat: "speed", name: "Grave Chill" },
++  displacement_unanchored: { group: "displacement", stat: "def", name: "Unanchored" },
++  soul_hollowed_soul: { group: "soul", stat: "magic", name: "Hollowed Soul" },
++  soul_spirit_scar: { group: "soul", stat: "maxHealth", name: "Spirit Scar" },
++  soul_haunted: { group: "soul", stat: "accuracy", name: "Haunted" },
+ };
+ 
+ function injurySlotName(id) {
