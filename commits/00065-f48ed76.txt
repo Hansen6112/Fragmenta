@@ -1,0 +1,17 @@
+range: b28a6af9ab7599dc0f89207b5dcc5ae6523c07d3..f48ed76745f7b0da3bc303b964d635ed0f907d8f
+=== f48ed76745f7b0da3bc303b964d635ed0f907d8f 2026-11-12 00:10:21 +0000
+Step 1h-iii §2 batch 2/4: rewrite combat.js lines 1014-2201 onto combat.player
+Second of 4 combat.js call-site batches (137 occurrences), same
+mechanism and verification as batch 1. Region runs from applyHealing
+through just before applyPhysicalOnHitEffects.
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 202 ++++++++++++++++++++++++++--------------------------
+ 1 file changed, 101 insertions(+), 101 deletions(-)
