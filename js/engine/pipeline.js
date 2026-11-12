@@ -112,7 +112,7 @@ const COMBAT_UNIFY = {
   U3a: false,
   // Flowing Discipline (First Sword's Regalia 6pc): the banked +10%
   // physical-damage bonus fires on an ally-targeted hit too.
-  U3b: false,
+  U3b: true,
   // Winter's Verdict (First Sword's Regalia 8pc): fires when the ALLY
   // (not just the player) is Chilled — reads ally.statuses.chilled,
   // the same per-ally status bag Serrated Opening's bleed check already
