@@ -233,6 +233,18 @@ const PIPELINE_HOOKS = {
 // pipeline.js change.
 const ON_INCOMING_DAMAGE_ALLY_HOOKS = ["hadrianAllyProtection", "allyProtectionReaction"];
 
+// Damage Types spec v1.0, step 2b: an enemy creature's own mainhand
+// weapon's damageType (§2's "weapon" field priority, between an action's
+// own declared type and the creature's attackType fallback). Only
+// meaningful once DAMAGE_TYPES_V2 is on and content (§5) has actually put
+// a damageType on mainhand items — until then this just reads undefined,
+// same as any other not-yet-authored field.
+function creatureWeaponDamageType(creature) {
+  const weaponName = creature.equipment && creature.equipment.mainhand;
+  const weaponDef = weaponName && ITEM_DEFS[weaponName];
+  return (weaponDef && weaponDef.damageType) || null;
+}
+
 // ---- formula table: today's formulas only, no new math. Resolved by
 // NAME (a string on the definition), never by action identity. ----
 const PIPELINE_FORMULAS = {
@@ -419,7 +431,15 @@ const PIPELINE_FORMULAS = {
         const base = randInt(creature.magic - 2, creature.magic + 2);
         const coldBonus = creature.element === "water" && hasColdproof(ally) ? 2 : 0;
         const def = effectiveDef + coldBonus;
-        let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, ally.health, ally.maxHealth)));
+        // Damage Types v2 (off by default, spec §3 steps 2-3): the
+        // resist-by-family defense value and the target's own tag
+        // multiplier, in place of/alongside the flat `def` this formula
+        // has always mitigated against. Off, dType is never resolved and
+        // mitigateDef === def -- no behavior change.
+        const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+        const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, ally.magic) : def;
+        let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, ally.health, ally.maxHealth)));
+        if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
         if (COMBAT_UNIFY.U2 && edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
           creature.unquenchedFocusUsed = true;
           edmg = Math.round(edmg * 1.10);
@@ -445,11 +465,19 @@ const PIPELINE_FORMULAS = {
       }
 
       const rawAtk = effectiveEnemyAtk(state, creature);
+      // Damage Types v2 (off by default): same mechanism as the magic
+      // branch above, applied to the flat/ability-driven path too — an
+      // enemy active with no `.element` at all can still deal a non-
+      // Physical damageType once content (§5) declares one, so this
+      // isn't conditioned on creature.element.
+      const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+      const flatMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(flatDType, effectiveDef, ally.magic) : effectiveDef;
       let edmg = abilityCtx
-        ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), effectiveDef))) : 0)
-        : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), effectiveDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
+        ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
+        : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), flatMitigateDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
       if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
       edmg = Math.round(edmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
+      if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, flatDType));
       if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
       if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
       if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
@@ -502,7 +530,12 @@ const PIPELINE_FORMULAS = {
       const base = randInt(creature.magic - 2, creature.magic + 2);
       const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
       const def = effectivePlayerDef(state) + bonusDef + coldBonus;
-      let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), def) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
+      // Damage Types v2 (off by default) — see the ally-target magic
+      // branch's own comment, above, for the full reasoning.
+      const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+      const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, state.magic) : def;
+      let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
+      if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
       if (edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
         creature.unquenchedFocusUsed = true;
         edmg = Math.round(edmg * 1.10);
@@ -532,11 +565,16 @@ const PIPELINE_FORMULAS = {
 
     const atk = effectiveEnemyAtk(state, creature);
     const playerDef = effectivePlayerDef(state) + bonusDef;
+    // Damage Types v2 (off by default) — see the ally-target flat
+    // branch's own comment, above, for the full reasoning.
+    const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, creatureWeaponDamageType(creature), creature.attackType) : null;
+    const flatMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(flatDType, playerDef, state.magic) : playerDef;
     let edmg = abilityCtx
-      ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), playerDef))) : 0)
-      : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), playerDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
+      ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
+      : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), flatMitigateDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
     if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
     edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
+    if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, flatDType));
     if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
     if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
     if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
