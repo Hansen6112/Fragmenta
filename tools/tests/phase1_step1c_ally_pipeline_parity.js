@@ -102,6 +102,20 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       let i = 0, randomCount = 0;
       const seq = scenario.seq && scenario.seq.length ? scenario.seq : [0.5];
       Math.random = () => { randomCount++; return seq[i++ % seq.length]; };
+      // This fixture was frozen (step 1h-i) against the Legacy functions,
+      // which predate every COMBAT_UNIFY switch. The parity claim this
+      // file checks ("the pipeline migration didn't change behavior") was
+      // only ever true with every switch off; once a switch's own
+      // committed DEFAULT flips true (the Phase 1 close-out handoff's
+      // whole point — e.g. U3e writing freshly-zeroed banked-Defense
+      // fields onto this same creature object even on an ally-reaction
+      // path that doesn't use them), this test would otherwise silently
+      // start comparing new, intentionally-changed state against the old
+      // oracle and fail for the right reason but the wrong test. Pin
+      // every switch false here so this file keeps checking the one thing
+      // it was built to check.
+      const origUnify = Object.assign({}, COMBAT_UNIFY);
+      for (const k of Object.keys(COMBAT_UNIFY)) COMBAT_UNIFY[k] = false;
       try {
         const s = makeWarrior();
         startCombat(s, 'stoneback_beetle', 25);
@@ -116,6 +130,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
         Math.random = origRandom;
         window.hasEffect = origHasEffect;
         window.hasSetTier = origHasSetTier;
+        Object.assign(COMBAT_UNIFY, origUnify);
       }
     }
 

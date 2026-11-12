@@ -132,7 +132,7 @@ const COMBAT_UNIFY = {
   //
   // The enemy's banked Defense bonus (Brace/Guarded Strike/Sure
   // Foundation) protects it from a plain ally's hit but not Hadrian's.
-  U3e: false,
+  U3e: true,
   // Smuggler's Guard / Commander's Poise (sangCuDefenderMitigation): the
   // enemy's own flat damage-reduction item effects fire against a plain
   // ally's hit but not Hadrian's.

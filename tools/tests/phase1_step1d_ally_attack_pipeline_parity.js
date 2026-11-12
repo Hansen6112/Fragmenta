@@ -128,6 +128,19 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       let i = 0;
       const seq = scenario.seq && scenario.seq.length ? scenario.seq : [0.5];
       Math.random = () => seq[i++ % seq.length];
+      // This fixture was frozen (step 1h-i) against the Legacy functions,
+      // which predate every COMBAT_UNIFY switch (handoff §0's U3e/U3f/U3g
+      // especially — they only touch this file's own ally-actor paths).
+      // The parity claim this file checks ("the pipeline migration didn't
+      // change behavior") was only ever true with every switch off; once a
+      // switch's own committed DEFAULT flips true (the Phase 1 close-out
+      // handoff's whole point), this test would otherwise silently start
+      // comparing new, intentionally-changed behavior against the old
+      // oracle and fail for the right reason but the wrong test. Pin every
+      // switch false here so this file keeps checking the one thing it was
+      // built to check.
+      const origUnify = Object.assign({}, COMBAT_UNIFY);
+      for (const k of Object.keys(COMBAT_UNIFY)) COMBAT_UNIFY[k] = false;
       try {
         const { s, kessa, hadrian, kit } = makeWarriorWithAllies();
         const enemies = s.combat.enemies;
@@ -139,6 +152,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
         Math.random = origRandom;
         window.hasEffect = origHasEffect;
         window.hasSetTier = origHasSetTier;
+        Object.assign(COMBAT_UNIFY, origUnify);
       }
     }
 
