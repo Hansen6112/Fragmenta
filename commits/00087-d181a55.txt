@@ -1,0 +1,17 @@
+range: 14fd450c9a891bedddad65e497119adcf437732e..d181a5580a5dddd6fb8fe992d3e5a2ea1bd24602
+=== d181a5580a5dddd6fb8fe992d3e5a2ea1bd24602 2026-11-12 06:23:07 +0000
+Phase 1 handoff §6: document U3e result (real trigger surface, below threshold)
+U3e (banked Defense bonus vs. Hadrian): zero cells moved on either
+harness against U3d's after-state, but unlike U3a/U3d this one has a
+genuine, confirmed trigger surface -- Dregnar's own Sure Foundation,
+which plus3_run.js's roster includes. The mechanic needs a specific
+hit sequence and is a flat +2 Defense, modest enough to plausibly
+stay below the 3-point threshold at 200 trials/cell while still
+firing some of the time.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 37 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 37 insertions(+)
