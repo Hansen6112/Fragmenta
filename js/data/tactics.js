@@ -28,7 +28,7 @@ const TACTICS = {
     // dispatches generically off this very table (knowledgeReq/cooldown),
     // with no action-identity branching to remove. This block declares
     // the shape for the audit (P2) and the coverage table; the mechanic
-    // itself (sets state.combat.nextAttackBonus, consumed by
+    // itself (sets state.combat.player.nextAttackBonus, consumed by
     // basic_attack's own consumesFeintBonus field) stays in useFeint.
     action: { actorKinds: ["player"], actionType: "tactic", targeting: "self", toHit: "none", damage: null },
   },

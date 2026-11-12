@@ -49,15 +49,15 @@ function usePlayerAction(state, actionId) {
 
   if (def.cooldownKey) {
     let cooldown;
-    if (state.combat.avatarOfTimeTurns > 0) {
+    if (state.combat.player.avatarOfTimeTurns > 0) {
       cooldown = 0;
     } else if (applyPerfectTiming(state)) {
       cooldown = 0;
-    } else if (state.combat.swiftPassageReady) {
-      state.combat.swiftPassageReady = false;
+    } else if (state.combat.player.swiftPassageReady) {
+      state.combat.player.swiftPassageReady = false;
       cooldown = 0;
-    } else if (state.combat.hourglassReserveReady) {
-      state.combat.hourglassReserveReady = false;
+    } else if (state.combat.player.hourglassReserveReady) {
+      state.combat.player.hourglassReserveReady = false;
       cooldown = 0;
     } else {
       let baseCooldown = def.cooldown;
@@ -106,7 +106,7 @@ function usePlayerAction(state, actionId) {
   if (def.runsLowHealthChecks && state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (def.followupForm === "gated") {
     if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-    if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+    if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   } else if (def.followupForm === "unconditional") {
     out.push(...maybeRiposte(state, creature), ...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
   }

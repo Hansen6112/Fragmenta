@@ -141,7 +141,7 @@ const PIPELINE_HOOKS = {
   waterOnHit(h) {
     const heal = Math.round(h.edmg * waterHealPct(h.state));
     const { healed, lines: healLines } = applyHeal(h.state, heal);
-    if (hasSetTier(h.state, "First Sword's Regalia", 10)) h.state.combat.sovereigntyTurnsLeft = 2;
+    if (hasSetTier(h.state, "First Sword's Regalia", 10)) h.state.combat.player.sovereigntyTurnsLeft = 2;
     return { lines: [`${ELEMENTS.water.verb(withThe(h.creature.name, false))} for ${h.edmg} damage, and the backwash mends you for ${healed}.`, ...healLines], castDamageDealt: h.edmg };
   },
   lightningOnHit(h) {
@@ -173,13 +173,13 @@ const PIPELINE_HOOKS = {
     return { lines: [`${ELEMENTS.transportation.verb(withThe(h.creature.name, false))} for ${h.edmg} damage before it can track where you went.`], castDamageDealt: h.edmg };
   },
   airOnHit(h) {
-    h.state.combat.evasionTurns = 2;
+    h.state.combat.player.evasionTurns = 2;
     return { lines: [`${ELEMENTS.air.verb(withThe(h.creature.name, false))} for ${h.edmg} damage, leaving you lighter on your feet.`], castDamageDealt: h.edmg };
   },
   // "Stagger": this engine has no generic "named status, arbitrary
   // chance" system for a player-on-enemy effect -- Force/Acid/Fire's own
   // on-hit effects are each a dedicated per-enemy field/function, not a
-  // shared status bag the way combat.playerStatuses is for the player
+  // shared status bag the way combat.player.playerStatuses is for the player
   // (confirmed by reading PER_ENEMY_FIELDS, combat.js). Building a real
   // new status from scratch is out of scope for a test-only action, so
   // this reuses the existing stun mechanism (tryApplyEnemyStun) under
@@ -475,7 +475,7 @@ const PIPELINE_FORMULAS = {
       }
       // U3c (off by default): Winter's Verdict reads the ALLY's own
       // Chilled status (ally.statuses.chilled) rather than the player's
-      // combat.playerStatuses.chilled.
+      // combat.player.playerStatuses.chilled.
       if (COMBAT_UNIFY.U3c && edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && ally.statuses && ally.statuses.chilled) {
         creature.wintersVerdictUsed = true;
         edmg = Math.round(edmg * 1.15);
@@ -486,7 +486,7 @@ const PIPELINE_FORMULAS = {
       }
       // U3d (off by default): Toxic Preparation reads the ALLY's own
       // Sanguivorum-poison status (ally.statuses["sang_iag_poison"])
-      // rather than the player's combat.playerStatuses["sang_iag_poison"].
+      // rather than the player's combat.player.playerStatuses["sang_iag_poison"].
       if (COMBAT_UNIFY.U3d && edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && ally.statuses && ally.statuses["sang_iag_poison"]) {
         creature.toxicPreparationUsed = true;
         edmg += Math.max(1, Math.floor(edmg * 0.05));
@@ -508,23 +508,23 @@ const PIPELINE_FORMULAS = {
         edmg = Math.round(edmg * 1.10);
       }
       if (hasEffect(state, "adaptive_ward")) {
-        if (!combat.adaptiveWardElement) {
-          combat.adaptiveWardElement = creature.element;
-        } else if (creature.element === combat.adaptiveWardElement) {
+        if (!combat.player.adaptiveWardElement) {
+          combat.player.adaptiveWardElement = creature.element;
+        } else if (creature.element === combat.player.adaptiveWardElement) {
           edmg = Math.round(edmg * 0.5);
         }
       }
       const swMult = spellWardMultiplier(state);
       if (swMult < 1) {
         edmg = Math.round(edmg * swMult);
-        if (hasSetTier(state, "River Warden", 6)) combat.riverWardenMagicBonus = Math.min(8, combat.riverWardenMagicBonus + 2);
+        if (hasSetTier(state, "River Warden", 6)) combat.player.riverWardenMagicBonus = Math.min(8, combat.player.riverWardenMagicBonus + 2);
       }
-      if (edmg > 0 && !combat.stormBarrierUsed) {
-        combat.stormBarrierUsed = true;
+      if (edmg > 0 && !combat.player.stormBarrierUsed) {
+        combat.player.stormBarrierUsed = true;
         if (hasSetTier(state, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
       }
-      if (edmg > 0 && !combat.firstHitTakenUsed) {
-        combat.firstHitTakenUsed = true;
+      if (edmg > 0 && !combat.player.firstHitTakenUsed) {
+        combat.player.firstHitTakenUsed = true;
         if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
       }
       return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
@@ -559,15 +559,15 @@ const PIPELINE_FORMULAS = {
       creature.flowingDisciplineTurnsLeft = 0;
       edmg = Math.round(edmg * 1.10);
     }
-    if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && combat.playerStatuses && combat.playerStatuses.chilled) {
+    if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && combat.player.playerStatuses && combat.player.playerStatuses.chilled) {
       creature.wintersVerdictUsed = true;
       edmg = Math.round(edmg * 1.15);
     }
-    if (edmg > 0 && !combat.firstHitTakenUsed) {
-      combat.firstHitTakenUsed = true;
+    if (edmg > 0 && !combat.player.firstHitTakenUsed) {
+      combat.player.firstHitTakenUsed = true;
       if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
     }
-    if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.playerStatuses && combat.playerStatuses["sang_iag_poison"]) {
+    if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.player.playerStatuses && combat.player.playerStatuses["sang_iag_poison"]) {
       creature.toxicPreparationUsed = true;
       edmg += Math.max(1, Math.floor(edmg * 0.05));
     }
@@ -690,7 +690,7 @@ const PIPELINE_FORMULAS = {
     const clashMult = hasEffect(state, "clash_of_steel") ? 1.5 : 1;
     const edmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
     if (hasSetTier(state, "White Watch", 6)) {
-      state.combat.whiteWatchRiposteDefBonus = (state.combat.whiteWatchRiposteDefBonus || 0) + 2;
+      state.combat.player.whiteWatchRiposteDefBonus = (state.combat.player.whiteWatchRiposteDefBonus || 0) + 2;
     }
     return { shortCircuit: false, edmg, kind: "physical" };
   },

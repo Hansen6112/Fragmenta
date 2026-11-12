@@ -174,13 +174,13 @@ function tickCompanionCombatTimers(state) {
 // game) — a small transient list of { enemy, amount, turnsLeft } that
 // restores the Accuracy it took once its duration ends.
 function applyGroundbreakerAccuracyDebuff(state, enemyRecord, amount, turns) {
-  if (!state.combat.groundbreakerDebuffs) state.combat.groundbreakerDebuffs = [];
+  if (!state.combat.player.groundbreakerDebuffs) state.combat.player.groundbreakerDebuffs = [];
   enemyRecord.creatureObj.acc = Math.max(0, (enemyRecord.creatureObj.acc || 0) - amount);
-  state.combat.groundbreakerDebuffs.push({ enemy: enemyRecord, amount, turnsLeft: turns });
+  state.combat.player.groundbreakerDebuffs.push({ enemy: enemyRecord, amount, turnsLeft: turns });
 }
 function tickGroundbreakerDebuffs(state) {
-  if (!state.combat || !state.combat.groundbreakerDebuffs) return;
-  state.combat.groundbreakerDebuffs = state.combat.groundbreakerDebuffs.filter((d) => {
+  if (!state.combat || !state.combat.player.groundbreakerDebuffs) return;
+  state.combat.player.groundbreakerDebuffs = state.combat.player.groundbreakerDebuffs.filter((d) => {
     d.turnsLeft -= 1;
     if (d.turnsLeft > 0) return true;
     if (d.enemy.alive) d.enemy.creatureObj.acc = (d.enemy.creatureObj.acc || 0) + d.amount;
