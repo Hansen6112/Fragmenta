@@ -1,0 +1,15 @@
+range: e7f4a97b56798dec1a4970b1c707ec1786778c50..4f68d4632ad00708ad82a24991013890fcf4a902
+=== 4f68d4632ad00708ad82a24991013890fcf4a902 2026-11-12 06:14:56 +0000
+Phase 1 handoff §6: document U3d result (same zero-trigger-surface pattern as U3a)
+U3d (Toxic Preparation vs. ally): zero cells moved on either harness
+against U3a's after-state. Same root cause as U3a: the trigger item
+(Executor's Poisoned Dagger) is worn only by the Veiled Executor, not
+present in either harness roster, and U3d's own reach is Sanguivorum
+fights -- neither harness contains one.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
