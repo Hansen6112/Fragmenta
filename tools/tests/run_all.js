@@ -69,6 +69,7 @@ const LEDGERS = [
   "appendix_a_groundbreaker_accuracy_ledger.js",
   "test_enemy_strike_proof_ledger.js",
   "damage_types_a1_injury_v2_ledger.js",
+  "damage_types_a5_variant_weighting_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {

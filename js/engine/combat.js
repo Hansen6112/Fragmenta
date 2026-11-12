@@ -5352,7 +5352,12 @@ function enemyEquipmentBonus(equipment, statKey) {
   }
   return total;
 }
-function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
+// locationTags (Decisions Addendum §2, off by default): the current
+// encounter's own resolved terrain tags, passed by startCombat -- used
+// only to bias pickElementVariant below. Omitted by the one other
+// caller (resolveEnemySummon), which falls back to a plain uniform pick
+// -- a mid-fight summon has no location of its own to bias toward.
+function buildFightCreature(template, level, dangerClassOverride, bestiaryId, locationTags) {
   const clampedLevel = clampLevelToRarityBand(level, template.spawnRarity, template.levelBandExempt);
   const effectiveTemplate = dangerClassOverride ? Object.assign({}, template, { dangerClass: dangerClassOverride }) : template;
   const scaled = computeCreatureStats(effectiveTemplate, clampedLevel);
@@ -5408,7 +5413,7 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
   // this whole fight, same as any other creature-build-time decision
   // (equipment, passives) above.
   if (DAMAGE_TYPES_V2 && creature.elementVariants && creature.elementVariants.length) {
-    const variant = pickElementVariant(creature.elementVariants);
+    const variant = pickElementVariant(creature.elementVariants, locationTags);
     if (variant) {
       creature.elementType = variant.damageType;
       creature.variantStatus = variant.status;
@@ -5506,9 +5511,17 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     // its OWN species' Spawn Rarity band, so a Common packmate spawning
     // alongside a Rare leader doesn't scale past what Common ever allows.
     const rolled = preRolledLevel != null ? preRolledLevel : rollEncounterLevel(state.level);
+    // Decisions Addendum §2 (off by default): the current location's own
+    // resolved terrain tags (js/data/world.js's TERRAIN_TAGS[loc.terrain]
+    // — the same expansion a location's single terrain id already goes
+    // through for habitat/creature-eligibility elsewhere), passed down so
+    // buildFightCreature's own elementVariants pick can bias toward
+    // whichever variant actually fits this encounter.
+    const loc = DAMAGE_TYPES_V2 ? state.currentLocation() : null;
+    const locationTags = loc ? TERRAIN_TAGS[loc.terrain] || [] : null;
     roster = rollEncounterGroup(creatureIdOrObject, rolled, state.level).map((member) => ({ // v0.11c: group size capped by player level band
       id: member.id,
-      creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass, member.id),
+      creature: buildFightCreature(BESTIARY[member.id], rolled, member.dangerClass, member.id, locationTags),
       dynamicCreature: false,
     }));
   }

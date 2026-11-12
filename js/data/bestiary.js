@@ -38,32 +38,48 @@
 // already no-ops safely on an unknown status id (getStatusEffect returns
 // null), so referencing the FUTURE id now, rather than waiting for it,
 // means that content lands with zero further wiring here. Weight is
-// omitted on every entry (defaults to 1 — pickElementVariant), giving
-// each family's variants an equal, uniform chance. Heated Mist (the
-// Skrel-Drak breath AoE variant) is deliberately absent — still flagged
-// REVIEW ("Water or Fire?") in the Reference's own candidate list, not
-// decided yet.
+// omitted on every entry (defaults to 1 — pickElementVariant's own base
+// weight), giving each family's variants an equal starting chance before
+// location bias is applied.
+//
+// Decisions Addendum (Tyler, 12 Nov 2026, approved), §2: `preferredTags`
+// biases the pick toward whichever variant fits the actual encounter
+// location, as a BIAS not a filter (a strict match would mean Green/
+// Black dragons, whose own preferred habitats aren't where dragons
+// spawn at all, could never appear) — pickElementVariant multiplies a
+// variant's weight by 4 when any of its preferredTags overlaps the
+// location's own resolved terrain tags (js/engine/combat.js's
+// startCombat, via TERRAIN_TAGS[loc.terrain]), leaving every other
+// variant at its plain weight. With no location (a summon, or terrain
+// TERRAIN_TAGS doesn't resolve), it's a plain uniform pick. Heated Mist
+// (Skrel-Drak's own water breath variant) is now decided (Tyler, 12 Nov)
+// and added below — kept out until this addendum specifically because
+// the Reference's own candidate list still had it REVIEW ("Water or
+// Fire?").
 const DRAVEN_DRAK_VARIANTS = [
-  { id: "red", damageType: "fire", status: "burning", displayName: "Red Draven-Drak" },
-  { id: "white", damageType: "frost", status: "chilled", displayName: "White Draven-Drak" },
-  { id: "green", damageType: "poison", status: "venom", displayName: "Green Draven-Drak" },
-  { id: "black", damageType: "acid", status: "corrosion", displayName: "Black Draven-Drak" },
-  { id: "blue", damageType: "lightning", status: "shocked", displayName: "Blue Draven-Drak" },
+  { id: "red", damageType: "fire", status: "burning", displayName: "Red Draven-Drak", preferredTags: ["volcanic", "desert"] },
+  { id: "white", damageType: "frost", status: "chilled", displayName: "White Draven-Drak", preferredTags: ["tundra", "mountain"] },
+  { id: "blue", damageType: "lightning", status: "shocked", displayName: "Blue Draven-Drak", preferredTags: ["coast", "plains"] },
+  { id: "black", damageType: "acid", status: "corrosion", displayName: "Black Draven-Drak", preferredTags: ["swamp"] },
+  { id: "green", damageType: "poison", status: "venom", displayName: "Green Draven-Drak", preferredTags: ["forest", "jungle"] },
 ];
 const SKREL_DRAK_VARIANTS = [
-  { id: "fire", damageType: "fire", status: "burning", displayName: "Fire-blooded Skrel-Drak" },
-  { id: "ice", damageType: "frost", status: "chilled", displayName: "Ice-blooded Skrel-Drak" },
-  { id: "lightning", damageType: "lightning", status: "shocked", displayName: "Storm-blooded Skrel-Drak" },
-  { id: "acid", damageType: "acid", status: "corrosion", displayName: "Acid-blooded Skrel-Drak" },
+  { id: "fire", damageType: "fire", status: "burning", displayName: "Fire-blooded Skrel-Drak", preferredTags: ["volcanic", "desert"] },
+  { id: "ice", damageType: "frost", status: "chilled", displayName: "Ice-blooded Skrel-Drak", preferredTags: ["tundra", "mountain"] },
+  { id: "lightning", damageType: "lightning", status: "shocked", displayName: "Storm-blooded Skrel-Drak", preferredTags: ["coast", "plains"] },
+  { id: "acid", damageType: "acid", status: "corrosion", displayName: "Acid-blooded Skrel-Drak", preferredTags: ["swamp"] },
+  // Decisions Addendum §3: Heated Mist -> Water, scalding AoE mist (150%
+  // AoE + Burning, the Codex's own effect, kept as-is).
+  { id: "heated_mist", damageType: "water", status: "burning", displayName: "Mist-blooded Skrel-Drak", preferredTags: ["coast", "lake", "river"] },
 ];
 const ELEMENTAL_VARIANTS = [
-  { id: "fire", damageType: "fire", status: "burning", displayName: "Fire Elemental" },
-  { id: "ash", damageType: "fire", status: "ashen_lungs", displayName: "Ash Elemental" },
-  { id: "stone", damageType: "earth", status: "crushed", displayName: "Stone Elemental" },
-  { id: "plant", damageType: "earth", status: "rooted", displayName: "Plant Elemental" },
-  { id: "water", damageType: "water", status: "drenched", displayName: "Water Elemental" },
-  { id: "mist", damageType: "water", status: "obscured", displayName: "Mist Elemental" },
-  { id: "ice", damageType: "frost", status: "frozen", displayName: "Ice Elemental" },
+  { id: "fire", damageType: "fire", status: "burning", displayName: "Fire Elemental", preferredTags: ["volcanic", "desert"] },
+  { id: "ash", damageType: "fire", status: "ashen_lungs", displayName: "Ash Elemental", preferredTags: ["volcanic"] },
+  { id: "stone", damageType: "earth", status: "crushed", displayName: "Stone Elemental", preferredTags: ["mountain", "cave"] },
+  { id: "plant", damageType: "earth", status: "rooted", displayName: "Plant Elemental", preferredTags: ["forest", "jungle"] },
+  { id: "water", damageType: "water", status: "drenched", displayName: "Water Elemental", preferredTags: ["coast", "lake", "river", "sea"] },
+  { id: "mist", damageType: "water", status: "obscured", displayName: "Mist Elemental", preferredTags: ["swamp", "coast"] },
+  { id: "ice", damageType: "frost", status: "frozen", displayName: "Ice Elemental", preferredTags: ["tundra", "mountain"] },
 ];
 
 const BESTIARY = {

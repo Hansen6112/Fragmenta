@@ -134,17 +134,31 @@ function resolveDamageType(action, weaponDamageType, creatureAttackType, creatur
 // Damage Types spec v1.0, step 2 follow-ups, A5 (off by default): the
 // Codex makes dragons and Elementals "come in elemental variants" --
 // one is picked, weighted, when a creature carrying `elementVariants`
-// (a list of { id, damageType, status, displayName, weight }) spawns
-// (js/engine/combat.js's buildFightCreature). Weight defaults to 1 for
-// a variant that omits it, matching how every other weighted-pick table
-// in this codebase treats a missing weight.
-function pickElementVariant(variants) {
+// (a list of { id, damageType, status, displayName, weight,
+// preferredTags }) spawns (js/engine/combat.js's buildFightCreature).
+// Weight defaults to 1 for a variant that omits it, matching how every
+// other weighted-pick table in this codebase treats a missing weight.
+//
+// Decisions Addendum §2 (Tyler, 12 Nov, approved): `locationTags` (the
+// current encounter location's own resolved terrain tags, js/engine/
+// combat.js's startCombat) biases the pick -- a variant whose own
+// preferredTags overlaps locationTags gets its weight x4; every other
+// variant keeps its plain weight. This is a BIAS, not a filter (a
+// strict match would mean a variant whose preferred habitat a species
+// never actually spawns in -- Green/Black dragons' forest/swamp against
+// dragons' own mountain/volcanic spawn tags -- could never appear at
+// all): with no overlap for any variant (no locationTags passed, e.g. a
+// summon, or none of them match), it falls back to the plain uniform
+// weighted pick.
+function pickElementVariant(variants, locationTags) {
   if (!variants || !variants.length) return null;
-  const total = variants.reduce((sum, v) => sum + (v.weight || 1), 0);
+  const tags = locationTags || [];
+  const weights = variants.map((v) => (v.weight || 1) * (v.preferredTags && v.preferredTags.some((t) => tags.includes(t)) ? 4 : 1));
+  const total = weights.reduce((sum, w) => sum + w, 0);
   let roll = Math.random() * total;
-  for (const v of variants) {
-    roll -= v.weight || 1;
-    if (roll <= 0) return v;
+  for (let i = 0; i < variants.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return variants[i];
   }
   return variants[variants.length - 1];
 }
