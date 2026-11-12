@@ -1128,7 +1128,7 @@ function useItem(state, arg) {
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
-  if ((retaliation.damage === 0 || (state.combat && state.combat.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
+  if ((retaliation.damage === 0 || (state.combat && state.combat.player.avatarOfWarTurns > 0)) && state.combat) out.push(...maybeRiposte(state, creature));
   const tl = tacticsLine(state);
   if (tl) out.push(tl);
   return checkReflectDeath(state, out);
@@ -1164,23 +1164,23 @@ function applyConsumableEffect(state, item, effect) {
   // combat, so state.combat is always live here.
   if (effect.type === "buff") {
     const amount = scaledStat(effect.stat, effect.amount); // v0.11 PLAYER_STAT_SCALE (Attack/Defense/Magic only)
-    state.combat.playerBuffs[effect.stat] = { amount, turns: effect.turns };
+    state.combat.player.playerBuffs[effect.stat] = { amount, turns: effect.turns };
     return { lines: [`You drink ${item} — +${amount} ${STAT_LABELS[effect.stat] || effect.stat} for ${effect.turns} turns.`], consumed: true };
   }
   if (effect.type === "cleanse") {
-    // Nothing to clear outside combat either — state.combat.playerStatuses
+    // Nothing to clear outside combat either — state.combat.player.playerStatuses
     // only ever exists mid-fight, and a cleanse potion used outside one
     // would otherwise crash reading it.
     if (!state.combat) {
       return { lines: [`There's nothing to clear right now — ${item} would do nothing.`], consumed: false };
     }
     const cleared = effect.all
-      ? Object.keys(state.combat.playerStatuses)
-      : effect.statuses.filter((s) => state.combat.playerStatuses[s]);
+      ? Object.keys(state.combat.player.playerStatuses)
+      : effect.statuses.filter((s) => state.combat.player.playerStatuses[s]);
     if (!cleared.length) {
       return { lines: [`There's nothing to clear right now — ${item} would do nothing.`], consumed: false };
     }
-    cleared.forEach((s) => delete state.combat.playerStatuses[s]);
+    cleared.forEach((s) => delete state.combat.player.playerStatuses[s]);
     return { lines: [`You drink ${item}, clearing: ${cleared.join(", ")}.`], consumed: true };
   }
   // Apothecary field treatment (Injury System v0.2 §7): severe -> minor,
@@ -1231,7 +1231,7 @@ function applyConsumableEffectToAlly(item, ally, effect) {
     const healed = applyHealing(makeAllyCombatant(ally), amount, "consumable", null);
     return [`You give ${item} to ${ally.name}, mending ${healed} health.`];
   }
-  // Unlike the player's combat.playerBuffs, an ally's buff lives directly
+  // Unlike the player's combat.player.playerBuffs, an ally's buff lives directly
   // on the ally object (state.js's recruitAlly), not per-fight combat
   // state — useItemOnAlly only ever runs OUTSIDE combat (see its own
   // guard above), so a buff applied here has to survive until the next
@@ -1324,8 +1324,8 @@ function bleedExploitationMultiplier(state) {
 // whenever Brace fires (see useFeint/useElementAbility's earth case) —
 // consumed by whichever physical damage roll comes next, wherever that is.
 function consumeSiegeCorpsAtkCharge(state) {
-  if (!state.combat || !state.combat.siegeCorpsAtkCharge) return 0;
-  state.combat.siegeCorpsAtkCharge = 0;
+  if (!state.combat || !state.combat.player.siegeCorpsAtkCharge) return 0;
+  state.combat.player.siegeCorpsAtkCharge = 0;
   return 2;
 }
 // Pure read of the same charge, for peekPlayerAtk (step 1e handoff §3.2)
@@ -1333,17 +1333,17 @@ function consumeSiegeCorpsAtkCharge(state) {
 // consumeSiegeCorpsAtkCharge above directly when it actually needs to
 // spend the charge; this one is for a stat() read that must not.
 function peekSiegeCorpsAtkCharge(state) {
-  return (state.combat && state.combat.siegeCorpsAtkCharge) ? 2 : 0;
+  return (state.combat && state.combat.player.siegeCorpsAtkCharge) ? 2 : 0;
 }
 
 // Foreseen Strike (Divine Regalia — Loom of Destinies): every 3rd action
-// (any physical attack or elemental cast — shares combat.actionCounter,
+// (any physical attack or elemental cast — shares combat.player.actionCounter,
 // already incremented once per action by beginTurn) ignores 50% of the
 // target's effective Defense. Its "cannot miss" clause is trivially
 // already true — the player's own attacks in this engine always deal at
 // least 1 damage, with no miss/failure state to bypass.
 function foreseenStrikeDefMultiplier(state) {
-  return hasEffect(state, "foreseen_strike") && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter % 3 === 0 ? 0.5 : 1;
+  return hasEffect(state, "foreseen_strike") && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 3 === 0 ? 0.5 : 1;
 }
 
 // Minimal player-side critical hit system (Divine Regalia — Blessing of
@@ -1363,23 +1363,23 @@ function critMultiplier(state, isSpell) {
   // Unlikely Outcome (Divine Regalia — Ring of Lucky Misfortune): consumes
   // its guaranteed-crit flag (set by applyLaughingGaleMissBonuses, below)
   // ahead of every other chance-based source — a guarantee, not a chance.
-  if (combat.unlikelyOutcomeGuaranteedCrit) {
-    combat.unlikelyOutcomeGuaranteedCrit = false;
-    return combat.avatarOfFateTurns > 0 ? 2.0 : 1.5;
+  if (combat.player.unlikelyOutcomeGuaranteedCrit) {
+    combat.player.unlikelyOutcomeGuaranteedCrit = false;
+    return combat.player.avatarOfFateTurns > 0 ? 2.0 : 1.5;
   }
   let chance = 0;
-  if (hasSetTier(state, "Regalia of the Woven Thread", 2) && combat.actionCounter === 1) chance += 0.25;
+  if (hasSetTier(state, "Regalia of the Woven Thread", 2) && combat.player.actionCounter === 1) chance += 0.25;
   if (isSpell && hasSetTier(state, "Regalia of the Endless Archive", 2)) chance += 0.2;
   // Blessing of Fortune (Regalia of the Laughing Gale 2pc): +5% Critical
   // Chance per successful crit this fight, capped at +25% (5 stacks) — the
   // stack itself grows in rollPlayerDamage, right after this function's
   // result is read for the current hit.
-  if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) chance += Math.min(combat.blessingOfFortuneCritStacks || 0, 5) * 0.05;
+  if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) chance += Math.min(combat.player.blessingOfFortuneCritStacks || 0, 5) * 0.05;
   // Avatar of Chaos (Regalia of the Laughing Gale 6pc): doubles whatever
   // crit chance is on offer for its 4-round window.
-  if (combat.avatarOfChaosTurns > 0) chance *= 2;
+  if (combat.player.avatarOfChaosTurns > 0) chance *= 2;
   if (chance <= 0 || Math.random() >= chance) return 1;
-  return combat.avatarOfFateTurns > 0 ? 2.0 : 1.5;
+  return combat.player.avatarOfFateTurns > 0 ? 2.0 : 1.5;
 }
 
 // Loaded Dice (Divine Regalia — Trickster's Cane): a flat 20% chance per
@@ -1405,7 +1405,7 @@ function loadedDiceMultiplier(state) {
 // window, every hit's damage is randomized between 75% and 175% —
 // independent of, and stacking with, Loaded Dice's own occasional swing.
 function avatarOfChaosDamageMultiplier(state) {
-  return state.combat && state.combat.avatarOfChaosTurns > 0 ? 0.75 + Math.random() : 1;
+  return state.combat && state.combat.player.avatarOfChaosTurns > 0 ? 0.75 + Math.random() : 1;
 }
 
 // Precision Formula (Divine Regalia — Gloves of Careful Script): magic
@@ -1422,7 +1422,7 @@ function precisionFormulaMultiplier(state) {
 // 6pc's own 1.5x the same way, and actually a slight boost over the
 // normal 1.3x otherwise).
 function avatarOfKnowledgeMatchupOverride(state, matchup) {
-  if (!state.combat || !(state.combat.avatarOfKnowledgeTurns > 0)) return matchup;
+  if (!state.combat || !(state.combat.player.avatarOfKnowledgeTurns > 0)) return matchup;
   if (matchup < 1) return 1;
   if (matchup > 1) return 1.5;
   return matchup;
@@ -1439,13 +1439,13 @@ function avatarOfKnowledgeMatchupOverride(state, matchup) {
 function applyEndlessStudy(state, actionKey) {
   if (!hasEffect(state, "endless_study") || !state.combat) return [];
   const combat = state.combat;
-  if (!combat.endlessStudyKeys) combat.endlessStudyKeys = [];
-  if (combat.endlessStudyKeys.includes(actionKey) || (combat.endlessStudyMagicBonus || 0) >= 20) return [];
-  combat.endlessStudyKeys.push(actionKey);
-  combat.endlessStudyMagicBonus = Math.min(20, (combat.endlessStudyMagicBonus || 0) + 2);
+  if (!combat.player.endlessStudyKeys) combat.player.endlessStudyKeys = [];
+  if (combat.player.endlessStudyKeys.includes(actionKey) || (combat.player.endlessStudyMagicBonus || 0) >= 20) return [];
+  combat.player.endlessStudyKeys.push(actionKey);
+  combat.player.endlessStudyMagicBonus = Math.min(20, (combat.player.endlessStudyMagicBonus || 0) + 2);
   // v0.11 PLAYER_STAT_SCALE: endlessStudyMagicBonus is a raw stat-point
   // stack, folded into effectiveMagic's flatStat()'d total.
-  return [`Endless Study — a new technique, understood; +${flatStat(2)} Magic (now +${flatStat(combat.endlessStudyMagicBonus)}).`];
+  return [`Endless Study — a new technique, understood; +${flatStat(2)} Magic (now +${flatStat(combat.player.endlessStudyMagicBonus)}).`];
 }
 
 // Prepared Response (Divine Regalia — Librarian's Ward): the enemy in
@@ -1456,8 +1456,8 @@ function applyEndlessStudy(state, actionKey) {
 function preparedResponseMultiplier(state) {
   if (!hasEffect(state, "prepared_response") || !state.combat) return 1;
   const combat = state.combat;
-  if (!combat.preparedResponseWitnessed) {
-    combat.preparedResponseWitnessed = true;
+  if (!combat.player.preparedResponseWitnessed) {
+    combat.player.preparedResponseWitnessed = true;
     return 1;
   }
   return 0.75;
@@ -1470,16 +1470,16 @@ function preparedResponseMultiplier(state) {
 function sharedBurdenMultiplier(state, dmg) {
   if (!hasEffect(state, "shared_burden") || !state.combat) return 1;
   const combat = state.combat;
-  if (combat.sharedBurdenUsed || dmg <= state.maxHealth * 0.3) return 1;
-  combat.sharedBurdenUsed = true;
+  if (combat.player.sharedBurdenUsed || dmg <= state.maxHealth * 0.3) return 1;
+  combat.player.sharedBurdenUsed = true;
   return 0.6;
 }
 
 // Calming Presence (Divine Regalia — Cloak of Gentle Light): enemies deal
 // 10% less damage during the first three rounds of combat — reuses the
-// shared combat.actionCounter (already incremented once per action).
+// shared combat.player.actionCounter (already incremented once per action).
 function calmingPresenceMultiplier(state) {
-  return hasEffect(state, "calming_presence") && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter <= 3 ? 0.9 : 1;
+  return hasEffect(state, "calming_presence") && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter <= 3 ? 0.9 : 1;
 }
 
 // Avatar of Devotion (Regalia of the Eternal Heart 6pc): a flat 35% cut
@@ -1487,7 +1487,7 @@ function calmingPresenceMultiplier(state) {
 // chain as Shield Wall/Master Duelist/Unbroken Line/Prepared Response/
 // Calming Presence above.
 function avatarOfDevotionDamageMultiplier(state) {
-  return state.combat && state.combat.avatarOfDevotionTurns > 0 ? 0.65 : 1;
+  return state.combat && state.combat.player.avatarOfDevotionTurns > 0 ? 0.65 : 1;
 }
 
 // Blessing of Stone (Regalia of the Eternal Bastion 2pc): 15% Damage
@@ -1504,14 +1504,14 @@ function blessingOfStoneMultiplier(state) {
 // eight "Avatar of X" damage-reduction effects, fitting for the most
 // defensively-themed god's own capstone.
 function avatarOfEnduranceDamageMultiplier(state) {
-  return state.combat && state.combat.avatarOfEnduranceTurns > 0 ? 0.5 : 1;
+  return state.combat && state.combat.player.avatarOfEnduranceTurns > 0 ? 0.5 : 1;
 }
 
 // Avatar of Renewal (Regalia of the Endless Tide 6pc): a flat 30% cut to
 // all incoming damage for its 4-round window, layered into the same
 // chain as the other "Avatar of X" damage-reduction effects.
 function avatarOfRenewalDamageMultiplier(state) {
-  return state.combat && state.combat.avatarOfRenewalTurns > 0 ? 0.7 : 1;
+  return state.combat && state.combat.player.avatarOfRenewalTurns > 0 ? 0.7 : 1;
 }
 
 // Adaptive Tide (Divine Regalia — Vestments of the Endless Sea): -5% to a
@@ -1524,11 +1524,11 @@ function avatarOfRenewalDamageMultiplier(state) {
 // branch's damage is finalized.
 function adaptiveTidePhysicalMultiplier(state) {
   if (!hasEffect(state, "adaptive_tide") || !state.combat) return 1;
-  return 1 - Math.min(state.combat.adaptiveTidePhysicalStacks || 0, 5) * 0.05;
+  return 1 - Math.min(state.combat.player.adaptiveTidePhysicalStacks || 0, 5) * 0.05;
 }
 function adaptiveTideMagicMultiplier(state) {
   if (!hasEffect(state, "adaptive_tide") || !state.combat) return 1;
-  return 1 - Math.min(state.combat.adaptiveTideMagicStacks || 0, 5) * 0.05;
+  return 1 - Math.min(state.combat.player.adaptiveTideMagicStacks || 0, 5) * 0.05;
 }
 
 // Unyielding Wall (Divine Regalia — Bulwark of Ages): the first hit that
@@ -1539,10 +1539,10 @@ function adaptiveTideMagicMultiplier(state) {
 function applyUnyieldingWall(state, dmg) {
   if (!hasEffect(state, "unyielding_wall") || !state.combat) return dmg;
   const combat = state.combat;
-  if ((combat.unyieldingWallCooldown || 0) > 0) return dmg;
+  if ((combat.player.unyieldingWallCooldown || 0) > 0) return dmg;
   const cap = Math.round(state.maxHealth * 0.25);
   if (dmg <= cap) return dmg;
-  combat.unyieldingWallCooldown = 3;
+  combat.player.unyieldingWallCooldown = 3;
   return cap;
 }
 
@@ -1555,7 +1555,7 @@ function applyUnyieldingWall(state, dmg) {
 // consistency. Stacks are grown in applyActionTypeTracking below.
 function momentumUnboundMultiplier(state) {
   if (!hasEffect(state, "momentum_unbound") || !state.combat) return 1;
-  return 1 + Math.min(state.combat.momentumUnboundStacks || 0, 6) * 0.05;
+  return 1 + Math.min(state.combat.player.momentumUnboundStacks || 0, 6) * 0.05;
 }
 
 // Tempered Steel (Divine Regalia — Forgefather's Hammer): +2% damage per
@@ -1566,7 +1566,7 @@ function momentumUnboundMultiplier(state) {
 // the roll, at the bottom of rollPlayerDamage.
 function temperedSteelMultiplier(state) {
   if (!hasEffect(state, "tempered_steel") || !state.combat) return 1;
-  return 1 + Math.min(state.combat.temperedSteelStacks || 0, 15) * 0.02;
+  return 1 + Math.min(state.combat.player.temperedSteelStacks || 0, 15) * 0.02;
 }
 
 // Master Craftsman (Divine Regalia — Smith's Grasp): +20% damage whenever
@@ -1587,7 +1587,7 @@ function masterCraftsmanMultiplier(atk, creature) {
 // self-gating via the modulus, the same shape Calming Presence/Work
 // Refines already use.
 function borrowedSecondsActive(state) {
-  return hasEffect(state, "borrowed_seconds") && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter % 4 === 0;
+  return hasEffect(state, "borrowed_seconds") && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 4 === 0;
 }
 
 // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
@@ -1599,8 +1599,8 @@ function borrowedSecondsActive(state) {
 function applyTimelessGuard(state) {
   if (!hasEffect(state, "timeless_guard") || !state.combat) return false;
   const combat = state.combat;
-  if ((combat.timelessGuardCooldown || 0) > 0) return false;
-  combat.timelessGuardCooldown = 3;
+  if ((combat.player.timelessGuardCooldown || 0) > 0) return false;
+  combat.player.timelessGuardCooldown = 3;
   return true;
 }
 
@@ -1633,18 +1633,18 @@ function applyActionTypeTracking(state, actionType) {
   if (!state.combat) return [];
   const combat = state.combat;
   const lines = [];
-  if (hasEffect(state, "momentum_unbound") && combat.lastActionType && combat.lastActionType !== actionType && (combat.momentumUnboundStacks || 0) < 6) {
-    combat.momentumUnboundStacks = (combat.momentumUnboundStacks || 0) + 1;
-    lines.push(`Momentum Unbound builds — the shift in rhythm adds +5% damage (now +${combat.momentumUnboundStacks * 5}%).`);
+  if (hasEffect(state, "momentum_unbound") && combat.player.lastActionType && combat.player.lastActionType !== actionType && (combat.player.momentumUnboundStacks || 0) < 6) {
+    combat.player.momentumUnboundStacks = (combat.player.momentumUnboundStacks || 0) + 1;
+    lines.push(`Momentum Unbound builds — the shift in rhythm adds +5% damage (now +${combat.player.momentumUnboundStacks * 5}%).`);
   }
-  combat.lastActionType = actionType;
-  combat.actionTypeHistory = [...(combat.actionTypeHistory || []), actionType].slice(-3);
-  if (hasSetTier(state, "Regalia of the Endless Horizon", 4) && combat.actionTypeHistory.length === 3 && new Set(combat.actionTypeHistory).size === 3) {
+  combat.player.lastActionType = actionType;
+  combat.player.actionTypeHistory = [...(combat.player.actionTypeHistory || []), actionType].slice(-3);
+  if (hasSetTier(state, "Regalia of the Endless Horizon", 4) && combat.player.actionTypeHistory.length === 3 && new Set(combat.player.actionTypeHistory).size === 3) {
     const dur = applyBeneficialEffectBonuses(state, 3);
-    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
-    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
+    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
+    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
     // v0.11 PLAYER_STAT_SCALE: the flatStat(10) above is the real grant;
     // the bare "10" is only the pre-scale design value.
     lines.push(`Ever Forward — three strides, three shapes; +${flatStat(10)} Attack, +${flatStat(10)} Magic for ${dur} rounds.`);
@@ -1663,18 +1663,18 @@ function applyActionTypeTracking(state, actionType) {
 function applyWanderersReward(state, actionKey) {
   if (!hasEffect(state, "wanderers_reward") || !state.combat) return [];
   const combat = state.combat;
-  const recent = combat.recentActionKeys || [];
+  const recent = combat.player.recentActionKeys || [];
   const lines = [];
   if (!recent.includes(actionKey)) {
     const dur = applyBeneficialEffectBonuses(state, 2);
-    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, dur);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
-    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, dur);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
+    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
+    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
     // v0.11 PLAYER_STAT_SCALE: see Ever Forward's own copy of this note.
     lines.push(`Wanderer's Reward — new ground, new strength; +${flatStat(4)} Attack, +${flatStat(4)} Magic for ${dur} rounds.`);
   }
-  combat.recentActionKeys = [actionKey, ...recent].slice(0, 2);
+  combat.player.recentActionKeys = [actionKey, ...recent].slice(0, 2);
   return lines;
 }
 
@@ -1685,16 +1685,16 @@ function applyWanderersReward(state, actionKey) {
 // Tactics/Elemental Abilities only (never plain Attack, unlike Endless
 // Study/Wanderer's Reward's broader actionKey), so it uses its own
 // separate tracking list rather than piggybacking on
-// combat.endlessStudyKeys. Called only from the tactic/elemental-ability
+// combat.player.endlessStudyKeys. Called only from the tactic/elemental-ability
 // action functions, never from playerAttack.
 function applyPerfectMemory(state, actionKey) {
   if (!hasEffect(state, "perfect_memory") || !state.combat) return [];
   const combat = state.combat;
-  if (!combat.perfectMemoryKeys) combat.perfectMemoryKeys = [];
-  if (combat.perfectMemoryKeys.includes(actionKey) || (combat.perfectMemoryKnowledgeBonus || 0) >= 16) return [];
-  combat.perfectMemoryKeys.push(actionKey);
-  combat.perfectMemoryKnowledgeBonus = Math.min(16, (combat.perfectMemoryKnowledgeBonus || 0) + 2);
-  return [`Perfect Memory — a new technique, remembered; +2 Knowledge (now +${combat.perfectMemoryKnowledgeBonus}).`];
+  if (!combat.player.perfectMemoryKeys) combat.player.perfectMemoryKeys = [];
+  if (combat.player.perfectMemoryKeys.includes(actionKey) || (combat.player.perfectMemoryKnowledgeBonus || 0) >= 16) return [];
+  combat.player.perfectMemoryKeys.push(actionKey);
+  combat.player.perfectMemoryKnowledgeBonus = Math.min(16, (combat.player.perfectMemoryKnowledgeBonus || 0) + 2);
+  return [`Perfect Memory — a new technique, remembered; +2 Knowledge (now +${combat.player.perfectMemoryKnowledgeBonus}).`];
 }
 
 // Trailblazer (Divine Regalia — Feather of the First Wind) and Avatar of
@@ -1708,8 +1708,8 @@ function applyPerfectMemory(state, actionKey) {
 function activationRestrictionsBypassed(state) {
   const combat = state.combat;
   if (!combat) return false;
-  if (combat.avatarOfFreedomTurns > 0) return true;
-  return hasEffect(state, "trailblazer") && !combat.trailblazerUsed;
+  if (combat.player.avatarOfFreedomTurns > 0) return true;
+  return hasEffect(state, "trailblazer") && !combat.player.trailblazerUsed;
 }
 
 // Consumes Trailblazer's one-time bypass, unconditionally, the moment any
@@ -1717,8 +1717,8 @@ function activationRestrictionsBypassed(state) {
 // actually needed for that particular use, the same "first use, no matter
 // what" consumption Perfect Timing (Mythic) already established.
 function consumeTrailblazer(state) {
-  if (state.combat && hasEffect(state, "trailblazer") && !state.combat.trailblazerUsed) {
-    state.combat.trailblazerUsed = true;
+  if (state.combat && hasEffect(state, "trailblazer") && !state.combat.player.trailblazerUsed) {
+    state.combat.player.trailblazerUsed = true;
   }
 }
 
@@ -1764,7 +1764,7 @@ function applyEndlessHorizonEvasionBonuses(state) {
 // pattern), incremented after the roll below.
 function worthyChallengeMultiplier(state) {
   if (!hasEffect(state, "worthy_challenge") || !state.combat) return 1;
-  return 1 + Math.min(state.combat.worthyChallengeStacks || 0, 10) * 0.05;
+  return 1 + Math.min(state.combat.player.worthyChallengeStacks || 0, 10) * 0.05;
 }
 
 // Blessing of Valor (Regalia of the Crimson Vanguard 2pc): the opening
@@ -1773,7 +1773,7 @@ function worthyChallengeMultiplier(state) {
 // defeats the target" clause lives in resolveKill instead, since only
 // resolveKill knows the hit was lethal.
 function blessingOfValorMultiplier(state) {
-  return hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.actionCounter === 1 ? 1.3 : 1;
+  return hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.player.actionCounter === 1 ? 1.3 : 1;
 }
 
 // Commanding Presence (Regalia of the Crimson Vanguard 4pc): every 3rd
@@ -1784,7 +1784,7 @@ function blessingOfValorMultiplier(state) {
 // trivially already true, the same reasoning as Foreseen Strike/Avatar of
 // Fate's equivalent clauses.
 function commandingPresenceDefMultiplier(state) {
-  return hasSetTier(state, "Regalia of the Crimson Vanguard", 4) && state.combat && state.combat.actionCounter > 0 && state.combat.actionCounter % 3 === 0 ? 0 : 1;
+  return hasSetTier(state, "Regalia of the Crimson Vanguard", 4) && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 3 === 0 ? 0 : 1;
 }
 
 // Faithful Heart (Divine Regalia — Ring of Sacred Vows) and Heartward
@@ -1804,12 +1804,12 @@ function applyBeneficialEffectBonuses(state, duration) {
   const combat = state.combat;
   const d = duration + (hasEffect(state, "faithful_heart") ? 1 : 0);
   if (hasSetTier(state, "Regalia of the Eternal Heart", 4)) {
-    combat.atkBuffTurns = Math.max(combat.atkBuffTurns || 0, d);
-    combat.atkBuffAmount = Math.max(combat.atkBuffAmount || 0, flatStat(2));
-    combat.magicBuffTurns = Math.max(combat.magicBuffTurns || 0, d);
-    combat.magicBuffAmount = Math.max(combat.magicBuffAmount || 0, flatStat(2));
-    combat.defBuffTurns = Math.max(combat.defBuffTurns, d);
-    combat.defBuffAmount = Math.max(combat.defBuffAmount, flatStat(2));
+    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, d);
+    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, flatStat(2));
+    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, d);
+    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, flatStat(2));
+    combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, d);
+    combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, flatStat(2));
   }
   return d;
 }
@@ -1819,7 +1819,7 @@ function applyBeneficialEffectBonuses(state, duration) {
 // mechanical pattern...not a second mechanical effect" merge note: two
 // distinct effect ids (so each item declares its own) resolving through
 // ONE shared, wearer-neutral mechanism. This generalizes the player-only
-// Stonewarden 6pc precedent (combat.firstHitTakenUsed/hasSetTier(state,
+// Stonewarden 6pc precedent (combat.player.firstHitTakenUsed/hasSetTier(state,
 // "Stonewarden", 6), resolveEnemyAttackOnPlayer/attemptFlee below) the same
 // way Ally Protection Reaction was generalized from its own
 // Hadrian-specific precedent — but mirrored to the other side of the
@@ -1920,7 +1920,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   const foreseenDefMult = foreseenStrikeDefMultiplier(state);
   const isSpell = state.flags.isMage && state.primaryElement;
   const critMult = critMultiplier(state, isSpell);
-  const threadsMult = state.combat && state.combat.threadsOfConsequencePending ? 1.4 : 1;
+  const threadsMult = state.combat && state.combat.player.threadsOfConsequencePending ? 1.4 : 1;
   // Stone's Patience (Divine Regalia — Foundation's Hammer): "whenever you
   // do not move first in a combat round, your next attack deals 30%
   // additional damage" — combat.enemyActedFirstThisRound is set by
@@ -1935,7 +1935,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   const chaosMult = avatarOfChaosDamageMultiplier(state);
   const momentumUnboundMult = momentumUnboundMultiplier(state);
   const temperedSteelMult = temperedSteelMultiplier(state);
-  const avatarOfTimeMult = state.combat && state.combat.avatarOfTimeTurns > 0 ? 1.25 : 1;
+  const avatarOfTimeMult = state.combat && state.combat.player.avatarOfTimeTurns > 0 ? 1.25 : 1;
   let dmg;
   if (isSpell) {
     const magic = effectiveMagic(state);
@@ -1978,8 +1978,8 @@ function rollPlayerDamage(state, creature, activeElement) {
     // this one deliberately does NOT reset when the window ends (matching
     // the source text's own "permanently," in contrast to the "for 4
     // rounds" +40% Magic buff granted alongside it).
-    if (state.combat.avatarOfCreationTurns > 0) {
-      state.combat.avatarOfCreationMagicStacks = (state.combat.avatarOfCreationMagicStacks || 0) + 2;
+    if (state.combat.player.avatarOfCreationTurns > 0) {
+      state.combat.player.avatarOfCreationMagicStacks = (state.combat.player.avatarOfCreationMagicStacks || 0) + 2;
     }
   } else {
     const armorCrack = armorCrackAmount(state);
@@ -2002,10 +2002,10 @@ function rollPlayerDamage(state, creature, activeElement) {
     // Echoing Arsenal (Artifact): every 5th physical/weapon-attack roll
     // (playerAttack, Ambush, Decoy, Disarm — anything landing in this
     // "else" branch) deals double damage. Its own counter, separate from
-    // combat.actionCounter, so mixing in elemental casts doesn't throw off
+    // combat.player.actionCounter, so mixing in elemental casts doesn't throw off
     // the count of actual weapon swings.
-    state.combat.weaponAttackCounter = (state.combat.weaponAttackCounter || 0) + 1;
-    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.weaponAttackCounter % 5 === 0 ? 2 : 1;
+    state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
+    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.player.weaponAttackCounter % 5 === 0 ? 2 : 1;
     // dmgReduction: see the magic branch above for why this is
     // the last step, after every other multiplier.
     dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0)) * sangMit));
@@ -2025,8 +2025,8 @@ function rollPlayerDamage(state, creature, activeElement) {
     // successful physical attack during its window PERMANENTLY increases
     // Attack by +2 — see the spell-branch comment above for why this
     // doesn't reset with the window.
-    if (state.combat.avatarOfCreationTurns > 0) {
-      state.combat.avatarOfCreationAtkStacks = (state.combat.avatarOfCreationAtkStacks || 0) + 2;
+    if (state.combat.player.avatarOfCreationTurns > 0) {
+      state.combat.player.avatarOfCreationAtkStacks = (state.combat.player.avatarOfCreationAtkStacks || 0) + 2;
     }
   }
   // Tempered Steel (Divine Regalia — Forgefather's Hammer): every
@@ -2035,15 +2035,15 @@ function rollPlayerDamage(state, creature, activeElement) {
   // "read the stack before this roll, grow it after" ordering Momentum/
   // Worthy Challenge use above.
   if (hasEffect(state, "tempered_steel")) {
-    state.combat.temperedSteelStacks = Math.min(15, (state.combat.temperedSteelStacks || 0) + 1);
+    state.combat.player.temperedSteelStacks = Math.min(15, (state.combat.player.temperedSteelStacks || 0) + 1);
   }
-  state.combat.threadsOfConsequencePending = false;
+  state.combat.player.threadsOfConsequencePending = false;
   state.combat.enemyActedFirstThisRound = false;
   if (hasEffect(state, "momentum")) {
-    state.combat.momentumStacks = Math.min(5, (state.combat.momentumStacks || 0) + 1);
+    state.combat.player.momentumStacks = Math.min(5, (state.combat.player.momentumStacks || 0) + 1);
   }
   if (hasEffect(state, "worthy_challenge")) {
-    state.combat.worthyChallengeStacks = Math.min(10, (state.combat.worthyChallengeStacks || 0) + 1);
+    state.combat.player.worthyChallengeStacks = Math.min(10, (state.combat.player.worthyChallengeStacks || 0) + 1);
   }
   // Blessing of Fortune (Regalia of the Laughing Gale 2pc) and Avatar of
   // Chaos (6pc): both key off THIS hit having just critted (critMult > 1,
@@ -2052,9 +2052,9 @@ function rollPlayerDamage(state, creature, activeElement) {
   // Momentum/Worthy Challenge use, and just as silent (no line) as those.
   if (critMult > 1) {
     if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
-      state.combat.blessingOfFortuneCritStacks = Math.min(5, (state.combat.blessingOfFortuneCritStacks || 0) + 1);
+      state.combat.player.blessingOfFortuneCritStacks = Math.min(5, (state.combat.player.blessingOfFortuneCritStacks || 0) + 1);
     }
-    if (state.combat.avatarOfChaosTurns > 0) {
+    if (state.combat.player.avatarOfChaosTurns > 0) {
       const stat = ["Atk", "Def", "Magic", "Knowledge"][Math.floor(Math.random() * 4)];
       const field = "avatarOfChaos" + stat + "Bonus";
       state.combat[field] = Math.min(30, (state.combat[field] || 0) + 10);
@@ -2063,7 +2063,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   // Avatar of War (Regalia of the Crimson Vanguard 6pc): for its 4-round
   // window, all damage dealt heals 10% — silent like Soul Leech/Avatar of
   // Passing above.
-  if (state.combat && state.combat.avatarOfWarTurns > 0) {
+  if (state.combat && state.combat.player.avatarOfWarTurns > 0) {
     applyHeal(state, Math.round(dmg * 0.1));
   }
   // Soul Leech (Mythic): heals 10% of every hit's damage (20% if Master of
@@ -2079,7 +2079,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   // Avatar of Passing (Regalia of the Final Veil 6pc): for its 4-round
   // window, all damage dealt heals 30% — silent like Soul Leech above
   // (this function only returns a number, no message line to attach to).
-  if (state.combat && state.combat.avatarOfPassingTurns > 0) {
+  if (state.combat && state.combat.player.avatarOfPassingTurns > 0) {
     applyHeal(state, Math.round(dmg * 0.3));
   }
   // Enemy Ability Engine (data/enemyabilities.js): flat damage reduction
@@ -2138,7 +2138,7 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
         // — default to "physical" (judgment call per the implementation
         // notes, consistent with every other no-element-available hit in
         // this file, e.g. riposteCounterOnPlayer below).
-        if (state.combat) state.combat.playerLastHitType = "physical";
+        if (state.combat) state.combat.player.playerLastHitType = "physical";
       }
     }
     // Powdered Wings-style: the creature inflicts a status back on
@@ -2155,7 +2155,7 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
       const counter = Math.max(0, Math.round((creature.atk || 0) * ability.counterPctOfAtk));
       if (counter > 0) {
         applyPlayerDamage(state, counter); // v0.11: see reflect above
-        if (state.combat) state.combat.playerLastHitType = "physical"; // Injury System v0.2: see reflect above
+        if (state.combat) state.combat.player.playerLastHitType = "physical"; // Injury System v0.2: see reflect above
       }
     }
   }
@@ -2175,8 +2175,8 @@ function pickElement(state) {
 // gear) — Ambush/Blink/elemental abilities never call this, so an opening
 // Ambush doesn't burn the bonus before a later normal attack gets it.
 function applyOpeningReach(state, dmg) {
-  if (state.combat.firstPhysicalAttackDone) return dmg;
-  state.combat.firstPhysicalAttackDone = true;
+  if (state.combat.player.firstPhysicalAttackDone) return dmg;
+  state.combat.player.firstPhysicalAttackDone = true;
   if (!hasEffect(state, "opening_reach")) return dmg;
   const mult = hasSetTier(state, "Norrvael", 6) ? 1.3 : 1.15;
   return Math.round(dmg * mult);
