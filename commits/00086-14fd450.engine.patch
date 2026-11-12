@@ -1,0 +1,13 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 4f2effa..85abc40 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -132,7 +132,7 @@ const COMBAT_UNIFY = {
+   //
+   // The enemy's banked Defense bonus (Brace/Guarded Strike/Sure
+   // Foundation) protects it from a plain ally's hit but not Hadrian's.
+-  U3e: false,
++  U3e: true,
+   // Smuggler's Guard / Commander's Poise (sangCuDefenderMitigation): the
+   // enemy's own flat damage-reduction item effects fire against a plain
+   // ally's hit but not Hadrian's.
