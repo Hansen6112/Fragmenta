@@ -68,16 +68,16 @@ const { chromium } = require('playwright');
     });
     record('P1G-III-ROUNDTRIP-02', 'The two cooldown-counter fields (timelessGuardCooldown/unyieldingWallCooldown) still read back exactly what was written, as numbers', () => {
       const s = makeWarrior();
-      s.combat.timelessGuardCooldown = 2;
-      s.combat.unyieldingWallCooldown = 3;
-      return { pass: s.combat.timelessGuardCooldown === 2 && s.combat.unyieldingWallCooldown === 3, timelessGuardCooldown: s.combat.timelessGuardCooldown, unyieldingWallCooldown: s.combat.unyieldingWallCooldown };
+      s.combat.player.timelessGuardCooldown = 2;
+      s.combat.player.unyieldingWallCooldown = 3;
+      return { pass: s.combat.player.timelessGuardCooldown === 2 && s.combat.player.unyieldingWallCooldown === 3, timelessGuardCooldown: s.combat.player.timelessGuardCooldown, unyieldingWallCooldown: s.combat.player.unyieldingWallCooldown };
     });
     record('P1G-III-ISOLATION-01', "Each fight's own private store is independent -- a fresh combat doesn't inherit a flag set on a previous one", () => {
       const s = makeWarrior();
-      s.combat.mirrorSoulUsed = true;
-      s.combat.timelessGuardCooldown = 2;
+      s.combat.player.mirrorSoulUsed = true;
+      s.combat.player.timelessGuardCooldown = 2;
       startCombat(s, 'stoneback_beetle', 25); // a brand new fight, same state object
-      return { pass: s.combat.mirrorSoulUsed !== true && s.combat.timelessGuardCooldown === 0, mirrorSoulUsed: s.combat.mirrorSoulUsed, timelessGuardCooldown: s.combat.timelessGuardCooldown };
+      return { pass: s.combat.player.mirrorSoulUsed !== true && s.combat.player.timelessGuardCooldown === 0, mirrorSoulUsed: s.combat.player.mirrorSoulUsed, timelessGuardCooldown: s.combat.player.timelessGuardCooldown };
     });
 
     // Real mechanics using batch-1 flags: Guardian Spirit's auto-miss and
@@ -94,7 +94,7 @@ const { chromium } = require('playwright');
       window.attackConnects = () => true;
       try {
         const result = resolveEnemyAttackOnPlayer(s, creature, 2, 0, null, null);
-        return { pass: s.combat.guardianSpiritUsed === true && result.damage === 0, guardianSpiritUsed: s.combat.guardianSpiritUsed, damage: result.damage, lines: result.lines };
+        return { pass: s.combat.player.guardianSpiritUsed === true && result.damage === 0, guardianSpiritUsed: s.combat.player.guardianSpiritUsed, damage: result.damage, lines: result.lines };
       } finally {
         window.hasEffect = origHasEffect;
         window.attackConnects = origConnects;
@@ -112,7 +112,7 @@ const { chromium } = require('playwright');
       window.attackConnects = () => true;
       try {
         resolveEnemyAttackOnPlayer(s, creature, 2, 0, null, null);
-        return { pass: s.combat.mirrorSoulUsed === true, mirrorSoulUsed: s.combat.mirrorSoulUsed };
+        return { pass: s.combat.player.mirrorSoulUsed === true, mirrorSoulUsed: s.combat.player.mirrorSoulUsed };
       } finally {
         window.hasEffect = origHasEffect;
         window.attackConnects = origConnects;

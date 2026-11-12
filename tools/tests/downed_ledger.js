@@ -139,17 +139,17 @@ const { chromium } = require('playwright');
       const withoutAlly = combatOngoing(s);
       return { pass: withAlly === true && withoutAlly === false, withAlly, withoutAlly, combatNullAfter: s.combat === null };
     });
-    record('ROUND-03', 'beginTurn keeps ticking ally buffs/statuses and combat.actionCounter while the player is downed (the real bug this change had to fix)', () => {
+    record('ROUND-03', 'beginTurn keeps ticking ally buffs/statuses and combat.player.actionCounter while the player is downed (the real bug this change had to fix)', () => {
       const s = makePlayer(20);
       startCombat(s, 'bandit_cutthroat', 20);
       const ally = s.recruitAlly('kessa');
       s.health = 5000; s.maxHealth = 5000;
       s.playerDowned = true;
-      const counterBefore = s.combat.actionCounter;
+      const counterBefore = s.combat.player.actionCounter;
       ally.statuses = ally.statuses || {};
       ally.statuses.chilled = { name: 'Chilled', debuff: { agi: -10 }, turnsLeft: 3 };
       beginTurn(s);
-      const counterAfter = s.combat.actionCounter;
+      const counterAfter = s.combat.player.actionCounter;
       const statusTurnsAfter = ally.statuses.chilled ? ally.statuses.chilled.turnsLeft : null;
       return { pass: counterAfter > counterBefore && statusTurnsAfter === 2, counterBefore, counterAfter, statusTurnsAfter };
     });

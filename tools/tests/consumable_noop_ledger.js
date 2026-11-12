@@ -62,7 +62,7 @@ const { chromium } = require('playwright');
     record('NOOP-CLEANSE-01', 'A cleanse potion with nothing to clear mid-combat is NOT consumed', () => {
       const s = makeState();
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.playerStatuses = {};
+      s.combat.player.playerStatuses = {};
       s.inventory = ['a clearwater tonic'];
       const lines = useItem(s, 'a clearwater tonic');
       return { pass: s.inventory.includes('a clearwater tonic') && /nothing to clear/.test(lines.join(' ')), lines };
@@ -72,13 +72,13 @@ const { chromium } = require('playwright');
     record('NOOP-CLEANSE-02', 'A cleanse potion WITH an active status mid-combat IS consumed and clears it', () => {
       const s = makeState();
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.playerStatuses = { bleed: { name: 'Bleeding', dot: { pctMaxHp: 0.05 }, turnsLeft: 3 } };
+      s.combat.player.playerStatuses = { bleed: { name: 'Bleeding', dot: { pctMaxHp: 0.05 }, turnsLeft: 3 } };
       s.inventory = ['a clearwater tonic'];
       const lines = useItem(s, 'a clearwater tonic');
-      return { pass: !s.inventory.includes('a clearwater tonic') && !s.combat.playerStatuses.bleed, lines };
+      return { pass: !s.inventory.includes('a clearwater tonic') && !s.combat.player.playerStatuses.bleed, lines };
     });
 
-    // ---- cleanse used outside combat: previously would crash (state.combat.playerStatuses on null) ----
+    // ---- cleanse used outside combat: previously would crash (state.combat.player.playerStatuses on null) ----
     record('NOOP-CLEANSE-03', 'A cleanse potion used OUTSIDE combat no longer crashes — refused, not consumed', () => {
       const s = makeState();
       s.combat = null;

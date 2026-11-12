@@ -151,11 +151,11 @@ const { chromium } = require('playwright');
 
         const s2 = makeWarrior();
         const e2 = s2.combat.enemies[0];
-        bonusBefore = s2.combat.whiteWatchRiposteDefBonus || 0;
+        bonusBefore = s2.combat.player.whiteWatchRiposteDefBonus || 0;
         const hpBefore = e2.hp;
         withForcedHit(() => maybeRiposte(s2, e2.creatureObj));
         dealt = hpBefore - e2.hp;
-        bonusAfter = s2.combat.whiteWatchRiposteDefBonus || 0;
+        bonusAfter = s2.combat.player.whiteWatchRiposteDefBonus || 0;
       } finally {
         Math.random = origRandom;
         window.hasEffect = origHasEffect;

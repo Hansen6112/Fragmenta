@@ -115,29 +115,29 @@ const { chromium } = require('playwright');
     });
 
     // ============ U3a: Marked Target vs an ally ============
-    // Checked directly against combat.exposedTarget's own state, not
+    // Checked directly against combat.player.exposedTarget's own state, not
     // through the accuracy roll's hit/miss outcome -- window.attackConnects
     // is already forced to always-hit in runWithSwitches (isolating the
     // damage math everywhere else in this file), which would otherwise
     // mask any +8 ACC this switch grants from ever being observable here.
-    record('U3A-READ-01', 'U3a on: an ally-targeted roll reads and consumes a pending combat.exposedTarget mark left by a DIFFERENT creature; off, the mark is never read on this path and stays set', () => {
-      const setup = (s, creature, ally) => { s.combat.exposedTarget = { by: {} }; };
+    record('U3A-READ-01', 'U3a on: an ally-targeted roll reads and consumes a pending combat.player.exposedTarget mark left by a DIFFERENT creature; off, the mark is never read on this path and stays set', () => {
+      const setup = (s, creature, ally) => { s.combat.player.exposedTarget = { by: {} }; };
       const off = runWithSwitches({ on: [], setup });
       const on = runWithSwitches({ on: ['U3a'], setup });
       return {
-        pass: !!off.s.combat.exposedTarget && !on.s.combat.exposedTarget,
-        offExposedTargetStillSet: !!off.s.combat.exposedTarget,
-        onExposedTargetConsumed: !on.s.combat.exposedTarget,
+        pass: !!off.s.combat.player.exposedTarget && !on.s.combat.player.exposedTarget,
+        offExposedTargetStillSet: !!off.s.combat.player.exposedTarget,
+        onExposedTargetConsumed: !on.s.combat.player.exposedTarget,
       };
     });
-    record('U3A-GRANT-01', 'U3a on: a successful ally-targeted hit from a Marked-Target-wearing creature sets combat.exposedTarget; off, it never does', () => {
+    record('U3A-GRANT-01', 'U3a on: a successful ally-targeted hit from a Marked-Target-wearing creature sets combat.player.exposedTarget; off, it never does', () => {
       const stubs = { hasEffectExtra: (obj, id) => (id === 'sang_cu_ie002_marked_target' ? true : undefined) };
       const off = runWithSwitches(Object.assign({ on: [] }, stubs));
       const on = runWithSwitches(Object.assign({ on: ['U3a'] }, stubs));
       return {
-        pass: !off.s.combat.exposedTarget && !!(on.s.combat.exposedTarget && on.s.combat.exposedTarget.by === on.creature),
-        offExposedTarget: off.s.combat.exposedTarget || null,
-        onExposedTarget: on.s.combat.exposedTarget ? 'set-to-attacker' : null,
+        pass: !off.s.combat.player.exposedTarget && !!(on.s.combat.player.exposedTarget && on.s.combat.player.exposedTarget.by === on.creature),
+        offExposedTarget: off.s.combat.player.exposedTarget || null,
+        onExposedTarget: on.s.combat.player.exposedTarget ? 'set-to-attacker' : null,
       };
     });
 

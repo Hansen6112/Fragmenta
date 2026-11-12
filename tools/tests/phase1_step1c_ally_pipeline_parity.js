@@ -167,7 +167,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     });
     checkParity('P1C-NOEVASION-01', 'Asymmetry preserved: Guardian Spirit/Timeless Guard/evasion charges -- all player-only -- never intercept an ally-targeted attack', {
       effects: ['guardian_spirit', 'timeless_guard', 'guided_footsteps', 'never_where_expected'],
-      mutate: (s) => { s.combat.avatarOfFreedomTurns = 3; s.combat.evasionCharges = 1; },
+      mutate: (s) => { s.combat.player.avatarOfFreedomTurns = 3; s.combat.player.evasionCharges = 1; },
       seq: LOW,
       expectEffectMatters: false, // none of these are even checked in the ally branch
     });

@@ -65,10 +65,10 @@ const { chromium } = require('playwright');
     });
     record('P1G-IV-ISOLATION-01', "A fresh fight doesn't inherit a batch-2 value set on a previous one", () => {
       const s = makeWarrior();
-      s.combat.avatarOfEnduranceTurns = 4;
-      s.combat.avatarOfChaosAtkBonus = 7;
+      s.combat.player.avatarOfEnduranceTurns = 4;
+      s.combat.player.avatarOfChaosAtkBonus = 7;
       startCombat(s, 'stoneback_beetle', 25);
-      return { pass: s.combat.avatarOfEnduranceTurns === 0 && !s.combat.avatarOfChaosAtkBonus, avatarOfEnduranceTurns: s.combat.avatarOfEnduranceTurns, avatarOfChaosAtkBonus: s.combat.avatarOfChaosAtkBonus };
+      return { pass: s.combat.player.avatarOfEnduranceTurns === 0 && !s.combat.player.avatarOfChaosAtkBonus, avatarOfEnduranceTurns: s.combat.player.avatarOfEnduranceTurns, avatarOfChaosAtkBonus: s.combat.player.avatarOfChaosAtkBonus };
     });
 
     // Real mechanic: applyHeal's own Avatar of Endurance (+50%) and Avatar
@@ -79,15 +79,15 @@ const { chromium } = require('playwright');
     record('P1G-IV-MECHANIC-ENDURANCE-01', 'Avatar of Endurance (avatarOfEnduranceTurns > 0) still grants +50% healing through the real applyHeal path', () => {
       const s = makeWarrior();
       s.health = 10;
-      s.combat.avatarOfEnduranceTurns = 3;
+      s.combat.player.avatarOfEnduranceTurns = 3;
       const { healed } = applyHeal(s, 10);
       return { pass: healed === 15, healed };
     });
     record('P1G-IV-MECHANIC-DEVOTION-01', 'Avatar of Devotion (avatarOfDevotionTurns > 0) still doubles healing, stacking multiplicatively with Avatar of Endurance, through the real applyHeal path', () => {
       const s = makeWarrior();
       s.health = 10;
-      s.combat.avatarOfDevotionTurns = 2;
-      s.combat.avatarOfEnduranceTurns = 3;
+      s.combat.player.avatarOfDevotionTurns = 2;
+      s.combat.player.avatarOfEnduranceTurns = 3;
       const { healed } = applyHeal(s, 10);
       return { pass: healed === 30, healed }; // 10 * 2 (devotion) * 1.5 (endurance) = 30
     });

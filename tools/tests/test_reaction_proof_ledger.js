@@ -142,9 +142,9 @@ const { chromium } = require('playwright');
       window.hasEffect = (st, id) => id === 'mirror_soul' ? true : origHasEffect(st, id);
       let mirrorSoulUsedBefore, mirrorSoulUsedAfter, lines;
       try {
-        mirrorSoulUsedBefore = !!s.combat.mirrorSoulUsed;
+        mirrorSoulUsedBefore = !!s.combat.player.mirrorSoulUsed;
         lines = testHalfCounterReaction(s, creature);
-        mirrorSoulUsedAfter = !!s.combat.mirrorSoulUsed;
+        mirrorSoulUsedAfter = !!s.combat.player.mirrorSoulUsed;
       } finally {
         window.hasEffect = origHasEffect;
       }

@@ -86,37 +86,37 @@ const { chromium } = require('playwright');
     record('PARITY-PLAYER-01', 'stat(atk) === effectivePlayerAtk across a buffed state', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.atkBuffTurns = 3; s.combat.atkBuffAmount = 7;
-      s.combat.everyChoiceAtkStacks = 2; s.combat.battleTemperedAtkStacks = 1;
+      s.combat.player.atkBuffTurns = 3; s.combat.player.atkBuffAmount = 7;
+      s.combat.player.everyChoiceAtkStacks = 2; s.combat.player.battleTemperedAtkStacks = 1;
       const c = makePlayerCombatant(s);
       return { pass: stat(s, c, 'atk') === effectivePlayerAtk(s), statVal: stat(s, c, 'atk'), direct: effectivePlayerAtk(s) };
     });
     record('PARITY-PLAYER-02', 'stat(def) === effectivePlayerDef across a debuffed state', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.playerStatuses = { shield_crush: { name: 'Shield Crush', debuff: { def: -5 }, turnsLeft: 2 } };
-      s.combat.evasiveGuardBonus = 2;
+      s.combat.player.playerStatuses = { shield_crush: { name: 'Shield Crush', debuff: { def: -5 }, turnsLeft: 2 } };
+      s.combat.player.evasiveGuardBonus = 2;
       const c = makePlayerCombatant(s);
       return { pass: stat(s, c, 'def') === effectivePlayerDef(s), statVal: stat(s, c, 'def'), direct: effectivePlayerDef(s) };
     });
     record('PARITY-PLAYER-03', 'stat(agi) === effectivePlayerAgility across a percentage debuff', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.playerStatuses = { stagger: { name: 'Stagger', debuff: { agiPct: -0.2 }, turnsLeft: 2 } };
+      s.combat.player.playerStatuses = { stagger: { name: 'Stagger', debuff: { agiPct: -0.2 }, turnsLeft: 2 } };
       const c = makePlayerCombatant(s);
       return { pass: stat(s, c, 'agi') === effectivePlayerAgility(s), statVal: stat(s, c, 'agi'), direct: effectivePlayerAgility(s) };
     });
     record('PARITY-PLAYER-04', 'stat(acc) === effectivePlayerAccuracy with a crafted-potion buff active', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.playerBuffs = { acc: { amount: 4, turns: 2 } };
+      s.combat.player.playerBuffs = { acc: { amount: 4, turns: 2 } };
       const c = makePlayerCombatant(s);
       return { pass: stat(s, c, 'acc') === effectivePlayerAccuracy(s), statVal: stat(s, c, 'acc'), direct: effectivePlayerAccuracy(s) };
     });
     record('PARITY-PLAYER-05', 'stat(spd) === effectivePlayerSpeedForInitiative with a flat status debuff', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.playerStatuses = { slowed: { name: 'Slowed', debuff: { spd: -3 }, turnsLeft: 2 } };
+      s.combat.player.playerStatuses = { slowed: { name: 'Slowed', debuff: { spd: -3 }, turnsLeft: 2 } };
       const c = makePlayerCombatant(s);
       return { pass: stat(s, c, 'spd') === effectivePlayerSpeedForInitiative(s), statVal: stat(s, c, 'spd'), direct: effectivePlayerSpeedForInitiative(s) };
     });
@@ -139,13 +139,13 @@ const { chromium } = require('playwright');
     record('PARITY-PLAYER-07', 'stat(atk) peeks the Siege Corps one-shot charge without consuming it -- two reads see the same boosted value, and the charge survives both; effectivePlayerAtk (the legacy, still-consuming formula) produces the IDENTICAL number on its own first call, then actually spends it', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.siegeCorpsAtkCharge = 2;
+      s.combat.player.siegeCorpsAtkCharge = 2;
       const c = makePlayerCombatant(s);
       const first = stat(s, c, 'atk');
       const second = stat(s, c, 'atk');
-      const chargeSurvivedBothReads = s.combat.siegeCorpsAtkCharge === 2;
+      const chargeSurvivedBothReads = s.combat.player.siegeCorpsAtkCharge === 2;
       const consumed = effectivePlayerAtk(s);
-      const chargeGoneAfterConsume = s.combat.siegeCorpsAtkCharge === 0;
+      const chargeGoneAfterConsume = s.combat.player.siegeCorpsAtkCharge === 0;
       return {
         pass: first === second && chargeSurvivedBothReads && consumed === first && chargeGoneAfterConsume,
         first, second, chargeSurvivedBothReads, consumed, chargeGoneAfterConsume,

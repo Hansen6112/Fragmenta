@@ -339,8 +339,8 @@ const { chromium } = require('playwright');
       const defAfter = effectivePlayerDef(s);
       const healthAfter = s.maxHealth;
       return {
-        pass: s.combat.sovereigntyTurnsLeft === 2 && atkAfter > atkBefore && defAfter > defBefore && healthAfter === healthBefore,
-        atkBefore, atkAfter, defBefore, defAfter, healthBefore, healthAfter, sovereigntyTurnsLeft: s.combat.sovereigntyTurnsLeft,
+        pass: s.combat.player.sovereigntyTurnsLeft === 2 && atkAfter > atkBefore && defAfter > defBefore && healthAfter === healthBefore,
+        atkBefore, atkAfter, defBefore, defAfter, healthBefore, healthAfter, sovereigntyTurnsLeft: s.combat.player.sovereigntyTurnsLeft,
       };
     });
     record('DRA-B-SOV-02', 'Refreshes without stacking the percentage on a second cast inside the window', () => {
@@ -355,7 +355,7 @@ const { chromium } = require('playwright');
       const atkAfterFirst = effectivePlayerAtk(s);
       withForcedHit(() => useElementAbility(s, 'water'));
       const atkAfterSecond = effectivePlayerAtk(s);
-      return { pass: atkAfterFirst === atkAfterSecond && s.combat.sovereigntyTurnsLeft === 2, atkAfterFirst, atkAfterSecond };
+      return { pass: atkAfterFirst === atkAfterSecond && s.combat.player.sovereigntyTurnsLeft === 2, atkAfterFirst, atkAfterSecond };
     });
     record('DRA-B-SOV-03', 'Expires cleanly after 2 turns', () => {
       const s = makeChar(30);
@@ -367,10 +367,10 @@ const { chromium } = require('playwright');
       s.combat.maxHp *= 1000; s.combat.hp = s.combat.maxHp;
       withForcedHit(() => useElementAbility(s, 'water'));
       const atkActive = effectivePlayerAtk(s);
-      s.combat.sovereigntyTurnsLeft -= 1;
-      s.combat.sovereigntyTurnsLeft -= 1;
+      s.combat.player.sovereigntyTurnsLeft -= 1;
+      s.combat.player.sovereigntyTurnsLeft -= 1;
       const atkExpired = effectivePlayerAtk(s);
-      return { pass: atkActive > atkExpired && s.combat.sovereigntyTurnsLeft === 0, atkActive, atkExpired };
+      return { pass: atkActive > atkExpired && s.combat.player.sovereigntyTurnsLeft === 0, atkActive, atkExpired };
     });
     record('DRA-B-SOV-04', 'Dormant without the 10pc set equipped (a water cast with only partial gear grants nothing)', () => {
       const s = makeChar(30);
@@ -380,7 +380,7 @@ const { chromium } = require('playwright');
       startCombat(s, 'bandit_cutthroat', 10);
       s.combat.maxHp *= 1000; s.combat.hp = s.combat.maxHp;
       withForcedHit(() => useElementAbility(s, 'water'));
-      return { pass: !(s.combat.sovereigntyTurnsLeft > 0), sovereigntyTurnsLeft: s.combat.sovereigntyTurnsLeft };
+      return { pass: !(s.combat.player.sovereigntyTurnsLeft > 0), sovereigntyTurnsLeft: s.combat.player.sovereigntyTurnsLeft };
     });
 
     // ============ 8. DRA-P03 + Legacy combined stacking to +6 ============

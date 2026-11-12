@@ -166,12 +166,12 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       element: 'fire', seq: LOW, mutate: (s, creature) => { creature.braceBonusDef = 3; creature.guardedStrikeBonusDef = 2; },
     });
     checkParity('P1E-III-SIEGECORPS-01', "Fire: Siege Corps' charge purity fix produces the identical roll (an element cast is always the spell branch, so this never actually fires -- but must still produce identical output either way)", useElementAbilityWrap, {
-      element: 'fire', seq: LOW, mutate: (s) => { s.combat.siegeCorpsAtkCharge = 2; },
+      element: 'fire', seq: LOW, mutate: (s) => { s.combat.player.siegeCorpsAtkCharge = 2; },
     });
 
     // ============ Cross-cutting (synergy / Spell Echo / kill-after-synergy ordering) ============
     checkParity('P1E-III-SYNERGY-01', 'Fire cast right after Water triggers a synergy bonus', useElementAbilityWrap, {
-      element: 'fire', secondaryElement: 'water', seq: LOW, mutate: (s) => { s.combat.lastElementUsed = 'water'; },
+      element: 'fire', secondaryElement: 'water', seq: LOW, mutate: (s) => { s.combat.player.lastElementUsed = 'water'; },
     });
     checkParity('P1E-III-SPELLECHO-01', 'Spell Echo repeats the cast at half power after a non-kill hit', useElementAbilityWrap, {
       element: 'fire', seq: LOW, effects: ['spell_echo'],

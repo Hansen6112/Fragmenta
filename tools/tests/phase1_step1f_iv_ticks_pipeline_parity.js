@@ -142,12 +142,12 @@ const { chromium } = require('playwright');
     }
     record('P1F4-PLAYER-DOT-01', 'Player status tick: deals exactly round(maxHealth * pctMaxHp * stacks), decrements turnsLeft, deletes at 0, banks the right Injury System hit type', () => {
       const s = makeWarrior();
-      s.combat.playerStatuses = makeStatus('bleed', 'Bleeding', 0.05, 1);
+      s.combat.player.playerStatuses = makeStatus('bleed', 'Bleeding', 0.05, 1);
       const hpBefore = s.health;
       const expected = Math.round(s.maxHealth * 0.05);
       tickPlayerStatuses(s);
       const dealt = hpBefore - s.health;
-      return { pass: dealt === expected && !s.combat.playerStatuses.bleed && s.combat.playerLastHitType === 'bleed', dealt, expected };
+      return { pass: dealt === expected && !s.combat.player.playerStatuses.bleed && s.combat.player.playerLastHitType === 'bleed', dealt, expected };
     });
     record('P1F4-PLAYER-DOT-HEATPROOF-01', 'Player status tick: Heatproof halves a "burning" tick specifically (floor, not round), via tickStatusPlayer\'s own formula', () => {
       const origHasEffect = window.hasEffect;
@@ -155,7 +155,7 @@ const { chromium } = require('playwright');
       let dealt, expectedRaw, expectedHalved;
       try {
         const s = makeWarrior();
-        s.combat.playerStatuses = makeStatus('burning', 'Burning', 0.05, 2);
+        s.combat.player.playerStatuses = makeStatus('burning', 'Burning', 0.05, 2);
         expectedRaw = Math.round(s.maxHealth * 0.05);
         expectedHalved = Math.floor(expectedRaw / 2);
         const hpBefore = s.health;
@@ -169,7 +169,7 @@ const { chromium } = require('playwright');
     record('P1F4-PLAYER-DOT-DEFEAT-01', 'A lethal player status tick resolves defeat/downed via the same resolvePlayerDefeatOrDowned call the original made', () => {
       const s = makeWarrior();
       s.health = 1;
-      s.combat.playerStatuses = makeStatus('bleed', 'Bleeding', 0.5, 1);
+      s.combat.player.playerStatuses = makeStatus('bleed', 'Bleeding', 0.5, 1);
       const lines = tickPlayerStatuses(s);
       const defeatLine = lines.some((l) => /Everything goes dark/.test(l));
       return { pass: s.health <= 0 && defeatLine, health: s.health, lines };
@@ -178,7 +178,7 @@ const { chromium } = require('playwright');
       const s = makeWarrior();
       s.health = 1;
       s.activeDungeon = { dungeonId: 'mugamiir_test' };
-      s.combat.playerStatuses = {
+      s.combat.player.playerStatuses = {
         aaa_lethal: { name: 'Lethal', dot: { pctMaxHp: 0.5 }, turnsLeft: 3 },
         zzz_second: { name: 'Second', dot: { pctMaxHp: 0.5 }, turnsLeft: 3 },
       };

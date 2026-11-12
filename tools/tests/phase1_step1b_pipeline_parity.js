@@ -173,7 +173,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     checkParity('P1-ACCBONUS-01', 'Marked Target + Duelist’s Measure + Calculated Aim + banked prep + measured aim all stack into one accuracy roll, all consumed on the attempt', {
       effects: ['sang_cu_ie007_duelists_measure', 'sang_iag_ie003_measured_aim'],
       mutate: (s, creature) => {
-        s.combat.exposedTarget = { by: { name: 'someone else' } };
+        s.combat.player.exposedTarget = { by: { name: 'someone else' } };
         creature.duelistMeasurePendingTarget = 'player';
         creature.bankedAttackAccBonusTurnsLeft = 2;
         creature.bankedAttackAccBonus = 5;
@@ -199,12 +199,12 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       seq: LOW,
     });
     checkParity('P1-AVATARFREE-01', 'Avatar of Freedom: 50% evasion while its window is open, forced to trigger', {
-      mutate: (s) => { s.combat.avatarOfFreedomTurns = 3; },
+      mutate: (s) => { s.combat.player.avatarOfFreedomTurns = 3; },
       seq: LOW,
     });
     checkParity('P1-EVACHARGE-01', 'Evasive Release charge: consumed either way, forced to roll success, grants Evasive Guard stack', {
       effects: ['evasive_guard'],
-      mutate: (s) => { s.combat.evasionCharges = 1; },
+      mutate: (s) => { s.combat.player.evasionCharges = 1; },
       seq: LOW,
     });
     checkParity('P1-EVACHARGE-OFF-01', 'Evasive Release charge present but its OWN 50% roll fails: the charge is still consumed (decremented to 0) and the hit proceeds normally -- the "available but didn’t trigger" off-case, distinct from having no charge at all', {
@@ -212,11 +212,11 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       // state, not gear-gated, and evasive_guard's bonus is never even
       // checked once evasionRolled is false -- there's no gear toggle for
       // the "effect changed something" control to exercise in this one.
-      mutate: (s) => { s.combat.evasionCharges = 1; },
+      mutate: (s) => { s.combat.player.evasionCharges = 1; },
       seq: [0.0, 0.99], // 0.0 guarantees the accuracy roll hits; 0.99 guarantees the evasion roll fails
     });
     checkParity('P1-EVATURNS-01', 'Evasion window (Windcut/Blink): forced to roll success', {
-      mutate: (s) => { s.combat.evasionTurns = 2; },
+      mutate: (s) => { s.combat.player.evasionTurns = 2; },
       seq: LOW,
     });
 
@@ -227,7 +227,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     });
     checkParity('P1-MIRRORSOUL-02', 'Mirror Soul already used this combat: does not fire a second time, hits normally instead -- the "equipped but already consumed" off-case, same treatment as the Reinforced/Evasive Release off-cases below', {
       effects: ['mirror_soul'],
-      mutate: (s, creature) => { creature.element = 'water'; creature.magic = 20; s.combat.mirrorSoulUsed = true; },
+      mutate: (s, creature) => { creature.element = 'water'; creature.magic = 20; s.combat.player.mirrorSoulUsed = true; },
       seq: LOW,
       expectEffectMatters: false, // mirrorSoulUsed=true blocks it exactly the same way "not equipped" would -- equipping it changes nothing once consumed
     });
@@ -241,7 +241,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       sets: ['Stormwatch:6', 'Stonewarden:6'],
       mutate: (s, creature) => {
         creature.element = 'fire'; creature.magic = 18;
-        s.combat.adaptiveWardElement = 'fire'; // already-established -> halves THIS hit
+        s.combat.player.adaptiveWardElement = 'fire'; // already-established -> halves THIS hit
       },
       seq: LOW,
     });
@@ -265,7 +265,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     });
     checkParity('P1-ADAPTIVEWARD-ESTABLISH-01', 'Adaptive Ward: the FIRST elemental hit each fight establishes resistance (sets adaptiveWardElement) rather than reducing damage itself -- the distinct sub-branch from P1-ELEMENTAL-02’s already-established case', {
       effects: ['adaptive_ward'],
-      mutate: (s, creature) => { creature.element = 'fire'; creature.magic = 18; }, // combat.adaptiveWardElement starts unset
+      mutate: (s, creature) => { creature.element = 'fire'; creature.magic = 18; }, // combat.player.adaptiveWardElement starts unset
       seq: LOW,
     });
     checkParity('P1-MIRRORSOUL-03', 'Mirror Soul when the reflected roll rounds to <=0: the “nothing worth turning aside” line, no HP write, no kill check', {
@@ -283,7 +283,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     });
     checkParity('P1-RIVERWARDEN-EVADE-01', 'River Warden 6pc’s magic-bonus-on-evade variant: only reachable when the attacker is elemental AND the player evades -- distinct from P1-EVACHARGE-01’s physical-creature evasion', {
       sets: ['River Warden:6'],
-      mutate: (s, creature) => { creature.element = 'fire'; creature.magic = 18; s.combat.evasionTurns = 2; },
+      mutate: (s, creature) => { creature.element = 'fire'; creature.magic = 18; s.combat.player.evasionTurns = 2; },
       seq: LOW,
     });
     checkParity('P1-OPENINGREACH-01', 'Opening Reach: a basic physical attack’s first-ever hit this fight deals 1.15x, flag consumed regardless of the gear check’s own result', {
@@ -293,7 +293,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     checkParity('P1-ACCBONUS-FALSE-01', 'Marked Target is NOT granted when exposedTarget was set by this SAME creature (self-check), and Duelist’s Measure’s pending-target reset (not “player”) correctly withholds its bonus -- the meaningful false branches, not just absence', {
       effects: ['sang_cu_ie007_duelists_measure'],
       mutate: (s, creature) => {
-        s.combat.exposedTarget = { by: creature }; // same creature -> markedTargetBonus stays 0 (not gated on the effect at all)
+        s.combat.player.exposedTarget = { by: creature }; // same creature -> markedTargetBonus stays 0 (not gated on the effect at all)
         creature.duelistMeasurePendingTarget = 'someone_else'; // present but not "player" -> duelistBonus stays 0 regardless of the effect
       },
       seq: LOW,
@@ -302,8 +302,8 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
     checkParity('P1-POSTHIT-FALSE-01', 'Serrated Opening’s inflict is skipped (not its once-per-combat flag) when the player is already Bleeding; Marked Target’s grant is withheld when exposedTarget is already set; Duelist’s Measure’s banking is withheld once its twice-per-combat cap is reached', {
       effects: ['sang_cu_ie003_serrated_opening', 'sang_cu_ie002_marked_target', 'sang_cu_ie007_duelists_measure'],
       mutate: (s, creature) => {
-        s.combat.playerStatuses = { bleed: { name: 'Bleeding', dot: { pctMaxHp: 0.02 }, turnsLeft: 2 } };
-        s.combat.exposedTarget = { by: { name: 'someone else' } };
+        s.combat.player.playerStatuses = { bleed: { name: 'Bleeding', dot: { pctMaxHp: 0.02 }, turnsLeft: 2 } };
+        s.combat.player.exposedTarget = { by: { name: 'someone else' } };
         creature.duelistMeasureUsesThisCombat = 2;
       },
       seq: LOW,
@@ -321,7 +321,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
         s.health = Math.round(s.maxHealth * 0.2); // under both the 0.3 and 0.35 HP thresholds
         creature.blackIceReservePending = true;
         creature.flowingDisciplinePending = true;
-        s.combat.playerStatuses = { chilled: { name: 'Chilled', turnsLeft: 2 }, sang_iag_poison: { name: 'Poisoned', turnsLeft: 2 } };
+        s.combat.player.playerStatuses = { chilled: { name: 'Chilled', turnsLeft: 2 }, sang_iag_poison: { name: 'Poisoned', turnsLeft: 2 } };
       },
       seq: LOW,
     });

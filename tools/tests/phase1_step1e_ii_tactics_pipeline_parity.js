@@ -145,7 +145,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       effects: ['dra_e05_sure_foundation'], mutate: (s, creature) => { creature.sureFoundationBonusDef = 2; }, seq: LOW, useMage: true, expectEffectMatters: false,
     });
     checkParity('P1E-II-D-SIEGECORPS-01', "Decoy: Siege Corps' one-shot Attack charge is peeked and consumed exactly once, producing the identical roll", useDecoy, {
-      seq: LOW, mutate: (s) => { s.combat.siegeCorpsAtkCharge = 2; },
+      seq: LOW, mutate: (s) => { s.combat.player.siegeCorpsAtkCharge = 2; },
     });
     checkParity('P1E-II-D-OPENINGREACH-01', "Decoy: Opening Reach's 1.15x applies unconditionally (no isPhysical gate, unlike the basic attack)", useDecoy, {
       effects: ['opening_reach'], seq: LOW,
@@ -184,10 +184,10 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       seq: LOW, mutate: (s, creature) => { creature.braceBonusDef = 3; creature.guardedStrikeBonusDef = 2; },
     });
     checkParity('P1E-II-A-SIEGECORPS-01', "Ambush: Siege Corps' charge purity fix produces the identical roll", useAmbush, {
-      seq: LOW, mutate: (s) => { s.combat.siegeCorpsAtkCharge = 2; },
+      seq: LOW, mutate: (s) => { s.combat.player.siegeCorpsAtkCharge = 2; },
     });
     checkParity('P1E-II-A-BORROWEDSECONDS-01', "Ambush: Borrowed Seconds' flat +15% (no cooldown to refund)", useAmbush, {
-      effects: ['borrowed_seconds'], mutate: (s) => { s.combat.actionCounter = 3; }, seq: LOW,
+      effects: ['borrowed_seconds'], mutate: (s) => { s.combat.player.actionCounter = 3; }, seq: LOW,
     });
     checkParity('P1E-II-A-KILL-01', 'Ambush: a lethal hit kills via resolveKill and re-targets', useAmbush, {
       mutate: (s, creature) => { s.combat.enemies[0].hp = 1; s.combat.enemies[0].maxHp = 1; }, seq: LOW,
@@ -229,7 +229,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       seq: LOW, mutate: (s, creature) => { creature.braceBonusDef = 3; creature.guardedStrikeBonusDef = 2; },
     });
     checkParity('P1E-II-DI-SIEGECORPS-01', "Disarm: Siege Corps' charge purity fix produces the identical roll", useDisarm, {
-      seq: LOW, mutate: (s) => { s.combat.siegeCorpsAtkCharge = 2; },
+      seq: LOW, mutate: (s) => { s.combat.player.siegeCorpsAtkCharge = 2; },
     });
     checkParity('P1E-II-DI-OPENINGREACH-01', "Disarm: Opening Reach applies unconditionally, same asymmetry as Decoy", useDisarm, {
       effects: ['opening_reach'], seq: LOW,

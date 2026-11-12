@@ -64,10 +64,10 @@ const { chromium } = require('playwright');
     });
     record('P1G-VI-ISOLATION-01', "A fresh fight doesn't inherit batch-4 values set on a previous one", () => {
       const s = makeWarrior();
-      s.combat.atkBuffAmount = 9;
-      s.combat.momentumStacks = 3;
+      s.combat.player.atkBuffAmount = 9;
+      s.combat.player.momentumStacks = 3;
       startCombat(s, 'stoneback_beetle', 25);
-      return { pass: !s.combat.atkBuffAmount && !s.combat.momentumStacks, atkBuffAmount: s.combat.atkBuffAmount, momentumStacks: s.combat.momentumStacks };
+      return { pass: !s.combat.player.atkBuffAmount && !s.combat.player.momentumStacks, atkBuffAmount: s.combat.player.atkBuffAmount, momentumStacks: s.combat.player.momentumStacks };
     });
 
     record('P1G-VI-STRUCTURAL-01', 'summonLifetimeCounts and enemyActedFirstThisRound are NOT accessors -- confirmed left as plain fight-wide properties, not moved into any store', () => {
@@ -86,14 +86,14 @@ const { chromium } = require('playwright');
     record('P1G-VI-MECHANIC-STONESPATIENCE-01', "Stone's Patience still reads the (unmoved, structural) enemyActedFirstThisRound flag correctly alongside this batch's own moved fields", () => {
       const s = makeWarrior();
       s.combat.enemyActedFirstThisRound = true;
-      s.combat.momentumStacks = 2; // a real batch-4 field, set in the same round
+      s.combat.player.momentumStacks = 2; // a real batch-4 field, set in the same round
       const origHasEffect = window.hasEffect;
       window.hasEffect = (obj, id) => id === 'stones_patience';
       try {
         const base = rollPlayerDamage(s, s.combat.enemies[0].creatureObj);
         s.combat.enemyActedFirstThisRound = false;
         const withoutBonus = rollPlayerDamage(s, s.combat.enemies[0].creatureObj);
-        return { pass: s.combat.momentumStacks === 2, note: 'momentumStacks untouched by the unrelated Stone\'s Patience read', momentumStacks: s.combat.momentumStacks, base, withoutBonus };
+        return { pass: s.combat.player.momentumStacks === 2, note: 'momentumStacks untouched by the unrelated Stone\'s Patience read', momentumStacks: s.combat.player.momentumStacks, base, withoutBonus };
       } finally {
         window.hasEffect = origHasEffect;
       }

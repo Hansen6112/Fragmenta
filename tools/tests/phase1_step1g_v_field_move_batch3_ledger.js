@@ -69,10 +69,10 @@ const { chromium } = require('playwright');
     });
     record('P1G-V-ISOLATION-01', "A fresh fight doesn't inherit batch-3 values set on a previous one", () => {
       const s = makeWarrior();
-      s.combat.livingSteelBonus = 5;
-      s.combat.groundbreakerDebuffs = [{ enemy: {}, amount: 10, turnsLeft: 2 }];
+      s.combat.player.livingSteelBonus = 5;
+      s.combat.player.groundbreakerDebuffs = [{ enemy: {}, amount: 10, turnsLeft: 2 }];
       startCombat(s, 'stoneback_beetle', 25);
-      return { pass: !s.combat.livingSteelBonus && (s.combat.groundbreakerDebuffs || []).length === 0, livingSteelBonus: s.combat.livingSteelBonus, groundbreakerDebuffs: s.combat.groundbreakerDebuffs };
+      return { pass: !s.combat.player.livingSteelBonus && (s.combat.player.groundbreakerDebuffs || []).length === 0, livingSteelBonus: s.combat.player.livingSteelBonus, groundbreakerDebuffs: s.combat.player.groundbreakerDebuffs };
     });
 
     // groundbreakerDebuffs specifically: the one array field in this
@@ -86,10 +86,10 @@ const { chromium } = require('playwright');
       enemyRecord.creatureObj.acc = 20; // comfortably above the debuff amount, so the floor clamp at 0 never kicks in and muddies this round-trip check
       const baseAcc = enemyRecord.creatureObj.acc;
       applyGroundbreakerAccuracyDebuff(s, enemyRecord, 2, 1);
-      const afterApply = s.combat.groundbreakerDebuffs.length === 1 && enemyRecord.creatureObj.acc === baseAcc - 2;
+      const afterApply = s.combat.player.groundbreakerDebuffs.length === 1 && enemyRecord.creatureObj.acc === baseAcc - 2;
       tickGroundbreakerDebuffs(s); // turnsLeft 1 -> 0, expires and restores
-      const afterTick = s.combat.groundbreakerDebuffs.length === 0 && enemyRecord.creatureObj.acc === baseAcc;
-      return { pass: afterApply && afterTick, afterApply, afterTick, baseAcc, accNow: enemyRecord.creatureObj.acc, debuffs: s.combat.groundbreakerDebuffs };
+      const afterTick = s.combat.player.groundbreakerDebuffs.length === 0 && enemyRecord.creatureObj.acc === baseAcc;
+      return { pass: afterApply && afterTick, afterApply, afterTick, baseAcc, accNow: enemyRecord.creatureObj.acc, debuffs: s.combat.player.groundbreakerDebuffs };
     });
 
     return ledger;

@@ -53,8 +53,8 @@ const { chromium } = require('playwright');
         const s = makeApothecary();
         const lines = useApothecaryAbility(s, 'rousing_tonic');
         const fired = lines.join(' ').includes('Endless Study');
-        const keyRecorded = (s.combat.endlessStudyKeys || []).includes('rousing_tonic');
-        const bonusGranted = (s.combat.endlessStudyMagicBonus || 0) === 2;
+        const keyRecorded = (s.combat.player.endlessStudyKeys || []).includes('rousing_tonic');
+        const bonusGranted = (s.combat.player.endlessStudyMagicBonus || 0) === 2;
         return { pass: fired && keyRecorded && bonusGranted, fired, keyRecorded, bonusGranted, lines };
       });
     });
@@ -65,11 +65,11 @@ const { chromium } = require('playwright');
         useApothecaryAbility(s, 'rousing_tonic'); // first use: grants +2
         s.combat.cooldowns.rousing_tonic = 0; // bypass cooldown for a same-turn second cast
         const lines2 = useApothecaryAbility(s, 'rousing_tonic');
-        const noSecondGrant = lines2.join(' ').indexOf('Endless Study') === -1 && (s.combat.endlessStudyMagicBonus || 0) === 2;
+        const noSecondGrant = lines2.join(' ').indexOf('Endless Study') === -1 && (s.combat.player.endlessStudyMagicBonus || 0) === 2;
         const withoutEffect = withStubs([], () => {
           const s2 = makeApothecary();
           useApothecaryAbility(s2, 'rousing_tonic');
-          return (s2.combat.endlessStudyMagicBonus || 0) === 0;
+          return (s2.combat.player.endlessStudyMagicBonus || 0) === 0;
         });
         return { pass: noSecondGrant && withoutEffect, noSecondGrant, withoutEffect };
       });
@@ -80,8 +80,8 @@ const { chromium } = require('playwright');
         const s = makeApothecary();
         const lines = useApothecaryAbility(s, 'rousing_tonic');
         const fired = lines.join(' ').includes("Wanderer's Reward");
-        const recentRecorded = (s.combat.recentActionKeys || []).includes('rousing_tonic');
-        const buffGranted = (s.combat.atkBuffAmount || 0) > 0 && (s.combat.magicBuffAmount || 0) > 0;
+        const recentRecorded = (s.combat.player.recentActionKeys || []).includes('rousing_tonic');
+        const buffGranted = (s.combat.player.atkBuffAmount || 0) > 0 && (s.combat.player.magicBuffAmount || 0) > 0;
         return { pass: fired && recentRecorded && buffGranted, fired, recentRecorded, buffGranted, lines };
       });
     });
@@ -89,21 +89,21 @@ const { chromium } = require('playwright');
     record('P1E-APOTH-ACTIONTYPETRACKING-01', 'applyActionTypeTracking now fires on an apothecary cast, recorded under its own "apothecary" category (not folded into attack/tactic/elemental)', () => {
       const s = makeApothecary();
       useApothecaryAbility(s, 'rousing_tonic');
-      const lastType = s.combat.lastActionType;
-      const historyTail = (s.combat.actionTypeHistory || []).slice(-1)[0];
+      const lastType = s.combat.player.lastActionType;
+      const historyTail = (s.combat.player.actionTypeHistory || []).slice(-1)[0];
       return { pass: lastType === 'apothecary' && historyTail === 'apothecary', lastType, historyTail };
     });
 
     record('P1E-APOTH-MOMENTUMUNBOUND-01', "Momentum Unbound's rhythm-shift check treats apothecary as genuinely distinct from a prior attack (control: no shift is detected within two apothecary casts in a row)", () => {
       return withStubs(['momentum_unbound'], () => {
         const s = makeApothecary();
-        s.combat.lastActionType = 'attack'; // pretend a basic attack happened last
+        s.combat.player.lastActionType = 'attack'; // pretend a basic attack happened last
         const lines = useApothecaryAbility(s, 'rousing_tonic');
         const shiftDetected = lines.join(' ').includes('Momentum Unbound');
-        const stacksGrew = (s.combat.momentumUnboundStacks || 0) === 1;
+        const stacksGrew = (s.combat.player.momentumUnboundStacks || 0) === 1;
         s.combat.cooldowns.rousing_tonic = 0;
         const lines2 = useApothecaryAbility(s, 'rousing_tonic'); // same category twice in a row: no shift
-        const noSecondShift = !lines2.join(' ').includes('Momentum Unbound') && (s.combat.momentumUnboundStacks || 0) === 1;
+        const noSecondShift = !lines2.join(' ').includes('Momentum Unbound') && (s.combat.player.momentumUnboundStacks || 0) === 1;
         return { pass: shiftDetected && stacksGrew && noSecondShift, shiftDetected, stacksGrew, noSecondShift };
       });
     });

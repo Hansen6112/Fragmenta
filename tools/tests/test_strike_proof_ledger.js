@@ -153,7 +153,7 @@ const { chromium } = require('playwright');
       try {
         const s = makeWarrior();
         usePlayerAction(s, 'test_strike');
-        lastActionType = s.combat.lastActionType;
+        lastActionType = s.combat.player.lastActionType;
       } finally {
         Math.random = origRandom;
       }

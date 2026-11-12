@@ -152,7 +152,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // ============ Crit ============
     checkParity('P1E-I-CRIT-01', 'A guaranteed crit (Unlikely Outcome flag) applies its multiplier and consumes the flag', playerAttack, {
       seq: LOW,
-      mutate: (s) => { s.combat.unlikelyOutcomeGuaranteedCrit = true; },
+      mutate: (s) => { s.combat.player.unlikelyOutcomeGuaranteedCrit = true; },
     });
 
     // ============ Enemy Defense: banked Brace/Guarded Strike/Sure Foundation ============
@@ -175,7 +175,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // ============ Siege Corps one-shot Attack charge (step 1e handoff §3.2 purity fix) ============
     checkParity('P1E-I-SIEGECORPS-01', 'Siege Corps\' one-shot +2 Attack charge is peeked in step 4 (stat()) and consumed exactly once in step 5 -- produces the identical roll as the legacy eager-consume formula', playerAttack, {
       seq: LOW,
-      mutate: (s) => { s.combat.siegeCorpsAtkCharge = 2; },
+      mutate: (s) => { s.combat.player.siegeCorpsAtkCharge = 2; },
     });
 
     // ============ Opening Reach / Borrowed Seconds / Feint ============
@@ -185,16 +185,16 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     });
     checkParity('P1E-I-BORROWEDSECONDS-01', "Borrowed Seconds' every-4th-action +15% (actionCounter hits a multiple of 4 inside beginTurn)", playerAttack, {
       effects: ['borrowed_seconds'],
-      mutate: (s) => { s.combat.actionCounter = 3; },
+      mutate: (s) => { s.combat.player.actionCounter = 3; },
       seq: LOW,
     });
     checkParity('P1E-I-FEINT-01', 'A pending Feint bonus (nextAttackBonus) applies its 1.6x and is consumed', playerAttack, {
       seq: LOW,
-      mutate: (s) => { s.combat.nextAttackBonus = true; },
+      mutate: (s) => { s.combat.player.nextAttackBonus = true; },
     });
     checkParity('P1E-I-FEINT-PATIENTAIM-01', 'Patient Aim raises the Feint multiplier to 1.75x', playerAttack, {
       effects: ['patient_aim'],
-      mutate: (s) => { s.combat.nextAttackBonus = true; },
+      mutate: (s) => { s.combat.player.nextAttackBonus = true; },
       seq: LOW,
     });
 
@@ -247,11 +247,11 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // ============ Avatar of Creation: permanent per-branch stat stacks ============
     checkParity('P1E-I-AVATARCREATION-PHYS-01', 'Avatar of Creation grows Attack stacks permanently on a physical hit', playerAttack, {
       seq: LOW,
-      mutate: (s) => { s.combat.avatarOfCreationTurns = 2; },
+      mutate: (s) => { s.combat.player.avatarOfCreationTurns = 2; },
     });
     checkParity('P1E-I-AVATARCREATION-SPELL-01', 'Avatar of Creation grows Magic stacks permanently on a spell hit instead', playerAttack, {
       seq: LOW, useMage: true,
-      mutate: (s) => { s.combat.avatarOfCreationTurns = 2; },
+      mutate: (s) => { s.combat.player.avatarOfCreationTurns = 2; },
     });
 
     const summary = { total: ledger.length, passed: ledger.filter((l) => l.pass).length, failed: ledger.filter((l) => !l.pass) };
