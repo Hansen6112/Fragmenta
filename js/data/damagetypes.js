@@ -123,10 +123,20 @@ function isStatusImmune(holder, statusKey) {
 // creatureElementType themselves (equipment lookup differs by actor
 // kind, and only an enemy actor ever has an elementType) and pass them
 // in — this function only picks among them.
+//
+// Content Load handoff §2a (off by default): creatureAttackType can
+// ALSO be "fromCreature" -- a generic Elemental's own BASIC attack (no
+// weapon, no ability override) uses its spawned variant's element too
+// (a Fire Elemental's fist is Fire), the same elementType A5 already
+// set at build time for abilities. Checked after weaponDamageType
+// (equipped gear still wins over a bare-fisted creature's own element)
+// but before the plain creatureAttackType fallback, which "fromCreature"
+// itself would never usefully match as a literal damage type.
 function resolveDamageType(action, weaponDamageType, creatureAttackType, creatureElementType) {
   if (action && action.damageType === "fromCreature") return creatureElementType || "blunt";
   if (action && action.damageType) return action.damageType;
   if (weaponDamageType) return weaponDamageType;
+  if (creatureAttackType === "fromCreature") return creatureElementType || "blunt";
   if (creatureAttackType) return creatureAttackType;
   return "blunt";
 }

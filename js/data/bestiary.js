@@ -70,7 +70,15 @@ const SKREL_DRAK_VARIANTS = [
   { id: "acid", damageType: "acid", status: "corrosion", displayName: "Acid-blooded Skrel-Drak", preferredTags: ["swamp"] },
   // Decisions Addendum §3: Heated Mist -> Water, scalding AoE mist (150%
   // AoE + Burning, the Codex's own effect, kept as-is).
-  { id: "heated_mist", damageType: "water", status: "burning", displayName: "Mist-blooded Skrel-Drak", preferredTags: ["coast", "lake", "river"] },
+  // Content Load handoff §2b: Heated Mist's Codex effect ("150% Attack
+  // to all enemies and applies Burn") needed a general per-variant
+  // ability-override mechanism, not a one-off hack -- abilityOverrides
+  // keys an ability id this variant's creatures carry (inherited_breath,
+  // Young/Ancient Skrel-Drak's own breath) to the dmgMult/aoe it
+  // replaces that ability's own base numbers with, read in
+  // resolveEnemyActiveAbility (js/engine/combat.js) right where
+  // variantStatus already overrides the same ability's inflict.
+  { id: "heated_mist", damageType: "water", status: "burning", displayName: "Mist-blooded Skrel-Drak", preferredTags: ["coast", "lake", "river"], abilityOverrides: { inherited_breath: { dmgMult: 1.5, aoe: true } } },
 ];
 const ELEMENTAL_VARIANTS = [
   { id: "fire", damageType: "fire", status: "burning", displayName: "Fire Elemental", preferredTags: ["volcanic", "desert"] },
@@ -84,6 +92,7 @@ const ELEMENTAL_VARIANTS = [
 
 const BESTIARY = {
   stoneback_beetle: {
+    attackType: "piercing",
     name: "Stoneback Beetle",
     native: "Keth-Rhovael",
     tags: ["urban", "forest", "desert", "cave", "continental"],
@@ -95,6 +104,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   mirrorfish: {
+    attackType: "piercing",
     name: "Mirrorfish",
     native: "Voreth-Sael",
     tags: ["river"],
@@ -106,6 +116,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   gloomhawk: {
+    attackType: "slashing",
     name: "Gloomhawk",
     native: "Rau-Nolveth",
     tags: ["mountain", "continental"],
@@ -117,6 +128,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   cave_scorpion: {
+    attackType: "piercing",
     name: "Cave Scorpion",
     native: "Dhulorvae",
     tags: ["cave", "volcanic", "desert"],
@@ -128,6 +140,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   ridgeback_boar: {
+    attackType: "piercing",
     name: "Ridgeback Boar",
     native: "Lorvaun-Nauri",
     tags: ["forest", "plains", "continental"],
@@ -139,6 +152,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   thornhide: {
+    attackType: "piercing",
     name: "Thornhide",
     native: "Skrevak",
     tags: ["desert", "volcanic", "swamp"],
@@ -150,6 +164,7 @@ const BESTIARY = {
     spawnRarity: "uncommon",
   },
   veilwing: {
+    attackType: "blunt",
     name: "Veilwing",
     native: "Voreth-Mauth",
     tags: ["mountain", "continental"],
@@ -161,6 +176,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   ashwyrm: {
+    attackType: "piercing",
     name: "Ashwyrm",
     native: "Velthrak",
     tags: ["volcanic", "desert"],
@@ -172,6 +188,7 @@ const BESTIARY = {
     spawnRarity: "rare",
   },
   plainswolf: {
+    attackType: "piercing",
     name: "Plainswolf",
     native: "Kaeven-Thauln",
     tags: ["plains", "mountain"],
@@ -186,6 +203,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   river_serpent: {
+    attackType: "piercing",
     name: "River Serpent",
     native: "Kaluath",
     tags: ["river", "swamp", "lake"],
@@ -197,6 +215,7 @@ const BESTIARY = {
     spawnRarity: "uncommon",
   },
   thunderbird: {
+    attackType: "slashing",
     name: "Thunderbird",
     native: "Rhovael-Rau",
     tags: ["coast", "sea"],
@@ -209,6 +228,7 @@ const BESTIARY = {
     flurry: true, // rare + high Speed: gets a genuine second action every round, back-to-back with its first (see engine/combat.js resolveEnemyActionWithFlurry)
   },
   drake: {
+    attackType: "slashing",
     name: "Drake",
     native: "Skrel-Drak",
     tags: ["mountain", "coast", "continental"],
@@ -222,6 +242,7 @@ const BESTIARY = {
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   dragon: {
+    attackType: "slashing",
     name: "Dragon",
     native: "Draven-Drak",
     tags: ["mountain", "volcanic", "coast"],
@@ -235,6 +256,7 @@ const BESTIARY = {
     monsterTag: "draven", // dragon-kin — see data/sets.js Drake Hunter set (Dragonslayer)
   },
   vampire_turned: {
+    attackType: "blunt",
     name: "The Turned",
     native: "Sul-Voran",
     tags: ["forest", "cave", "urban"],
@@ -246,6 +268,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   vampire_lesser: {
+    attackType: "slashing",
     name: "A Lesser",
     native: "Sul-Voran",
     tags: ["forest", "cave"],
@@ -257,6 +280,8 @@ const BESTIARY = {
     spawnRarity: "uncommon",
   },
   skeleton: {
+    attackType: "slashing",
+    dmgTags: { blunt: "weak" },
     name: "Skeleton",
     native: "Sul-Keth",
     tags: ["ruin", "swamp", "cave"],
@@ -268,6 +293,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   zombie: {
+    attackType: "blunt",
     name: "Zombie",
     native: "Sul-Daun",
     tags: ["ruin", "swamp"],
@@ -279,6 +305,7 @@ const BESTIARY = {
     spawnRarity: "common",
   },
   animated_armor: {
+    attackType: "blunt",
     name: "Animated Armour",
     native: "Skarr-Daun",
     tags: ["ruin", "urban"],
@@ -290,6 +317,9 @@ const BESTIARY = {
     spawnRarity: "uncommon",
   },
   golem_stone: {
+    attackType: "blunt",
+    dmgTags: { poison: "immune" },
+    statusImmune: ["bleed", "fear"],
     name: "Stone Golem",
     native: "Thueln-Maur",
     tags: ["ruin", "mountain"],
@@ -301,6 +331,8 @@ const BESTIARY = {
     spawnRarity: "uncommon",
   },
   elemental_fire: {
+    attackType: "fire",
+    dmgTags: { fire: "resist" },
     name: "Fire Elemental",
     native: "Soru-Daun Nori",
     tags: ["volcanic", "desert"],
@@ -312,6 +344,8 @@ const BESTIARY = {
     spawnRarity: "rare",
   },
   elemental_ice: {
+    attackType: "frost",
+    dmgTags: { frost: "resist" },
     name: "Ice Elemental",
     native: "Soru-Daun Kaul",
     tags: ["mountain", "continental", "tundra"],
@@ -323,6 +357,7 @@ const BESTIARY = {
     spawnRarity: "rare",
   },
   banshee: {
+    attackType: "spirit",
     name: "Banshee",
     native: "Orvuin",
     tags: ["ruin"],
@@ -335,6 +370,7 @@ const BESTIARY = {
     flurry: true, // rare + high Speed: gets a genuine second action every round, back-to-back with its first (see engine/combat.js resolveEnemyActionWithFlurry)
   },
   wraith: {
+    attackType: "spirit",
     name: "Wraith",
     native: "Mauven-Sulei",
     tags: ["ruin", "swamp"],
@@ -346,6 +382,7 @@ const BESTIARY = {
     spawnRarity: "rare",
   },
   stitched: {
+    attackType: "blunt",
     name: "The Stitched",
     native: "Voran-Daun",
     tags: ["ruin"],
@@ -357,6 +394,7 @@ const BESTIARY = {
     spawnRarity: "rare",
   },
   diamond_tail: {
+    attackType: "blunt",
     name: "Diamond Tail",
     native: "Valdrek-Keth",
     tags: ["volcanic"],
@@ -368,6 +406,7 @@ const BESTIARY = {
     spawnRarity: "rare",
   },
   druith: {
+    attackType: "piercing",
     name: "Druith, the Ancient",
     native: "Druith",
     tags: ["swamp"],
@@ -384,6 +423,7 @@ const BESTIARY = {
     spawnRarity: "unique",
   },
   maur_rau: {
+    attackType: "slashing",
     name: "The Ancient Flyer",
     native: "Maur-Rau",
     tags: ["mountain", "coast"],
@@ -395,6 +435,7 @@ const BESTIARY = {
     spawnRarity: "unique",
   },
   vaelorn: {
+    attackType: "blunt",
     name: "Vaelorn, a Grove Warden",
     native: "Vaelorn",
     tags: ["forest"],
@@ -408,6 +449,7 @@ const BESTIARY = {
     spawnRarity: "unique",
   },
   kabal_enforcer: {
+    attackType: "force",
     name: "A Kabal Enforcer Patrol",
     native: "n/a — Kabal Martialum",
     // Deliberately NOT a terrain tag used by TERRAIN_TAGS — this creature
@@ -489,6 +531,7 @@ const BESTIARY = {
   // reaches this pool. Nation-agnostic on purpose — a mugging or a hired
   // blade isn't tied to one nation's soil the way a native beast is.
   street_bandit: {
+    attackType: "piercing",
     name: "Street Bandit",
     native: "wherever coin runs short",
     tags: ["urban", "ruin"],
@@ -503,6 +546,7 @@ const BESTIARY = {
     spawnGroup: "squad",
   },
   hired_blade: {
+    attackType: "slashing",
     name: "Hired Blade",
     native: "wherever the pay is good",
     tags: ["urban"],
@@ -517,6 +561,7 @@ const BESTIARY = {
     spawnGroup: "squad",
   },
   watch_patrol: {
+    attackType: "blunt",
     name: "Watch Patrol",
     native: "the city's own garrison",
     tags: ["urban"],
@@ -551,6 +596,7 @@ const BESTIARY = {
   // precedent set the first time this bestiary's creatures were retrofit.
   // ---- Suids ----
   wildBoar: {
+    attackType: "piercing",
     name: "Wild Boar",
     native: "Wild Boar",
     tags: ["forest", "plains", "hills"],
@@ -567,6 +613,7 @@ const BESTIARY = {
     actives: ["bite", "gore"],
   },
   razorback: {
+    attackType: "piercing",
     name: "Razorback",
     native: "Razorback",
     tags: ["forest", "hills", "plains"],
@@ -584,6 +631,7 @@ const BESTIARY = {
     actives: ["gore", "charge"],
   },
   direBoar: {
+    attackType: "piercing",
     name: "Dire Boar",
     native: "Dire Boar",
     tags: ["forest", "hills"],
@@ -601,6 +649,7 @@ const BESTIARY = {
     actives: ["reckless_charge", "gore"],
   },
   ironTusk: {
+    attackType: "piercing",
     name: "Iron Tusk",
     native: "Iron Tusk",
     tags: ["forest", "mountains"],
@@ -617,6 +666,7 @@ const BESTIARY = {
     actives: ["gore", "reckless_charge"],
   },
   tuskKing: {
+    attackType: "piercing",
     name: "Tusk King",
     native: "Tusk King",
     tags: ["forest", "plains"],
@@ -634,6 +684,7 @@ const BESTIARY = {
   },
   // ---- Ursines ----
   blackBear: {
+    attackType: "slashing",
     name: "Black Bear",
     native: "Black Bear",
     tags: ["forest", "hills"],
@@ -651,6 +702,7 @@ const BESTIARY = {
     actives: ["bite", "maul"],
   },
   brownBear: {
+    attackType: "slashing",
     name: "Brown Bear",
     native: "Brown Bear",
     tags: ["forest", "mountains"],
@@ -668,6 +720,7 @@ const BESTIARY = {
     actives: ["maul", "overrun"],
   },
   polarBear: {
+    attackType: "slashing",
     name: "Polar Bear",
     native: "Polar Bear",
     tags: ["tundra", "coast"],
@@ -685,6 +738,7 @@ const BESTIARY = {
     actives: ["maul", "overrun"],
   },
   caveBear: {
+    attackType: "slashing",
     name: "Cave Bear",
     native: "Cave Bear",
     tags: ["cave", "mountains"],
@@ -702,6 +756,7 @@ const BESTIARY = {
     actives: ["maul", "overrun"],
   },
   greatMatriarchBear: {
+    attackType: "slashing",
     name: "Great Matriarch Bear",
     native: "Great Matriarch Bear",
     tags: ["forest", "mountains"],
@@ -719,6 +774,7 @@ const BESTIARY = {
   },
   // ---- Lupines ----
   timberWolf: {
+    attackType: "piercing",
     name: "Timber Wolf",
     native: "Timber Wolf",
     tags: ["forest", "plains"],
@@ -735,6 +791,7 @@ const BESTIARY = {
     actives: ["bite", "pounce", "hamstring_bite"],
   },
   direWolf: {
+    attackType: "piercing",
     name: "Dire Wolf",
     native: "Dire Wolf",
     tags: ["forest", "plains"],
@@ -751,6 +808,7 @@ const BESTIARY = {
     actives: ["bite", "maul", "howl"],
   },
   duskWolf: {
+    attackType: "piercing",
     name: "Dusk Wolf",
     native: "Dusk Wolf",
     tags: ["forest", "plains"],
@@ -767,6 +825,9 @@ const BESTIARY = {
     actives: ["shadow_pounce", "hamstring_bite", "bite"],
   },
   frostWolf: {
+    attackType: "piercing",
+    dmgTags: { frost: "resist" },
+    statusImmune: ["chilled"],
     name: "Frost Wolf",
     native: "Frost Wolf",
     tags: ["tundra", "arctic"],
@@ -783,6 +844,9 @@ const BESTIARY = {
     actives: ["frost_bite", "bite"],
   },
   ashWolf: {
+    attackType: "piercing",
+    dmgTags: { fire: "resist" },
+    statusImmune: ["burning"],
     name: "Ash Wolf",
     native: "Ash Wolf",
     tags: ["volcanic", "hills"],
@@ -799,6 +863,7 @@ const BESTIARY = {
     actives: ["searing_bite", "maul"],
   },
   emeraldWolf: {
+    attackType: "piercing",
     name: "Emerald Wolf",
     native: "Emerald Wolf",
     tags: ["forest", "jungle"],
@@ -815,6 +880,7 @@ const BESTIARY = {
     actives: ["brush_stalk", "bite"],
   },
   duneWolf: {
+    attackType: "piercing",
     name: "Dune Wolf",
     native: "Dune Wolf",
     tags: ["desert"],
@@ -831,6 +897,7 @@ const BESTIARY = {
     actives: ["sand_rush", "bite"],
   },
   crimsonWolf: {
+    attackType: "piercing",
     name: "Crimson Wolf",
     native: "Crimson Wolf",
     tags: ["forest", "plains", "hills"],
@@ -847,6 +914,7 @@ const BESTIARY = {
     actives: ["rend", "bite"],
   },
   alphaWolf: {
+    attackType: "piercing",
     name: "Alpha Wolf",
     native: "Alpha Wolf",
     tags: ["forest", "plains"],
@@ -863,6 +931,7 @@ const BESTIARY = {
     actives: ["rallying_howl", "coordinated_strike"],
   },
   ancientWolf: {
+    attackType: "piercing",
     name: "Ancient Wolf",
     native: "Ancient Wolf",
     tags: ["forest", "plains", "mountains"],
@@ -880,6 +949,7 @@ const BESTIARY = {
   },
   // ---- Rodents ----
   giantRat: {
+    attackType: "piercing",
     name: "Giant Rat",
     native: "Giant Rat",
     tags: ["urban", "underground", "forest", "ruins"],
@@ -896,6 +966,7 @@ const BESTIARY = {
     actives: ["gnaw"],
   },
   caveRat: {
+    attackType: "piercing",
     name: "Cave Rat",
     native: "Cave Rat",
     tags: ["cave", "underground", "ruins"],
@@ -912,6 +983,7 @@ const BESTIARY = {
     actives: ["leap", "gnaw"],
   },
   direBeaver: {
+    attackType: "piercing",
     name: "Dire Beaver",
     native: "Dire Beaver",
     tags: ["river", "lake", "swamp"],
@@ -929,6 +1001,7 @@ const BESTIARY = {
     actives: ["crushing_bite"],
   },
   giantPorcupine: {
+    attackType: "piercing",
     name: "Giant Porcupine",
     native: "Giant Porcupine",
     tags: ["forest", "hills"],
@@ -946,6 +1019,7 @@ const BESTIARY = {
     actives: ["quill_burst"],
   },
   burrowKing: {
+    attackType: "piercing",
     name: "Burrow King",
     native: "Burrow King",
     tags: ["underground", "forest"],
@@ -963,6 +1037,7 @@ const BESTIARY = {
   },
   // ---- Felines ----
   wildcat: {
+    attackType: "slashing",
     name: "Wildcat",
     native: "Wildcat",
     tags: ["forest", "plains", "hills"],
@@ -980,6 +1055,7 @@ const BESTIARY = {
     actives: ["bite", "pounce"],
   },
   lynx: {
+    attackType: "slashing",
     name: "Lynx",
     native: "Lynx",
     tags: ["forest", "tundra", "hills"],
@@ -997,6 +1073,7 @@ const BESTIARY = {
     actives: ["bite", "rend"],
   },
   panther: {
+    attackType: "slashing",
     name: "Panther",
     native: "Panther",
     tags: ["forest", "swamp"],
@@ -1014,6 +1091,7 @@ const BESTIARY = {
     actives: ["bite", "pounce", "rend"],
   },
   mountainLion: {
+    attackType: "slashing",
     name: "Mountain Lion",
     native: "Mountain Lion",
     tags: ["mountains", "hills"],
@@ -1031,6 +1109,7 @@ const BESTIARY = {
     actives: ["bite", "maul"],
   },
   lion: {
+    attackType: "slashing",
     name: "Lion",
     native: "Lion",
     tags: ["plains", "desert"],
@@ -1048,6 +1127,7 @@ const BESTIARY = {
     actives: ["bite", "rallying_roar"],
   },
   sabertooth: {
+    attackType: "slashing",
     name: "Sabertooth",
     native: "Sabertooth",
     tags: ["tundra", "forest", "hills"],
@@ -1065,6 +1145,7 @@ const BESTIARY = {
     actives: ["maul", "crushing_bite"],
   },
   ancientSabertooth: {
+    attackType: "slashing",
     name: "Ancient Sabertooth",
     native: "Ancient Sabertooth",
     tags: ["forest", "tundra", "hills"],
@@ -1082,6 +1163,7 @@ const BESTIARY = {
   },
   // ---- Primates ----
   baboon: {
+    attackType: "blunt",
     name: "Baboon",
     native: "Baboon",
     tags: ["forest", "mountains", "plains"],
@@ -1099,6 +1181,7 @@ const BESTIARY = {
     actives: ["stone_throw", "bite"],
   },
   chimpanzee: {
+    attackType: "blunt",
     name: "Chimpanzee",
     native: "Chimpanzee",
     tags: ["forest", "jungle"],
@@ -1116,6 +1199,7 @@ const BESTIARY = {
     actives: ["disarm_swipe", "stone_throw"],
   },
   gorilla: {
+    attackType: "blunt",
     name: "Gorilla",
     native: "Gorilla",
     tags: ["forest"],
@@ -1133,6 +1217,7 @@ const BESTIARY = {
     actives: ["ground_slam", "smash"],
   },
   greatApe: {
+    attackType: "blunt",
     name: "Great Ape",
     native: "Great Ape",
     tags: ["forest", "hills"],
@@ -1149,6 +1234,7 @@ const BESTIARY = {
     actives: ["crushing_grab", "ground_slam"],
   },
   greatWhiteApe: {
+    attackType: "blunt",
     name: "Great White Ape",
     native: "Great White Ape",
     tags: ["forest", "tundra"],
@@ -1166,6 +1252,7 @@ const BESTIARY = {
   },
   // ---- Birds ----
   terrorBird: {
+    attackType: "piercing",
     name: "Terror Bird",
     native: "Terror Bird",
     tags: ["plains"],
@@ -1183,6 +1270,7 @@ const BESTIARY = {
     actives: ["rending_peck", "talon_rush"],
   },
   duneOwl: {
+    attackType: "slashing",
     name: "Dune Owl",
     native: "Dune Owl",
     tags: ["desert"],
@@ -1200,6 +1288,7 @@ const BESTIARY = {
     actives: ["dive_strike", "screech"],
   },
   shrike: {
+    attackType: "piercing",
     name: "Shrike",
     native: "Shrike",
     tags: ["forest", "plains"],
@@ -1217,6 +1306,8 @@ const BESTIARY = {
     actives: ["impale", "rending_peck"],
   },
   boneRoc: {
+    attackType: "slashing",
+    dmgTags: { blunt: "weak" },
     name: "Bone Roc",
     native: "Bone Roc",
     tags: ["mountains"],
@@ -1237,6 +1328,7 @@ const BESTIARY = {
   // Druith skipped — already exists as "Druith, the Ancient" above. ----
   // ---- Crocodilians ----
   marshCrocodile: {
+    attackType: "piercing",
     name: "Marsh Crocodile",
     native: "Marsh Crocodile",
     tags: ["swamp"],
@@ -1254,6 +1346,7 @@ const BESTIARY = {
     actives: ["crushing_bite", "tail_whip"],
   },
   riverCrocodile: {
+    attackType: "piercing",
     name: "River Crocodile",
     native: "River Crocodile",
     tags: ["river"],
@@ -1271,6 +1364,7 @@ const BESTIARY = {
     actives: ["crushing_bite", "death_roll"],
   },
   giantCrocodile: {
+    attackType: "piercing",
     name: "Giant Crocodile",
     native: "Giant Crocodile",
     tags: ["river", "swamp"],
@@ -1288,6 +1382,7 @@ const BESTIARY = {
     actives: ["death_roll", "tail_slam"],
   },
   theFirstScale: {
+    attackType: "piercing",
     name: "The First Scale",
     native: "The First Scale",
     tags: ["swamp", "ruins"],
@@ -1305,6 +1400,7 @@ const BESTIARY = {
   },
   // ---- Giant Serpents ----
   giantSerpent: {
+    attackType: "piercing",
     name: "Giant Serpent",
     native: "Giant Serpent",
     tags: ["swamp", "jungle"],
@@ -1322,6 +1418,8 @@ const BESTIARY = {
     actives: ["venom_strike", "quick_coil"],
   },
   elderSerpent: {
+    attackType: "piercing",
+    dmgTags: { blunt: "weak" },
     name: "Elder Serpent",
     native: "Elder Serpent",
     tags: ["swamp", "forest"],
@@ -1338,6 +1436,7 @@ const BESTIARY = {
     actives: ["crushing_coil", "venom_strike"],
   },
   titanSerpent: {
+    attackType: "piercing",
     name: "Titan Serpent",
     native: "Titan Serpent",
     tags: ["forest", "swamp"],
@@ -1354,6 +1453,7 @@ const BESTIARY = {
     actives: ["crushing_coil", "devour"],
   },
   worldSerpent: {
+    attackType: "piercing",
     name: "World Serpent",
     native: "World Serpent",
     tags: ["swamp", "jungle"],
@@ -1374,6 +1474,7 @@ const BESTIARY = {
   // already exist as "Cave Scorpion"/"Stoneback Beetle" above. ----
   // ---- Akharu ----
   youngAkharu: {
+    attackType: "piercing",
     name: "Young Akharu",
     native: "Young Akharu",
     tags: ["desert"],
@@ -1391,6 +1492,7 @@ const BESTIARY = {
     actives: ["venomous_sting", "pincer_slam"],
   },
   akharu: {
+    attackType: "piercing",
     name: "Akharu",
     native: "Akharu",
     tags: ["desert"],
@@ -1408,6 +1510,7 @@ const BESTIARY = {
     actives: ["venomous_sting", "pincer_crush", "sand_burrow"],
   },
   greatAkharu: {
+    attackType: "piercing",
     name: "Great Akharu",
     native: "Great Akharu",
     tags: ["desert"],
@@ -1424,6 +1527,7 @@ const BESTIARY = {
     actives: ["venomous_sting", "impaling_strike", "sand_burrow"],
   },
   akharuMatriarch: {
+    attackType: "piercing",
     name: "Akharu Matriarch",
     native: "Akharu Matriarch",
     tags: ["desert"],
@@ -1441,6 +1545,7 @@ const BESTIARY = {
   },
   // ---- Dhulorvae ----
   greaterDhulorvae: {
+    attackType: "piercing",
     name: "Greater Dhulorvae",
     native: "Greater Dhulorvae",
     tags: ["cave", "ruins"],
@@ -1457,6 +1562,7 @@ const BESTIARY = {
     actives: ["venomous_sting_dhulorvae", "pincer_crush_dhulorvae"],
   },
   elderDhulorvae: {
+    attackType: "piercing",
     name: "Elder Dhulorvae",
     native: "Elder Dhulorvae",
     tags: ["cave", "underground"],
@@ -1474,6 +1580,7 @@ const BESTIARY = {
   },
   // ---- Keth-Rhovael Beetles ----
   wildKethRhovael: {
+    attackType: "piercing",
     name: "Wild Keth-Rhovael",
     native: "Wild Keth-Rhovael",
     tags: ["forest", "swamp"],
@@ -1490,6 +1597,7 @@ const BESTIARY = {
     actives: ["chitin_charge", "crushing_mandibles"],
   },
   kethRhovaelGuardian: {
+    attackType: "piercing",
     name: "Keth-Rhovael Guardian",
     native: "Keth-Rhovael Guardian",
     tags: ["underground"],
@@ -1506,6 +1614,7 @@ const BESTIARY = {
     actives: ["chitin_charge", "crushing_mandibles"],
   },
   kethRhovaelQueen: {
+    attackType: "piercing",
     name: "Keth-Rhovael Queen",
     native: "Keth-Rhovael Queen",
     tags: ["underground"],
@@ -1527,6 +1636,7 @@ const BESTIARY = {
   // Rau's whole family skipped — already exists as "Thunderbird". ----
   // ---- Draven-Drak ----
   juvenileDravenDrak: {
+    attackType: "slashing",
     name: "Juvenile Draven-Drak",
     native: "Juvenile Draven-Drak",
     tags: ["mountains", "volcanic"],
@@ -1546,6 +1656,7 @@ const BESTIARY = {
     elementVariants: DRAVEN_DRAK_VARIANTS,
   },
   adultDravenDrak: {
+    attackType: "slashing",
     name: "Adult Draven-Drak",
     native: "Adult Draven-Drak",
     tags: ["mountains", "volcanic"],
@@ -1566,6 +1677,7 @@ const BESTIARY = {
   },
   // ---- Skrel-Drak ----
   youngSkrelDrak: {
+    attackType: "slashing",
     name: "Young Skrel-Drak",
     native: "Young Skrel-Drak",
     tags: ["mountains", "forest", "volcanic"],
@@ -1586,6 +1698,7 @@ const BESTIARY = {
     elementVariants: SKREL_DRAK_VARIANTS,
   },
   ancientSkrelDrak: {
+    attackType: "slashing",
     name: "Ancient Skrel-Drak",
     native: "Ancient Skrel-Drak",
     tags: ["mountains"],
@@ -1621,6 +1734,7 @@ const BESTIARY = {
   // Summon Template earlier in this project. ----
   // ---- Valdrek-Keth ----
   valdrekKethLarva: {
+    attackType: "piercing",
     name: "Valdrek-Keth Larva",
     native: "Valdrek-Keth Larva",
     tags: ["volcanic"],
@@ -1638,6 +1752,7 @@ const BESTIARY = {
     actives: ["skitter_assault", "crystal_bite"],
   },
   valdrekKethHunter: {
+    attackType: "piercing",
     name: "Valdrek-Keth Hunter",
     native: "Valdrek-Keth Hunter",
     tags: ["volcanic"],
@@ -1655,6 +1770,7 @@ const BESTIARY = {
     actives: ["piercing_tail", "crystal_ram"],
   },
   valdrekKethBroodQueen: {
+    attackType: "piercing",
     name: "Valdrek-Keth Brood Queen",
     native: "Valdrek-Keth Brood Queen",
     tags: ["volcanic", "cave"],
@@ -1673,6 +1789,7 @@ const BESTIARY = {
   },
   // ---- Voreth-Mauth ----
   elderVorethMauth: {
+    attackType: "blunt",
     name: "Elder Voreth-Mauth",
     native: "Elder Voreth-Mauth",
     tags: ["tundra", "forest"],
@@ -1710,6 +1827,8 @@ const BESTIARY = {
   },
   // ---- Lorvaun-Nauri ----
   elderLorvaunNauri: {
+    attackType: "piercing",
+    dmgTags: { fire: "resist", frost: "resist", water: "resist", air: "resist", lightning: "resist", earth: "resist", acid: "resist", poison: "resist", force: "resist", spatial: "resist", spirit: "resist", necrotic: "resist", divine: "resist" },
     name: "Elder Lorvaun-Nauri",
     native: "Elder Lorvaun-Nauri",
     tags: ["forest", "hills"],
@@ -1729,6 +1848,7 @@ const BESTIARY = {
   // Ravek/Vaelin/Voreth. No existing overlaps found for any sub-family. ----
   // ---- rau_thauln_thaun ----
   rauThaulnThaun: {
+    attackType: "slashing",
     name: "Rau-Thauln Thaun",
     native: "Rau-Thauln Thaun",
     tags: ["forest", "hills", "ruins"],
@@ -1746,6 +1866,7 @@ const BESTIARY = {
     actives: ["crushing_maul", "dread_roar"],
   },
   ancientRauThaulnThaun: {
+    attackType: "slashing",
     name: "Ancient Rau-Thauln Thaun",
     native: "Ancient Rau-Thauln Thaun",
     tags: ["forest", "ruins"],
@@ -1764,6 +1885,7 @@ const BESTIARY = {
   },
   // ---- rau_thauln_maur ----
   rauThaulnMaur: {
+    attackType: "slashing",
     name: "Rau-Thauln Maur",
     native: "Rau-Thauln Maur",
     tags: ["desert"],
@@ -1781,6 +1903,7 @@ const BESTIARY = {
     actives: ["blink_strike", "phase_shift"],
   },
   elderRauThaulnMaur: {
+    attackType: "slashing",
     name: "Elder Rau-Thauln Maur",
     native: "Elder Rau-Thauln Maur",
     tags: ["desert"],
@@ -1798,6 +1921,7 @@ const BESTIARY = {
     actives: ["blink_strike", "phase_shift", "rift_rend"],
   },
   ancientRauThaulnMaur: {
+    attackType: "slashing",
     name: "Ancient Rau-Thauln Maur",
     native: "Ancient Rau-Thauln Maur",
     tags: ["desert"],
@@ -1816,6 +1940,7 @@ const BESTIARY = {
   },
   // ---- rau_thauln_ravek ----
   rauThaulnRavek: {
+    attackType: "slashing",
     name: "Rau-Thauln Ravek",
     native: "Rau-Thauln Ravek",
     tags: ["volcanic"],
@@ -1833,6 +1958,7 @@ const BESTIARY = {
     actives: ["burrow_assault", "tunnel_shift"],
   },
   elderRauThaulnRavek: {
+    attackType: "slashing",
     name: "Elder Rau-Thauln Ravek",
     native: "Elder Rau-Thauln Ravek",
     tags: ["volcanic", "cave"],
@@ -1850,6 +1976,7 @@ const BESTIARY = {
     actives: ["burrow_assault", "tunnel_shift", "cavebreaker"],
   },
   ancientRauThaulnRavek: {
+    attackType: "slashing",
     name: "Ancient Rau-Thauln Ravek",
     native: "Ancient Rau-Thauln Ravek",
     tags: ["volcanic", "cave"],
@@ -1868,6 +1995,7 @@ const BESTIARY = {
   },
   // ---- rau_thauln_vaelin ----
   rauThaulnVaelin: {
+    attackType: "slashing",
     name: "Rau-Thauln Vaelin",
     native: "Rau-Thauln Vaelin",
     tags: ["forest"],
@@ -1885,6 +2013,7 @@ const BESTIARY = {
     actives: ["diving_pounce", "branchbound_retreat"],
   },
   elderRauThaulnVaelin: {
+    attackType: "slashing",
     name: "Elder Rau-Thauln Vaelin",
     native: "Elder Rau-Thauln Vaelin",
     tags: ["forest"],
@@ -1946,6 +2075,7 @@ const BESTIARY = {
   // (a deliberately friendly, non-combat unique NPC of the same name and
   // grove), so only Dreadroot — its corrupted counterpart — is added. ----
   dreadroot: {
+    attackType: "blunt",
     name: "Dreadroot",
     native: "Dreadroot",
     tags: ["forest"],
@@ -1964,6 +2094,7 @@ const BESTIARY = {
   },
   // ---- Elementals ----
   lesserElemental: {
+    attackType: "fromCreature",
     name: "Lesser Elemental",
     native: "Lesser Elemental",
     tags: ["forest", "mountains", "desert", "coast"],
@@ -1981,6 +2112,7 @@ const BESTIARY = {
     elementVariants: ELEMENTAL_VARIANTS,
   },
   elemental: {
+    attackType: "fromCreature",
     name: "Elemental",
     native: "Elemental",
     tags: ["forest", "mountains", "desert", "coast"],
@@ -1998,6 +2130,7 @@ const BESTIARY = {
     elementVariants: ELEMENTAL_VARIANTS,
   },
   greaterElemental: {
+    attackType: "fromCreature",
     name: "Greater Elemental",
     native: "Greater Elemental",
     tags: ["forest", "mountains", "desert", "coast"],
@@ -2015,6 +2148,7 @@ const BESTIARY = {
     elementVariants: ELEMENTAL_VARIANTS,
   },
   primalElemental: {
+    attackType: "fromCreature",
     name: "Primal Elemental",
     native: "Primal Elemental",
     tags: ["forest", "mountains", "desert", "coast"],
@@ -2041,6 +2175,7 @@ const BESTIARY = {
   // Zombie's weak baseline, not transcribed from the codex. ----
   // ---- Sul-Daun ----
   rootSulDaun: {
+    attackType: "blunt",
     name: "Root Sul-Daun",
     native: "Root Sul-Daun",
     tags: ["forest"],
@@ -2058,6 +2193,7 @@ const BESTIARY = {
     actives: ["root_snare", "putrid_bite"],
   },
   mummifiedSulDaun: {
+    attackType: "blunt",
     name: "Mummified Sul-Daun",
     native: "Mummified Sul-Daun",
     tags: ["ruins"],
@@ -2079,6 +2215,7 @@ const BESTIARY = {
     actives: ["crushing_grip"],
   },
   bloatedSulDaun: {
+    attackType: "blunt",
     name: "Bloated Sul-Daun",
     native: "Bloated Sul-Daun",
     tags: ["swamp", "underground"],
@@ -2095,6 +2232,7 @@ const BESTIARY = {
     actives: ["putrid_burst", "grasping_dead"],
   },
   ancientSulDaun: {
+    attackType: "blunt",
     name: "Ancient Sul-Daun",
     native: "Ancient Sul-Daun",
     tags: ["plains", "ruins"],
@@ -2112,6 +2250,8 @@ const BESTIARY = {
   },
   // ---- Sul-Keth ----
   armoredSulKeth: {
+    attackType: "slashing",
+    dmgTags: { blunt: "weak" },
     name: "Armored Sul-Keth",
     native: "Armored Sul-Keth",
     tags: ["ruins", "urban"],
@@ -2128,6 +2268,8 @@ const BESTIARY = {
     actives: ["shield_crush", "bone_slash"],
   },
   ancientSulKeth: {
+    attackType: "blunt",
+    dmgTags: { blunt: "weak" },
     name: "Ancient Sul-Keth",
     native: "Ancient Sul-Keth",
     tags: ["ruins"],
@@ -2144,6 +2286,8 @@ const BESTIARY = {
     actives: ["crushing_bones", "bone_prison"],
   },
   runicSulKeth: {
+    attackType: "slashing",
+    dmgTags: { blunt: "weak" },
     name: "Runic Sul-Keth",
     native: "Runic Sul-Keth",
     tags: ["ruins", "underground"],
@@ -2160,6 +2304,8 @@ const BESTIARY = {
     actives: ["bone_prison", "bone_storm"],
   },
   boneSovereign: {
+    attackType: "slashing",
+    dmgTags: { blunt: "weak" },
     name: "Bone Sovereign",
     native: "Bone Sovereign",
     tags: ["plains", "ruins"],
@@ -2182,6 +2328,7 @@ const BESTIARY = {
   // Orvuin (matches "Banshee") are skipped. ----
   // ---- Sul-Rau ----
   newSulRau: {
+    attackType: "slashing",
     name: "New Sul-Rau",
     native: "New Sul-Rau",
     tags: ["ruins", "plains"],
@@ -2198,6 +2345,7 @@ const BESTIARY = {
     actives: ["sever_the_heart", "relentless_assault"],
   },
   sulRau: {
+    attackType: "slashing",
     name: "Sul-Rau",
     native: "Sul-Rau",
     tags: ["ruins", "plains", "forest", "mountains"],
@@ -2214,6 +2362,7 @@ const BESTIARY = {
     actives: ["soul_rend", "execute_the_guilty"],
   },
   rampagingSulRau: {
+    attackType: "slashing",
     name: "Rampaging Sul-Rau",
     native: "Rampaging Sul-Rau",
     tags: ["ruins", "plains"],
@@ -2231,6 +2380,7 @@ const BESTIARY = {
   },
   // ---- Voran-Daun ----
   lesserVoranDaun: {
+    attackType: "blunt",
     name: "Lesser Voran-Daun",
     native: "Lesser Voran-Daun",
     tags: ["ruins", "underground"],
@@ -2247,6 +2397,7 @@ const BESTIARY = {
     actives: ["flesh_hammer", "rending_claw"],
   },
   grandVoranDaun: {
+    attackType: "blunt",
     name: "Grand Voran-Daun",
     native: "Grand Voran-Daun",
     tags: ["ruins", "underground"],
@@ -2264,6 +2415,7 @@ const BESTIARY = {
   },
   // ---- Mauven-Sulei ----
   mauvenSulei: {
+    attackType: "spirit",
     name: "Mauven-Sulei",
     native: "Mauven-Sulei",
     tags: ["ruins", "urban"],
@@ -2280,6 +2432,7 @@ const BESTIARY = {
     actives: ["soul_drain", "wail_beyond_death", "spirit_rend"],
   },
   tormentedMauvenSulei: {
+    attackType: "spirit",
     name: "Tormented Mauven-Sulei",
     native: "Tormented Mauven-Sulei",
     tags: ["ruins", "plains"],
@@ -2297,6 +2450,7 @@ const BESTIARY = {
   },
   // ---- Orvuin ----
   mourningSpirit: {
+    attackType: "spirit",
     name: "Mourning Spirit",
     native: "Mourning Spirit",
     tags: ["ruins", "plains"],
@@ -2313,6 +2467,7 @@ const BESTIARY = {
     actives: ["spectral_touch"],
   },
   restlessDead: {
+    attackType: "spirit",
     name: "Restless Dead",
     native: "Restless Dead",
     tags: ["ruins", "underground"],
@@ -2329,6 +2484,7 @@ const BESTIARY = {
     actives: ["soul_chill", "spectral_touch"],
   },
   orvuinBoss: {
+    attackType: "spirit",
     name: "Orvuin",
     native: "Orvuin",
     tags: ["plains", "desert"],
@@ -2345,6 +2501,7 @@ const BESTIARY = {
     actives: ["wail_of_the_forgotten", "deathly_lament", "soul_rend_orvuin"],
   },
   ancientOrvuin: {
+    attackType: "spirit",
     name: "Ancient Orvuin",
     native: "Ancient Orvuin",
     tags: ["ruins", "plains"],
@@ -2364,6 +2521,9 @@ const BESTIARY = {
   // Stone Thueln-Maur skipped — already exists as "Stone Golem". ----
   // ---- Homunculus family ----
   homunculus: {
+    attackType: "blunt",
+    dmgTags: { poison: "immune", blunt: "weak" },
+    statusImmune: ["bleed", "fear"],
     name: "Homunculus",
     native: "Homunculus",
     tags: ["ruins", "underground"],
@@ -2380,6 +2540,7 @@ const BESTIARY = {
     actives: ["arcane_jab"],
   },
   runicServitor: {
+    attackType: "blunt",
     name: "Runic Servitor",
     native: "Runic Servitor",
     tags: ["ruins", "underground"],
@@ -2396,6 +2557,9 @@ const BESTIARY = {
     actives: ["shield_bash", "guard_protocol"],
   },
   arcaneAutomaton: {
+    attackType: "blunt",
+    dmgTags: { poison: "immune" },
+    statusImmune: ["bleed", "fear"],
     name: "Arcane Automaton",
     native: "Arcane Automaton",
     tags: ["ruins"],
@@ -2412,6 +2576,7 @@ const BESTIARY = {
     actives: ["overclock", "arcane_strike"],
   },
   runeSentinel: {
+    attackType: "blunt",
     name: "Rune Sentinel",
     native: "Rune Sentinel",
     tags: ["ruins", "underground"],
@@ -2428,6 +2593,9 @@ const BESTIARY = {
     actives: ["rune_pulse", "arcane_barrier"],
   },
   primeConstruct: {
+    attackType: "blunt",
+    dmgTags: { poison: "immune" },
+    statusImmune: ["bleed", "fear"],
     name: "Prime Construct",
     native: "Prime Construct",
     tags: ["ruins", "urban"],
@@ -2445,6 +2613,8 @@ const BESTIARY = {
   },
   // ---- Thueln-Maur ----
   lesserThuelnMaur: {
+    attackType: "blunt",
+    dmgTags: { blunt: "weak" },
     name: "Lesser Thueln-Maur",
     native: "Lesser Thueln-Maur",
     tags: ["forest", "ruins"],
@@ -2461,6 +2631,7 @@ const BESTIARY = {
     actives: ["stone_fist"],
   },
   timberThuelnMaur: {
+    attackType: "blunt",
     name: "Timber Thueln-Maur",
     native: "Timber Thueln-Maur",
     tags: ["forest"],
@@ -2477,6 +2648,7 @@ const BESTIARY = {
     actives: ["root_snare", "branch_slam"],
   },
   crystalThuelnMaur: {
+    attackType: "blunt",
     name: "Crystal Thueln-Maur",
     native: "Crystal Thueln-Maur",
     tags: ["underground", "ruins"],
@@ -2493,6 +2665,7 @@ const BESTIARY = {
     actives: ["crystal_lance", "mana_pulse"],
   },
   elderThuelnMaur: {
+    attackType: "blunt",
     name: "Elder Thueln-Maur",
     native: "Elder Thueln-Maur",
     tags: ["ruins", "mountains"],
@@ -4025,6 +4198,7 @@ const BESTIARY = {
   // Coordination reaches it instead via groupOverride/groupKey (see
   // Legion Houndmaster's own passives/actives above and engine/combat.js).
   legion_hound: {
+    attackType: "piercing",
     name: "Legion Hound",
     native: "Sanguivorum legion garrisons, military animal support",
     tags: ["plains", "forest"],

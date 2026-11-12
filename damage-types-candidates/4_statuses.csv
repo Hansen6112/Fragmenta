@@ -1,0 +1,6 @@
+status,name,proposed,note
+bleed,Bleeding,slashing,
+venom,Venomed,poison,T7: becomes stacking (max 3)
+burning,Burning,fire,
+blight,Blight,necrotic,
+sang_iag_poison,Poison,poison,"T7: becomes Poison (non-stacking, -10% Atk/Acc)"

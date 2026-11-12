@@ -85,8 +85,31 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       const keys = Object.keys(x).sort();
       return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify(x[k])).join(',') + '}';
     }
+    // Any object reachable in the snapshot that looks like a creatureObj
+    // (bestiaryKey present, the one field every creatureObj and only a
+    // creatureObj has) has its purely-static BESTIARY content fields
+    // stripped before comparing -- the Damage Types content load's
+    // attackType/dmgTags/statusImmune, which this fixture (frozen before
+    // that content load existed) can never have picked up on its own
+    // subject creature, and which the functions under test only ever
+    // read, never mutate, so they carry no signal about pipeline parity.
+    const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune'];
+    function stripCreatureObj(x) {
+      if (Array.isArray(x)) return x.map(stripCreatureObj);
+      if (x === null || typeof x !== 'object') return x;
+      if ('bestiaryKey' in x) {
+        const inner = {};
+        for (const k of Object.keys(x)) {
+          if (!CONTENT_ONLY_CREATURE_FIELDS.includes(k)) inner[k] = x[k];
+        }
+        return inner;
+      }
+      const out = {};
+      for (const k of Object.keys(x)) out[k] = stripCreatureObj(x[k]);
+      return out;
+    }
     function normalizeSnap(snapStr) {
-      return stableStringify(JSON.parse(snapStr));
+      return stableStringify(stripCreatureObj(JSON.parse(snapStr)));
     }
 
     // scenario: { effects: [ids], sets: ["Name:tier"], mutate(s, creature, slot, ally),

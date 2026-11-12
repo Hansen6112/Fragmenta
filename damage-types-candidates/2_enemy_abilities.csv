@@ -1,0 +1,224 @@
+ability,name,dmgMult,inflicts,used_by,proposed,confidence,reason
+reckless_charge,Reckless Charge,1.8,,direBoar ironTusk caravan_ambusher,blunt,high,matched 'Charge'
+gore,Gore,1.4,bleed,wildBoar razorback direBoar ironTusk +1 more,piercing,high,matched 'Gore'
+dominant_charge,Dominant Charge,2,,tuskKing,blunt,high,matched 'Charge'
+overrun,Overrun,1.5,,brownBear polarBear caveBear,blunt,first pass,named weapon or body action
+earthshaker,Earthshaker,1.8,,greatMatriarchBear,earth,high,matched 'Earth'
+bite,Bite,1,bleed,wildBoar blackBear timberWolf direWolf +11 more,piercing,high,matched 'Bite'
+pounce,Pounce,1.4,,timberWolf wildcat panther,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+hamstring_bite,Hamstring,0.8,slowed,timberWolf duskWolf,slashing,first pass,named weapon or body action
+maul,Maul,1.6,,blackBear brownBear polarBear caveBear +5 more,blunt,high,matched 'Maul'
+shadow_pounce,Shadow Pounce,1.5,,duskWolf,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+frost_bite,Frost Bite,1.1,chilled,frostWolf,frost,high,matched 'Frost'
+searing_bite,Searing Bite,1.1,burning,ashWolf,fire,high,matched 'Sear'
+sand_rush,Sand Rush,1.3,,duneWolf,earth,high,matched 'Sand'
+rend,Rend,1.4,,crimsonWolf lynx panther bandit_cutthroat +1 more,slashing,high,matched 'Rend'
+savage_maul,Savage Maul,2.2,,ancientWolf,blunt,high,matched 'Maul'
+execution_bite,Execution Bite,1.8,,,piercing,high,matched 'Bite'
+gnaw,Gnaw,1,,giantRat caveRat,piercing,first pass,named weapon or body action
+leap,Leap,1.3,,caveRat,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+crushing_bite,Crushing Bite,1.5,,direBeaver sabertooth ancientSabertooth marshCrocodile +1 more,piercing,high,matched 'Bite'
+quill_burst,Quill Burst,1.2,,giantPorcupine,piercing,high,matched 'Quill'
+stone_throw,Stone Throw,0.9,,baboon chimpanzee tribal_initiate street_ruffian +1 more,earth,high,matched 'Stone'
+disarm_swipe,Disarm,1.1,,chimpanzee caravan_sellsword mercenary_veteran city_watchman +4 more,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+ground_slam,Ground Slam,1.4,,gorilla greatApe,blunt,high,matched 'Slam'
+crushing_grab,Crushing Grab,1.7,,greatApe,blunt,high,matched 'Crush'
+crushing_swing,Crushing Swing,2.2,,greatWhiteApe,blunt,high,matched 'Crush'
+sweeping_blow,Sweeping Blow,1.4,,greatWhiteApe,slashing,high,matched 'Sweep'
+rending_peck,Rending Peck,1.4,bleed,terrorBird shrike,piercing,high,matched 'Peck'
+talon_rush,Talon Rush,1.7,,terrorBird,slashing,high,matched 'Talon'
+dive_strike,Dive Strike,1.8,,duneOwl,slashing,first pass,named weapon or body action
+impale,Impale,1.6,bleed,shrike,piercing,high,matched 'Impale'
+wing_buffet,Wing Buffet,1.3,,boneRoc adultDravenDrak youngSkrelDrak ancientSkrelDrak,air,high,matched 'Buffet'
+crushing_talons,Crushing Talons,2,,boneRoc,slashing,high,override: talons
+devastating_dive,Devastating Dive,2.2,,,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+tempest_wings,Tempest Wings,1.5,,,air,high,matched 'Tempest'
+tail_whip,Tail Whip,1.2,,marshCrocodile,blunt,high,matched 'Tail'
+death_roll,Death Roll,1.8,bleed,riverCrocodile giantCrocodile,piercing,high,override: crocodile bite-and-twist
+tail_slam,Tail Slam,1.4,,giantCrocodile ancientSkrelDrak,blunt,high,matched 'Tail'
+savage_rush,Savage Rush,1.7,,theFirstScale farahl_scout farahl_veteran,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+rending_bite,Rending Bite,1.5,bleed,theFirstScale youngSkrelDrak,piercing,high,matched 'Bite'
+cataclysmic_bite,Cataclysmic Bite,2.3,,,piercing,high,matched 'Bite'
+venom_strike,Venom Strike,1.4,venom,giantSerpent elderSerpent,poison,high,matched 'Venom'
+quick_coil,Quick Coil,1.2,constrict,giantSerpent,blunt,first pass,named weapon or body action
+crushing_coil,Crushing Coil,1.7,,elderSerpent titanSerpent,blunt,high,matched 'Crush'
+devour,Devour,2.1,,titanSerpent worldSerpent,piercing,first pass,named weapon or body action
+cataclysmic_coil,Cataclysmic Coil,2.4,,worldSerpent,blunt,first pass,named weapon or body action
+chitin_charge,Chitin Charge,1.5,,wildKethRhovael kethRhovaelGuardian,blunt,high,matched 'Charge'
+crushing_mandibles,Crushing Mandibles,1.9,,wildKethRhovael kethRhovaelGuardian kethRhovaelQueen,blunt,high,matched 'Crush'
+bone_slash,Bone Slash,1.45,,armoredSulKeth,slashing,high,matched 'Slash'
+bone_volley,Bone Volley,1.3,,,piercing,high,override: bone shards
+shield_crush,Shield Crush,1.5,,armoredSulKeth khandari_veteran,blunt,high,matched 'Crush'
+crushing_bones,Crushing Bones,1.8,,ancientSulKeth,blunt,high,matched 'Crush'
+bone_prison,Bone Prison,1.5,pinned,ancientSulKeth runicSulKeth boneSovereign,piercing,first pass,cage of bone spikes
+bone_storm,Bone Storm,1.7,,runicSulKeth boneSovereign,piercing,high,override: bone shards
+charge,Charge,1.5,,razorback,blunt,high,matched 'Charge'
+smash,Smash,1.6,,gorilla,blunt,high,matched 'Smash'
+kings_maul,King's Maul,2.3,,ancientSabertooth,blunt,high,matched 'Maul'
+venomous_sting,Venomous Sting,1.5,venom,youngAkharu akharu greatAkharu,poison,high,matched 'Venom'
+venomous_sting_dhulorvae,Venomous Sting,1.45,venom,greaterDhulorvae elderDhulorvae,poison,high,matched 'Venom'
+pincer_slam,Pincer Slam,1.4,,youngAkharu,blunt,high,matched 'Slam'
+pincer_crush,Pincer Crush,1.75,,akharu,blunt,high,matched 'Crush'
+pincer_crush_dhulorvae,Pincer Crush,1.7,,greaterDhulorvae,blunt,high,matched 'Crush'
+impaling_strike,Impaling Strike,2.2,,greatAkharu akharuMatriarch,piercing,first pass,named weapon or body action
+cataclysmic_sting,Cataclysmic Sting,2.6,venom,akharuMatriarch,poison,high,matched 'Sting'
+crushing_pincers,Crushing Pincers,1.9,,elderDhulorvae,blunt,high,matched 'Crush'
+claw_rend,Claw Rend,1.6,bleed,juvenileDravenDrak adultDravenDrak,slashing,high,matched 'Claw'
+tail_sweep,Tail Sweep,1.4,,juvenileDravenDrak adultDravenDrak,slashing,high,matched 'Sweep'
+breath_weapon,Breath Weapon,2.1,burning,juvenileDravenDrak adultDravenDrak,(by creature: dragon colour),high,"breath weapon — type comes from the creature, not the ability"
+catastrophic_breath,Catastrophic Breath,2.6,burning,,(by creature: dragon colour),high,"breath weapon — type comes from the creature, not the ability"
+inherited_breath,Inherited Breath,1.8,burning,youngSkrelDrak ancientSkrelDrak,(by creature: dragon colour),high,"breath weapon — type comes from the creature, not the ability"
+dragons_challenge,Dragon's Challenge,2.4,,ancientSkrelDrak,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+skitter_assault,Skitter Assault,1.1,,valdrekKethLarva,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+crystal_bite,Crystal Bite,1.45,,valdrekKethLarva,piercing,high,matched 'Bite'
+piercing_tail,Piercing Tail,1.6,,valdrekKethHunter,blunt,high,matched 'Tail'
+crystal_ram,Crystal Ram,1.8,,valdrekKethHunter valdrekKethBroodQueen,blunt,high,matched 'Ram'
+crystal_impalement,Crystal Impalement,2.2,,valdrekKethBroodQueen,piercing,high,matched 'Impale'
+dust_cloud,Dust Cloud,0.8,drowsy,,poison,first pass,sedative wing-dust (Veilwing/Voreth-Mauth) — a toxin
+dust_cloud_aoe,Dust Cloud,0.8,drowsy,elderVorethMauth,poison,first pass,sedative wing-dust (Veilwing/Voreth-Mauth) — a toxin
+startled_flight,Startled Flight,1,,elderVorethMauth,air,first pass,wing buffet
+dream_mist,Dream Mist,1,drowsy,elderVorethMauth,poison,first pass,sedative wing-dust — a toxin
+reflection_strike,Reflection Strike,1.45,disoriented,elderVorethSael,piercing,decided,approved 12 Nov: fish bite
+mirrored_assault,Mirrored Assault,1.8,,elderVorethSael,piercing,decided,approved 12 Nov: fish bite (illusion lives in Disoriented)
+crystal_gore,Crystal Gore,1.55,,elderLorvaunNauri,piercing,high,matched 'Gore'
+somersault_charge,Somersault Charge,2.2,,elderLorvaunNauri,blunt,high,matched 'Charge'
+crushing_maul,Crushing Maul,1.7,,rauThaulnThaun ancientRauThaulnThaun,blunt,high,matched 'Crush'
+kings_hunt,King's Hunt,2.3,,ancientRauThaulnThaun,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+blink_strike,Blink Strike,1.6,spatial_fracture,rauThaulnMaur elderRauThaulnMaur ancientRauThaulnMaur,spatial,high,matched 'Blink'
+rift_rend,Rift Rend,1.95,,elderRauThaulnMaur ancientRauThaulnMaur,spatial,high,matched 'Rift'
+impossible_pursuit,Impossible Pursuit,2.2,,ancientRauThaulnMaur,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+burrow_assault,Burrow Assault,1.55,unsteady,rauThaulnRavek elderRauThaulnRavek ancientRauThaulnRavek,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+cavebreaker,Cavebreaker,1.9,,elderRauThaulnRavek ancientRauThaulnRavek,earth,first pass,collapses the cave
+volcanic_ambush,Volcanic Ambush,2.2,unsteady,ancientRauThaulnRavek,fire,first pass,lava-tube burrower erupting from below
+diving_pounce,Diving Pounce,1.6,off_balance,rauThaulnVaelin elderRauThaulnVaelin,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+death_from_above,Death From Above,2,,elderRauThaulnVaelin,slashing,decided,approved 12 Nov: talons
+phantom_strike,Phantom Strike,1.55,disoriented,rauThaulnVoreth elderRauThaulnVoreth,slashing,decided,approved 12 Nov: claws (not Spirit)
+mirror_hunt,Mirror Hunt,1.95,,elderRauThaulnVoreth,slashing,decided,approved 12 Nov: claws
+root_harvest,Root Harvest,1.7,,dreadroot,earth,high,matched 'Root'
+withering_roots,Withering Roots,1.5,blight_seed,dreadroot,necrotic,high,matched 'Wither'
+elemental_strike,Elemental Strike,1.3,burning,lesserElemental elemental greaterElemental primalElemental,(by creature: element),high,override: Codex: element-specific per variant
+elemental_surge,Elemental Surge,1.8,,elemental greaterElemental primalElemental,(by creature: element),high,override: Codex: element-specific per variant
+putrid_bite,Putrid Bite,1.4,corpse_rot,rootSulDaun ancientSulDaun,piercing,high,matched 'Bite'
+grasping_dead,Grasping Dead,1.2,,bloatedSulDaun,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+root_snare,Root Snare,1.3,rooted,rootSulDaun timberThuelnMaur,earth,high,matched 'Root'
+crushing_grip,Crushing Grip,1.7,,mummifiedSulDaun,blunt,high,matched 'Crush'
+putrid_burst,Putrid Burst,1.6,corpse_rot,bloatedSulDaun,necrotic,first pass,bursts with rot (inflicts corpse rot)
+grave_tide,Grave Tide,1.8,,ancientSulDaun,necrotic,high,matched 'Grave'
+sever_the_heart,Sever the Heart,2,,newSulRau rampagingSulRau,slashing,high,matched 'Sever'
+relentless_assault,Relentless Assault,1.7,,newSulRau,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+soul_rend,Soul Rend,1.9,,sulRau,spirit,high,matched 'Soul'
+execute_the_guilty,Execute the Guilty,2.2,,sulRau,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+death_frenzy,Death Frenzy,1.8,,rampagingSulRau,(attacker's basic type),high,override: frenzy of the creature's own attacks
+flesh_hammer,Flesh Hammer,1.7,,lesserVoranDaun,blunt,high,matched 'Hammer'
+rending_claw,Rending Claw,1.8,bleed,lesserVoranDaun,slashing,high,matched 'Rend'
+catastrophic_slam,Catastrophic Slam,2.2,,grandVoranDaun,blunt,high,matched 'Slam'
+harvest_of_limbs,Harvest of Limbs,2.1,,grandVoranDaun,slashing,first pass,named weapon or body action
+soul_drain,Soul Drain,2.2,,mauvenSulei tormentedMauvenSulei,spirit,high,matched 'Soul'
+wail_beyond_death,Wail Beyond Death,1.7,,mauvenSulei,spirit,high,matched 'Wail'
+spirit_rend,Spirit Rend,1.9,,mauvenSulei,spirit,high,matched 'Spirit'
+ghostly_grasp,Ghostly Grasp,1.6,,,spirit,first pass,a ghost's touch
+death_wail,Death Wail,2,soulbound,tormentedMauvenSulei,spirit,high,matched 'Wail'
+eternal_grasp,Eternal Grasp,2.1,,tormentedMauvenSulei,spirit,first pass,a ghost's touch (Mauven-Sulei)
+spectral_touch,Spectral Touch,1.4,,mourningSpirit restlessDead,spirit,high,matched 'Spectral'
+soul_chill,Soul Chill,1.2,,restlessDead,spirit,high,matched 'Soul'
+wail_of_the_forgotten,Wail of the Forgotten,1.5,fear,orvuinBoss ancientOrvuin,spirit,high,matched 'Wail'
+soul_rend_orvuin,Soul Rend,1.8,,orvuinBoss ancientOrvuin,spirit,high,matched 'Soul'
+deathly_lament,Deathly Lament,1.7,,orvuinBoss ancientOrvuin,spirit,high,matched 'Lament'
+death_chorus,Death Chorus,1.8,fear,ancientOrvuin,spirit,high,matched 'Chorus'
+arcane_jab,Arcane Jab,1.4,,homunculus,force,high,matched 'Arcane'
+shield_bash,Shield Bash,1.4,,runicServitor imperial_road_bandit highway_captain,blunt,high,matched 'Bash'
+arcane_strike,Arcane Strike,1.8,,arcaneAutomaton,force,high,matched 'Arcane'
+rune_pulse,Rune Pulse,1.5,stagger,runeSentinel,force,high,matched 'Pulse'
+cataclysm_beam,Cataclysm Beam,2.2,,primeConstruct,force,decided,Tyler 12 Nov
+stone_fist,Stone Fist,1.4,,lesserThuelnMaur,earth,high,matched 'Stone'
+branch_slam,Branch Slam,1.5,,timberThuelnMaur,blunt,high,matched 'Slam'
+crystal_lance,Crystal Lance,1.8,,crystalThuelnMaur,piercing,first pass,named weapon or body action
+mana_pulse,Mana Pulse,1.6,,crystalThuelnMaur,force,high,matched 'Pulse'
+cataclysmic_slam,Cataclysmic Slam,2.2,,elderThuelnMaur,blunt,high,matched 'Slam'
+elemental_convergence,Elemental Convergence,1.9,burning,elderThuelnMaur,fire,first pass,inflicts Burning — Fire
+guardians_judgment,Guardian's Judgment,2.4,,elderThuelnMaur,divine,first pass,Elder Thueln-Maur is divine stone
+opportunistic_strike,Opportunistic Strike,1.3,,desert_tribal_fighter tribal_hunter caravan_guard fedahl_recruit +5 more,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+committed_assault,Committed Assault,1.6,,caravan_sellsword mercenary_veteran mercenary_commander bahrun_sailor +5 more,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+precise_shot,Precise Shot,1.4,,tribal_hunter ramahsi_bowman ramahsi_sharpshooter bandit_lookout +1 more,piercing,high,matched 'Shot'
+suppressing_strike,Suppressing Strike,1.1,,caravan_warden merchant_lord_enforcer ramahsi_sharpshooter,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+coordinated_assault,Coordinated Assault,1.2,,tribal_warleader mercenary_commander naqari_section_leader qahir_unit_commander +3 more,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+heavy_impact,Heavy Impact,1.85,,filhari_war_rider,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+exposed_weakness,Exposed Weakness,1.25,,veteran_caravan_escort mercenary_commander veteran_merchant_guard merchant_lord_enforcer +9 more,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+calculated_volley,Calculated Volley,0.95,,ramahsi_sharpshooter,piercing,high,matched 'Volley'
+heavy_commitment,Heavy Commitment,2.1,,filhari_war_rider,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+breakthrough_order,Breakthrough Order,1.5,,sardarr_army_commander bandit_warlord,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+scorpion_lunge,Scorpion Lunge,1.85,venom,akharul_sakharul,piercing,high,matched 'Lunge'
+dra_hammerfall,Vosgard Hammerfall,1.15,,,blunt,high,Dregnar: hammer blow (Vosgard Hammerfall)
+dra_cleave,Black-Ice Cleave,1.35,chilled,,frost,high,Dregnar: Black-Ice Cleave
+dra_judgment,Ashquench Judgment,1.75,,,frost,high,Dregnar: Ashquench Judgment — Frost per Tyler's 'Frost fighter' call
+dra_frostbite_brand,Frostbite Brand,1.1,chilled,,frost,high,Dregnar: Frostbite Brand
+club_smash,Club Smash,1.5,,street_thug,blunt,high,matched 'Club'
+quick_stab,Quick Stab,1.25,,market_cutpurse,piercing,high,matched 'Stab'
+committed_slash,Committed Slash,1.6,,imperial_road_bandit,slashing,high,matched 'Slash'
+crossbow_volley,Crossbow Volley,1.3,,roadside_lookout,piercing,high,matched 'Volley'
+dirty_cut,Dirty Cut,1.1,bleed,highway_cutthroat disgraced_ovum_fighter,slashing,high,matched 'Cut'
+ambush_blow,Ambush Blow,1.65,,caravan_ambusher,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+precision_riposte,Precision Riposte,1.45,,border_smuggler,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+twin_blade_rush,Twin-Blade Rush,1.65,,disgraced_ovum_fighter,slashing,high,matched 'Blade'
+feinting_slash,Feinting Slash,1.2,,disgraced_ovum_fighter,slashing,high,matched 'Slash'
+handlers_strike,Handler's Strike,1.2,,outlaw_packmaster,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+officers_cut,Officer's Cut,1.5,,highway_captain,slashing,high,matched 'Cut'
+press_the_advantage,Press the Advantage,1.6,,highway_captain,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+roadlords_assault,Roadlord's Assault,1.9,,roadlord,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+blood_price,Blood Price,1.5,bleed,roadlord,slashing,first pass,inflicts bleed
+ruthless_execution,Ruthless Execution,1.7,,roadlord,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+measured_strike,Measured Strike,1.2,,legion_recruit,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+shielded_thrust,Shielded Thrust,1.3,,ferratum_infantryman,piercing,high,matched 'Thrust'
+disciplined_riposte,Disciplined Riposte,1.4,,ferratum_veteran,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sabotaging_bolt,Sabotaging Bolt,1.15,,ingenum_field_engineer,piercing,first pass,named weapon or body action
+ballista_discharge,Ballista Discharge,2,,ingenum_ballistarius,piercing,first pass,named weapon or body action
+ballista_scattershot,Ballista Scattershot,0.85,,ingenum_ballistarius,piercing,first pass,named weapon or body action
+disrupting_javelin,Disrupting Javelin,1.2,,agilum_scout,piercing,high,matched 'Javelin'
+scouts_strike,Scout's Strike,1.5,,agilum_scout,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+impetum_lance_strike,Impetum Lance Strike,1.8,,impetum_war_rider,piercing,first pass,named weapon or body action
+boarding_slash,Boarding Slash,1.45,,aqualis_sailor,slashing,high,matched 'Slash'
+weapon_hook,Weapon Hook,1.1,,aqualis_sailor,piercing,first pass,named weapon or body action
+boarding_assault,Boarding Assault,1.6,,aqualis_marine,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+mil_coordinated_strike,Coordinated Strike,1.4,,aqualis_marine,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+veterans_cut,Veteran's Cut,1.45,,gradus_veteran,slashing,high,matched 'Cut'
+officers_strike,Officer's Strike,1.45,,ductus_section_commander,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+commanders_sword,Commander's Sword,1.55,,vigilis_unit_commander,slashing,first pass,named weapon or body action
+measured_counteroffensive,Measured Counteroffensive,1.65,,vigilis_unit_commander,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+arbitarius_assault,Arbitarius Assault,1.7,,arbitarius_commander,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+tactical_suppression,Tactical Suppression,1.3,,arbitarius_commander,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+final_directive,Final Directive,1.9,,arbitarius_commander,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+handlers_spear,Handler's Spear,1.2,,legion_houndmaster arena_beastmaster,piercing,high,matched 'Spear'
+hound_bite,Hound Bite,1.2,,legion_hound,piercing,high,matched 'Bite'
+sang_sec_watchmans_strike,Watchman's Strike,1.25,,junior_city_watchman,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_sec_enforcement_baton,Enforcement Baton,1.2,,market_watchman,blunt,first pass,named weapon or body action
+sang_sec_wardens_thrust,Warden's Thrust,1.4,,road_warden,piercing,high,matched 'Thrust'
+sang_sec_boarding_hook,Boarding Hook,1.25,,harbor_watchman,piercing,first pass,named weapon or body action
+sang_sec_harbor_cut,Harbor Cut,1.5,,harbor_watchman,slashing,high,matched 'Cut'
+sang_sec_disciplined_counterstrike,Disciplined Counterstrike,1.45,,veteran_city_guard,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_sec_gatekeepers_spear,Gatekeeper's Spear,1.55,,frontier_gatekeeper,piercing,high,matched 'Spear'
+sang_sec_checkpoint_suppression,Checkpoint Suppression,1.1,,frontier_gatekeeper,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_sec_precision_interrogation,Precision Interrogation,1.4,,imperial_investigator,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_sec_restraining_strike,Restraining Strike,1.15,,imperial_investigator,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_sec_captains_sword,Captain's Sword,1.55,,watch_captain,slashing,first pass,named weapon or body action
+sang_sec_coordinated_detainment,Coordinated Detainment,1.25,,watch_captain,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_sec_veteran_duelists_strike,Veteran Duelist's Strike,1.6,,ovum_veteran_guard,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_iag_militia_thrust,Militia Thrust,1.2,,militia_volunteer,piercing,high,matched 'Thrust'
+sang_iag_heavy_axe_swing,Heavy Axe Swing,1.55,,rural_militia_fighter,slashing,first pass,named weapon or body action
+sang_iag_reckless_blow,Reckless Blow,1.75,,rural_militia_fighter,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_iag_disrupting_arrow,Disrupting Arrow,1.2,,independent_scout,piercing,high,matched 'Arrow'
+sang_iag_hunters_shot,Hunter's Shot,1.5,,independent_scout,piercing,high,matched 'Shot'
+sang_iag_measured_sword_strike,Measured Sword Strike,1.4,,road_convoy_guard,slashing,first pass,named weapon or body action
+sang_iag_contract_bolt,Contract Bolt,1.7,,contract_marksman,piercing,first pass,named weapon or body action
+sang_iag_captains_sword,Captain's Sword,1.6,,free_company_captain,slashing,first pass,named weapon or body action
+sang_iag_trident_combination,Trident Combination,1.5,,ovum_prizefighter,piercing,first pass,named weapon or body action
+sang_iag_entangling_net,Entangling Net,0.8,,ovum_prizefighter,blunt,first pass,named weapon or body action
+sang_iag_masterful_cut,Masterful Cut,1.65,,ovum_champion,slashing,high,matched 'Cut'
+sang_iag_final_exchange,Final Exchange,2,,ovum_champion,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_iag_assassins_cut,Assassin's Cut,1.4,,contract_blade,slashing,high,matched 'Cut'
+sang_iag_opportunistic_strike,Opportunistic Strike,1.6,,contract_blade,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_iag_bleeding_cut,Bleeding Cut,1.15,bleed,contract_blade,slashing,high,matched 'Cut'
+sang_iag_veiled_precision,Veiled Precision,1.65,,veiled_executor,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type
+sang_iag_disabling_slice,Disabling Slice,1.2,,veiled_executor,slashing,first pass,named weapon or body action
+sang_iag_poisoned_edge,Poisoned Edge,1.1,sang_iag_poison,veiled_executor,poison,high,matched 'Poison'
+sang_iag_warleaders_cleave,Warleader's Cleave,1.75,,militia_warleader,slashing,high,matched 'Cleave'
+sang_iag_all_out_assault,All-Out Assault,1.9,,militia_warleader,(attacker's basic type),first pass,generic move — uses the attacker's weapon or natural attack type

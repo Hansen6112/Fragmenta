@@ -566,9 +566,17 @@ for (const [name, d] of Object.entries(ITEM_DEFS)) {
 }
 // D1, creatures: attackType or a weapon. "A weapon" means an equipped
 // mainhand item (equipment.mainhand) — the same slot checked above.
+// Unlike the weapon rule above, attackType isn't Physical-family-only:
+// the content load's own creatures.csv deliberately gives plenty of
+// creatures a non-physical natural attack (Fire Elemental "fire",
+// Banshee/Wraith "spirit", the Kabal Enforcer Patrol "force", ...) — a
+// narrower check here (the pre-content-load physical-only one this
+// replaced) would warn on every one of those as if they were gaps.
+// "fromCreature" (the 4 generic Elementals' basic attack, §2a) counts
+// too, same as DAMAGE_TYPES_SET's own roster.
 for (const [id, c] of Object.entries(BESTIARY)) {
   const hasWeapon = c.equipment && c.equipment.mainhand;
-  const validAttackType = c.attackType === "slashing" || c.attackType === "piercing" || c.attackType === "blunt";
+  const validAttackType = DAMAGE_TYPES_SET.has(c.attackType) || c.attackType === "fromCreature";
   if (!hasWeapon && !validAttackType) warn("damage-type", `BESTIARY.${id} has no attackType and no equipped mainhand weapon (D1)`);
 }
 // D1, statuses: every damage-over-time STATUS_EFFECTS entry needs a

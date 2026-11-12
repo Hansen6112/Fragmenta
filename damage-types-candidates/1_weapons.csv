@@ -1,0 +1,525 @@
+item,slot,tier,proposed,confidence,reason
+a short sword,mainhand,1,slashing,high,matched 'sword'
+a legion-issue shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a curved desert blade,mainhand,1,slashing,high,matched 'blade'
+a hunting bow,mainhand,1,piercing,high,matched 'bow'
+a quiver of arrows,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a dwarven hand-axe,mainhand,1,slashing,high,matched 'axe'
+a well-oiled dagger,mainhand,2,piercing,high,matched 'dagger'
+a well-balanced hand-axe,mainhand,3,slashing,high,matched 'axe'
+a nicked legion gladius,mainhand,1,slashing,high,matched 'gladius'
+a sahrimor trade dagger,mainhand,1,piercing,high,matched 'dagger'
+a well-balanced arming sword,mainhand,2,slashing,high,matched 'sword'
+"a dwarven mining pick, honed for war",mainhand,2,piercing,high,matched 'pick'
+a lizardfolk bone-spear,mainhand,3,piercing,high,matched 'spear'
+an ash-tempered war-axe,mainhand,3,slashing,high,matched 'axe'
+a Kabal-forged conduit blade,mainhand,4,slashing,high,matched 'blade'
+a battered wooden buckler,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a cracked leather targe,offhand,1,(not a weapon),first pass,shield / focus / tool offhand
+a reinforced legion scutum,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a dwarven ironclad buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+"a Vaeloris bark-shield, still faintly alive",offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a sahrimori sun-round shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a drake-scale kite shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a plainsman's utility blade,mainhand,1,slashing,high,matched 'blade'
+a Sanguivorum infantry spear,mainhand,1,piercing,high,matched 'spear'
+a Vaeloris hunting knife,mainhand,1,piercing,high,matched 'knife'
+a Sahrimori caravan saber,mainhand,1,slashing,high,matched 'saber'
+a Thraekor splitting axe,mainhand,1,slashing,high,matched 'axe'
+a Norrvael boarding sword,mainhand,1,slashing,high,matched 'sword'
+"a legion arming spear, weighted for formation fighting",mainhand,2,piercing,high,matched 'spear'
+an elven thornwood bow,mainhand,2,piercing,high,matched 'bow'
+a Kharzun canyon pick,mainhand,2,piercing,high,matched 'pick'
+a desert duelist's shamshir,mainhand,2,slashing,first pass,edged weapon
+a Norrvael watchman's poleaxe,mainhand,2,slashing,first pass,edged weapon
+a lizardfolk marsh-hunting spear,mainhand,2,piercing,high,matched 'spear'
+a legion veteran's gladius,mainhand,3,slashing,high,matched 'gladius'
+a Vaeloris heartwood longbow,mainhand,3,piercing,high,matched 'longbow'
+an ash-weighted dwarven maul,mainhand,3,blunt,high,matched 'maul'
+a Sahrimori serpent-blade,mainhand,3,slashing,high,matched 'blade'
+a Norrvael storm-rider lance,mainhand,3,piercing,high,matched 'lance'
+a swamp-forged bone billhook,mainhand,3,slashing,first pass,edged weapon
+a legion commander's spatha,mainhand,4,slashing,high,matched 'spatha'
+a black-ash executioner's axe,mainhand,4,slashing,high,matched 'axe'
+a mistwood recurve bow strung with silver sinew,mainhand,4,piercing,high,matched 'bow'
+a Kabal dueling focus shaped as a narrow blade,mainhand,4,slashing,high,matched 'blade'
+a Thraekor forge-hammer bearing an intact clan mark,mainhand,4,blunt,high,matched 'hammer'
+a glass-edged saber from the Black Sands,mainhand,4,slashing,high,matched 'saber'
+"a drakebone hunting bow, fletched with shed scale",mainhand,4,piercing,high,matched 'bow'
+a masterwork blade,mainhand,4,slashing,high,matched 'blade'
+a hide-covered round shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a legion recruit's rectangular shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a bundle of roughly fletched hunting arrows,offhand,1,piercing,high,matched 'arrows'
+a Sahrimori parrying dagger,offhand,2,piercing,high,matched 'dagger'
+a Vaeloris woven-root buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a Norrvael steel-rimmed shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a legion tower shield scarred by siege stones,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a blackwood quiver of broadhead arrows,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a dwarven furnace shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a mist-lacquered Norrvael targe,offhand,3,(not a weapon),first pass,shield / focus / tool offhand
+a Vaeloris living-root greatshield,offhand,4,(not a weapon),first pass,shield / focus / tool offhand
+a legion command scutum with a preserved standard-hook,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a quiver of drakebone armor-piercing arrows,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a Kabal ward-disc inscribed on both faces,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a siege engineer's war pick,mainhand,3,piercing,high,matched 'pick'
+a stonebreaker hammer,mainhand,4,blunt,high,matched 'hammer'
+a reinforced mantlet shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a novitiate conduit rod,mainhand,2,blunt,high,matched 'rod'
+an apprentice ward disk,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+an examiner's focus blade,mainhand,4,slashing,high,matched 'blade'
+an inspection ward,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a river warden staff,mainhand,4,blunt,high,matched 'staff'
+an eightfold ward shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a legion recruit's gladius,mainhand,2,slashing,high,matched 'gladius'
+a legion centurion's spatha,mainhand,4,slashing,high,matched 'spatha'
+a legion formation spear,mainhand,3,piercing,high,matched 'spear'
+a legion recruit shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a legion command scutum,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a vanguard breaching axe,mainhand,3,slashing,high,matched 'axe'
+a vanguard great hammer,mainhand,4,blunt,high,matched 'hammer'
+a vanguard execution blade,mainhand,4,slashing,high,matched 'blade'
+a vanguard war maul,mainhand,3,blunt,high,matched 'maul'
+a vanguard tower shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a reinforced assault shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a scout corps recurve,mainhand,3,piercing,first pass,"point, bow, hook or knife"
+a long patrol bow,mainhand,4,piercing,high,matched 'bow'
+a border scout spear,mainhand,3,piercing,high,matched 'spear'
+a silent hunting knife,mainhand,2,piercing,high,matched 'knife'
+a scout buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a trail warden's targe,offhand,3,(not a weapon),first pass,shield / focus / tool offhand
+an ashforged war axe,mainhand,3,slashing,high,matched 'axe'
+a forge master's hammer,mainhand,4,blunt,high,matched 'hammer'
+a black iron longsword,mainhand,3,slashing,high,matched 'longsword'
+an ember pike,mainhand,3,piercing,high,matched 'pike'
+a furnace bulwark,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a black iron tower shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a heartwood longbow,mainhand,4,piercing,high,matched 'longbow'
+a thornwoven bow,mainhand,3,piercing,high,matched 'bow'
+an elder branch staff,mainhand,4,blunt,high,matched 'branch'
+a willow spear,mainhand,3,piercing,high,matched 'spear'
+a living root shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a woven bark shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a grand conduit blade,mainhand,4,slashing,high,matched 'blade'
+a river focus staff,mainhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+an eightfold wand,mainhand,3,blunt,high,matched 'wand'
+a crystal focus rod,mainhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a river focus disc,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+an eightfold ward,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a guild enforcer's arming sword,mainhand,3,slashing,high,matched 'sword'
+a guild caravan spear,mainhand,3,piercing,high,matched 'spear'
+a safor trade saber,mainhand,4,slashing,high,matched 'saber'
+a guild marshal's mace,mainhand,4,blunt,high,matched 'mace'
+a guild escort shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a safor caravan buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a courier's short sword,mainhand,2,slashing,high,matched 'sword'
+a dispatch dagger,mainhand,3,piercing,high,matched 'dagger'
+a roadwarden spear,mainhand,3,piercing,high,matched 'spear'
+a messenger's hatchet,mainhand,2,slashing,high,matched 'hatchet'
+a dispatch buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a courier's kite shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a hunter's longsword,mainhand,3,slashing,high,matched 'longsword'
+a beastslayer spear,mainhand,3,piercing,high,matched 'spear'
+a trophy axe,mainhand,4,slashing,high,matched 'axe'
+a monster cleaver,mainhand,4,slashing,high,matched 'cleaver'
+a hunter's buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a beast ward shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+an appraiser's walking staff,mainhand,2,blunt,high,matched 'staff'
+a gem inspector's hammer,mainhand,3,blunt,high,matched 'hammer'
+a precision chisel,mainhand,2,piercing,first pass,"point, bow, hook or knife"
+a valuation blade,mainhand,4,slashing,high,matched 'blade'
+a ledger shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+an inspector's buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a stonewarden warhammer,mainhand,3,blunt,high,matched 'warhammer'
+a granite cleaver,mainhand,4,slashing,high,matched 'cleaver'
+a bastion axe,mainhand,3,slashing,high,matched 'axe'
+a citadel spear,mainhand,3,piercing,high,matched 'spear'
+a stonewarden bulwark,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a quarry shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a canopy longbow,mainhand,4,piercing,high,matched 'longbow'
+a thornrunner bow,mainhand,3,piercing,high,matched 'bow'
+a branchguard spear,mainhand,3,piercing,high,matched 'spear'
+a vineknife,mainhand,3,slashing,first pass,edged weapon
+a living bark buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a canopy guard shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a sandstrider saber,mainhand,3,slashing,high,matched 'saber'
+a dune spear,mainhand,3,piercing,high,matched 'spear'
+a caravan defender blade,mainhand,4,slashing,high,matched 'blade'
+a curved dust knife,mainhand,3,piercing,high,matched 'knife'
+a sunshield buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a caravan escort shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a tide captain's saber,mainhand,3,slashing,high,matched 'saber'
+a boarding pike,mainhand,3,piercing,high,matched 'pike'
+a merchant prince's blade,mainhand,4,slashing,high,matched 'blade'
+a harbor cutlass,mainhand,3,slashing,high,matched 'cutlass'
+a harbor shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a captain's buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a stormwatch longsword,mainhand,3,slashing,high,matched 'longsword'
+a tempest spear,mainhand,3,piercing,high,matched 'spear'
+a cliffwarden axe,mainhand,4,slashing,high,matched 'axe'
+a storm cutlass,mainhand,3,slashing,high,matched 'cutlass'
+a stormwall shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a coastguard buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a white watch blade,mainhand,4,slashing,high,matched 'blade'
+a noble duelist's saber,mainhand,3,slashing,high,matched 'saber'
+a silent pike,mainhand,3,piercing,high,matched 'pike'
+a white watch dagger,mainhand,3,piercing,high,matched 'dagger'
+a white watch buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a silver ward shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a bone fang spear,mainhand,3,piercing,high,matched 'fang'
+a marsh cleaver,mainhand,3,slashing,high,matched 'cleaver'
+a spine club,mainhand,4,blunt,high,matched 'club'
+a scale buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a bone guard shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a drakebone greatsword,mainhand,4,slashing,high,matched 'greatsword'
+a drakefang spear,mainhand,3,piercing,high,matched 'spear'
+a scale cleaver,mainhand,4,slashing,high,matched 'cleaver'
+a drake scale shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a drakehide buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a serrated carapace blade,mainhand,3,slashing,high,matched 'blade'
+a queen spine lance,mainhand,4,piercing,high,matched 'lance'
+a chitin crusher,mainhand,4,blunt,first pass,"staff, focus, hammer or crusher"
+a layered carapace shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a hive guard buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+an elder bark staff,mainhand,4,blunt,high,matched 'staff'
+a living branch spear,mainhand,3,piercing,high,matched 'spear'
+a grovekeeper bow,mainhand,4,piercing,high,matched 'bow'
+a living bark shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a rootwoven guard,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a bonecaller's scythe,mainhand,4,slashing,high,matched 'scythe'
+an ossuary spear,mainhand,4,piercing,high,matched 'spear'
+a ribcage bulwark,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a leviathan harpoon,mainhand,4,piercing,high,matched 'harpoon'
+a tidebreaker blade,mainhand,4,slashing,high,matched 'blade'
+a leviathan scale shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a king's longsword,mainhand,4,slashing,high,matched 'longsword'
+a royal war spear,mainhand,4,piercing,high,matched 'spear'
+a king's guard shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a riverbranch staff,mainhand,4,blunt,high,matched 'staff'
+a primordial focus blade,mainhand,4,slashing,high,matched 'blade'
+an eightfold warding disc,offhand,4,(not a weapon),first pass,shield / focus / tool offhand
+a fragmenta blade,mainhand,4,slashing,high,matched 'blade'
+a fragmenta lance,mainhand,4,piercing,high,matched 'lance'
+a fragmenta ward,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a village blacksmith's sword,mainhand,1,slashing,high,matched 'sword'
+a hunter's skinning knife,mainhand,1,piercing,high,matched 'knife'
+a river ferryman's polearm,mainhand,1,piercing,first pass,"point, bow, hook or knife"
+an orchard billhook,mainhand,1,slashing,first pass,edged weapon
+a woodsman's hatchet,mainhand,1,slashing,high,matched 'hatchet'
+a marsh reed spear,mainhand,2,piercing,high,matched 'spear'
+a caravan guard saber,mainhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+an iron-banded mace,mainhand,2,blunt,high,matched 'mace'
+a falconer's hunting spear,mainhand,2,piercing,high,matched 'spear'
+a border militia sword,mainhand,3,slashing,high,matched 'sword'
+a cliff watch axe,mainhand,3,slashing,high,matched 'axe'
+a noble duelist's rapier,mainhand,3,piercing,high,matched 'rapier'
+a river warden pike,mainhand,3,piercing,high,matched 'pike'
+a veteran huntsman's bow,mainhand,4,piercing,high,matched 'bow'
+a high magistrate's ceremonial blade,mainhand,4,slashing,high,matched 'blade'
+an oak buckler,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a leather round shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a reed-woven shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+an iron-rim buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a caravan escort's shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a river patrol shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a hardened kite shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a veteran's tower shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a tanner's skinning blade,mainhand,1,slashing,high,matched 'blade'
+a cooper's mallet,mainhand,1,blunt,high,matched 'mallet'
+a forester's hatchet,mainhand,1,slashing,high,matched 'hatchet'
+a fisherman's gaff,mainhand,1,piercing,first pass,"point, bow, hook or knife"
+a boar hunter's spear,mainhand,2,piercing,high,matched 'spear'
+a militia sergeant's sword,mainhand,2,slashing,high,matched 'sword'
+a stone quarry pick,mainhand,2,piercing,high,matched 'pick'
+a falcon knight's saber,mainhand,3,slashing,high,matched 'saber'
+a highland claymore,mainhand,3,slashing,first pass,edged weapon
+a noble huntsman's longbow,mainhand,3,piercing,high,matched 'longbow'
+an ironwood war club,mainhand,4,blunt,high,matched 'club'
+a magistrate's execution sword,mainhand,4,slashing,high,matched 'sword'
+a veteran pathfinder's spear,mainhand,4,piercing,high,matched 'spear'
+a silver court rapier,mainhand,4,piercing,high,matched 'rapier'
+a willow round shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a dockworker's buckler,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+a reinforced hide shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+an ironbound targe,offhand,2,(not a weapon),first pass,shield / focus / tool offhand
+a watchtower shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a merchant guard tower shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+an oak fortress shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a silver parade shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a sanguivorum legionary's side sword,mainhand,2,slashing,high,matched 'sword'
+a vaeloris ashwood hunting bow,mainhand,2,piercing,high,matched 'bow'
+a thraekor black-iron cleaver,mainhand,3,slashing,high,matched 'cleaver'
+a norrvael icewind saber,mainhand,3,slashing,high,matched 'saber'
+a sahrimor caravan scimitar,mainhand,3,slashing,high,matched 'scimitar'
+a sanguivorum border pike,mainhand,3,piercing,high,matched 'pike'
+a vaeloris thornblade,mainhand,4,slashing,first pass,edged weapon
+a thraekor forge pike,mainhand,4,piercing,high,matched 'pike'
+a norrvael stormsteel longsword,mainhand,4,slashing,high,matched 'longsword'
+a sahrimor dune falcon spear,mainhand,4,piercing,high,matched 'spear'
+a sanguivorum infantry shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a vaeloris bark buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a thraekor forge shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a norrvael coastguard shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a sahrimor sun shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+an ironbound fortress shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a crimson border sword,mainhand,2,slashing,high,matched 'sword'
+an iron drill pike,mainhand,2,piercing,high,matched 'pike'
+a highland war axe,mainhand,3,slashing,high,matched 'axe'
+a blood oak longbow,mainhand,3,piercing,high,matched 'longbow'
+a magistrate's ceremonial sword,mainhand,4,slashing,high,matched 'sword'
+a red banner greatsword,mainhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a blood oak shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+an iron-rim kite shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a crimson guard bulwark,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+an ashwood hunting bow,mainhand,2,piercing,high,matched 'bow'
+a thornwood spear,mainhand,2,piercing,high,matched 'spear'
+a briar fang knife,mainhand,2,piercing,high,matched 'fang'
+a willowbranch staff,mainhand,3,blunt,high,matched 'staff'
+a living vine whip,mainhand,3,slashing,high,matched 'whip'
+an elderwood longbow,mainhand,3,piercing,high,matched 'longbow'
+a rootbound glaive,mainhand,3,slashing,high,matched 'glaive'
+a grovekeeper's blade,mainhand,4,slashing,high,matched 'blade'
+a moonbark spear,mainhand,4,piercing,high,matched 'spear'
+a heartwood warstaff,mainhand,4,blunt,first pass,"staff, focus, hammer or crusher"
+a barkwoven buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a living root buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a vinebound guard,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+an elder bark bulwark,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a black-iron hatchet,mainhand,2,slashing,high,matched 'hatchet'
+a basalt war pick,mainhand,2,piercing,high,matched 'pick'
+a forge clan axe,mainhand,3,slashing,high,matched 'axe'
+an embersteel longsword,mainhand,3,slashing,high,matched 'longsword'
+a furnace hammer,mainhand,3,blunt,high,matched 'hammer'
+an obsidian cleaver,mainhand,3,slashing,high,matched 'cleaver'
+a runic forge spear,mainhand,3,piercing,high,matched 'spear'
+a molten edge greatsword,mainhand,4,slashing,high,matched 'edge'
+an ashen king's hammer,mainhand,4,blunt,high,matched 'hammer'
+a hearthfire war axe,mainhand,4,slashing,high,matched 'axe'
+a forge buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a basalt shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+an iron hearth shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a runebound bulwark,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a white ash saber,mainhand,2,slashing,high,matched 'saber'
+an icebreaker axe,mainhand,2,slashing,high,matched 'axe'
+a coastwarden spear,mainhand,3,piercing,high,matched 'spear'
+a stormglass rapier,mainhand,3,piercing,high,matched 'rapier'
+a froststeel longsword,mainhand,3,slashing,high,matched 'longsword'
+a harbor defender mace,mainhand,3,blunt,high,matched 'mace'
+a whalebone harpoon,mainhand,3,piercing,high,matched 'harpoon'
+a navigator's boarding blade,mainhand,4,slashing,high,matched 'blade'
+a tempest pike,mainhand,4,piercing,high,matched 'pike'
+a silversteel officer's sword,mainhand,4,slashing,high,matched 'sword'
+a harbor buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a stormglass shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+an icebound kite shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a silversteel bulwark,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a river merchant's scimitar,mainhand,2,slashing,high,matched 'scimitar'
+an oasis guard spear,mainhand,2,piercing,high,matched 'spear'
+a brass-edged khopesh,mainhand,3,slashing,high,matched 'khopesh'
+a caravan master's saber,mainhand,3,slashing,high,matched 'saber'
+a sunsteel falchion,mainhand,3,slashing,high,matched 'falchion'
+a dune rider lance,mainhand,3,piercing,high,matched 'lance'
+an ivory-hilt rapier,mainhand,4,piercing,high,matched 'rapier'
+a golden crescent blade,mainhand,4,slashing,high,matched 'blade'
+a sapphire caravan pike,mainhand,4,piercing,high,matched 'pike'
+a sunfire war scimitar,mainhand,4,slashing,high,matched 'scimitar'
+a brass round shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+an oasis defender shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a silk-wrapped buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a gilded caravan shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Widow's Lament,mainhand,5,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Emberfall,mainhand,5,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Black Horizon,mainhand,5,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Dawnpiercer,mainhand,5,piercing,first pass,"point, bow, hook or knife"
+Oathbreaker,mainhand,5,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Winter's Bite,mainhand,5,piercing,first pass,"point, bow, hook or knife"
+Seven Sorrows,mainhand,5,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Leviathan's Folly,mainhand,5,piercing,first pass,"point, bow, hook or knife"
+Crownsplitter,mainhand,5,slashing,first pass,edged weapon
+Whisper of Ash,mainhand,5,piercing,first pass,"point, bow, hook or knife"
+Bulwark of Ages,offhand,5,(not a weapon),high,shield/focus/quiver-type offhand
+Eclipse Guard,offhand,5,(not a weapon),high,shield/focus/quiver-type offhand
+Last Bastion,offhand,5,(not a weapon),first pass,shield / focus / tool offhand
+Iron Promise,offhand,5,(not a weapon),first pass,shield / focus / tool offhand
+King's Wall,offhand,5,(not a weapon),first pass,shield / focus / tool offhand
+Eclipse,mainhand,6,slashing,first pass,edged weapon
+River's End,mainhand,6,blunt,first pass,"staff, focus, hammer or crusher (Magic-only mainhand: staff/focus)"
+Sovereign,mainhand,6,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Night Requiem,mainhand,6,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Ashmaker,mainhand,6,blunt,first pass,"staff, focus, hammer or crusher"
+Aegis Eternal,offhand,6,(not a weapon),high,shield/focus/quiver-type offhand
+Mirror of Rivers,offhand,6,(not a weapon),first pass,shield / focus / tool offhand
+Bastion Prime,offhand,6,(not a weapon),first pass,shield / focus / tool offhand
+The Hollow Blade,mainhand,7,slashing,high,matched 'Blade'
+Worldrender,mainhand,7,slashing,first pass,edged weapon
+The Nameless Staff,mainhand,7,blunt,high,matched 'Staff'
+Aegis of the Last Wall,offhand,7,(not a weapon),high,shield/focus/quiver-type offhand
+Dawnbloom Branch,mainhand,8,blunt,high,matched 'Branch'
+Verdant Aegis,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Lantern of Quiet Passage,mainhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Veil of the Ferryman,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
+Loom of Destinies,mainhand,8,blunt,first pass,"staff, focus, hammer or crusher (Magic-only mainhand: staff/focus)"
+Threadkeeper's Spindle,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
+Warfather's Edge,mainhand,8,slashing,high,matched 'Edge'
+Bulwark of Champions,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Codex of Infinite Horizons,mainhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Librarian's Ward,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Roseheart Scepter,mainhand,8,blunt,high,matched 'Scepter'
+Heartward Embrace,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
+Trickster's Cane,mainhand,8,blunt,high,matched 'Cane'
+Coincatcher's Buckler,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Foundation's Hammer,mainhand,8,blunt,high,matched 'Hammer'
+Ageless Bulwark,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Galecaller,mainhand,8,(unassigned),held,held by Tyler 12 Nov — weapon form to be confirmed (Narrative)
+Wayfinder's Compass,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
+Forgefather's Hammer,mainhand,8,blunt,high,matched 'Hammer'
+Forgeguard Buckler,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Tidecaller,mainhand,8,blunt,first pass,"staff, focus, hammer or crusher (Magic-only mainhand: staff/focus)"
+Shell of the Deep,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
+Epochkeeper,mainhand,8,blunt,first pass,"staff, focus, hammer or crusher (Magic-only mainhand: staff/focus)"
+Chronal Dial,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
+Bloodbound Champion's Maul,mainhand,3,blunt,high,matched 'Maul'
+Ascended Bloodbound Champion's Maul,mainhand,5,blunt,high,matched 'Maul'
+Sahrimori Alley Shiv,offhand,1,piercing,high,matched 'Shiv'
+Sahrimori Veilknife,mainhand,3,piercing,first pass,"point, bow, hook or knife"
+Desert Fang Parrying Knife,offhand,3,piercing,high,matched 'Fang'
+Duskfang Veilknife,mainhand,5,piercing,first pass,"point, bow, hook or knife"
+Sahrimori Reaver's Shiv,offhand,4,piercing,high,matched 'Shiv'
+Nightglass Fang,mainhand,6,piercing,high,matched 'Fang'
+Scorpion-Tail Shiv,offhand,5,piercing,high,matched 'Shiv'
+Outlaw Command Saber,mainhand,6,slashing,high,matched 'Saber'
+Plundered Sunward Buckler,offhand,6,(not a weapon),high,shield/focus/quiver-type offhand
+Scourge of the Sandroads,mainhand,6,slashing,first pass,edged weapon
+Oathsteel Contract Blade,mainhand,6,slashing,high,matched 'Blade'
+Veteran's Silverguard,offhand,6,(not a weapon),first pass,shield / focus / tool offhand
+Sahrimori Saltwind Bow,mainhand,3,piercing,high,matched 'Bow'
+Falcon-Fletched Quiver,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Sunclan Warleader's Khopesh,mainhand,6,slashing,high,matched 'Khopesh'
+Contract Marshal's Warblade,mainhand,6,slashing,first pass,edged weapon
+Merchant Lord Bastion Spear,mainhand,6,piercing,high,matched 'Spear'
+Reinforced Lord's Aegis,offhand,6,(not a weapon),high,shield/focus/quiver-type offhand
+Captain's Edict Saber,mainhand,6,slashing,high,matched 'Saber'
+Oathbound Shieldhammer,mainhand,6,blunt,first pass,"staff, focus, hammer or crusher"
+Merchant Lord's Grand Shield,offhand,6,(not a weapon),high,shield/focus/quiver-type offhand
+Bahrun Boarding Hook,mainhand,2,piercing,first pass,"point, bow, hook or knife"
+Farahl Scout Lance,mainhand,2,piercing,high,matched 'Lance'
+Ramahsi Patrol Bow,mainhand,2,piercing,high,matched 'Bow'
+Sahrimori Vigil Blade,mainhand,6,slashing,high,matched 'Blade'
+Fedahl Battle Guard,offhand,6,(not a weapon),high,shield/focus/quiver-type offhand
+Ramahsi Sharpshooter Bow,mainhand,4,piercing,high,matched 'Bow'
+Ramahsi War Quiver,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Filhari Elephant Goad,mainhand,5,piercing,first pass,"point, bow, hook or knife"
+Filhari Harness Guard,offhand,5,(not a weapon),high,shield/focus/quiver-type offhand
+Akharul Venom-Lance,mainhand,6,piercing,high,matched 'Lance'
+Akharu Riding Harness,offhand,5,(not a weapon),first pass,shield / focus / tool offhand
+Qahir Field Saber,mainhand,6,slashing,high,matched 'Saber'
+Amahri Marshal Saber,mainhand,6,slashing,high,matched 'Saber'
+Amahri Guard Buckler,offhand,6,(not a weapon),high,shield/focus/quiver-type offhand
+Sardarr War Scimitar,mainhand,6,slashing,high,matched 'Scimitar'
+Sardarr Command Shield,offhand,6,(not a weapon),high,shield/focus/quiver-type offhand
+Ashquench,mainhand,6,slashing,first pass,edged weapon
+Streetbreaker Club,mainhand,1,blunt,high,matched 'Club'
+Cutpurse's Dagger,mainhand,2,piercing,high,matched 'Dagger'
+Street Shiv,offhand,1,piercing,high,matched 'Shiv'
+Roadside Spotter's Crossbow,mainhand,3,piercing,high,matched 'Crossbow'
+Highway Cutthroat's Blade V1,mainhand,2,slashing,high,matched 'Blade'
+Highway Cutthroat's Shiv V1,offhand,1,piercing,high,matched 'Shiv'
+Highway Cutthroat's Blade V2,mainhand,4,slashing,high,matched 'Blade'
+Highway Cutthroat's Shiv V2,offhand,3,piercing,high,matched 'Shiv'
+Highway Cutthroat's Blade V3,mainhand,5,slashing,high,matched 'Blade'
+Highway Cutthroat's Shiv V3,offhand,4,piercing,high,matched 'Shiv'
+Caravan Breaker Maul,mainhand,3,blunt,high,matched 'Maul'
+Border Smuggler's Sword,mainhand,3,slashing,high,matched 'Sword'
+Smuggler's Guard Buckler,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Ovum Outcast Primary Blade,mainhand,3,slashing,high,matched 'Blade'
+Ovum Outcast Secondary Blade,offhand,2,slashing,high,matched 'Blade'
+Outlaw Handler's Spear,mainhand,3,piercing,high,matched 'Spear'
+Highway Captain's Sword,mainhand,5,slashing,high,matched 'Sword'
+Highway Captain's Command Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Roadlord's Veteran Blade,mainhand,6,slashing,high,matched 'Blade'
+Training Gladius,mainhand,1,slashing,high,matched 'Gladius'
+Training Shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+Formation Spear,mainhand,3,piercing,high,matched 'Spear'
+Veteran Legion Blade V1,mainhand,3,slashing,high,matched 'Blade'
+Veteran Tower Shield V1,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Legion Blade V2,mainhand,4,slashing,high,matched 'Blade'
+Veteran Tower Shield V2,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Legion Blade V3,mainhand,5,slashing,high,matched 'Blade'
+Veteran Tower Shield V3,offhand,5,(not a weapon),high,shield/focus/quiver-type offhand
+Calculated Crossbow,mainhand,3,piercing,high,matched 'Crossbow'
+Engineer Sidearm,offhand,1,piercing,first pass,"point, bow, hook or knife"
+Ballistarius Crankbow,mainhand,4,piercing,first pass,"point, bow, hook or knife"
+Ingenum Sidearm,offhand,2,piercing,first pass,"point, bow, hook or knife"
+Scout's Javelin,mainhand,3,piercing,high,matched 'Javelin'
+Light Scout Buckler,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+Heavy War Lance,mainhand,4,piercing,high,matched 'Lance'
+Reinforced Cavalry Shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Boarding Cutlass,mainhand,3,slashing,high,matched 'Cutlass'
+Sailor's Hook,offhand,2,piercing,first pass,"point, bow, hook or knife"
+Marine Boarding Sword V1,mainhand,3,slashing,high,matched 'Sword'
+Marine Shield V1,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Marine Boarding Sword V2,mainhand,4,slashing,high,matched 'Sword'
+Marine Shield V2,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Gladius V1,mainhand,3,slashing,high,matched 'Gladius'
+Veteran Shield V1,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Gladius V2,mainhand,4,slashing,high,matched 'Gladius'
+Veteran Shield V2,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Gladius V3,mainhand,5,slashing,high,matched 'Gladius'
+Veteran Shield V3,offhand,5,(not a weapon),high,shield/focus/quiver-type offhand
+Ductus Command Sword V1,mainhand,4,slashing,high,matched 'Sword'
+Section Command Shield V1,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Ductus Command Sword V2,mainhand,5,slashing,high,matched 'Sword'
+Section Command Shield V2,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Vigilis Command Sword,mainhand,5,slashing,high,matched 'Sword'
+Reinforced Command Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Arbitarius Command Blade,mainhand,6,slashing,high,matched 'Blade'
+Imperial Command Shield,offhand,5,(not a weapon),high,shield/focus/quiver-type offhand
+Legion Handler Spear,mainhand,3,piercing,high,matched 'Spear'
+Military Handler Sidearm,offhand,2,piercing,first pass,"point, bow, hook or knife"
+Civic Watch Sword,mainhand,1,slashing,high,matched 'Sword'
+Market Enforcement Baton,mainhand,2,blunt,high,matched 'Baton'
+Watchman's Guard Buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+Warden's Patrol Spear,mainhand,3,piercing,high,matched 'Spear'
+Road Warden's Shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+Harbor Boarding Blade,mainhand,3,slashing,high,matched 'Blade'
+Harbor Watch Buckler,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Watch Sword,mainhand,2,slashing,high,matched 'Sword'
+Veteran Watch Shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran City Sword,mainhand,3,slashing,high,matched 'Sword'
+Reinforced Watch Shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Master City Guard Sword,mainhand,5,slashing,high,matched 'Sword'
+Master Watch Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Frontier Gate Spear,mainhand,3,piercing,high,matched 'Spear'
+Frontier Tower Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Investigator's Precision Sword,mainhand,3,slashing,high,matched 'Sword'
+Concealed Investigator Shiv,offhand,2,piercing,high,matched 'Shiv'
+Watch Captain's Sword,mainhand,4,slashing,high,matched 'Sword'
+Captain's Command Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Ovum Veteran Guard Sword,mainhand,3,slashing,high,matched 'Sword'
+Ovum Veteran Tower Shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Village Militia Spear,mainhand,1,piercing,high,matched 'Spear'
+Militia Wooden Shield,offhand,1,(not a weapon),high,shield/focus/quiver-type offhand
+Militia Woodcutter Axe,mainhand,2,slashing,high,matched 'Axe'
+Iron-Banded Militia Shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Militia War Axe,mainhand,3,slashing,high,matched 'Axe'
+Reinforced Militia Shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Independent Hunting Bow,mainhand,2,piercing,high,matched 'Bow'
+Contract Sellsword Blade,mainhand,2,slashing,high,matched 'Blade'
+Contract Guard Shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+Veteran Contract Sword,mainhand,3,slashing,high,matched 'Sword'
+Reinforced Contract Shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+Master Contract Blade,mainhand,5,slashing,high,matched 'Blade'
+Master Contract Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Contract Heavy Crossbow,mainhand,3,piercing,high,matched 'Crossbow'
+Free Company Command Sword,mainhand,5,slashing,high,matched 'Sword'
+Mercenary Captain's Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Ovum Prizefighter Trident,mainhand,3,piercing,high,matched 'Trident'
+Weighted Arena Net,offhand,2,(not a weapon),first pass,shield / focus / tool offhand
+Ovum Champion Sword,mainhand,5,slashing,high,matched 'Sword'
+Champion's Arena Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+Contract Killer's Short Sword,mainhand,2,slashing,high,matched 'Sword'
+Concealed Contract Dagger,offhand,2,piercing,high,matched 'Dagger'
+Veiled Precision Blade,mainhand,3,slashing,high,matched 'Blade'
+Executor's Poisoned Dagger,offhand,3,piercing,high,matched 'Dagger'
+Arena Handler's Spear,mainhand,3,piercing,high,matched 'Spear'
+Militia Warleader's Sword,mainhand,5,slashing,high,matched 'Sword'
+Warleader's Heavy Shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand

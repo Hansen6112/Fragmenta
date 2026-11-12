@@ -1,0 +1,18 @@
+creature_family,creatures,variant (Codex name),damage type,signature status,display name example,own-type tag
+Draven-Drak,juvenileDravenDrak adultDravenDrak (+ Ancient when added),Red,fire,Burning,Red Draven-Drak,fire:resist
+Draven-Drak,,White,frost,Chilled→Frozen,White Draven-Drak,frost:resist
+Draven-Drak,,Green,poison,Venom,Green Draven-Drak,poison:resist
+Draven-Drak,,Black,acid,Corrosion (Def -8 / 3 turns),Black Draven-Drak,acid:resist
+Draven-Drak,,Blue,lightning,Shocked (Init -10 / Acc -10 / 2 turns),Blue Draven-Drak,lightning:resist
+Skrel-Drak,youngSkrelDrak ancientSkrelDrak (+ Adult when added),Fire,fire,Burning,Fire-blooded Skrel-Drak,fire:resist
+Skrel-Drak,,Ice,frost,Init -8 / 2 turns (Chilled),Ice-blooded Skrel-Drak,frost:resist
+Skrel-Drak,,Lightning,lightning,Electrified / Shocked,Storm-blooded Skrel-Drak,lightning:resist
+Skrel-Drak,,Acid,acid,Def -8 / 2 turns (Corrosion),Acid-blooded Skrel-Drak,acid:resist
+Skrel-Drak,,Heated Mist,water,AoE 150% + Burning,Mist-blooded Skrel-Drak,water:resist
+Elementals,lesserElemental elemental greaterElemental primalElemental,Fire,fire,Burning,Fire Elemental,fire:resist
+Elementals,,Ash,fire,Ashen Lungs (healing -25% / Acc -5),Ash Elemental,fire:resist
+Elementals,,Stone,earth,Crushed (Init -10 / Agi -10),Stone Elemental,earth:resist
+Elementals,,Plant,earth,Rooted (Agi -15),Plant Elemental,earth:resist
+Elementals,,Water,water,Drenched (Def -5 / 3 turns),Water Elemental,water:resist
+Elementals,,Mist,water,Obscured (Acc -15),Mist Elemental,water:resist
+Elementals,,Ice,frost,Frozen (Init -10 / Acc -5),Ice Elemental,frost:resist

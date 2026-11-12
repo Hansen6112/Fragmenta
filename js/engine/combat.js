@@ -673,7 +673,11 @@ function tickAllyStatuses(state, ally) {
       lines.push(...result.lines);
     }
     entry.turnsLeft -= 1;
-    if (entry.turnsLeft <= 0) delete statuses[key];
+    if (entry.turnsLeft <= 0) {
+      delete statuses[key];
+      const escalated = escalatedStatusEntry(key);
+      if (escalated) statuses[escalated.key] = escalated.entry;
+    }
   }
   return lines;
 }
@@ -695,6 +699,30 @@ function statusDamageType(key) {
   return "physical"; // any future/unknown DOT status
 }
 
+// Content Load handoff §3, T8 (off by default): fires right where a
+// non-stacking status naturally expires (turnsLeft hits 0), using its
+// own escalatesAt/escalatesTo fields (Drowsy/Constrict/Blight Seed
+// already declared these; Chilled gains them in this same content pass)
+// -- previously undispatched entirely ("declared for fidelity, not
+// dispatched", STATUS_EFFECTS's own header). Wiring it generically here
+// also activates Drowsy -> Asleep as a lossless side effect of using
+// the existing field rather than special-casing Chilled alone; Blight
+// Seed/Constrict's own STACK-based escalation (escalatesAt counts
+// stacks, not turns -- their turns: 99 means they essentially never
+// expire by duration) is untouched, since this only ever fires at a
+// status's own natural end-of-duration delete. Gated by the switch
+// since Chilled already gets inflicted today, unconditionally, by
+// frost_bite/dra_cleave/dra_frostbite_brand -- this must change nothing
+// about any of those existing fights with the switch off.
+function escalatedStatusEntry(key) {
+  if (!DAMAGE_TYPES_V2) return null;
+  const def = getStatusEffect(key);
+  if (!def || !def.escalatesTo) return null;
+  const nextDef = getStatusEffect(def.escalatesTo);
+  if (!nextDef) return null;
+  return { key: def.escalatesTo, entry: { name: nextDef.name, debuff: nextDef.debuff, dot: nextDef.dot, turnsLeft: nextDef.turns != null ? nextDef.turns : 2, stacks: 1 } };
+}
+
 // Ticks every active player status by one turn: damage-over-time first
 // (Heatproof halves Burning specifically, per its own wording), then
 // duration. Called from beginTurn, the same place enemy-side burn/bleed
@@ -714,7 +742,11 @@ function tickPlayerStatuses(state) {
       if (result.comboEnded) break;
     }
     entry.turnsLeft -= 1;
-    if (entry.turnsLeft <= 0) delete combat.player.playerStatuses[key];
+    if (entry.turnsLeft <= 0) {
+      delete combat.player.playerStatuses[key];
+      const escalated = escalatedStatusEntry(key);
+      if (escalated) combat.player.playerStatuses[escalated.key] = escalated.entry;
+    }
   }
   return lines;
 }
@@ -941,6 +973,14 @@ function applyHeal(state, amount) {
   // received for as long as Health is below 50% max, checked fresh on
   // every single heal rather than latched on until recovery.
   if (hasEffect(state, "mercys_gift") && state.health < state.maxHealth * 0.5) amt = Math.round(amt * 1.5);
+  // Ash Elemental's own Ashen Lungs (Decisions Addendum §3, off by
+  // default): -25% healing received while active, read the same
+  // generic way every other *Pct status modifier is
+  // (playerStatusStatPctTotal) -- only ever inflicted when
+  // DAMAGE_TYPES_V2 is on (A5's variantStatus override), so this needs
+  // no switch check of its own.
+  const healingReceivedPct = playerStatusStatPctTotal(state, "healingReceivedPct");
+  if (healingReceivedPct) amt = Math.round(amt * (1 + healingReceivedPct));
   const before = state.health;
   state.health = Math.min(state.maxHealth, state.health + amt);
   const healed = state.health - before;
@@ -3216,6 +3256,14 @@ function resolveEnemyActiveAbility(state, creature) {
   // Guard use in between — mirrors consumesPreparedState's exact shape.
   if (ability.consumesPriorAbilityUse) priorFlags[ability.consumesPriorAbilityUse] = false;
   let dmgMult = ability.dmgMult;
+  // Content Load handoff §2b (off by default): a variant can override
+  // this specific ability's own base numbers (Heated Mist's breath
+  // becomes an AoE at 150% instead of inherited_breath's base 1.8x
+  // single-target) -- applied to the BASE dmgMult, before every
+  // multiplicative bonus below, exactly like reading a different
+  // ability.dmgMult would have been.
+  const abilityOverride = DAMAGE_TYPES_V2 && creature.variantAbilityOverrides && creature.variantAbilityOverrides[abilityId];
+  if (abilityOverride && abilityOverride.dmgMult != null) dmgMult = abilityOverride.dmgMult;
   // First-attack bonuses (Ambush, Silent Hunter, Patient Hunter, Ambush
   // Predator, Prepared Opening/H08) — see firstAttackPassiveBonus above.
   const firstBonus = firstAttackPassiveBonus(state, creature);
@@ -3353,7 +3401,7 @@ function resolveEnemyActiveAbility(state, creature) {
     damageType: ability.damageType,
     dmgMult,
     accBonus: (ability.accBonus || 0) + firstAttackAccBonus + condAccBonus || undefined,
-    aoe: !!ability.aoe,
+    aoe: abilityOverride && abilityOverride.aoe != null ? abilityOverride.aoe : !!ability.aoe,
     aoeMaxTargets: ability.aoeMaxTargets,
     inflict,
     selfDebuff: ability.selfDebuff,
@@ -5417,6 +5465,11 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId, lo
     if (variant) {
       creature.elementType = variant.damageType;
       creature.variantStatus = variant.status;
+      // Content Load handoff §2b: a variant can also override one of
+      // its own abilities' numbers (Heated Mist's breath becomes an
+      // AoE at 150% instead of the base single-target 1.8x) -- read in
+      // resolveEnemyActiveAbility, right alongside variantStatus above.
+      creature.variantAbilityOverrides = variant.abilityOverrides;
       if (variant.displayName) creature.name = variant.displayName;
       creature.dmgTags = Object.assign({}, creature.dmgTags, { [variant.damageType]: "resist" });
     }

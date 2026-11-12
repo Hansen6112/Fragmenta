@@ -1,0 +1,234 @@
+creature,name,group,dangerClass,attackType,attack_confidence,attack_reason,proposed_tags,notes,status_immune,passives
+stoneback_beetle,Stoneback Beetle,,normal,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,
+mirrorfish,Mirrorfish,,normal,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,
+gloomhawk,Gloomhawk,,normal,slashing,checked,claws/talons,,,,
+cave_scorpion,Cave Scorpion,,normal,piercing,checked,bite/sting,,,,
+ridgeback_boar,Ridgeback Boar,,normal,piercing,first pass,tusk gore,,,,
+thornhide,Thornhide,,normal,piercing,checked,bite/sting,,,,
+veilwing,Veilwing,,normal,blunt,decided,moth — weak wing buffet; its real threat is the sedative dust abilities — confirmed by Tyler 12 Nov,,,,
+ashwyrm,Ashwyrm,,elite,piercing,checked,six venomous fangs (bite Piercing; venom is its special),,,,
+plainswolf,Plainswolf,wolf,normal,piercing,checked,bite/sting,,,,
+river_serpent,River Serpent,,normal,piercing,checked,bite/sting,,,,
+thunderbird,Thunderbird,,elite,slashing,checked,claws/talons,,,,
+drake,Drake,,elite,slashing,checked,claws/talons,,,,
+dragon,Dragon,,world_boss,slashing,checked,claws/talons,,,,
+vampire_turned,The Turned,,normal,blunt,first pass,"slam, fists, bulk or club",,,,
+vampire_lesser,A Lesser,,normal,slashing,first pass,"claws, talons or blade",,,,
+skeleton,Skeleton,,normal,slashing,first pass,"claws, talons or blade",blunt:weak,,,
+zombie,Zombie,,normal,blunt,checked,gore/slam/fists,,,,
+animated_armor,Animated Armour,,normal,blunt,first pass,"slam, fists, bulk or club",,,,
+golem_stone,Stone Golem,,normal,blunt,checked,gore/slam/fists,poison:immune,,bleed fear,
+elemental_fire,Fire Elemental,,elite,fire,high,elemental of that type,fire:resist,,,
+elemental_ice,Ice Elemental,,elite,frost,high,elemental of that type,frost:resist,,,
+banshee,Banshee,,elite,spirit,first pass,a ghost — no physical body,,,,
+wraith,Wraith,,elite,spirit,first pass,a ghost — no physical body,,,,
+stitched,The Stitched,,boss,blunt,first pass,"slam, fists, bulk or club",,,,
+diamond_tail,Diamond Tail,,boss,blunt,first pass,"slam, fists, bulk or club",,,,
+druith,"Druith, the Ancient",,world_boss,piercing,checked,bite/sting,,,,
+maur_rau,The Ancient Flyer,,boss,slashing,first pass,"claws, talons or blade",,,,
+vaelorn,"Vaelorn, a Grove Warden",,normal,blunt,first pass,"slam, fists, bulk or club",,,,
+kabal_enforcer,A Kabal Enforcer Patrol,,normal,force,decided,Tyler 12 Nov: Kabal enforcers are mages,,,,
+dregnar_ashvein,Dregnar Ashvein,,world_boss,slashing (weapon: Ashquench),high,sword; abilities carry Frost,,,,
+street_bandit,Street Bandit,outlaws,normal,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,
+hired_blade,Hired Blade,outlaws,normal,slashing,first pass,"claws, talons or blade",,,,
+watch_patrol,Watch Patrol,watch,elite,blunt,first pass,"slam, fists, bulk or club",,,,
+wildBoar,Wild Boar,boar,normal,piercing,first pass,tusk gore,,,,cornered
+razorback,Razorback,boar,normal,piercing,first pass,tusk gore,,,,barbed_hide
+direBoar,Dire Boar,boar,elite,piercing,first pass,tusk gore,,,,cornered
+ironTusk,Iron Tusk,boar,boss,piercing,first pass,tusk gore,,,,iron_tusks
+tuskKing,Tusk King,boar,world_boss,piercing,first pass,tusk gore,,,,kings_fury
+blackBear,Black Bear,bear,normal,slashing,checked,claws/talons,,,,thick_hide
+brownBear,Brown Bear,bear,normal,slashing,checked,claws/talons,,,,unyielding
+polarBear,Polar Bear,bear,elite,slashing,checked,claws/talons,,,,predators_momentum
+caveBear,Cave Bear,bear,boss,slashing,checked,claws/talons,,,,thick_hide_2
+greatMatriarchBear,Great Matriarch Bear,bear,world_boss,slashing,checked,claws/talons,,,,ancient_resilience
+timberWolf,Timber Wolf,wolf,normal,piercing,checked,bite/sting,,,,keen_senses pack_hunter
+direWolf,Dire Wolf,wolf,normal,piercing,checked,bite/sting,,,,crushing_jaws
+duskWolf,Dusk Wolf,wolf,normal,piercing,checked,bite/sting,,,,ambush_bonus
+frostWolf,Frost Wolf,wolf,normal,piercing,checked,bite/sting,frost:resist,,chilled,winter_coat
+ashWolf,Ash Wolf,wolf,normal,piercing,checked,bite/sting,fire:resist,,burning,ash_hide
+emeraldWolf,Emerald Wolf,wolf,normal,piercing,checked,bite/sting,,,,forest_camouflage
+duneWolf,Dune Wolf,wolf,normal,piercing,checked,bite/sting,,,,relentless_pursuit
+crimsonWolf,Crimson Wolf,wolf,elite,piercing,checked,bite/sting,,,,blood_frenzy
+alphaWolf,Alpha Wolf,wolf,elite,piercing,checked,bite/sting,,,,alphas_command
+ancientWolf,Ancient Wolf,wolf,boss,piercing,checked,bite/sting,,,,lord_of_the_pack
+giantRat,Giant Rat,rat,normal,piercing,checked,bite/sting,,,,swarm
+caveRat,Cave Rat,rat,normal,piercing,checked,bite/sting,,,,tunnel_fighter
+direBeaver,Dire Beaver,rat,elite,piercing,checked,bite/sting,,,,powerful_bite
+giantPorcupine,Giant Porcupine,rat,boss,piercing,checked,bite/sting,,,,quills
+burrowKing,Burrow King,rat,world_boss,piercing,checked,bite/sting,,,,endless_swarm
+wildcat,Wildcat,cat,normal,slashing,checked,claws/talons,,,,opportunist
+lynx,Lynx,cat,normal,slashing,checked,claws/talons,,,,patient_hunter
+panther,Panther,cat,normal,slashing,checked,claws/talons,,,,killer_instinct
+mountainLion,Mountain Lion,cat,elite,slashing,checked,claws/talons,,,,relentless_pursuit
+lion,Lion,cat,elite,slashing,checked,claws/talons,,,,pride_leader
+sabertooth,Sabertooth,cat,boss,slashing,checked,claws/talons,,,,crushing_bite
+ancientSabertooth,Ancient Sabertooth,cat,world_boss,slashing,checked,claws/talons,,,,apex_predator
+baboon,Baboon,primate,normal,blunt,first pass,fists,,,,mob_confidence
+chimpanzee,Chimpanzee,primate,normal,blunt,first pass,fists,,,,opportunist
+gorilla,Gorilla,primate,elite,blunt,first pass,fists,,,,intimidating_presence
+greatApe,Great Ape,primate,boss,blunt,first pass,fists,,,,adaptive_fighter
+greatWhiteApe,Great White Ape,primate,world_boss,blunt,first pass,fists,,,,tool_mastery
+terrorBird,Terror Bird,bird,elite,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,relentless_chase
+duneOwl,Dune Owl,bird,elite,slashing,checked,claws/talons,,,,silent_hunter
+shrike,Shrike,bird,boss,piercing,checked,bite/sting,,,,butchers_instinct
+boneRoc,Bone Roc,bird,boss,slashing,first pass,"claws, talons or blade",blunt:weak,,,wing_guard
+marshCrocodile,Marsh Crocodile,crocodile,normal,piercing,checked,bite/sting,,,,ambush_predator
+riverCrocodile,River Crocodile,crocodile,normal,piercing,checked,bite/sting,,,,death_roll
+giantCrocodile,Giant Crocodile,crocodile,elite,piercing,checked,bite/sting,,,,thick_scales
+theFirstScale,The First Scale,crocodile,boss,piercing,checked,bite/sting,,,,primal_adaptation
+giantSerpent,Giant Serpent,serpent,normal,piercing,checked,bite/sting,,,,patient_hunter
+elderSerpent,Elder Serpent,serpent,elite,piercing,checked,bite/sting,blunt:weak,,,
+titanSerpent,Titan Serpent,serpent,boss,piercing,checked,bite/sting,,,,shed_skin
+worldSerpent,World Serpent,serpent,world_boss,piercing,checked,bite/sting,,,,ancient_predator
+youngAkharu,Young Akharu,akharu,normal,piercing,checked,bite/sting,,,,desert_predator
+akharu,Akharu,akharu,elite,piercing,checked,bite/sting,,,,hardened_exoskeleton
+greatAkharu,Great Akharu,akharu,boss,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,titanic_momentum
+akharuMatriarch,Akharu Matriarch,akharu,world_boss,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,royal_instinct
+greaterDhulorvae,Greater Dhulorvae,dhulorvae,elite,piercing,checked,bite/sting,,,,hardened_carapace burrow_ambush
+elderDhulorvae,Elder Dhulorvae,dhulorvae,boss,piercing,decided,cave carapace creature — mandibles assumed — confirmed by Tyler 12 Nov,,,,elder_carapace burrow_ambush
+wildKethRhovael,Wild Keth-Rhovael,kethrhovael,elite,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,hardened_carapace
+kethRhovaelGuardian,Keth-Rhovael Guardian,kethrhovael,boss,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,defensive_formation
+kethRhovaelQueen,Keth-Rhovael Queen,kethrhovael,boss,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,royal_pheromones
+juvenileDravenDrak,Juvenile Draven-Drak,draven_drak,boss,slashing,checked,claws/talons,,,,draconic_presence dominance
+adultDravenDrak,Adult Draven-Drak,draven_drak,boss,slashing,first pass,"claws, talons or blade",,,,draconic_presence dominance ancient_instinct
+youngSkrelDrak,Young Skrel-Drak,skrel_drak,normal,slashing,checked,claws/talons,,,,draconic_insight
+ancientSkrelDrak,Ancient Skrel-Drak,skrel_drak,boss,slashing,first pass,"claws, talons or blade",,,,ancient_draconic_insight sovereign_territory
+valdrekKethLarva,Valdrek-Keth Larva,valdrek_keth,normal,piercing,checked,bite/sting,,,,adaptive_carapace
+valdrekKethHunter,Valdrek-Keth Hunter,valdrek_keth,elite,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,adaptive_carapace
+valdrekKethBroodQueen,Valdrek-Keth Brood Queen,valdrek_keth,world_boss,piercing,first pass,"bite, sting, mandibles, beak or knife",,,,adaptive_carapace diamond_shell
+elderVorethMauth,Elder Voreth-Mauth,voreth_mauth,elite,blunt,first pass,moth — weak wing buffet; real threat is its sedative dust,,,,powdered_wings
+elderVorethSael,Elder Voreth-Sael,voreth_sael,elite,piercing,decided,approved 12 Nov (mirror/illusion ruling),,,,mirror_scales distorted_reality
+elderLorvaunNauri,Elder Lorvaun-Nauri,lorvaun_nauri,elite,piercing,decided,tusk gore,all non-physical:resist,"Crystal Core — confirmed by Tyler 12 Nov (design intent). Expands to Resist on every Elemental, Corrosive and Metaphysical type; physical types stay Normal",,crystal_momentum crystal_hide crystal_hide_reflect
+rauThaulnThaun,Rau-Thauln Thaun,rau_thauln_thaun,elite,slashing,first pass,"claws, talons or blade",,,,apex_instinct predators_presence
+ancientRauThaulnThaun,Ancient Rau-Thauln Thaun,rau_thauln_thaun,boss,slashing,first pass,"claws, talons or blade",,,,apex_instinct predators_presence sovereign_predator
+rauThaulnMaur,Rau-Thauln Maur,rau_thauln_maur,normal,slashing,first pass,"claws, talons or blade",,,,apex_instinct blink_predator
+elderRauThaulnMaur,Elder Rau-Thauln Maur,rau_thauln_maur,elite,slashing,first pass,"claws, talons or blade",,,,apex_instinct blink_predator master_blink_predator
+ancientRauThaulnMaur,Ancient Rau-Thauln Maur,rau_thauln_maur,boss,slashing,first pass,"claws, talons or blade",,,,apex_instinct blink_predator master_blink_predator perfect_blink
+rauThaulnRavek,Rau-Thauln Ravek,rau_thauln_ravek,normal,slashing,first pass,"claws, talons or blade",,,,apex_instinct tunnel_hunter
+elderRauThaulnRavek,Elder Rau-Thauln Ravek,rau_thauln_ravek,elite,slashing,first pass,"claws, talons or blade",,,,apex_instinct tunnel_hunter master_tunnel_hunter
+ancientRauThaulnRavek,Ancient Rau-Thauln Ravek,rau_thauln_ravek,boss,slashing,first pass,"claws, talons or blade",,,,apex_instinct tunnel_hunter master_tunnel_hunter living_tunnel_network
+rauThaulnVaelin,Rau-Thauln Vaelin,rau_thauln_vaelin,normal,slashing,first pass,"claws, talons or blade",,,,apex_instinct canopy_hunter
+elderRauThaulnVaelin,Elder Rau-Thauln Vaelin,rau_thauln_vaelin,elite,slashing,first pass,"claws, talons or blade",,,,apex_instinct canopy_hunter master_canopy_hunter
+rauThaulnVoreth,Rau-Thauln Voreth,rau_thauln_voreth,normal,slashing,decided,approved 12 Nov (mirror/illusion ruling),,,,apex_instinct illusory_form
+elderRauThaulnVoreth,Elder Rau-Thauln Voreth,rau_thauln_voreth,elite,slashing,decided,approved 12 Nov (mirror/illusion ruling),,,,apex_instinct illusory_form perfect_illusion
+dreadroot,Dreadroot,vaelorn_dreadroot,world_boss,blunt,first pass,"slam, fists, bulk or club",,,,corrupted_grove
+lesserElemental,Lesser Elemental,elemental,normal,(variant element),first pass,made of its element — basic attack uses the spawned variant's type,,"physical while ethereal — dynamic, keep passive",,elemental_form
+elemental,Elemental,elemental,elite,(variant element),first pass,made of its element — basic attack uses the spawned variant's type,,"physical while ethereal — dynamic, keep passive",,elemental_form
+greaterElemental,Greater Elemental,elemental,boss,(variant element),first pass,made of its element — basic attack uses the spawned variant's type,,"physical while ethereal — dynamic, keep passive",,elemental_form arcane_core
+primalElemental,Primal Elemental,elemental,world_boss,(variant element),first pass,made of its element — basic attack uses the spawned variant's type,,"physical while ethereal — dynamic, keep passive",,primal_core elemental_form
+rootSulDaun,Root Sul-Daun,sul_daun,normal,blunt,first pass,"slam, fists, bulk or club",,,,rootbound
+mummifiedSulDaun,Mummified Sul-Daun,sul_daun,elite,blunt,first pass,"slam, fists, bulk or club",,,,ancient_preservation
+bloatedSulDaun,Bloated Sul-Daun,sul_daun,boss,blunt,first pass,zombie fists; its rot burst is the special,,,,volatile_corpse
+ancientSulDaun,Ancient Sul-Daun,sul_daun,world_boss,blunt,first pass,"slam, fists, bulk or club",,,,unending_horde
+armoredSulKeth,Armored Sul-Keth,sul_keth,normal,slashing,first pass,"claws, talons or blade",blunt:weak,,,reinforced_bones
+ancientSulKeth,Ancient Sul-Keth,sul_keth,elite,blunt,first pass,Crushing Bones — skeletal bludgeoning,blunt:weak,,,reassemble
+runicSulKeth,Runic Sul-Keth,sul_keth,boss,slashing,first pass,"claws, talons or blade",blunt:weak,,,runic_bones
+boneSovereign,Bone Sovereign,sul_keth,world_boss,slashing,first pass,"claws, talons or blade",blunt:weak,,,ossified_commander
+newSulRau,New Sul-Rau,sul_rau,elite,slashing,first pass,"claws, talons or blade",,fire & divine stop regen — keep passive,,black_ichor unfinished_vengeance
+sulRau,Sul-Rau,sul_rau,boss,slashing,first pass,"claws, talons or blade",,fire & divine stop regen — keep passive,,black_ichor living_memory unfinished_vengeance
+rampagingSulRau,Rampaging Sul-Rau,sul_rau,world_boss,slashing,first pass,"claws, talons or blade",,fire & divine stop regen — keep passive,,black_ichor rage_unbound living_memory
+lesserVoranDaun,Lesser Voran-Daun,voran_daun,elite,blunt,first pass,"slam, fists, bulk or club",,,,living_heart residual_memory
+grandVoranDaun,Grand Voran-Daun,voran_daun,world_boss,blunt,first pass,"slam, fists, bulk or club",,,,four_living_hearts unstoppable_momentum perfect_fleshcraft
+mauvenSulei,Mauven-Sulei,mauven_sulei,boss,spirit,first pass,a ghost — no physical body,,"physical while ethereal — dynamic, keep passive",,ethereal_form refusal_of_the_river veil_of_agony
+tormentedMauvenSulei,Tormented Mauven-Sulei,mauven_sulei,world_boss,spirit,first pass,a ghost — no physical body,,"physical while ethereal — dynamic, keep passive",,ethereal_form refusal_of_the_river endless_torment
+mourningSpirit,Mourning Spirit,orvuin,normal,spirit,first pass,a ghost — no physical body,,,,haunting_presence
+restlessDead,Restless Dead,orvuin,normal,spirit,first pass,a ghost — no physical body,,,,lingering_regret
+orvuinBoss,Orvuin,orvuin,boss,spirit,first pass,a ghost — no physical body,,,,echoes_of_death
+ancientOrvuin,Ancient Orvuin,orvuin,world_boss,spirit,first pass,a ghost — no physical body,,,,endless_mourning
+homunculus,Homunculus,homunculus,normal,blunt,checked,gore/slam/fists,poison:immune; blunt:weak,,bleed fear,artificial_construct
+runicServitor,Runic Servitor,homunculus,normal,blunt,checked,gore/slam/fists,,,,reinforced_frame
+arcaneAutomaton,Arcane Automaton,homunculus,elite,blunt,checked,gore/slam/fists,poison:immune,,bleed fear,runic_core
+runeSentinel,Rune Sentinel,homunculus,boss,blunt,checked,gore/slam/fists,,,,guardian_directive
+primeConstruct,Prime Construct,homunculus,world_boss,blunt,checked,gore/slam/fists,poison:immune,,bleed fear,perfect_construction
+lesserThuelnMaur,Lesser Thueln-Maur,thueln_maur,normal,blunt,first pass,"slam, fists, bulk or club",blunt:weak,,,earthen_form
+timberThuelnMaur,Timber Thueln-Maur,thueln_maur,normal,blunt,first pass,"slam, fists, bulk or club",,,,living_timber
+crystalThuelnMaur,Crystal Thueln-Maur,thueln_maur,boss,blunt,first pass,crystal golem fists,,,,arcane_reflection
+elderThuelnMaur,Elder Thueln-Maur,thueln_maur,world_boss,blunt,first pass,stone/ironwood guardian fists,,,,earthen_form living_timber
+tribal_initiate,Tribal Initiate,tribal_fighters,normal,(from weapon),high,wields a curved desert blade,,,,
+desert_tribal_fighter,Desert Tribal Fighter,tribal_fighters,normal,(from weapon),high,wields an oasis guard spear,,,,prepared_opening
+caravan_sellsword,Caravan Sellsword,caravan_mercenaries,normal,(from weapon),high,wields a river merchant's scimitar,,,,
+tribal_hunter,Tribal Hunter,tribal_fighters,normal,(from weapon),high,wields Sahrimori Saltwind Bow,,,,prepared_opening
+veteran_caravan_escort,Veteran Caravan Escort,caravan_mercenaries,elite,(from weapon),high,wields a sahrimor dune falcon spear,,,,veteran_discipline
+mercenary_veteran,Mercenary Veteran,caravan_mercenaries,elite,(from weapon),high,wields a sunfire war scimitar,,,,veteran_discipline
+tribal_warleader,Tribal Warleader,tribal_fighters,boss,(from weapon),high,wields Sunclan Warleader's Khopesh,,,,resolute_command veteran_discipline
+mercenary_commander,Mercenary Commander,caravan_mercenaries,boss,(from weapon),high,wields Contract Marshal's Warblade,,,,resolute_command last_stand
+junior_merchant_guard,Junior Merchant Guard,merchant_security,normal,(from weapon),high,wields a Sahrimori caravan saber,,,,
+caravan_guard,Caravan Guard,merchant_security,normal,(from weapon),high,wields an oasis guard spear,,,,
+city_watchman,City Watchman,merchant_security,normal,(from weapon),high,wields a river merchant's scimitar,,,,countering_guard
+veteran_merchant_guard,Veteran Merchant Guard,merchant_security,normal,(from weapon),high,wields an oasis guard spear,,,,veteran_discipline
+caravan_warden,Caravan Warden,merchant_security,elite,(from weapon),high,wields a sahrimor dune falcon spear,,,,veteran_discipline
+merchant_lord_enforcer,Merchant Lord Enforcer,merchant_security,elite,(from weapon),high,wields a sunfire war scimitar,,,,veteran_discipline
+merchant_lord_guard_captain,Merchant Lord Guard Captain,merchant_security,boss,(from weapon),high,wields Captain's Edict Saber,,,,resolute_command veteran_discipline
+merchant_lord_shieldmaster,Merchant Lord Shieldmaster,merchant_security,boss,(from weapon),high,wields Oathbound Shieldhammer,,,,countering_guard last_stand
+fedahl_recruit,Fedahl Recruit,sahrimor_army,normal,(from weapon),high,wields a Sahrimori caravan saber,,,,
+bahrun_sailor,Bahrun Sailor,sahrimor_navy,normal,(from weapon),high,wields Bahrun Boarding Hook,,,,
+farahl_scout,Farahl Scout,sahrimor_army,normal,(from weapon),high,wields Farahl Scout Lance,,,,prepared_opening
+ramahsi_bowman,Ramahsi Bowman,sahrimor_army,normal,(from weapon),high,wields Ramahsi Patrol Bow,,,,
+khandari_infantryman,Khandari Infantryman,sahrimor_army,normal,(from weapon),high,wields an oasis guard spear,,,,countering_guard
+veteran_fedahl,Veteran Fedahl,sahrimor_army,normal,(from weapon),high,wields a sunsteel falchion,,,,veteran_discipline
+farahl_veteran,Farahl Veteran,sahrimor_army,elite,(from weapon),high,wields a dune rider lance,,,,prepared_opening
+ramahsi_sharpshooter,Ramahsi Sharpshooter,sahrimor_army,elite,(from weapon),high,wields Ramahsi Sharpshooter Bow,,,,prepared_opening
+khandari_veteran,Khandari Veteran,sahrimor_army,elite,(from weapon),high,wields a golden crescent blade,,,,countering_guard veteran_discipline
+naqari_section_leader,Naqari Section Leader,sahrimor_army,elite,(from weapon),high,wields a golden crescent blade,,,,veteran_discipline
+filhari_war_rider,Filhari War Rider,sahrimor_army,elite,(from weapon),high,wields Filhari Elephant Goad,,,,veteran_discipline
+akharul_sakharul,Akharul Sakharul,sahrimor_army,elite,(from weapon),high,wields Akharul Venom-Lance,,,,prepared_opening veteran_discipline
+qahir_unit_commander,Qahir Unit Commander,sahrimor_army,elite,(from weapon),high,wields Qahir Field Saber,,,,resolute_command
+amahri_field_commander,Amahri Field Commander,sahrimor_army,boss,(from weapon),high,wields Amahri Marshal Saber,,,,resolute_command veteran_discipline
+sardarr_army_commander,Sardarr Army Commander,sahrimor_army,boss,(from weapon),high,wields Sardarr War Scimitar,,,,resolute_command last_stand
+street_ruffian,Street Ruffian,desert_bandits,normal,(from weapon),high,wields a Sahrimori caravan saber,,,,
+petty_cutpurse,Petty Cutpurse,desert_bandits,normal,(from weapon),high,wields a sahrimor trade dagger,,,,prepared_opening
+roadside_bandit,Roadside Bandit,desert_bandits,normal,(from weapon),high,wields a river merchant's scimitar,,,,
+bandit_lookout,Bandit Lookout,desert_bandits,normal,(from weapon),high,wields a hunting bow,,,,
+bandit_cutthroat,Bandit Cutthroat,desert_bandits,normal,(from weapon),high,wields Sahrimori Veilknife,,,,prepared_opening
+bandit_enforcer,Bandit Enforcer,desert_bandits,elite,(from weapon),high,wields a sunfire war scimitar,,,,veteran_discipline
+smuggler_veteran,Smuggler Veteran,desert_bandits,elite,(from weapon),high,wields a golden crescent blade,,,,veteran_discipline
+bandit_captain,Bandit Captain,desert_bandits,boss,(from weapon),high,wields Outlaw Command Saber,,,,resolute_command veteran_discipline
+bandit_warlord,Bandit Warlord,desert_bandits,boss,(from weapon),high,wields Scourge of the Sandroads,,,,resolute_command last_stand
+street_thug,Street Thug,sang_cu_criminal_underworld,normal,(from weapon),high,wields Streetbreaker Club,,,,
+market_cutpurse,Market Cutpurse,sang_cu_criminal_underworld,normal,(from weapon),high,wields Cutpurse's Dagger,,,,ambush_bonus
+imperial_road_bandit,Imperial Road Bandit,sang_cu_criminal_underworld,normal,(from weapon),high,wields a sanguivorum legionary's side sword,,,,
+roadside_lookout,Roadside Lookout,sang_cu_criminal_underworld,normal,(from weapon),high,wields Roadside Spotter's Crossbow,,,,
+highway_cutthroat,Highway Cutthroat,sang_cu_criminal_underworld,normal,(from weapon),high,wields Highway Cutthroat's Blade V1,,,,ambush_bonus
+caravan_ambusher,Caravan Ambusher,sang_cu_criminal_underworld,normal,(from weapon),high,wields Caravan Breaker Maul,,,,patient_hunter
+border_smuggler,Border Smuggler,sang_cu_criminal_underworld,elite,(from weapon),high,wields Border Smuggler's Sword,,,,smugglers_caution
+disgraced_ovum_fighter,Disgraced Ovum Fighter,sang_cu_criminal_underworld,elite,(from weapon),high,wields Ovum Outcast Primary Blade,,,,arena_ferocity
+outlaw_packmaster,Outlaw Packmaster,sang_cu_outlaw_pack,elite,(from weapon),high,wields Outlaw Handler's Spear,,,,pack_discipline
+highway_captain,Highway Captain,sang_cu_criminal_underworld,boss,(from weapon),high,wields Highway Captain's Sword,,,,criminal_command veterans_guard
+roadlord,Roadlord,sang_cu_criminal_underworld,boss,(from weapon),high,wields Roadlord's Veteran Blade,,,,ruthless_authority roadlords_momentum
+legion_recruit,Legion Recruit,sang_mil_imperial_military,normal,(from weapon),high,wields Training Gladius,,,,
+ferratum_infantryman,Ferratum Infantryman,sang_mil_imperial_military,normal,(from weapon),high,wields Formation Spear,,,,
+ferratum_veteran,Ferratum Veteran,sang_mil_imperial_military,normal,(from weapon),high,wields Veteran Legion Blade V1,,,,mil_veteran_discipline
+ingenum_field_engineer,Ingenum Field Engineer,sang_mil_imperial_military,normal,(from weapon),high,wields Calculated Crossbow,,,,
+ingenum_ballistarius,Ingenum Ballistarius,sang_mil_imperial_military,elite,(from weapon),high,wields Ballistarius Crankbow,,,,range_calculation
+agilum_scout,Agilum Scout,sang_mil_imperial_military,normal,(from weapon),high,wields Scout's Javelin,,,,rapid_reconnaissance
+impetum_war_rider,Impetum War Rider,sang_mil_imperial_military,elite,(from weapon),high,wields Heavy War Lance,,,,impact_discipline
+aqualis_sailor,Aqualis Sailor,sang_mil_imperial_military,normal,(from weapon),high,wields Boarding Cutlass,,,,
+aqualis_marine,Aqualis Marine,sang_mil_imperial_military,elite,(from weapon),high,wields Marine Boarding Sword V1,,,,marine_discipline
+gradus_veteran,Gradus Veteran,sang_mil_imperial_military,normal,(from weapon),high,wields Veteran Gladius V1,,,,field_experience
+ductus_section_commander,Ductus Section Commander,sang_mil_imperial_military,elite,(from weapon),high,wields Ductus Command Sword V1,,,,section_discipline
+vigilis_unit_commander,Vigilis Unit Commander,sang_mil_imperial_military,boss,(from weapon),high,wields Vigilis Command Sword,,,,command_discipline battle_hardened
+arbitarius_commander,Arbitarius Commander,sang_mil_imperial_military,boss,(from weapon),high,wields Arbitarius Command Blade,,,,combined_arms_authority commanders_resolve
+legion_houndmaster,Legion Houndmaster,sang_mil_imperial_military,elite,(from weapon),high,wields Legion Handler Spear,,,,prepared_warhound handlers_discipline
+legion_hound,Legion Hound,,normal,piercing,checked,bite/sting,,,,
+junior_city_watchman,Junior City Watchman,sang_sec_security_enforcement,normal,(from weapon),high,wields Civic Watch Sword,,,,
+market_watchman,Market Watchman,sang_sec_security_enforcement,normal,(from weapon),high,wields Market Enforcement Baton,,,,
+road_warden,Road Warden,sang_sec_security_enforcement,normal,(from weapon),high,wields Warden's Patrol Spear,,,,
+harbor_watchman,Harbor Watchman,sang_sec_security_enforcement,normal,(from weapon),high,wields Harbor Boarding Blade,,,,
+veteran_city_guard,Veteran City Guard,sang_sec_security_enforcement,normal,(from weapon),high,wields Veteran Watch Sword,,,,sang_sec_veteran_watch_discipline
+frontier_gatekeeper,Frontier Gatekeeper,sang_sec_security_enforcement,elite,(from weapon),high,wields Frontier Gate Spear,,,,sang_sec_gatekeepers_discipline
+imperial_investigator,Imperial Investigator,sang_sec_security_enforcement,elite,(from weapon),high,wields Investigator's Precision Sword,,,,sang_sec_analytical_discipline
+watch_captain,Watch Captain,sang_sec_security_enforcement,boss,(from weapon),high,wields Watch Captain's Sword,,,,sang_sec_captains_authority sang_sec_veteran_enforcement
+ovum_veteran_guard,Ovum Veteran Guard,sang_sec_security_enforcement,elite,(from weapon),high,wields Ovum Veteran Guard Sword,,,,sang_sec_arena_veterans_discipline_acc sang_sec_arena_veterans_discipline_def sang_sec_arena_riposte
+militia_volunteer,Militia Volunteer,sang_iag_militia,normal,(from weapon),high,wields Village Militia Spear,,,,
+rural_militia_fighter,Rural Militia Fighter,sang_iag_militia,normal,(from weapon),high,wields Militia Woodcutter Axe,,,,sang_iag_rough_fighter
+independent_scout,Independent Scout,,normal,(from weapon),high,wields Independent Hunting Bow,,,,sang_iag_watchful_approach
+road_convoy_guard,Road Convoy Guard,sang_iag_mercenary,normal,(from weapon),high,wields Contract Sellsword Blade,,,,sang_iag_professional_guard
+contract_marksman,Contract Marksman,sang_iag_mercenary,normal,(from weapon),high,wields Contract Heavy Crossbow,,,,
+free_company_captain,Free Company Captain,sang_iag_mercenary,boss,(from weapon),high,wields Free Company Command Sword,,,,sang_iag_mercenary_authority sang_iag_battle_tested
+ovum_prizefighter,Ovum Prizefighter,,elite,(from weapon),high,wields Ovum Prizefighter Trident,,,,sang_iag_arena_training
+ovum_champion,Ovum Champion,,boss,(from weapon),high,wields Ovum Champion Sword,,,,sang_iag_champions_discipline sang_iag_arena_resolve sang_iag_arena_counter
+contract_blade,Contract Blade,,normal,(from weapon),high,wields Contract Killer's Short Sword,,,,ambush_bonus
+veiled_executor,Veiled Executor,,elite,(from weapon),high,wields Veiled Precision Blade,,,,sang_iag_executioners_patience
+arena_beastmaster,Arena Beastmaster,,elite,(from weapon),high,wields Arena Handler's Spear,,,,sang_iag_arena_handler
+militia_warleader,Militia Warleader,sang_iag_militia,boss,(from weapon),high,wields Militia Warleader's Sword,,,,sang_iag_militia_authority sang_iag_warleaders_resolve

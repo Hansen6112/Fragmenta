@@ -29,10 +29,35 @@
 // reapplication, per the codex's own repeated "does not stack; reapplication
 // refreshes the duration" wording.
 const STATUS_EFFECTS = {
-  bleed: { name: "Bleeding", dot: { pctMaxHp: 0.05 }, stackable: true, maxStacks: 3, turns: 2 },
-  venom: { name: "Venomed", dot: { pctMaxHp: 0.02 }, stackable: false, turns: 3 },
-  burning: { name: "Burning", dot: { pctMaxHp: 0.04 }, stackable: false, turns: 2 },
-  chilled: { name: "Chilled", debuff: { agi: -10 }, stackable: false, turns: 2 },
+  bleed: { name: "Bleeding", dot: { pctMaxHp: 0.05 }, stackable: true, maxStacks: 3, turns: 2, damageType: "slashing" },
+  // Content Load handoff §3, T7 (off by default): Venom becomes stacking
+  // (max 3); Poison (sang_iag_poison, below) becomes non-stacking with a
+  // -10% Atk/Acc debuff. Both changes are real behavior changes for
+  // abilities that already inflict these TODAY (venomous_sting, Veiled
+  // Executor's Poisoned Edge, ...), unconditioned by anything else at
+  // their own call sites -- so they can't just be edited in place
+  // without breaking "switch off, parity" for every one of those
+  // existing fights. `v2` holds the switch-on overrides; getStatusEffect
+  // (below) merges them in only when DAMAGE_TYPES_V2 is on, leaving the
+  // base entry (today's actual behavior) untouched for the switch-off
+  // path, same convention as everywhere else in this file branches on
+  // the switch at the point of USE rather than in the static table
+  // (DAMAGE_TYPES_V2 isn't even defined yet when this object literal
+  // itself evaluates -- js/data/damagetypes.js loads after this file).
+  venom: { name: "Venomed", dot: { pctMaxHp: 0.02 }, stackable: false, turns: 3, damageType: "poison", v2: { stackable: true, maxStacks: 3 } },
+  burning: { name: "Burning", dot: { pctMaxHp: 0.04 }, stackable: false, turns: 2, damageType: "fire" },
+  // Content Load handoff §3, T8 (off by default): Chilled escalates to
+  // Frozen (below) at the end of its own 2nd turn, via the same
+  // escalatesAt/escalatesTo fields Drowsy/Constrict already carry --
+  // dispatched in tickPlayerStatuses (js/engine/combat.js), gated by the
+  // switch there, not here (same reasoning as venom/sang_iag_poison's v2
+  // above: Chilled already gets inflicted today, unconditionally, by
+  // frost_bite/dra_cleave/dra_frostbite_brand).
+  chilled: { name: "Chilled", debuff: { agi: -10 }, stackable: false, turns: 2, escalatesAt: 2, escalatesTo: "frozen" },
+  // T8: Frost Wolf's own signature status (per the Reference's roster)
+  // and the Decisions Addendum's Ice Elemental variant both land here.
+  // Codex values: Initiative -10, Accuracy -5 for 2 turns.
+  frozen: { name: "Frozen", debuff: { spd: -10, acc: -5 }, stackable: false, turns: 2 },
   slowed: { name: "Slowed", debuff: { spdPct: -0.2, agiPct: -0.1 }, stackable: false, turns: 2 },
   constrict: { name: "Constricted", debuff: { agi: -5 }, stackable: true, maxStacks: 4, turns: 99, escalatesAt: 4, escalatesTo: "restrained" },
   restrained: { name: "Restrained", debuff: { agi: -20 }, stackable: false, turns: 2 },
@@ -52,7 +77,12 @@ const STATUS_EFFECTS = {
   off_balance: { name: "Off Balance", debuff: { def: -5, agi: -5 }, stackable: false, turns: 2 },
   corpse_rot: { name: "Corpse Rot", debuff: { def: -5 }, stackable: false, turns: 3 },
   rooted: { name: "Rooted", debuff: { agi: -20, spd: -10 }, stackable: false, turns: 2 },
-  blight: { name: "Blight", dot: { pctMaxHp: 0.02 }, debuff: { def: -5 }, stackable: false, turns: 3 },
+  // T7 content pass: Blight is Necrotic -- NOT Poison, despite venom/
+  // sang_iag_poison both being Poison; overrides damagetypes.js's own
+  // LEGACY_STATUS_DAMAGE_TYPE_V2 bridge (which guessed Poison for all
+  // three before this review), per resolveStatusDamageType's own
+  // declared-field-first priority.
+  blight: { name: "Blight", dot: { pctMaxHp: 0.02 }, debuff: { def: -5 }, stackable: false, turns: 3, damageType: "necrotic" },
   // Blight Seed's own consume-at-5-stacks-and-become-Blight conversion has
   // no engine hook — same unwired escalation as Constrict above.
   blight_seed: { name: "Blight Seed", debuff: {}, stackable: true, maxStacks: 5, turns: 99, escalatesAt: 5, escalatesTo: "blight" },
@@ -85,7 +115,36 @@ const STATUS_EFFECTS = {
   // this status's own turnsLeft/stacks:1, per applyPlayerStatus's existing
   // non-stackable branch — Bleeding's own up-to-3-stacks behavior comes
   // from ITS `stackable: true` flag, not from anything this entry inherits).
-  sang_iag_poison: { name: "Poison", dot: { pctMaxHp: 0.03 }, stackable: false, turns: 2 },
+  // T7 (off by default, v2 gated same as venom above): becomes Poison-
+  // family damage, plus a -10% Atk/Acc debuff while active -- Accuracy
+  // has no percentage-delta mechanic anywhere in this engine (see
+  // Stagger's own comment above for the same situation on Defense), so
+  // it's approximated as a flat -8, matching Stagger's own magnitude.
+  sang_iag_poison: { name: "Poison", dot: { pctMaxHp: 0.03 }, stackable: false, turns: 2, damageType: "poison", v2: { debuff: { atkPct: -0.1, acc: -8 } } },
+
+  // ---- Damage Types, Decisions Addendum §3: elementVariants' own
+  // signature statuses not already covered by an existing entry above
+  // (Rooted, for the Plant Elemental variant, already exists and needed
+  // no new work). Codex values per 5_variants.csv; a magnitude the
+  // table left unstated (Crushed's/Obscured's/Ashen Lungs' own
+  // duration) defaults to 2 turns, matching every other short debuff in
+  // this file with no stated duration of its own. Each is only ever
+  // reachable through a variant's own status id (A5's variantStatus
+  // override on elemental_strike/elemental_surge), itself gated by
+  // DAMAGE_TYPES_V2 -- so these need no v2 wrapper of their own despite
+  // carrying real numbers, the same way the rest of A5's variant data
+  // (preferredTags, abilityOverrides, ...) does.
+  corrosion: { name: "Corrosion", debuff: { def: -8 }, stackable: false, turns: 3, damageType: "acid" },
+  shocked: { name: "Shocked", debuff: { spd: -10, acc: -10 }, stackable: false, turns: 2, damageType: "lightning" },
+  drenched: { name: "Drenched", debuff: { def: -5 }, stackable: false, turns: 3, damageType: "water" },
+  crushed: { name: "Crushed", debuff: { spd: -10, agi: -10 }, stackable: false, turns: 2, damageType: "earth" },
+  obscured: { name: "Obscured", debuff: { acc: -15 }, stackable: false, turns: 2, damageType: "water" },
+  // Ash Elemental's own signature: "-25% healing received, -5 Accuracy."
+  // healingReceivedPct is a new debuff key -- applyHealing (combat.js)
+  // reads it generically off whichever target it's healing, the same
+  // way effectivePlayerAgility already reads every other *Pct key off
+  // playerStatusStatPctTotal, so any future status can reuse it too.
+  ashen_lungs: { name: "Ashen Lungs", debuff: { acc: -5, healingReceivedPct: -0.25 }, stackable: false, turns: 2, damageType: "fire" },
 };
 
 // Elemental-resistance flags a creature can carry (Winter Coat/Ash Hide-
@@ -108,61 +167,61 @@ const ENEMY_ABILITIES = {
   // STATUS_EFFECTS, or {custom: {...debuff, turns}, chance} for a one-off
   // magnitude that doesn't match a named status), optional selfDebuff/
   // selfBuff (a temporary stat modifier on the ACTING creature itself).
-  reckless_charge: { name: "Reckless Charge", type: "active", cooldown: 4, dmgMult: 1.8, selfDebuff: { def: -10, turns: 2 } },
-  gore: { name: "Gore", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "bleed", chance: 0.4 } },
-  dominant_charge: { name: "Dominant Charge", type: "active", cooldown: 5, dmgMult: 2.0, inflict: { custom: { spd: -25, turns: 2 }, chance: 1 } },
-  overrun: { name: "Overrun", type: "active", cooldown: 4, dmgMult: 1.5, inflict: { custom: { spd: -20, turns: 2 }, chance: 1 } },
-  earthshaker: { name: "Earthshaker", type: "active", cooldown: 5, dmgMult: 1.8, aoe: true, inflict: { custom: { spd: -15, turns: 1 }, chance: 1 } },
-  bite: { name: "Bite", type: "active", cooldown: 0, dmgMult: 1.0, inflict: { status: "bleed", chance: 0.2 } },
+  reckless_charge: { damageType: "blunt", name: "Reckless Charge", type: "active", cooldown: 4, dmgMult: 1.8, selfDebuff: { def: -10, turns: 2 } },
+  gore: { damageType: "piercing", name: "Gore", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "bleed", chance: 0.4 } },
+  dominant_charge: { damageType: "blunt", name: "Dominant Charge", type: "active", cooldown: 5, dmgMult: 2.0, inflict: { custom: { spd: -25, turns: 2 }, chance: 1 } },
+  overrun: { damageType: "blunt", name: "Overrun", type: "active", cooldown: 4, dmgMult: 1.5, inflict: { custom: { spd: -20, turns: 2 }, chance: 1 } },
+  earthshaker: { damageType: "earth", name: "Earthshaker", type: "active", cooldown: 5, dmgMult: 1.8, aoe: true, inflict: { custom: { spd: -15, turns: 1 }, chance: 1 } },
+  bite: { damageType: "piercing", name: "Bite", type: "active", cooldown: 0, dmgMult: 1.0, inflict: { status: "bleed", chance: 0.2 } },
   pounce: { name: "Pounce", type: "active", cooldown: 3, dmgMult: 1.4 },
-  hamstring_bite: { name: "Hamstring", type: "active", cooldown: 4, dmgMult: 0.8, inflict: { status: "slowed", chance: 1 } },
-  maul: { name: "Maul", type: "active", cooldown: 4, dmgMult: 1.6 },
+  hamstring_bite: { damageType: "slashing", name: "Hamstring", type: "active", cooldown: 4, dmgMult: 0.8, inflict: { status: "slowed", chance: 1 } },
+  maul: { damageType: "blunt", name: "Maul", type: "active", cooldown: 4, dmgMult: 1.6 },
   shadow_pounce: { name: "Shadow Pounce", type: "active", cooldown: 4, dmgMult: 1.5 },
-  frost_bite: { name: "Frost Bite", type: "active", cooldown: 2, dmgMult: 1.1, inflict: { status: "chilled", chance: 0.3 } },
-  searing_bite: { name: "Searing Bite", type: "active", cooldown: 2, dmgMult: 1.1, inflict: { status: "burning", chance: 0.3 } },
-  sand_rush: { name: "Sand Rush", type: "active", cooldown: 3, dmgMult: 1.3 },
-  rend: { name: "Rend", type: "active", cooldown: 3, dmgMult: 1.4, bonusVsStatus: { status: "bleed", mult: 1.3 } },
-  savage_maul: { name: "Savage Maul", type: "active", cooldown: 5, dmgMult: 2.2 },
-  execution_bite: { name: "Execution Bite", type: "active", cooldown: 4, dmgMult: 1.8, bonusVsHealthBelowPct: { pct: 0.3, mult: 1.5 } },
-  gnaw: { name: "Gnaw", type: "active", cooldown: 0, dmgMult: 1.0, inflict: { custom: { def: -2, turns: 2 }, chance: 0.2 } },
+  frost_bite: { damageType: "frost", name: "Frost Bite", type: "active", cooldown: 2, dmgMult: 1.1, inflict: { status: "chilled", chance: 0.3 } },
+  searing_bite: { damageType: "fire", name: "Searing Bite", type: "active", cooldown: 2, dmgMult: 1.1, inflict: { status: "burning", chance: 0.3 } },
+  sand_rush: { damageType: "earth", name: "Sand Rush", type: "active", cooldown: 3, dmgMult: 1.3 },
+  rend: { damageType: "slashing", name: "Rend", type: "active", cooldown: 3, dmgMult: 1.4, bonusVsStatus: { status: "bleed", mult: 1.3 } },
+  savage_maul: { damageType: "blunt", name: "Savage Maul", type: "active", cooldown: 5, dmgMult: 2.2 },
+  execution_bite: { damageType: "piercing", name: "Execution Bite", type: "active", cooldown: 4, dmgMult: 1.8, bonusVsHealthBelowPct: { pct: 0.3, mult: 1.5 } },
+  gnaw: { damageType: "piercing", name: "Gnaw", type: "active", cooldown: 0, dmgMult: 1.0, inflict: { custom: { def: -2, turns: 2 }, chance: 0.2 } },
   leap: { name: "Leap", type: "active", cooldown: 3, dmgMult: 1.3 },
-  crushing_bite: { name: "Crushing Bite", type: "active", cooldown: 3, dmgMult: 1.5 },
-  quill_burst: { name: "Quill Burst", type: "active", cooldown: 5, dmgMult: 1.2, aoe: true },
+  crushing_bite: { damageType: "piercing", name: "Crushing Bite", type: "active", cooldown: 3, dmgMult: 1.5 },
+  quill_burst: { damageType: "piercing", name: "Quill Burst", type: "active", cooldown: 5, dmgMult: 1.2, aoe: true },
   earth_tunnel: { name: "Earth Tunnel", type: "active", cooldown: 5, dmgMult: 0, selfHealPct: 0.08, selfBuff: { agi: 10, turns: 2 } },
-  stone_throw: { name: "Stone Throw", type: "active", cooldown: 2, dmgMult: 0.9 },
+  stone_throw: { damageType: "earth", name: "Stone Throw", type: "active", cooldown: 2, dmgMult: 0.9 },
   disarm_swipe: { name: "Disarm", type: "active", cooldown: 3, dmgMult: 1.1, inflict: { custom: { atk: -10, turns: 2, pctOfSelf: true }, chance: 1 } },
-  ground_slam: { name: "Ground Slam", type: "active", cooldown: 4, dmgMult: 1.4, aoe: true, inflict: { custom: { spd: -10, turns: 1 }, chance: 1 } },
-  crushing_grab: { name: "Crushing Grab", type: "active", cooldown: 4, dmgMult: 1.7, inflict: { custom: { agi: -10, turns: 2 }, chance: 1 } },
-  crushing_swing: { name: "Crushing Swing", type: "active", cooldown: 4, dmgMult: 2.2 },
-  sweeping_blow: { name: "Sweeping Blow", type: "active", cooldown: 5, dmgMult: 1.4, aoe: true },
-  rending_peck: { name: "Rending Peck", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "bleed", chance: 0.35 } },
-  talon_rush: { name: "Talon Rush", type: "active", cooldown: 4, dmgMult: 1.7 },
-  dive_strike: { name: "Dive Strike", type: "active", cooldown: 4, dmgMult: 1.8 },
+  ground_slam: { damageType: "blunt", name: "Ground Slam", type: "active", cooldown: 4, dmgMult: 1.4, aoe: true, inflict: { custom: { spd: -10, turns: 1 }, chance: 1 } },
+  crushing_grab: { damageType: "blunt", name: "Crushing Grab", type: "active", cooldown: 4, dmgMult: 1.7, inflict: { custom: { agi: -10, turns: 2 }, chance: 1 } },
+  crushing_swing: { damageType: "blunt", name: "Crushing Swing", type: "active", cooldown: 4, dmgMult: 2.2 },
+  sweeping_blow: { damageType: "slashing", name: "Sweeping Blow", type: "active", cooldown: 5, dmgMult: 1.4, aoe: true },
+  rending_peck: { damageType: "piercing", name: "Rending Peck", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "bleed", chance: 0.35 } },
+  talon_rush: { damageType: "slashing", name: "Talon Rush", type: "active", cooldown: 4, dmgMult: 1.7 },
+  dive_strike: { damageType: "slashing", name: "Dive Strike", type: "active", cooldown: 4, dmgMult: 1.8 },
   screech: { name: "Screech", type: "active", cooldown: 5, dmgMult: 0, aoe: true, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 } },
-  impale: { name: "Impale", type: "active", cooldown: 4, dmgMult: 1.6, inflict: { status: "bleed", chance: 1 } },
-  wing_buffet: { name: "Wing Buffet", type: "active", cooldown: 4, dmgMult: 1.3, aoe: true, inflict: { custom: { spd: -10, turns: 1 }, chance: 1 } },
-  crushing_talons: { name: "Crushing Talons", type: "active", cooldown: 5, dmgMult: 2.0 },
+  impale: { damageType: "piercing", name: "Impale", type: "active", cooldown: 4, dmgMult: 1.6, inflict: { status: "bleed", chance: 1 } },
+  wing_buffet: { damageType: "air", name: "Wing Buffet", type: "active", cooldown: 4, dmgMult: 1.3, aoe: true, inflict: { custom: { spd: -10, turns: 1 }, chance: 1 } },
+  crushing_talons: { damageType: "slashing", name: "Crushing Talons", type: "active", cooldown: 5, dmgMult: 2.0 },
   devastating_dive: { name: "Devastating Dive", type: "active", cooldown: 5, dmgMult: 2.2 },
-  tempest_wings: { name: "Tempest Wings", type: "active", cooldown: 6, dmgMult: 1.5, aoe: true, inflict: { custom: { spd: -15, turns: 1 }, chance: 1 } },
-  tail_whip: { name: "Tail Whip", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { spd: -10, turns: 1 }, chance: 1 } },
-  death_roll: { name: "Death Roll", type: "active", cooldown: 5, dmgMult: 1.8, inflict: { status: "bleed", chance: 1 } },
-  tail_slam: { name: "Tail Slam", type: "active", cooldown: 4, dmgMult: 1.4, aoe: true },
+  tempest_wings: { damageType: "air", name: "Tempest Wings", type: "active", cooldown: 6, dmgMult: 1.5, aoe: true, inflict: { custom: { spd: -15, turns: 1 }, chance: 1 } },
+  tail_whip: { damageType: "blunt", name: "Tail Whip", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { spd: -10, turns: 1 }, chance: 1 } },
+  death_roll: { damageType: "piercing", name: "Death Roll", type: "active", cooldown: 5, dmgMult: 1.8, inflict: { status: "bleed", chance: 1 } },
+  tail_slam: { damageType: "blunt", name: "Tail Slam", type: "active", cooldown: 4, dmgMult: 1.4, aoe: true },
   savage_rush: { name: "Savage Rush", type: "active", cooldown: 4, dmgMult: 1.7, selfBuff: { spd: 15, turns: 1 } },
-  rending_bite: { name: "Rending Bite", type: "active", cooldown: 3, dmgMult: 1.5, inflict: { status: "bleed", chance: 0.4 } },
-  cataclysmic_bite: { name: "Cataclysmic Bite", type: "active", cooldown: 5, dmgMult: 2.3 },
-  venom_strike: { name: "Venom Strike", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "venom", chance: 1 } },
-  quick_coil: { name: "Quick Coil", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { status: "constrict", chance: 1 } },
-  crushing_coil: { name: "Crushing Coil", type: "active", cooldown: 4, dmgMult: 1.7, bonusVsStatus: { status: "restrained", mult: 1.3 } },
-  devour: { name: "Devour", type: "active", cooldown: 5, dmgMult: 2.1, executeBelowPct: 0.2 },
-  cataclysmic_coil: { name: "Cataclysmic Coil", type: "active", cooldown: 6, dmgMult: 2.4, healOnHitPct: 0.1, bonusVsStatus: { status: "restrained", mult: 1.0 } },
-  chitin_charge: { name: "Chitin Charge", type: "active", cooldown: 3, dmgMult: 1.5, selfBuffOnKill: { spd: 10, turns: 1 } },
-  crushing_mandibles: { name: "Crushing Mandibles", type: "active", cooldown: 4, dmgMult: 1.9, bonusVsHealthBelowPct: { pct: 0.5, mult: 1.25 } },
-  bone_slash: { name: "Bone Slash", type: "active", cooldown: 3, dmgMult: 1.45, bonusVsHealthBelowPct: { pct: 0.5, mult: 1.15 } },
-  bone_volley: { name: "Bone Volley", type: "active", cooldown: 4, dmgMult: 1.3, aoe: true },
-  shield_crush: { name: "Shield Crush", type: "active", cooldown: 4, dmgMult: 1.5, inflict: { custom: { def: -10, turns: 2 }, chance: 1 } },
-  crushing_bones: { name: "Crushing Bones", type: "active", cooldown: 4, dmgMult: 1.8, bonusVsStatus: { status: "pinned", mult: 1.4 } },
-  bone_prison: { name: "Bone Prison", type: "active", cooldown: 5, dmgMult: 1.5, inflict: { status: "pinned", chance: 1 } },
-  bone_storm: { name: "Bone Storm", type: "active", cooldown: 6, dmgMult: 1.7, aoe: true, bonusVsStatus: { status: "pinned", mult: 1.0 }, inflict: { custom: { acc: -10, turns: 2, onlyIfStatus: "pinned" }, chance: 1 } },
+  rending_bite: { damageType: "piercing", name: "Rending Bite", type: "active", cooldown: 3, dmgMult: 1.5, inflict: { status: "bleed", chance: 0.4 } },
+  cataclysmic_bite: { damageType: "piercing", name: "Cataclysmic Bite", type: "active", cooldown: 5, dmgMult: 2.3 },
+  venom_strike: { damageType: "poison", name: "Venom Strike", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "venom", chance: 1 } },
+  quick_coil: { damageType: "blunt", name: "Quick Coil", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { status: "constrict", chance: 1 } },
+  crushing_coil: { damageType: "blunt", name: "Crushing Coil", type: "active", cooldown: 4, dmgMult: 1.7, bonusVsStatus: { status: "restrained", mult: 1.3 } },
+  devour: { damageType: "piercing", name: "Devour", type: "active", cooldown: 5, dmgMult: 2.1, executeBelowPct: 0.2 },
+  cataclysmic_coil: { damageType: "blunt", name: "Cataclysmic Coil", type: "active", cooldown: 6, dmgMult: 2.4, healOnHitPct: 0.1, bonusVsStatus: { status: "restrained", mult: 1.0 } },
+  chitin_charge: { damageType: "blunt", name: "Chitin Charge", type: "active", cooldown: 3, dmgMult: 1.5, selfBuffOnKill: { spd: 10, turns: 1 } },
+  crushing_mandibles: { damageType: "blunt", name: "Crushing Mandibles", type: "active", cooldown: 4, dmgMult: 1.9, bonusVsHealthBelowPct: { pct: 0.5, mult: 1.25 } },
+  bone_slash: { damageType: "slashing", name: "Bone Slash", type: "active", cooldown: 3, dmgMult: 1.45, bonusVsHealthBelowPct: { pct: 0.5, mult: 1.15 } },
+  bone_volley: { damageType: "piercing", name: "Bone Volley", type: "active", cooldown: 4, dmgMult: 1.3, aoe: true },
+  shield_crush: { damageType: "blunt", name: "Shield Crush", type: "active", cooldown: 4, dmgMult: 1.5, inflict: { custom: { def: -10, turns: 2 }, chance: 1 } },
+  crushing_bones: { damageType: "blunt", name: "Crushing Bones", type: "active", cooldown: 4, dmgMult: 1.8, bonusVsStatus: { status: "pinned", mult: 1.4 } },
+  bone_prison: { damageType: "piercing", name: "Bone Prison", type: "active", cooldown: 5, dmgMult: 1.5, inflict: { status: "pinned", chance: 1 } },
+  bone_storm: { damageType: "piercing", name: "Bone Storm", type: "active", cooldown: 6, dmgMult: 1.7, aoe: true, bonusVsStatus: { status: "pinned", mult: 1.0 }, inflict: { custom: { acc: -10, turns: 2, onlyIfStatus: "pinned" }, chance: 1 } },
   grave_formation: { name: "Grave Formation", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 15, acc: 15, turns: 3 } },
 
   // The Master Enemy Codex references these four by name in a creature's
@@ -185,9 +244,9 @@ const ENEMY_ABILITIES = {
   coordinated_strike: { name: "Coordinated Strike", type: "active", cooldown: 4, dmgMult: 0 },
   call_the_hunt: { name: "Call the Hunt", type: "active", cooldown: 8, dmgMult: 0 },
   kings_howl: { name: "King's Howl", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { atkPct: 0.15, acc: 15, turns: 4 } },
-  charge: { name: "Charge", type: "active", cooldown: 3, dmgMult: 1.5 },
-  smash: { name: "Smash", type: "active", cooldown: 4, dmgMult: 1.6 },
-  kings_maul: { name: "King's Maul", type: "active", cooldown: 5, dmgMult: 2.3 },
+  charge: { damageType: "blunt", name: "Charge", type: "active", cooldown: 3, dmgMult: 1.5 },
+  smash: { damageType: "blunt", name: "Smash", type: "active", cooldown: 4, dmgMult: 1.6 },
+  kings_maul: { damageType: "blunt", name: "King's Maul", type: "active", cooldown: 5, dmgMult: 2.3 },
   rallying_roar: { name: "Rallying Roar", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { atkPct: 0.1, acc: 10, turns: 3 } },
 
   // ================= PASSIVE ABILITIES =================
@@ -264,15 +323,15 @@ const ENEMY_ABILITIES = {
   // target") is a per-round initiative check the engine has no hook for;
   // approximated as a first-active-use bonus like Ambush/Patient Hunter.
   desert_predator: { name: "Desert Predator", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.1 },
-  venomous_sting: { name: "Venomous Sting", type: "active", cooldown: 3, dmgMult: 1.5, inflict: { status: "venom", chance: 1 } },
+  venomous_sting: { damageType: "poison", name: "Venomous Sting", type: "active", cooldown: 3, dmgMult: 1.5, inflict: { status: "venom", chance: 1 } },
   // Dhulorvae's own Venomous Sting is a separate, slightly weaker Appendix
   // A entry (145% vs Akharu's 150%) that "applies the regional venom
   // associated with the biome" — same Venom status mechanically either way.
-  venomous_sting_dhulorvae: { name: "Venomous Sting", type: "active", cooldown: 3, dmgMult: 1.45, inflict: { status: "venom", chance: 1 } },
-  pincer_slam: { name: "Pincer Slam", type: "active", cooldown: 3, dmgMult: 1.4 },
+  venomous_sting_dhulorvae: { damageType: "poison", name: "Venomous Sting", type: "active", cooldown: 3, dmgMult: 1.45, inflict: { status: "venom", chance: 1 } },
+  pincer_slam: { damageType: "blunt", name: "Pincer Slam", type: "active", cooldown: 3, dmgMult: 1.4 },
   hardened_exoskeleton: { name: "Hardened Exoskeleton", type: "passive", trigger: "flatDamageReduction", pct: 0.2 },
-  pincer_crush: { name: "Pincer Crush", type: "active", cooldown: 4, dmgMult: 1.75, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
-  pincer_crush_dhulorvae: { name: "Pincer Crush", type: "active", cooldown: 4, dmgMult: 1.7, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
+  pincer_crush: { damageType: "blunt", name: "Pincer Crush", type: "active", cooldown: 4, dmgMult: 1.75, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
+  pincer_crush_dhulorvae: { damageType: "blunt", name: "Pincer Crush", type: "active", cooldown: 4, dmgMult: 1.7, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
   // Sand Burrow's full text (delayed +15 Acc/+20 Init next turn, then the
   // FOLLOWING attack at +30%) is simplified to an immediate self-buff plus
   // Buried on the target — the multi-turn delayed-attack-bonus clause has
@@ -282,9 +341,9 @@ const ENEMY_ABILITIES = {
   // above) — Titanic Momentum's "Buried OR Venom" condition also can't be
   // expressed by the single-status bonusVsStatus shape even once one is.
   titanic_momentum: { name: "Titanic Momentum", type: "passive", trigger: "bonusVsStatus", status: "venom", mult: 1.15 },
-  impaling_strike: { name: "Impaling Strike", type: "active", cooldown: 5, dmgMult: 2.2, bonusVsStatus: { status: "buried", mult: 1.25 } },
+  impaling_strike: { damageType: "piercing", name: "Impaling Strike", type: "active", cooldown: 5, dmgMult: 2.2, bonusVsStatus: { status: "buried", mult: 1.25 } },
   royal_instinct: { name: "Royal Instinct", type: "passive", trigger: "everyPctHealthLostStacking", pct: 0.25, selfBuff: { atk: 5, def: 5 } },
-  cataclysmic_sting: { name: "Cataclysmic Sting", type: "active", cooldown: 6, dmgMult: 2.6, inflict: { status: "venom", chance: 1 } },
+  cataclysmic_sting: { damageType: "poison", name: "Cataclysmic Sting", type: "active", cooldown: 6, dmgMult: 2.6, inflict: { status: "venom", chance: 1 } },
   // Burrow Ambush is Appendix-A-defined as a Passive (first-attack bonus)
   // even though Greater/Elder Dhulorvae's summary table lists it under
   // Active Abilities — same categorization slip as Elder Serpent's
@@ -292,7 +351,7 @@ const ENEMY_ABILITIES = {
   // a passive on those two creatures rather than an active.
   burrow_ambush: { name: "Burrow Ambush", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.2 },
   elder_carapace: { name: "Elder Carapace", type: "passive", trigger: "flatDamageReduction", pct: 0.2 },
-  crushing_pincers: { name: "Crushing Pincers", type: "active", cooldown: 5, dmgMult: 1.9, bonusVsStatus: { status: "venom", mult: 1.25 } },
+  crushing_pincers: { damageType: "blunt", name: "Crushing Pincers", type: "active", cooldown: 5, dmgMult: 1.9, bonusVsStatus: { status: "venom", mult: 1.25 } },
 
   // ---- Draven-Drak / Skrel-Drak (Magical Creatures A) ----
   // Draconic Presence is the one genuinely new mechanic this family needs
@@ -309,8 +368,8 @@ const ENEMY_ABILITIES = {
   // Shed Skin's own cleanseSelf above) — the Initiative burst is the part
   // that maps onto an existing trigger shape.
   ancient_majesty: { name: "Ancient Majesty", type: "passive", trigger: "healthBelowPct", threshold: 0.25, selfBuff: { spd: 10, turns: 2 }, oncePerCombat: true },
-  claw_rend: { name: "Claw Rend", type: "active", cooldown: 2, dmgMult: 1.6, inflict: { status: "bleed", chance: 1 } },
-  tail_sweep: { name: "Tail Sweep", type: "active", cooldown: 3, dmgMult: 1.4, aoe: true, inflict: { custom: { spd: -5, turns: 1 }, chance: 1 } },
+  claw_rend: { damageType: "slashing", name: "Claw Rend", type: "active", cooldown: 2, dmgMult: 1.6, inflict: { status: "bleed", chance: 1 } },
+  tail_sweep: { damageType: "slashing", name: "Tail Sweep", type: "active", cooldown: 3, dmgMult: 1.4, aoe: true, inflict: { custom: { spd: -5, turns: 1 }, chance: 1 } },
   // "Applies the dragon's elemental effect" branches five ways in the
   // codex (Red/White/Green/Black/Blue). Damage Types spec v1.0 step 2
   // follow-ups, A5: damageType: "fromCreature" means this reads whichever
@@ -338,12 +397,12 @@ const ENEMY_ABILITIES = {
   // (Magical Creatures B) ----
   adaptive_carapace: { name: "Adaptive Carapace", type: "passive", trigger: "everyPctHealthLostStacking", pct: 0.25, selfBuff: { spd: 5, acc: 5 } },
   skitter_assault: { name: "Skitter Assault", type: "active", cooldown: 2, dmgMult: 1.1, selfBuff: { spd: 10, turns: 1 } },
-  crystal_bite: { name: "Crystal Bite", type: "active", cooldown: 3, dmgMult: 1.45, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
+  crystal_bite: { damageType: "piercing", name: "Crystal Bite", type: "active", cooldown: 3, dmgMult: 1.45, inflict: { custom: { def: -5, turns: 2 }, chance: 1 } },
   // Defense-ignore clauses (Piercing Tail/Crystal Ram/Crystal Impalement/
   // Somersault Charge below) have no engine hook — dropped, dmgMult-only.
-  piercing_tail: { name: "Piercing Tail", type: "active", cooldown: 3, dmgMult: 1.6 },
-  crystal_ram: { name: "Crystal Ram", type: "active", cooldown: 4, dmgMult: 1.8 },
-  crystal_impalement: { name: "Crystal Impalement", type: "active", cooldown: 5, dmgMult: 2.2 },
+  piercing_tail: { damageType: "blunt", name: "Piercing Tail", type: "active", cooldown: 3, dmgMult: 1.6 },
+  crystal_ram: { damageType: "blunt", name: "Crystal Ram", type: "active", cooldown: 4, dmgMult: 1.8 },
+  crystal_impalement: { damageType: "piercing", name: "Crystal Impalement", type: "active", cooldown: 5, dmgMult: 2.2 },
   // Not yet wired — a periodic (every-3rd-turn) temporary shield has no
   // matching trigger shape (periodicRandomBuff is permanent-stat-only).
   diamond_shell: { name: "Diamond Shell", type: "passive", trigger: "periodicTemporaryShield", everyNTurns: 3, durationTurns: 2, dmgReductionPct: 0.35 },
@@ -353,13 +412,13 @@ const ENEMY_ABILITIES = {
   // to without Brood Call, unlike every other "not yet wired" entry above,
   // which at least describes a real single-creature mechanic.
   powdered_wings: { name: "Powdered Wings", type: "passive", trigger: "onHitTaken", inflictStatusOnAttacker: "drowsy" },
-  dust_cloud: { name: "Dust Cloud", type: "active", cooldown: 3, dmgMult: 0.8, inflict: { status: "drowsy", chance: 1 } },
+  dust_cloud: { damageType: "poison", name: "Dust Cloud", type: "active", cooldown: 3, dmgMult: 0.8, inflict: { status: "drowsy", chance: 1 } },
   // Thick Dust's whole effect ("Dust Cloud hits everyone instead") is
   // represented by giving Elder Voreth-Mauth this AoE variant directly,
   // rather than a separate passive that does nothing on its own.
-  dust_cloud_aoe: { name: "Dust Cloud", type: "active", cooldown: 3, dmgMult: 0.8, aoe: true, inflict: { status: "drowsy", chance: 1 } },
-  startled_flight: { name: "Startled Flight", type: "active", cooldown: 4, dmgMult: 1.0, selfBuff: { agi: 20, spd: 10, turns: 1 } },
-  dream_mist: { name: "Dream Mist", type: "active", cooldown: 5, dmgMult: 1.0, aoe: true, inflict: { status: "drowsy", chance: 1 } },
+  dust_cloud_aoe: { damageType: "poison", name: "Dust Cloud", type: "active", cooldown: 3, dmgMult: 0.8, aoe: true, inflict: { status: "drowsy", chance: 1 } },
+  startled_flight: { damageType: "air", name: "Startled Flight", type: "active", cooldown: 4, dmgMult: 1.0, selfBuff: { agi: 20, spd: 10, turns: 1 } },
+  dream_mist: { damageType: "poison", name: "Dream Mist", type: "active", cooldown: 5, dmgMult: 1.0, aoe: true, inflict: { status: "drowsy", chance: 1 } },
   // Not yet wired — an independent post-Accuracy-check miss chance has no
   // hook in the player's own attackConnects roll.
   mirror_scales: { name: "Mirror Scales", type: "passive", trigger: "independentMissChance", chance: 0.2 },
@@ -376,10 +435,10 @@ const ENEMY_ABILITIES = {
   // only firstAttack-style one-shot bonuses (see Ambush/Patient Hunter
   // above).
   crystal_momentum: { name: "Crystal Momentum", type: "passive", trigger: "onActiveUse", selfBuff: { atkPct: 0.1, spd: 5, turns: 2 } },
-  crystal_gore: { name: "Crystal Gore", type: "active", cooldown: 3, dmgMult: 1.55 },
+  crystal_gore: { damageType: "piercing", name: "Crystal Gore", type: "active", cooldown: 3, dmgMult: 1.55 },
   crystal_hide: { name: "Crystal Hide", type: "passive", trigger: "flatDamageReduction", pct: 0.15 },
   crystal_hide_reflect: { name: "Crystal Hide", type: "passive", trigger: "onHitTaken", reflectPctOfAtk: 0.1 },
-  somersault_charge: { name: "Somersault Charge", type: "active", cooldown: 5, dmgMult: 2.2 },
+  somersault_charge: { damageType: "blunt", name: "Somersault Charge", type: "active", cooldown: 5, dmgMult: 2.2 },
 
   // ---- Rau-Thauln — Thaun/Maur/Ravek/Vaelin/Voreth (Magical Creatures C)
   // ----
@@ -394,7 +453,7 @@ const ENEMY_ABILITIES = {
   // Broken Will, which (like Sovereign Predator's Draven-Drak namesake,
   // Ancient Instinct) has no on-inflict dispatch hook.
   sovereign_predator: { name: "Sovereign Predator", type: "passive", trigger: "onPlayerIntimidated", selfBuff: { atk: 3, def: 2 }, maxStacks: 5 },
-  crushing_maul: { name: "Crushing Maul", type: "active", cooldown: 3, dmgMult: 1.7, bonusVsStatus: { status: "intimidated", mult: 1.2 } },
+  crushing_maul: { damageType: "blunt", name: "Crushing Maul", type: "active", cooldown: 3, dmgMult: 1.7, bonusVsStatus: { status: "intimidated", mult: 1.2 } },
   // Escalation to Broken Will (only applicable to already-Intimidated
   // targets) is dropped — always reapplies/refreshes Intimidated instead,
   // same simplification as Constrict's own unwired escalation above.
@@ -408,9 +467,9 @@ const ENEMY_ABILITIES = {
   blink_predator: { name: "Blink Predator", type: "passive", trigger: "onActiveUse", watchFor: "phase_shift", selfBuff: { acc: 15, atkPct: 0.15, turns: 1 } },
   master_blink_predator: { name: "Master Blink Predator", type: "passive", trigger: "onActiveUse", watchFor: "phase_shift", ignoreDefensePct: 0.25 },
   perfect_blink: { name: "Perfect Blink", type: "passive", trigger: "onActiveUse", watchFor: "phase_shift", dodgeChanceBonus: 0.2, turns: 1 },
-  blink_strike: { name: "Blink Strike", type: "active", cooldown: 3, dmgMult: 1.6, inflict: { status: "spatial_fracture", chance: 1 } },
+  blink_strike: { damageType: "spatial", name: "Blink Strike", type: "active", cooldown: 3, dmgMult: 1.6, inflict: { status: "spatial_fracture", chance: 1 } },
   phase_shift: { name: "Phase Shift", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, spd: 15, turns: 1 } },
-  rift_rend: { name: "Rift Rend", type: "active", cooldown: 5, dmgMult: 1.95, bonusVsStatus: { status: "spatial_fracture", mult: 1.3 } },
+  rift_rend: { damageType: "spatial", name: "Rift Rend", type: "active", cooldown: 5, dmgMult: 1.95, bonusVsStatus: { status: "spatial_fracture", mult: 1.3 } },
   impossible_pursuit: { name: "Impossible Pursuit", type: "active", cooldown: 6, dmgMult: 2.2, bonusVsHealthBelowPct: { pct: 0.5, mult: 1.4 } },
   // ---- Ravek ----
   tunnel_hunter: { name: "Tunnel Hunter", type: "passive", trigger: "onActiveUse", watchFor: "tunnel_shift", selfBuff: { spd: 10, atkPct: 0.15, turns: 1 } },
@@ -418,8 +477,8 @@ const ENEMY_ABILITIES = {
   living_tunnel_network: { name: "Living Tunnel Network", type: "passive", trigger: "onActiveUse", watchFor: "tunnel_shift", dmgReductionPct: 0.15, turns: 1 },
   burrow_assault: { name: "Burrow Assault", type: "active", cooldown: 3, dmgMult: 1.55, inflict: { status: "unsteady", chance: 1 } },
   tunnel_shift: { name: "Tunnel Shift", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 1 } },
-  cavebreaker: { name: "Cavebreaker", type: "active", cooldown: 5, dmgMult: 1.9, bonusVsStatus: { status: "unsteady", mult: 1.3 } },
-  volcanic_ambush: { name: "Volcanic Ambush", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true, inflict: { status: "unsteady", chance: 1 } },
+  cavebreaker: { damageType: "earth", name: "Cavebreaker", type: "active", cooldown: 5, dmgMult: 1.9, bonusVsStatus: { status: "unsteady", mult: 1.3 } },
+  volcanic_ambush: { damageType: "fire", name: "Volcanic Ambush", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true, inflict: { status: "unsteady", chance: 1 } },
   // ---- Vaelin ----
   canopy_hunter: { name: "Canopy Hunter", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.15, critChanceBonus: 0.25 },
   master_canopy_hunter: { name: "Master Canopy Hunter", type: "passive", trigger: "onCrit", selfBuff: { spd: 10, acc: 10, turns: 1 } },
@@ -446,8 +505,8 @@ const ENEMY_ABILITIES = {
   // nothing in this engine tracks distinctly from any other roster member
   // dying — still skipped outright, same reasoning as Brood Sovereign
   // above.
-  root_harvest: { name: "Root Harvest", type: "active", cooldown: 5, dmgMult: 1.7, healOnHitPct: 0.5 },
-  withering_roots: { name: "Withering Roots", type: "active", cooldown: 4, dmgMult: 1.5, aoe: true, inflict: { status: "blight_seed", chance: 1 } },
+  root_harvest: { damageType: "earth", name: "Root Harvest", type: "active", cooldown: 5, dmgMult: 1.7, healOnHitPct: 0.5 },
+  withering_roots: { damageType: "necrotic", name: "Withering Roots", type: "active", cooldown: 4, dmgMult: 1.5, aoe: true, inflict: { status: "blight_seed", chance: 1 } },
 
   // ---- Elementals (Magical Creatures D) ----
   // Elemental Form's Manifest/Ethereal toggle (different damage-dealt/
@@ -479,24 +538,24 @@ const ENEMY_ABILITIES = {
   // (Standard Sul-Daun only, which is skipped — already "Zombie") would
   // need an enemy-side cheat-death hook the engine doesn't have, so it's
   // never referenced by any tier actually added below.
-  putrid_bite: { name: "Putrid Bite", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "corpse_rot", chance: 1 } },
+  putrid_bite: { damageType: "piercing", name: "Putrid Bite", type: "active", cooldown: 3, dmgMult: 1.4, inflict: { status: "corpse_rot", chance: 1 } },
   grasping_dead: { name: "Grasping Dead", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { spd: -15, agi: -10, turns: 2 }, chance: 1 } },
   // Drops the "only while below 50% Health" gate and "immune to forced
   // movement" clause — regenPerTurn already only fires while not at full
   // Health, which is close enough to the intent.
   rootbound: { name: "Rootbound", type: "passive", trigger: "regenPerTurn", pct: 0.03 },
-  root_snare: { name: "Root Snare", type: "active", cooldown: 4, dmgMult: 1.3, inflict: { status: "rooted", chance: 1 } },
+  root_snare: { damageType: "earth", name: "Root Snare", type: "active", cooldown: 4, dmgMult: 1.3, inflict: { status: "rooted", chance: 1 } },
   // Drops the Fire-specific extra reduction — flatDamageReduction doesn't
   // distinguish incoming damage by element.
   ancient_preservation: { name: "Ancient Preservation", type: "passive", trigger: "flatDamageReduction", pct: 0.1 },
-  crushing_grip: { name: "Crushing Grip", type: "active", cooldown: 4, dmgMult: 1.7, bonusVsStatus: { status: "rooted", mult: 1.4 } },
+  crushing_grip: { damageType: "blunt", name: "Crushing Grip", type: "active", cooldown: 4, dmgMult: 1.7, bonusVsStatus: { status: "rooted", mult: 1.4 } },
   // Not yet wired — "cast an active on death" has no hook (matches
   // Reassemble's reformOnDeath trigger above, also declared but unwired).
   volatile_corpse: { name: "Volatile Corpse", type: "passive", trigger: "castActiveOnDeath", castsAbility: "putrid_burst" },
   // Cooldown is inferred (the source gives none) to match this tier's
   // other AoE finishers, since Bloated Sul-Daun also uses this directly
   // as a normal active, not only via the unwired Volatile Corpse trigger.
-  putrid_burst: { name: "Putrid Burst", type: "active", cooldown: 5, dmgMult: 1.6, aoe: true, inflict: { status: "corpse_rot", chance: 1 } },
+  putrid_burst: { damageType: "necrotic", name: "Putrid Burst", type: "active", cooldown: 5, dmgMult: 1.6, aoe: true, inflict: { status: "corpse_rot", chance: 1 } },
   // Not yet wired — reacts specifically to another allied Sul-Daun dying;
   // no Sul-Daun ability actually summons Sul-Daun (see the Summoner
   // support block further down for what does exist), so this has nothing
@@ -506,7 +565,7 @@ const ENEMY_ABILITIES = {
   // Drops the "targets already suffering Corpse Rot also lose 10 Defense"
   // conditional add-on debuff — inflict has no "only if already has
   // status X" branch, matching several dropped conditionals above.
-  grave_tide: { name: "Grave Tide", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true },
+  grave_tide: { damageType: "necrotic", name: "Grave Tide", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true },
 
   // ---- Sul-Rau (Undead B) ----
   // Marked Quarry (a single-target lock the creature selects at combat
@@ -516,9 +575,9 @@ const ENEMY_ABILITIES = {
   black_ichor: { name: "Black Ichor", type: "passive", trigger: "regenPerTurn", pct: 0.05 },
   unfinished_vengeance: { name: "Unfinished Vengeance", type: "passive", trigger: "markedQuarrySelect" },
   living_memory: { name: "Living Memory", type: "passive", trigger: "accuracyReductionImmune" },
-  sever_the_heart: { name: "Sever the Heart", type: "active", cooldown: 4, dmgMult: 2.0 },
+  sever_the_heart: { damageType: "slashing", name: "Sever the Heart", type: "active", cooldown: 4, dmgMult: 2.0 },
   relentless_assault: { name: "Relentless Assault", type: "active", cooldown: 3, dmgMult: 1.7 },
-  soul_rend: { name: "Soul Rend", type: "active", cooldown: 5, dmgMult: 1.9, inflict: { custom: { def: -15, turns: 3 }, chance: 1 } },
+  soul_rend: { damageType: "spirit", name: "Soul Rend", type: "active", cooldown: 5, dmgMult: 1.9, inflict: { custom: { def: -15, turns: 3 }, chance: 1 } },
   execute_the_guilty: { name: "Execute the Guilty", type: "active", cooldown: 5, dmgMult: 2.2, bonusVsHealthBelowPct: { pct: 0.35, mult: 1.6 } },
   rage_unbound: { name: "Rage Unbound", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atk: 20, spd: 10 }, oncePerCombat: true },
   death_frenzy: { name: "Death Frenzy", type: "active", cooldown: 5, dmgMult: 1.8, aoe: true },
@@ -529,8 +588,8 @@ const ENEMY_ABILITIES = {
   // Residual Memory's chance-based counter — see the new counterChance/
   // counterPctOfAtk branch in applyEnemyOnHitTakenPassives above.
   residual_memory: { name: "Residual Memory", type: "passive", trigger: "onHitTaken", counterChance: 0.25, counterPctOfAtk: 1.0 },
-  flesh_hammer: { name: "Flesh Hammer", type: "active", cooldown: 3, dmgMult: 1.7, inflict: { custom: { spd: -10, turns: 2 }, chance: 1 } },
-  rending_claw: { name: "Rending Claw", type: "active", cooldown: 4, dmgMult: 1.8, inflict: { status: "bleed", chance: 1 } },
+  flesh_hammer: { damageType: "blunt", name: "Flesh Hammer", type: "active", cooldown: 3, dmgMult: 1.7, inflict: { custom: { spd: -10, turns: 2 }, chance: 1 } },
+  rending_claw: { damageType: "slashing", name: "Rending Claw", type: "active", cooldown: 4, dmgMult: 1.8, inflict: { status: "bleed", chance: 1 } },
   // Four Living Hearts (an enemy-side cheat-death: survive at 0 Health by
   // losing a "heart" instead) has no engine hook — matches Relentless
   // Dead above, also declared but unwired for the same reason.
@@ -539,13 +598,13 @@ const ENEMY_ABILITIES = {
   // Perfect Fleshcraft's damage cap — see the new damageCapPctMaxHp branch
   // in applyEnemyFlatDamageReduction above.
   perfect_fleshcraft: { name: "Perfect Fleshcraft", type: "passive", trigger: "damageCapPctMaxHp", pct: 0.2 },
-  catastrophic_slam: { name: "Catastrophic Slam", type: "active", cooldown: 5, dmgMult: 2.2, aoe: true },
+  catastrophic_slam: { damageType: "blunt", name: "Catastrophic Slam", type: "active", cooldown: 5, dmgMult: 2.2, aoe: true },
   // Flesh Reconstruction's self-heal — see the new healSelfPct branch
   // resolveEnemyRetaliation now applies alongside healOnHitPct above.
   flesh_reconstruction: { name: "Flesh Reconstruction", type: "active", cooldown: 6, dmgMult: 0, healSelfPct: 0.25 },
   // Drops the "heal 5% max Health per Bleeding enemy" clause — no hook
   // scans every combatant's status list from inside an active's resolver.
-  harvest_of_limbs: { name: "Harvest of Limbs", type: "active", cooldown: 6, dmgMult: 2.1 },
+  harvest_of_limbs: { damageType: "slashing", name: "Harvest of Limbs", type: "active", cooldown: 6, dmgMult: 2.1 },
 
   // ---- Mauven-Sulei (Undead B) ----
   // Ethereal Form's Manifest/feeding-state toggle (and everything that
@@ -557,14 +616,14 @@ const ENEMY_ABILITIES = {
   refusal_of_the_river: { name: "Refusal of the River", type: "passive", trigger: "etherealCheatDeath" },
   veil_of_agony: { name: "Veil of Agony", type: "passive", trigger: "accuracyReductionImmune" },
   endless_torment: { name: "Endless Torment", type: "passive", trigger: "etherealRegen", pct: 0.05 },
-  soul_drain: { name: "Soul Drain", type: "active", cooldown: 5, dmgMult: 2.2 },
-  wail_beyond_death: { name: "Wail Beyond Death", type: "active", cooldown: 5, dmgMult: 1.7, aoe: true, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 } },
-  spirit_rend: { name: "Spirit Rend", type: "active", cooldown: 4, dmgMult: 1.9 },
-  ghostly_grasp: { name: "Ghostly Grasp", type: "active", cooldown: 4, dmgMult: 1.6, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
-  death_wail: { name: "Death Wail", type: "active", cooldown: 6, dmgMult: 2.0, aoe: true, inflict: { status: "soulbound", chance: 1 } },
+  soul_drain: { damageType: "spirit", name: "Soul Drain", type: "active", cooldown: 5, dmgMult: 2.2 },
+  wail_beyond_death: { damageType: "spirit", name: "Wail Beyond Death", type: "active", cooldown: 5, dmgMult: 1.7, aoe: true, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 } },
+  spirit_rend: { damageType: "spirit", name: "Spirit Rend", type: "active", cooldown: 4, dmgMult: 1.9 },
+  ghostly_grasp: { damageType: "spirit", name: "Ghostly Grasp", type: "active", cooldown: 4, dmgMult: 1.6, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
+  death_wail: { damageType: "spirit", name: "Death Wail", type: "active", cooldown: 6, dmgMult: 2.0, aoe: true, inflict: { status: "soulbound", chance: 1 } },
   // Drops the "refresh Soulbound" clause — heal-on-use is the only part
   // that carries over cleanly as an unconditional bonus.
-  eternal_grasp: { name: "Eternal Grasp", type: "active", cooldown: 6, dmgMult: 2.1, bonusVsStatus: { status: "soulbound", mult: 1.0 }, healOnHitPct: 0.15 },
+  eternal_grasp: { damageType: "spirit", name: "Eternal Grasp", type: "active", cooldown: 6, dmgMult: 2.1, bonusVsStatus: { status: "soulbound", mult: 1.0 }, healOnHitPct: 0.15 },
 
   // ---- Orvuin (Undead B) ----
   // Reuses the combat-start-debuff hook Draconic/Predator's Presence
@@ -572,29 +631,29 @@ const ENEMY_ABILITIES = {
   // aura rather than a one-shot opener, but a single applied-once debuff
   // that lasts most of a normal fight is a close enough approximation.
   haunting_presence: { name: "Haunting Presence", type: "passive", trigger: "combatStartDebuff", debuff: { acc: -5 }, turns: 3 },
-  spectral_touch: { name: "Spectral Touch", type: "active", cooldown: 3, dmgMult: 1.4 },
+  spectral_touch: { damageType: "spirit", name: "Spectral Touch", type: "active", cooldown: 3, dmgMult: 1.4 },
   // Not yet wired — applies its debuff to whoever THIS creature hits on
   // ANY attack (not just its actives), which the passive-dispatch surface
   // doesn't cover.
   lingering_regret: { name: "Lingering Regret", type: "passive", trigger: "debuffOnHitDealt", debuff: { atkPct: -0.1 }, turns: 1 },
-  soul_chill: { name: "Soul Chill", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
+  soul_chill: { damageType: "spirit", name: "Soul Chill", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
   // Not yet wired — reacts to ANY combatant dying, which resolveKill
   // doesn't currently broadcast to other alive enemies (matches Blighted
   // Soil above).
   echoes_of_death: { name: "Echoes of Death", type: "passive", trigger: "onAnyDeath", selfBuff: { atk: 4, acc: 4 } },
-  wail_of_the_forgotten: { name: "Wail of the Forgotten", type: "active", cooldown: 5, dmgMult: 1.5, aoe: true, inflict: { status: "fear", chance: 1 } },
-  soul_rend_orvuin: { name: "Soul Rend", type: "active", cooldown: 4, dmgMult: 1.8 },
-  deathly_lament: { name: "Deathly Lament", type: "active", cooldown: 5, dmgMult: 1.7, inflict: { custom: { acc: -15, turns: 3 }, chance: 1 } },
+  wail_of_the_forgotten: { damageType: "spirit", name: "Wail of the Forgotten", type: "active", cooldown: 5, dmgMult: 1.5, aoe: true, inflict: { status: "fear", chance: 1 } },
+  soul_rend_orvuin: { damageType: "spirit", name: "Soul Rend", type: "active", cooldown: 4, dmgMult: 1.8 },
+  deathly_lament: { damageType: "spirit", name: "Deathly Lament", type: "active", cooldown: 5, dmgMult: 1.7, inflict: { custom: { acc: -15, turns: 3 }, chance: 1 } },
   endless_mourning: { name: "Endless Mourning", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { acc: 15, agi: 15 }, oncePerCombat: true },
   // Drops the "+10% per defeated creature" scaling clause — no
   // death-counter tracking (matches Echoes of Death's own gap above).
-  death_chorus: { name: "Death Chorus", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true, inflict: { status: "fear", chance: 1 } },
+  death_chorus: { damageType: "spirit", name: "Death Chorus", type: "active", cooldown: 6, dmgMult: 1.8, aoe: true, inflict: { status: "fear", chance: 1 } },
 
   // ---- Homunculus family (Constructs) ----
   artificial_construct: { name: "Artificial Construct", type: "passive", trigger: "elementalResist", immuneTo: ["bleed", "fear", "venom"] },
-  arcane_jab: { name: "Arcane Jab", type: "active", cooldown: 3, dmgMult: 1.4 },
+  arcane_jab: { damageType: "force", name: "Arcane Jab", type: "active", cooldown: 3, dmgMult: 1.4 },
   reinforced_frame: { name: "Reinforced Frame", type: "passive", trigger: "flatDamageReduction", pct: 0.15 },
-  shield_bash: { name: "Shield Bash", type: "active", cooldown: 4, dmgMult: 1.4, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
+  shield_bash: { damageType: "blunt", name: "Shield Bash", type: "active", cooldown: 4, dmgMult: 1.4, inflict: { custom: { spd: -15, turns: 2 }, chance: 1 } },
   // "Lowest-health allied Construct" and the damage-redirect clause are
   // both dropped — packAuraBuff buffs every alive packmate rather than
   // computing the single lowest-health one, and there's no redirect-
@@ -602,18 +661,18 @@ const ENEMY_ABILITIES = {
   guard_protocol: { name: "Guard Protocol", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 10, turns: 3 } },
   runic_core: { name: "Runic Core", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atkPct: 0.15, acc: 10 }, oncePerCombat: true },
   overclock: { name: "Overclock", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { spd: 20, atkPct: 0.2, turns: 2 } },
-  arcane_strike: { name: "Arcane Strike", type: "active", cooldown: 4, dmgMult: 1.8 },
+  arcane_strike: { damageType: "force", name: "Arcane Strike", type: "active", cooldown: 4, dmgMult: 1.8 },
   // Not yet wired — matches Royal Pheromones/Ossified Commander's own
   // leaderAura trigger above, also declared but never dispatched.
   guardian_directive: { name: "Guardian Directive", type: "passive", trigger: "leaderAura", buff: { def: 5, acc: 5 } },
-  rune_pulse: { name: "Rune Pulse", type: "active", cooldown: 5, dmgMult: 1.5, aoe: true, inflict: { status: "stagger", chance: 1 } },
+  rune_pulse: { damageType: "force", name: "Rune Pulse", type: "active", cooldown: 5, dmgMult: 1.5, aoe: true, inflict: { status: "stagger", chance: 1 } },
   // Approximates "a barrier equal to 25% max Health for 3 turns" as an
   // equivalent instant self-heal — no temporary-damage-absorption shield
   // mechanic exists for enemies (only healSelfPct's flat heal, just
   // introduced above for Flesh Reconstruction).
   arcane_barrier: { name: "Arcane Barrier", type: "active", cooldown: 6, dmgMult: 0, healSelfPct: 0.25 },
   perfect_construction: { name: "Perfect Construction", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atk: 10, def: 10 }, oncePerCombat: true },
-  cataclysm_beam: { name: "Cataclysm Beam", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true, bonusVsStatus: { status: "stagger", mult: 1.25 } },
+  cataclysm_beam: { damageType: "force", name: "Cataclysm Beam", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true, bonusVsStatus: { status: "stagger", mult: 1.25 } },
 
   // ---- Thueln-Maur (Constructs) ----
   // Stone Fist/Branch Slam/Crystal Lance/Mana Pulse/Cataclysmic Slam/
@@ -623,9 +682,9 @@ const ENEMY_ABILITIES = {
   // power level, same "fill the gap" approach used for Charge/Smash/
   // King's Maul/Rallying Roar in the Wild Mammals batch.
   earthen_form: { name: "Earthen Form", type: "passive", trigger: "flatDamageReduction", pct: 0.1 },
-  stone_fist: { name: "Stone Fist", type: "active", cooldown: 3, dmgMult: 1.4 },
+  stone_fist: { damageType: "earth", name: "Stone Fist", type: "active", cooldown: 3, dmgMult: 1.4 },
   living_timber: { name: "Living Timber", type: "passive", trigger: "regenPerTurn", pct: 0.03 },
-  branch_slam: { name: "Branch Slam", type: "active", cooldown: 4, dmgMult: 1.5, inflict: { custom: { spd: -10, turns: 2 }, chance: 1 } },
+  branch_slam: { damageType: "blunt", name: "Branch Slam", type: "active", cooldown: 4, dmgMult: 1.5, inflict: { custom: { spd: -10, turns: 2 }, chance: 1 } },
   // Not yet wired — no hook floors a specific stat against reduction
   // below its own base value for an enemy (Bedrock does this for the
   // player's Defense only).
@@ -633,17 +692,17 @@ const ENEMY_ABILITIES = {
   // Not yet wired — a per-ROUND (not per-fight) first-hit reduction has
   // no matching trigger; firstAttack above only ever fires once per fight.
   arcane_reflection: { name: "Arcane Reflection", type: "passive", trigger: "firstMagicalHitPerRoundReduction", pct: 0.5, reflectPctOfPrevented: 0.25 },
-  crystal_lance: { name: "Crystal Lance", type: "active", cooldown: 4, dmgMult: 1.8 },
-  mana_pulse: { name: "Mana Pulse", type: "active", cooldown: 5, dmgMult: 1.6, aoe: true },
+  crystal_lance: { damageType: "piercing", name: "Crystal Lance", type: "active", cooldown: 4, dmgMult: 1.8 },
+  mana_pulse: { damageType: "force", name: "Mana Pulse", type: "active", cooldown: 5, dmgMult: 1.6, aoe: true },
   // Perfect Harmony ("gain the benefits of Earth, Nature, and Crystal
   // Cores simultaneously") isn't its own separate ability — Elder
   // Thueln-Maur's passives list below just includes Earthen Form and
   // Living Timber (the two of those three cores that are actually wired
   // mechanics) directly, rather than re-declaring their effects under a
   // new name.
-  cataclysmic_slam: { name: "Cataclysmic Slam", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true },
-  elemental_convergence: { name: "Elemental Convergence", type: "active", cooldown: 5, dmgMult: 1.9, inflict: { status: "burning", chance: 1 } },
-  guardians_judgment: { name: "Guardian's Judgment", type: "active", cooldown: 6, dmgMult: 2.4 },
+  cataclysmic_slam: { damageType: "blunt", name: "Cataclysmic Slam", type: "active", cooldown: 6, dmgMult: 2.2, aoe: true },
+  elemental_convergence: { damageType: "fire", name: "Elemental Convergence", type: "active", cooldown: 5, dmgMult: 1.9, inflict: { status: "burning", chance: 1 } },
+  guardians_judgment: { damageType: "divine", name: "Guardian's Judgment", type: "active", cooldown: 6, dmgMult: 2.4 },
 
   // ---- Summoner support (see resolveEnemySummon/buildSummonedEnemyRecord
   // in engine/combat.js) — these were skipped outright in earlier codex
@@ -680,7 +739,7 @@ const ENEMY_ABILITIES = {
   // attack roll only, unlike selfBuff/selfDebuff (which apply after the
   // roll and last into next round) — "for this attack" has no other way
   // to land before the roll it's meant to affect.
-  precise_shot: { name: "Precise Shot", type: "active", cooldown: 3, dmgMult: 1.4, accBonus: 10 }, // H04
+  precise_shot: { damageType: "piercing", name: "Precise Shot", type: "active", cooldown: 3, dmgMult: 1.4, accBonus: 10 }, // H04
   suppressing_strike: { name: "Suppressing Strike", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } }, // H05
   // bonusVsAllyAlive (engine/combat.js's resolveEnemyActiveAbility): "145%
   // when another human ally is alive" — any other alive, non-friendly
@@ -696,10 +755,10 @@ const ENEMY_ABILITIES = {
   // 3, not on an actual rule. aoeMaxTargets enforces the codex's own cap
   // directly (player counts as the first of the 3), independent of how
   // many companions ever end up existing.
-  calculated_volley: { name: "Calculated Volley", type: "active", cooldown: 5, dmgMult: 0.95, aoe: true, aoeMaxTargets: 3 }, // H16
+  calculated_volley: { damageType: "piercing", name: "Calculated Volley", type: "active", cooldown: 5, dmgMult: 0.95, aoe: true, aoeMaxTargets: 3 }, // H16
   heavy_commitment: { name: "Heavy Commitment", type: "active", cooldown: 6, dmgMult: 2.1, selfDebuff: { def: -8, turns: 1 } }, // H17
   breakthrough_order: { name: "Breakthrough Order", type: "active", cooldown: 6, dmgMult: 1.5, packAuraBuff: { atkPct: 0.10, turns: 1, maxTargets: 2 } }, // H19
-  scorpion_lunge: { name: "Scorpion Lunge", type: "active", cooldown: 5, dmgMult: 1.85, inflict: { status: "venom", chance: 1 }, selfDebuff: { acc: -10, turns: 1 } }, // H21
+  scorpion_lunge: { damageType: "piercing", name: "Scorpion Lunge", type: "active", cooldown: 5, dmgMult: 1.85, inflict: { status: "venom", chance: 1 }, selfDebuff: { acc: -10, turns: 1 } }, // H21
 
   // ---- Criminal Underworld (Gate 5B.8 skills codex) — Defensive, passive
   // and reaction abilities. dmgReduction (engine/combat.js's
@@ -781,15 +840,15 @@ const ENEMY_ABILITIES = {
   // every other creature's entries, rather than hardcoding the numbers a
   // second time in the resolver.
   dra_barrier: { name: "Shifting Water Barrier", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { dmgReduction: 0.25, turns: 1 } }, // DRA-A01
-  dra_hammerfall: { name: "Vosgard Hammerfall", type: "active", cooldown: 2, dmgMult: 1.15 }, // DRA-A02
-  dra_cleave: { name: "Black-Ice Cleave", type: "active", cooldown: 3, dmgMult: 1.35, inflict: { status: "chilled", chance: 0.25 } }, // DRA-A03
-  dra_judgment: { name: "Ashquench Judgment", type: "active", cooldown: 5, dmgMult: 1.75 }, // DRA-A04 — telegraphed two-phase ability, bespoke handling
+  dra_hammerfall: { damageType: "blunt", name: "Vosgard Hammerfall", type: "active", cooldown: 2, dmgMult: 1.15 }, // DRA-A02
+  dra_cleave: { damageType: "frost", name: "Black-Ice Cleave", type: "active", cooldown: 3, dmgMult: 1.35, inflict: { status: "chilled", chance: 0.25 } }, // DRA-A03
+  dra_judgment: { damageType: "frost", name: "Ashquench Judgment", type: "active", cooldown: 5, dmgMult: 1.75 }, // DRA-A04 — telegraphed two-phase ability, bespoke handling
   // Numerically identical to the existing frost_bite (1.10x, cooldown 2,
   // 30% Chilled) — the design doc's own "existing Frost Bite pattern
   // adapted presentation" note — kept as its own entry rather than
   // aliasing frost_bite so a later balance change to one never silently
   // moves the other.
-  dra_frostbite_brand: { name: "Frostbite Brand", type: "active", cooldown: 2, dmgMult: 1.10, inflict: { status: "chilled", chance: 0.3 } }, // DRA-A05
+  dra_frostbite_brand: { damageType: "frost", name: "Frostbite Brand", type: "active", cooldown: 2, dmgMult: 1.10, inflict: { status: "chilled", chance: 0.3 } }, // DRA-A05
 
   // ---- Sanguivorum Criminal Underworld Division (Codex v0.3, Step 4.A
   // owner-approved) — 11 identities, IA-01..IA-34 register. Distinct from
@@ -805,12 +864,12 @@ const ENEMY_ABILITIES = {
   // design" against its own Section 08 "(existing)" tags; existing engine
   // ids are reused regardless of that label mismatch, per Appendix A's own
   // "no change to approved effect" dependency note on each one).
-  club_smash: { name: "Club Smash", type: "active", cooldown: 3, dmgMult: 1.5 }, // SANG-A001 / IA-01
-  quick_stab: { name: "Quick Stab", type: "active", cooldown: 3, dmgMult: 1.25, accBonus: 10 }, // IA-03
-  committed_slash: { name: "Committed Slash", type: "active", cooldown: 4, dmgMult: 1.6, selfDebuff: { def: -5, turns: 1 } }, // IA-04
+  club_smash: { damageType: "blunt", name: "Club Smash", type: "active", cooldown: 3, dmgMult: 1.5 }, // SANG-A001 / IA-01
+  quick_stab: { damageType: "piercing", name: "Quick Stab", type: "active", cooldown: 3, dmgMult: 1.25, accBonus: 10 }, // IA-03
+  committed_slash: { damageType: "slashing", name: "Committed Slash", type: "active", cooldown: 4, dmgMult: 1.6, selfDebuff: { def: -5, turns: 1 } }, // IA-04
   spotters_signal: { name: "Spotter's Signal", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 8, turns: 2 } }, // IA-06
-  crossbow_volley: { name: "Crossbow Volley", type: "active", cooldown: 3, dmgMult: 1.3 }, // IA-07
-  dirty_cut: { name: "Dirty Cut", type: "active", cooldown: 3, dmgMult: 1.1, inflict: { status: "bleed", chance: 0.5 } }, // IA-09
+  crossbow_volley: { damageType: "piercing", name: "Crossbow Volley", type: "active", cooldown: 3, dmgMult: 1.3 }, // IA-07
+  dirty_cut: { damageType: "slashing", name: "Dirty Cut", type: "active", cooldown: 3, dmgMult: 1.1, inflict: { status: "bleed", chance: 0.5 } }, // IA-09
   ambush_blow: { name: "Ambush Blow", type: "active", cooldown: 4, dmgMult: 1.65 }, // IA-11
   // Smuggler's Caution (IA-13): own trigger name, deliberately NOT the
   // existing-but-unwired combatStartBuff (tunnel_fighter/draconic_presence
@@ -828,8 +887,8 @@ const ENEMY_ABILITIES = {
   // healthBelowPct entries have no `turns` field, so they still resolve
   // through applyPermanentSelfBuff exactly as before; unaffected.
   arena_ferocity: { name: "Arena Ferocity", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { atkPct: 0.1, turns: 2 }, oncePerCombat: true }, // IA-17
-  twin_blade_rush: { name: "Twin-Blade Rush", type: "active", cooldown: 4, dmgMult: 1.65, selfDebuff: { def: -5, turns: 1 } }, // IA-18
-  feinting_slash: { name: "Feinting Slash", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } }, // IA-19
+  twin_blade_rush: { damageType: "slashing", name: "Twin-Blade Rush", type: "active", cooldown: 4, dmgMult: 1.65, selfDebuff: { def: -5, turns: 1 } }, // IA-18
+  feinting_slash: { damageType: "slashing", name: "Feinting Slash", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } }, // IA-19
   // Pack Discipline (IA-20): scope "summon" checks against a living
   // creature whose summonSourceKey matches summonKey (default: this
   // passive's own carrier's summon ability id) rather than any ally —
@@ -854,7 +913,7 @@ const ENEMY_ABILITIES = {
   criminal_command: { name: "Criminal Command", type: "passive", trigger: "whileAllyAlive", selfBuff: { acc: 5 } }, // IA-24
   veterans_guard: { name: "Veteran's Guard", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { def: 8, turns: 2 }, oncePerCombat: true }, // IA-25
   raid_order: { name: "Raid Order", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { acc: 10, turns: 2 } }, // IA-26
-  officers_cut: { name: "Officer's Cut", type: "active", cooldown: 3, dmgMult: 1.5 }, // IA-27
+  officers_cut: { damageType: "slashing", name: "Officer's Cut", type: "active", cooldown: 3, dmgMult: 1.5 }, // IA-27
   // Press the Advantage (IA-28): new bonusVsAccOrSpdDebuff field, checked
   // alongside bonusVsHealthBelowPct/AbovePct in resolveEnemyActiveAbility —
   // "increases to 1.85x if target has an Accuracy or Speed debuff" reads
@@ -868,7 +927,7 @@ const ENEMY_ABILITIES = {
   // retriggering on every kill exactly as before; unaffected.
   roadlords_momentum: { name: "Roadlord's Momentum", type: "passive", trigger: "onKill", oncePerCombat: true, selfBuff: { atkPct: 0.15, turns: 2 } }, // IA-30
   roadlords_assault: { name: "Roadlord's Assault", type: "active", cooldown: 5, dmgMult: 1.9, selfDebuff: { def: -8, turns: 3 } }, // SANG-A025 / IA-31
-  blood_price: { name: "Blood Price", type: "active", cooldown: 5, dmgMult: 1.5, inflict: { status: "bleed", chance: 1 } }, // IA-32
+  blood_price: { damageType: "slashing", name: "Blood Price", type: "active", cooldown: 5, dmgMult: 1.5, inflict: { status: "bleed", chance: 1 } }, // IA-32
   warband_fury: { name: "Warband Fury", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { atkPct: 0.12, turns: 2 } }, // IA-33
   ruthless_execution: { name: "Ruthless Execution", type: "active", cooldown: 5, dmgMult: 1.7, bonusVsHealthBelowPct: { pct: 0.35, mult: 2.1 / 1.7 } }, // IA-34
 
@@ -903,33 +962,33 @@ const ENEMY_ABILITIES = {
   // Riposte/Measured Counteroffensive below use — Ferratum Brace's own
   // selfBuff is a `def`+`turns` entry, so it shows up there directly, no
   // name-specific check needed.
-  shielded_thrust: { name: "Shielded Thrust", type: "active", cooldown: 3, dmgMult: 1.3, accBonusIfOwnDefBuffActive: 5 },
+  shielded_thrust: { damageType: "piercing", name: "Shielded Thrust", type: "active", cooldown: 3, dmgMult: 1.3, accBonusIfOwnDefBuffActive: 5 },
   mil_veteran_discipline: { name: "Veteran Discipline", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
   mil_veterans_guard: { name: "Veteran's Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
   disciplined_riposte: { name: "Disciplined Riposte", type: "active", cooldown: 4, dmgMult: 1.4, accBonusIfOwnDefBuffActive: 5 },
   calculated_preparation: { name: "Calculated Preparation", type: "active", cooldown: 4, dmgMult: 0, banksNextAttackAccBonus: { amount: 10, turns: 2 } },
-  sabotaging_bolt: { name: "Sabotaging Bolt", type: "active", cooldown: 4, dmgMult: 1.15, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
+  sabotaging_bolt: { damageType: "piercing", name: "Sabotaging Bolt", type: "active", cooldown: 4, dmgMult: 1.15, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
   // Range Calculation: the existing `firstAttack` trigger (Ambush/Patient
   // Hunter/...) already supports a bare accBonus with no dmgMultBonus.
   range_calculation: { name: "Range Calculation", type: "passive", trigger: "firstAttack", accBonus: 10 },
   prepare_ballista: { name: "Prepare Ballista", type: "active", cooldown: 1, dmgMult: 0, grantsPreparedState: { turns: 2 } },
-  ballista_discharge: { name: "Ballista Discharge", type: "active", cooldown: 5, dmgMult: 2.0, requiresPreparedState: true, consumesPreparedState: true },
+  ballista_discharge: { damageType: "piercing", name: "Ballista Discharge", type: "active", cooldown: 5, dmgMult: 2.0, requiresPreparedState: true, consumesPreparedState: true },
   // Ballista Scattershot: "shared CD5 with Discharge" — no shared-cooldown
   // mechanism exists in this file (no two-actives-one-clock precedent was
   // found); given the identical literal cooldown value instead and left
   // independently tracked, per this division's own implementation notes.
-  ballista_scattershot: { name: "Ballista Scattershot", type: "active", cooldown: 5, dmgMult: 0.85, aoe: true, aoeMaxTargets: 3, requiresPreparedState: true, consumesPreparedState: true },
+  ballista_scattershot: { damageType: "piercing", name: "Ballista Scattershot", type: "active", cooldown: 5, dmgMult: 0.85, aoe: true, aoeMaxTargets: 3, requiresPreparedState: true, consumesPreparedState: true },
   // Rapid Reconnaissance: "+8 Speed during opening turn" reuses Smuggler's
   // Caution's own combatStartSelfBuff trigger (Criminal Underworld) — a
   // 1-turn window, not permanent.
   rapid_reconnaissance: { name: "Rapid Reconnaissance", type: "passive", trigger: "combatStartSelfBuff", selfBuff: { spd: 8, turns: 1 } },
-  disrupting_javelin: { name: "Disrupting Javelin", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
+  disrupting_javelin: { damageType: "piercing", name: "Disrupting Javelin", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
   scouts_strike: { name: "Scout's Strike", type: "active", cooldown: 3, dmgMult: 1.5 },
   impact_discipline: { name: "Impact Discipline", type: "passive", trigger: "firstAttack", dmgMultBonus: 1.15 },
-  impetum_lance_strike: { name: "Impetum Lance Strike", type: "active", cooldown: 3, dmgMult: 1.8 },
+  impetum_lance_strike: { damageType: "piercing", name: "Impetum Lance Strike", type: "active", cooldown: 3, dmgMult: 1.8 },
   recovery_guard: { name: "Recovery Guard", type: "active", cooldown: 2, dmgMult: 0, selfBuff: { def: 8, turns: 1 } },
-  boarding_slash: { name: "Boarding Slash", type: "active", cooldown: 3, dmgMult: 1.45 },
-  weapon_hook: { name: "Weapon Hook", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
+  boarding_slash: { damageType: "slashing", name: "Boarding Slash", type: "active", cooldown: 3, dmgMult: 1.45 },
+  weapon_hook: { damageType: "piercing", name: "Weapon Hook", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
   // Marine Discipline: whileAllyAlive's new "family" scope (engine/
   // combat.js) — matches iff another alive enemy shares this creature's
   // own `family` BESTIARY tag ("aqualis"), not just any non-friendly enemy.
@@ -944,7 +1003,7 @@ const ENEMY_ABILITIES = {
   naval_guard: { name: "Naval Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 8, turns: 2 } },
   call_boarding_party: { name: "Call Boarding Party", type: "active", cooldown: 6, dmgMult: 0, summon: { pool: ["aqualis_sailor"], countMin: 1, countMax: 2, maxActive: 2, maxLifetime: 4, noArrivalAttack: true } },
   field_experience: { name: "Field Experience", type: "passive", trigger: "firstAttack", accBonus: 5 },
-  veterans_cut: { name: "Veteran's Cut", type: "active", cooldown: 3, dmgMult: 1.45 },
+  veterans_cut: { damageType: "slashing", name: "Veteran's Cut", type: "active", cooldown: 3, dmgMult: 1.45 },
   // Steady the Line: "wearer AND one other living ally +5 DEF for 2 turns"
   // needs both fields at once — selfBuff for the caster itself,
   // packAuraBuff (maxTargets 1) for the one ally — resolveEnemyAction
@@ -960,7 +1019,7 @@ const ENEMY_ABILITIES = {
   command_discipline: { name: "Command Discipline", type: "passive", trigger: "whileAllyAlive", scope: "division", selfBuff: { def: 5 } },
   battle_hardened: { name: "Battle-Hardened", type: "passive", trigger: "healthBelowPct", threshold: 0.5, selfBuff: { def: 8, turns: 2 }, oncePerCombat: true },
   hold_the_line: { name: "Hold the Line", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { def: 8, turns: 2, maxTargets: 3 } },
-  commanders_sword: { name: "Commander's Sword", type: "active", cooldown: 3, dmgMult: 1.55 },
+  commanders_sword: { damageType: "slashing", name: "Commander's Sword", type: "active", cooldown: 3, dmgMult: 1.55 },
   // Measured Counteroffensive: "has an active defensive effect" reads the
   // same hasActiveDefBuff(combat, creature) check Disciplined Riposte uses
   // above (this creature's own enemy record's selfBuffs for a live
@@ -1009,7 +1068,7 @@ const ENEMY_ABILITIES = {
   // own summons, since both share the same capKey/summonSourceKey below.
   handlers_discipline: { name: "Handler's Discipline", type: "passive", trigger: "whileAllyAlive", scope: "summon", summonKey: "deploy_legion_hounds", selfBuff: { def: 5 } },
   deploy_legion_hounds: { name: "Deploy Legion Hounds", type: "active", cooldown: 5, dmgMult: 0, summon: { pool: ["legion_hound"], count: 2, maxActive: 3, maxLifetime: 5, noArrivalAttack: true, groupOverride: "sang_mil_legion_hounds" } },
-  handlers_spear: { name: "Handler's Spear", type: "active", cooldown: 3, dmgMult: 1.2 },
+  handlers_spear: { damageType: "piercing", name: "Handler's Spear", type: "active", cooldown: 3, dmgMult: 1.2 },
   // Pack Coordination: "living hounds controlled by this handler" —
   // applyPackAuraBuff's new `groupKey` override (engine/combat.js) targets
   // the hounds' own narrower "sang_mil_legion_hounds" group instead of
@@ -1022,7 +1081,7 @@ const ENEMY_ABILITIES = {
   // duskWolf rather than inventing a new species; no existing "hound"
   // creature exists in BESTIARY to reuse instead, so this adds one
   // minimal low-tier entry sized similarly to the existing wolves).
-  hound_bite: { name: "Hound Bite", type: "active", cooldown: 2, dmgMult: 1.2 },
+  hound_bite: { damageType: "piercing", name: "Hound Bite", type: "active", cooldown: 2, dmgMult: 1.2 },
 
   // ---- Sanguivorum Security and Enforcement Division (Codex v0.1
   // Step4AB, owner-approved in full) — 9 identities' intrinsic kits.
@@ -1039,14 +1098,14 @@ const ENEMY_ABILITIES = {
   sang_sec_watchmans_strike: { name: "Watchman's Strike", type: "active", cooldown: 3, dmgMult: 1.25 },
   sang_sec_readied_watch: { name: "Readied Watch", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 6, turns: 2 } },
   // Enforcement Baton / Crowd Control (Market Watchman):
-  sang_sec_enforcement_baton: { name: "Enforcement Baton", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
+  sang_sec_enforcement_baton: { damageType: "blunt", name: "Enforcement Baton", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
   sang_sec_crowd_control: { name: "Crowd Control", type: "active", cooldown: 4, dmgMult: 0, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
   // Warden's Thrust / Roadside Brace (Road Warden):
-  sang_sec_wardens_thrust: { name: "Warden's Thrust", type: "active", cooldown: 3, dmgMult: 1.4 },
+  sang_sec_wardens_thrust: { damageType: "piercing", name: "Warden's Thrust", type: "active", cooldown: 3, dmgMult: 1.4 },
   sang_sec_roadside_brace: { name: "Roadside Brace", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 8, turns: 2 } },
   // Boarding Hook / Harbor Cut (Harbor Watchman):
-  sang_sec_boarding_hook: { name: "Boarding Hook", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { atk: -10, turns: 2 }, chance: 1 } },
-  sang_sec_harbor_cut: { name: "Harbor Cut", type: "active", cooldown: 3, dmgMult: 1.5 },
+  sang_sec_boarding_hook: { damageType: "piercing", name: "Boarding Hook", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { atk: -10, turns: 2 }, chance: 1 } },
+  sang_sec_harbor_cut: { damageType: "slashing", name: "Harbor Cut", type: "active", cooldown: 3, dmgMult: 1.5 },
   // Veteran Watch Discipline (passive) / Veteran Guard / Disciplined
   // Counterstrike (Veteran City Guard V1/V2/V3, one shared kit):
   sang_sec_veteran_watch_discipline: { name: "Veteran Watch Discipline", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
@@ -1060,7 +1119,7 @@ const ENEMY_ABILITIES = {
   // Spear / Checkpoint Suppression (Frontier Gatekeeper):
   sang_sec_gatekeepers_discipline: { name: "Gatekeeper's Discipline", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
   sang_sec_fortified_guard: { name: "Fortified Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 12, turns: 2 } },
-  sang_sec_gatekeepers_spear: { name: "Gatekeeper's Spear", type: "active", cooldown: 3, dmgMult: 1.55 },
+  sang_sec_gatekeepers_spear: { damageType: "piercing", name: "Gatekeeper's Spear", type: "active", cooldown: 3, dmgMult: 1.55 },
   // Checkpoint Suppression's dual debuff (-10 ATK AND -5 ACC) is the same
   // multi-key `custom` debuff object applyAbilityInflict's own
   // `const { turns, ...debuff } = inflict.custom` already supports —
@@ -1107,7 +1166,7 @@ const ENEMY_ABILITIES = {
   // anyway — set explicitly here for clarity/parity with Pack
   // Coordination's own narrower override elsewhere in this file).
   sang_sec_protective_orders: { name: "Protective Orders", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { def: 8, turns: 2, maxTargets: 3, groupKey: "sang_sec_security_enforcement" } },
-  sang_sec_captains_sword: { name: "Captain's Sword", type: "active", cooldown: 3, dmgMult: 1.55 },
+  sang_sec_captains_sword: { damageType: "slashing", name: "Captain's Sword", type: "active", cooldown: 3, dmgMult: 1.55 },
   sang_sec_coordinated_detainment: { name: "Coordinated Detainment", type: "active", cooldown: 4, dmgMult: 1.25, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 } },
   sang_sec_stand_firm: { name: "Stand Firm", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
   // Arena Veteran's Discipline (passive, BOTH +5 ACC and +5 DEF) / Ovum
@@ -1193,7 +1252,7 @@ const ENEMY_ABILITIES = {
   //
   // Militia Volunteer (Generalist -> skirmisher, family "militia", group
   // "sang_iag_militia"):
-  sang_iag_militia_thrust: { name: "Militia Thrust", type: "active", cooldown: 3, dmgMult: 1.2 },
+  sang_iag_militia_thrust: { damageType: "piercing", name: "Militia Thrust", type: "active", cooldown: 3, dmgMult: 1.2 },
   sang_iag_desperate_guard: { name: "Desperate Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 5, turns: 2 } },
   // Call for Help / Rally the Locals / Raise the Militia (below): the
   // codex's own explicit division-wide shared reinforcement pool
@@ -1208,7 +1267,7 @@ const ENEMY_ABILITIES = {
   // Rural Militia Fighter (Bruiser -> bruiser, family "militia", group
   // "sang_iag_militia"):
   sang_iag_rough_fighter: { name: "Rough Fighter", type: "passive", trigger: "flatStatBonus", stat: "atk", amount: 5 },
-  sang_iag_heavy_axe_swing: { name: "Heavy Axe Swing", type: "active", cooldown: 3, dmgMult: 1.55 },
+  sang_iag_heavy_axe_swing: { damageType: "slashing", name: "Heavy Axe Swing", type: "active", cooldown: 3, dmgMult: 1.55 },
   sang_iag_reckless_blow: { name: "Reckless Blow", type: "active", cooldown: 4, dmgMult: 1.75, selfDebuff: { def: -8, turns: 2 } },
   sang_iag_rally_the_locals: { name: "Rally the Locals", type: "active", cooldown: 5, dmgMult: 0, summon: { creatureId: "militia_volunteer", countMin: 1, countMax: 2, capKey: "sang_iag_militia_reinforcements", maxActive: 6, maxLifetime: 10, noArrivalAttack: true } },
   // Independent Scout (Skirmisher -> skirmisher; no family tag — the
@@ -1216,12 +1275,12 @@ const ENEMY_ABILITIES = {
   // Watchful Approach: the exact existing combatStartSelfBuff trigger
   // (Smuggler's Caution/Rapid Reconnaissance precedent).
   sang_iag_watchful_approach: { name: "Watchful Approach", type: "passive", trigger: "combatStartSelfBuff", selfBuff: { spd: 8, turns: 1 } },
-  sang_iag_disrupting_arrow: { name: "Disrupting Arrow", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
-  sang_iag_hunters_shot: { name: "Hunter's Shot", type: "active", cooldown: 3, dmgMult: 1.5 },
+  sang_iag_disrupting_arrow: { damageType: "piercing", name: "Disrupting Arrow", type: "active", cooldown: 3, dmgMult: 1.2, inflict: { custom: { acc: -8, turns: 2 }, chance: 1 } },
+  sang_iag_hunters_shot: { damageType: "piercing", name: "Hunter's Shot", type: "active", cooldown: 3, dmgMult: 1.5 },
   // Road Convoy Guard (Defensive generalist -> tank, family "mercenary",
   // group "sang_iag_mercenary"):
   sang_iag_professional_guard: { name: "Professional Guard", type: "passive", trigger: "flatStatBonus", stat: "def", amount: 5 },
-  sang_iag_measured_sword_strike: { name: "Measured Sword Strike", type: "active", cooldown: 3, dmgMult: 1.4 },
+  sang_iag_measured_sword_strike: { damageType: "slashing", name: "Measured Sword Strike", type: "active", cooldown: 3, dmgMult: 1.4 },
   sang_iag_contractors_guard: { name: "Contractor's Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 8, turns: 2 } },
   // Contract Marksman (Precision attacker -> artillery, family
   // "mercenary", group "sang_iag_mercenary"):
@@ -1233,7 +1292,7 @@ const ENEMY_ABILITIES = {
   // own normal attempt-consumption (resolveEnemyRetaliation) does that
   // regardless, whether or not bonusIfPreparedState happened to fire.
   sang_iag_take_aim: { name: "Take Aim", type: "active", cooldown: 4, dmgMult: 0, banksNextAttackAccBonus: { amount: 12, turns: 2 } },
-  sang_iag_contract_bolt: { name: "Contract Bolt", type: "active", cooldown: 4, dmgMult: 1.7, bonusIfPreparedState: { mult: 1.10 } },
+  sang_iag_contract_bolt: { damageType: "piercing", name: "Contract Bolt", type: "active", cooldown: 4, dmgMult: 1.7, bonusIfPreparedState: { mult: 1.10 } },
   // Free Company Captain (Tactical leader -> leader, family "mercenary",
   // group "sang_iag_mercenary"):
   // Mercenary Authority: whileAllyAlive's existing "family" scope
@@ -1246,7 +1305,7 @@ const ENEMY_ABILITIES = {
   sang_iag_company_assault_order: { name: "Company Assault Order", type: "active", cooldown: 5, dmgMult: 0, packAuraBuff: { atk: 10, turns: 2, maxTargets: 3, groupKey: "sang_iag_mercenary" } },
   // Captain's Sword: collides by NAME ONLY with sang_sec_captains_sword
   // (Watch Captain's own, 1.55x) — kept distinct, same display name.
-  sang_iag_captains_sword: { name: "Captain's Sword", type: "active", cooldown: 3, dmgMult: 1.6 },
+  sang_iag_captains_sword: { damageType: "slashing", name: "Captain's Sword", type: "active", cooldown: 3, dmgMult: 1.6 },
   // Defensive Contract: "Captain AND up to 2 other mercenary allies +8 DEF
   // for 2 turns" needs BOTH selfBuff (the caster itself) AND packAuraBuff
   // (the up-to-2 other allies) on the SAME entry — resolveEnemyAction
@@ -1260,12 +1319,12 @@ const ENEMY_ABILITIES = {
   sang_iag_arena_training: { name: "Arena Training", type: "passive", trigger: "flatStatBonus", stat: "acc", amount: 5 },
   // Trident Combination: "1.5x, or 1.7x if target has reduced ACC OR ATK"
   // — the new, narrower bonusVsAccOrAtkDebuff field (playerHasAccOrAtkDebuff).
-  sang_iag_trident_combination: { name: "Trident Combination", type: "active", cooldown: 3, dmgMult: 1.5, bonusVsAccOrAtkDebuff: { mult: 1.7 / 1.5 } },
+  sang_iag_trident_combination: { damageType: "piercing", name: "Trident Combination", type: "active", cooldown: 3, dmgMult: 1.5, bonusVsAccOrAtkDebuff: { mult: 1.7 / 1.5 } },
   // Entangling Net's dual -10 ACC/-5 ATK debuff from one hit: the same
   // multi-key `custom` debuff object applyAbilityInflict already supports
   // (Grasping Dead/Checkpoint Suppression precedent) — zero new engine
   // code.
-  sang_iag_entangling_net: { name: "Entangling Net", type: "active", cooldown: 4, dmgMult: 0.8, inflict: { custom: { acc: -10, atk: -5, turns: 2 }, chance: 1 } },
+  sang_iag_entangling_net: { damageType: "blunt", name: "Entangling Net", type: "active", cooldown: 4, dmgMult: 0.8, inflict: { custom: { acc: -10, atk: -5, turns: 2 }, chance: 1 } },
   sang_iag_duelists_guard: { name: "Duelist's Guard", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { def: 10, turns: 2 } },
   // Ovum Champion (Master duelist -> bruiser, family "arena"):
   sang_iag_champions_discipline: { name: "Champion's Discipline", type: "passive", trigger: "flatStatBonus", stat: "acc", amount: 8 },
@@ -1274,7 +1333,7 @@ const ENEMY_ABILITIES = {
   // precedent, Sanguivorum Imperial Military).
   sang_iag_arena_resolve: { name: "Arena Resolve", type: "passive", trigger: "healthBelowPct", threshold: 0.4, selfBuff: { atkPct: 0.10 }, oncePerCombat: true },
   sang_iag_champions_guard: { name: "Champion's Guard", type: "active", cooldown: 5, dmgMult: 0, selfBuff: { def: 12, turns: 2 } },
-  sang_iag_masterful_cut: { name: "Masterful Cut", type: "active", cooldown: 3, dmgMult: 1.65 },
+  sang_iag_masterful_cut: { damageType: "slashing", name: "Masterful Cut", type: "active", cooldown: 3, dmgMult: 1.65 },
   // Final Exchange: the new requiresPriorAbilityUse/consumesPriorAbilityUse
   // gate, referencing Champion's Guard's own ability id directly — see
   // priorAbilityUseFlags in engine/combat.js.
@@ -1292,7 +1351,7 @@ const ENEMY_ABILITIES = {
   // Ambush: reuses ambush_bonus VERBATIM (see the division header comment
   // above) rather than a near-duplicate — the codex's own source material
   // describes this as "existing pattern," and it matches byte-for-byte.
-  sang_iag_assassins_cut: { name: "Assassin's Cut", type: "active", cooldown: 3, dmgMult: 1.4, accBonus: 10 },
+  sang_iag_assassins_cut: { damageType: "slashing", name: "Assassin's Cut", type: "active", cooldown: 3, dmgMult: 1.4, accBonus: 10 },
   // Opportunistic Strike: collides by NAME ONLY with opportunistic_strike
   // (H01, Gate 5B.8 skills codex, a 1.3x-base/HP-threshold ability) — kept
   // distinct. "1.6x, or 1.8x vs target with negative combat status" is the
@@ -1300,7 +1359,7 @@ const ENEMY_ABILITIES = {
   sang_iag_opportunistic_strike: { name: "Opportunistic Strike", type: "active", cooldown: 4, dmgMult: 1.6, bonusVsAnyNegativeStatus: { mult: 1.8 / 1.6 } },
   // Bleeding Cut: reuses the ALREADY-EXISTING "bleed" status directly, not
   // the new Poison status below (Veiled Executor's own Poisoned Edge).
-  sang_iag_bleeding_cut: { name: "Bleeding Cut", type: "active", cooldown: 4, dmgMult: 1.15, inflict: { status: "bleed", chance: 1 } },
+  sang_iag_bleeding_cut: { damageType: "slashing", name: "Bleeding Cut", type: "active", cooldown: 4, dmgMult: 1.15, inflict: { status: "bleed", chance: 1 } },
   // Veiled Executor (Assassin/controller -> assassin, family "assassin"):
   // Executioner's Patience: the existing `firstAttack` trigger family,
   // bare accBonus field (Silent Hunter/Range Calculation precedent).
@@ -1314,10 +1373,10 @@ const ENEMY_ABILITIES = {
   // inflictRequiresPreparedState flag (reads, but does not itself clear,
   // the same banked state Silent Preparation set).
   sang_iag_veiled_precision: { name: "Veiled Precision", type: "active", cooldown: 4, dmgMult: 1.65, inflict: { custom: { acc: -10, turns: 2 }, chance: 1 }, inflictRequiresPreparedState: true },
-  sang_iag_disabling_slice: { name: "Disabling Slice", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
+  sang_iag_disabling_slice: { damageType: "slashing", name: "Disabling Slice", type: "active", cooldown: 4, dmgMult: 1.2, inflict: { custom: { atk: -8, turns: 2 }, chance: 1 } },
   // Poisoned Edge: inflicts the new sang_iag_poison status (above) exactly
   // the way any existing ability inflicts bleed.
-  sang_iag_poisoned_edge: { name: "Poisoned Edge", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { status: "sang_iag_poison", chance: 1 } },
+  sang_iag_poisoned_edge: { damageType: "poison", name: "Poisoned Edge", type: "active", cooldown: 4, dmgMult: 1.1, inflict: { status: "sang_iag_poison", chance: 1 } },
   // Arena Beastmaster (Summoner/support -> summoner, family "beastmaster"):
   // Arena Handler: the EXACT existing whileAllyAlive "summon" scope
   // (Handler's Discipline precedent, Legion Houndmaster, Sanguivorum
@@ -1342,7 +1401,7 @@ const ENEMY_ABILITIES = {
   sang_iag_militia_authority: { name: "Militia Authority", type: "passive", trigger: "whileAllyAlive", scope: "family", selfBuff: { atk: 5 } },
   sang_iag_warleaders_resolve: { name: "Warleader's Resolve", type: "passive", trigger: "healthBelowPct", threshold: 0.4, selfBuff: { atkPct: 0.10 }, oncePerCombat: true },
   sang_iag_rally_the_fighters: { name: "Rally the Fighters", type: "active", cooldown: 6, dmgMult: 0, packAuraBuff: { atk: 10, turns: 3, maxTargets: 3, groupKey: "sang_iag_militia" } },
-  sang_iag_warleaders_cleave: { name: "Warleader's Cleave", type: "active", cooldown: 4, dmgMult: 1.75 },
+  sang_iag_warleaders_cleave: { damageType: "slashing", name: "Warleader's Cleave", type: "active", cooldown: 4, dmgMult: 1.75 },
   sang_iag_all_out_assault: { name: "All-Out Assault", type: "active", cooldown: 5, dmgMult: 1.9, selfDebuff: { def: -8, turns: 2 } },
   // Raise the Militia: the shared militia reinforcement pool's third and
   // final member — see Call for Help's own comment above.
@@ -1388,6 +1447,17 @@ function getEnemyAbility(id) {
   return entry.type === "active" ? Object.assign({}, ENEMY_ACTIVE_ACTION_SHAPE, entry) : entry;
 }
 
+// Content Load handoff §3 (off by default): a status entry carrying its
+// own `v2` sub-object (venom, sang_iag_poison) gets it merged in only
+// when the switch is on -- DAMAGE_TYPES_V2 isn't defined yet when
+// STATUS_EFFECTS itself was declared (js/data/damagetypes.js loads
+// after this file), but it's long since defined by the time this
+// FUNCTION actually runs, same as every other `DAMAGE_TYPES_V2 ?`
+// check elsewhere in files that load before damagetypes.js (e.g.
+// js/data/actions.js's equipmentWeaponDamageType).
 function getStatusEffect(id) {
-  return STATUS_EFFECTS[id] || null;
+  const base = STATUS_EFFECTS[id];
+  if (!base) return null;
+  if (DAMAGE_TYPES_V2 && base.v2) return Object.assign({}, base, base.v2);
+  return base;
 }

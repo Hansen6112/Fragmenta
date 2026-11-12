@@ -80,6 +80,32 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
         return value;
       });
     }
+    // Any object reachable in the snapshot that looks like a creatureObj
+    // (bestiaryKey present, the one field every creatureObj and only a
+    // creatureObj has) has its purely-static BESTIARY content fields
+    // stripped before comparing -- the Damage Types content load's
+    // attackType/dmgTags/statusImmune, which this fixture (frozen before
+    // that content load existed) can never have picked up on its own
+    // subject creature, and which the functions under test only ever
+    // read, never mutate, so they carry no signal about pipeline parity.
+    const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune'];
+    function stripCreatureObj(x) {
+      if (Array.isArray(x)) return x.map(stripCreatureObj);
+      if (x === null || typeof x !== 'object') return x;
+      if ('bestiaryKey' in x) {
+        const inner = {};
+        for (const k of Object.keys(x)) {
+          if (!CONTENT_ONLY_CREATURE_FIELDS.includes(k)) inner[k] = x[k];
+        }
+        return inner;
+      }
+      const out = {};
+      for (const k of Object.keys(x)) out[k] = stripCreatureObj(x[k]);
+      return out;
+    }
+    function normalizeSnap(snapStr) {
+      return sortedStringify(stripCreatureObj(JSON.parse(snapStr)));
+    }
     // Step 1h-iii flattened the 130 PLAYER_FIELDS entries out of
     // state.combat's own top level into state.combat.player -- this
     // fixture was frozen in step 1h-i, before that existed, so its own
@@ -144,7 +170,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
         const oldRun = frozenIn[code];
         const newRun = runOne(newFn, scenario);
         const resultMatch = JSON.stringify(oldRun.result) === JSON.stringify(newRun.result);
-        const snapMatch = oldRun.snap === newRun.snap;
+        const snapMatch = normalizeSnap(oldRun.snap) === normalizeSnap(newRun.snap);
         const control = effectControlCheck(newFn, scenario);
         const controlOk = !control.applicable || control.skippedCheck || control.mattered === control.expectMatters;
         return {

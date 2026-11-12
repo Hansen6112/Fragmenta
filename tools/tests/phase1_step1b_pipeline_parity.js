@@ -88,8 +88,42 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       const keys = Object.keys(x).sort();
       return '{' + keys.map((k) => JSON.stringify(k) + ':' + stableStringify(x[k])).join(',') + '}';
     }
+    // creatureObj is the BESTIARY template, copied in whole onto every
+    // enemy slot (once flattened onto combat's own top level by
+    // snapshot() above, and again inside each entry of combat.enemies) --
+    // it ALSO carries genuine per-fight dynamic state mutated during an
+    // attack (bankedAttackAccBonus, duelistMeasurePendingTarget, ...),
+    // which this comparison does need, so it can't simply be collapsed
+    // to an identity. Only the purely-static BESTIARY content fields the
+    // Damage Types content load adds (never read anywhere but as a
+    // read-only input to resolveDamageType/dmgTagMultiplier/
+    // isStatusImmune, never mutated by either function under test) are
+    // stripped -- the frozen (pre-1h-ii) half of this comparison can
+    // never pick these up on Stoneback Beetle (this fixture's subject
+    // creature) since no live oracle is left to regenerate it from.
+    // Not just the `creatureObj` key: the exact same object is ALSO
+    // reachable as exposedTarget.by (Marked Target's own "who exposed
+    // this target" reference) -- shape-tested (bestiaryKey present, the
+    // one field every creatureObj and only a creatureObj has) rather than
+    // keyed by property name, so every reachable copy gets the same
+    // treatment regardless of which field holds the reference.
+    const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune'];
+    function stripCreatureObj(x) {
+      if (Array.isArray(x)) return x.map(stripCreatureObj);
+      if (x === null || typeof x !== 'object') return x;
+      if ('bestiaryKey' in x) {
+        const inner = {};
+        for (const k of Object.keys(x)) {
+          if (!CONTENT_ONLY_CREATURE_FIELDS.includes(k)) inner[k] = x[k];
+        }
+        return inner;
+      }
+      const out = {};
+      for (const k of Object.keys(x)) out[k] = stripCreatureObj(x[k]);
+      return out;
+    }
     function normalizeSnap(snapStr) {
-      return stableStringify(JSON.parse(snapStr));
+      return stableStringify(stripCreatureObj(JSON.parse(snapStr)));
     }
 
     // scenario: { effects: [ids], sets: ["Name:tier"], mutate(s, creature, slot),

@@ -70,6 +70,7 @@ const LEDGERS = [
   "test_enemy_strike_proof_ledger.js",
   "damage_types_a1_injury_v2_ledger.js",
   "damage_types_a5_variant_weighting_ledger.js",
+  "damage_types_content_load_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
