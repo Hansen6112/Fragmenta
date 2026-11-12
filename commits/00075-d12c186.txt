@@ -1,0 +1,70 @@
+range: 7917001c04ac2624e71a3b32efc76f61141fc533..d12c186e1f7c6dcbe0fa6a9f77e156bdf3307ddb
+=== d12c186e1f7c6dcbe0fa6a9f77e156bdf3307ddb 2026-11-12 01:02:36 +0000
+Step 1h-iv §3: rewrite data/engine leaf files + remaining tests onto activeEnemySlot(combat)
+Covers the production files companion.js (0 occurrences -- its 6
+PER_ENEMY_FIELDS matches are comment-only), resolver.js, data/actions.js,
+data/synergy.js, plus the 13 tools/tests/*.js files the earlier full-repo
+scan had flagged but not yet rewritten (ally_protection_ledger,
+d1_stun_fix_ledger, downed_ledger, dregnar_stage_a/b_ledger,
+phase1_step1a_combatant_ledger, phase1_step1b/c_*_pipeline_parity,
+phase1_step1e_iii_elements_pipeline_parity,
+phase1_step1g_i/ii/vii_*_parity/ledger, test_reaction_proof_ledger).
+
+Two bugs found and fixed in the mechanical rewrite script along the way:
+
+1. The regex `\b(state\.combat|combat)\.FIELD\b` anchored on only the two
+   literal prefixes "state.combat" and "combat", so a longer chain like
+   `h.state.combat.FIELD` (data/actions.js's PIPELINE_HOOKS, which holds
+   its state as `h.state`) matched starting mid-chain at "state" and
+   silently dropped the "h." prefix, producing broken calls like
+   `h.activeEnemySlot(state.combat).burn` (passes `node -c`, throws at
+   runtime). Caught by reviewing the diff before committing; the first
+   attempt at this batch was reverted in full and the script's regex was
+   changed to capture the whole dotted chain ending in ".combat"
+   (`((?:[A-Za-z_$][\w$]*\.)*combat)`) and reuse it verbatim.
+
+2. The negative lookahead added to avoid rewriting object-literal keys
+   (`hp: 5`) also incorrectly suppressed a ternary's "? combat.hp : 0" --
+   same "FIELD immediately followed by optional whitespace then a colon"
+   shape. This left one stale read in tools/tests/downed_ledger.js
+   (`const enemyHpAfter = s.combat ? s.combat.hp : 0;`), caught by a
+   dedicated repo-wide grep for the pattern after the main rewrite and
+   fixed by hand (confirmed to be the only occurrence anywhere in the
+   repo). The script's guard was tightened to require an actual
+   terminator (`,` or `}`) after the colon's value before treating it as
+   an object-literal key.
+
+All ~130 production-file occurrences were already confirmed (prior
+commits 5cadf8f, 7917001) to need no activeIndex-mutation caching
+analysis, since the fields' real storage already lives on
+`enemies[activeIndex]` itself and activeEnemySlot(combat) re-derives
+activeIndex fresh on every call. The same holds for every occurrence in
+this batch: each is an independent single-call read/write local to one
+statement, with no span of code between two accesses that could itself
+move activeIndex.
+
+Verified: full suite 445/445, zero audit errors, and both Layer 2
+whole-fight harnesses (boss_sweep.js, plus3_run.js) bit-for-bit identical
+against the pre-batch baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  6 +-
+ js/data/synergy.js                                 | 18 ++---
+ js/engine/resolver.js                              | 12 +--
+ tools/tests/ally_protection_ledger.js              | 22 +++---
+ tools/tests/d1_stun_fix_ledger.js                  |  8 +-
+ tools/tests/downed_ledger.js                       | 10 +--
+ tools/tests/dregnar_stage_a_ledger.js              | 68 ++++++++---------
+ tools/tests/dregnar_stage_b_ledger.js              | 86 +++++++++++-----------
+ tools/tests/phase1_step1a_combatant_ledger.js      |  2 +-
+ tools/tests/phase1_step1b_pipeline_parity.js       |  4 +-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |  4 +-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |  6 +-
+ .../phase1_step1g_i_dregnar_targeting_parity.js    | 10 +--
+ tools/tests/phase1_step1g_ii_healing_parity.js     |  2 +-
+ .../phase1_step1g_vii_field_move_batch5_ledger.js  |  8 +-
+ tools/tests/test_reaction_proof_ledger.js          |  6 +-
+ 16 files changed, 136 insertions(+), 136 deletions(-)

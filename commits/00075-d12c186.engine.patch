@@ -1,0 +1,30 @@
+diff --git a/js/engine/resolver.js b/js/engine/resolver.js
+index c3b77b8..4791150 100644
+--- a/js/engine/resolver.js
++++ b/js/engine/resolver.js
+@@ -34,7 +34,7 @@ function usePlayerAction(state, actionId) {
+   const out = beginTurn(state);
+   if (!state.combat) return out;
+   state.combat.turnTaken = true;
+-  if (state.combat.hp <= 0) {
++  if (activeEnemySlot(state.combat).hp <= 0) {
+     out.push(...resolveKill(state, creature));
+     if (!state.combat || state.health <= 0) return out;
+     creature = getCombatCreature(state);
+@@ -73,11 +73,11 @@ function usePlayerAction(state, actionId) {
+ 
+   const enemySlot = {
+     creatureObj: creature,
+-    get hp() { return state.combat.hp; },
+-    set hp(v) { state.combat.hp = v; },
+-    get maxHp() { return state.combat.maxHp; },
+-    get lastDamageType() { return state.combat.lastDamageType; },
+-    set lastDamageType(v) { state.combat.lastDamageType = v; },
++    get hp() { return activeEnemySlot(state.combat).hp; },
++    set hp(v) { activeEnemySlot(state.combat).hp = v; },
++    get maxHp() { return activeEnemySlot(state.combat).maxHp; },
++    get lastDamageType() { return activeEnemySlot(state.combat).lastDamageType; },
++    set lastDamageType(v) { activeEnemySlot(state.combat).lastDamageType = v; },
+   };
+   const actor = makePlayerCombatant(state);
+   const target = makeEnemyCombatant(state, enemySlot, state.combat.activeIndex);
