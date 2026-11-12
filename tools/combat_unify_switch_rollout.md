@@ -150,3 +150,40 @@ Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
 against U3a's own after-state
 (`boss_sweep_u3d.json`/`plus3_u3d.json` vs.
 `boss_sweep_u3a.json`/`plus3_u3a.json`).
+
+## U3e — enemy's banked Defense bonus protects from Hadrian too
+
+**Zero cells moved on either harness, but this one has a real,
+confirmed trigger surface** (unlike U3a/U3d): Dregnar's own Sure
+Foundation (`dra_e05_sure_foundation`, +2 effective Defense on the
+NEXT incoming physical hit after Dregnar takes one, one pending
+charge) is the one of the three mechanics U3e covers that's actually
+wired to re-grant in `applyAndReactAllyActor`, and Dregnar is in
+plus3_run.js's own roster. It needs a specific sequence (another
+physical hit lands on Dregnar, then Hadrian's hit lands before the
+charge expires) and is a flat, modest +2 Defense when it does — small
+enough, and conditional enough, to plausibly not cross the 3-point
+threshold at 200 trials/cell even though it's genuinely firing some
+of the time. Handoff §6 explicitly expects U3e (and U3f/U3g/U1) to
+make Hadrian fights harder; a small, below-threshold effect here
+isn't a sign the switch did nothing, just that this particular
+mechanic's magnitude is modest against the current roster.
+
+Found and fixed a real test-infrastructure bug surfaced by this flip
+(same family as U3b's, different files): `phase1_step1c_ally_pipeline_parity.js`
+and `phase1_step1d_ally_attack_pipeline_parity.js` compare live output
+against a fixture frozen in step 1h-i, before any COMBAT_UNIFY switch
+existed — their parity claim only ever held with every switch off.
+Once U3e's own default flipped true, 13 of their scenarios started
+comparing U3e's intentionally new state (freshly-zeroed/re-granted
+banked-Defense fields written onto the creature object on every
+kit-bearing ally hit, even where the actual bonus value didn't
+change) against the pre-switch oracle, and failed for the right
+reason but the wrong test (441/454). Fixed by pinning `COMBAT_UNIFY`
+to all-false inside both files' own `runOne`, same fix as
+`combat_unify_switches_ledger.js` got for U3b.
+
+Full suite 454/454 (with that fix in place), `tools/audit.js` 0
+errors, both harnesses re-run against U3d's own after-state
+(`boss_sweep_u3e.json`/`plus3_u3e.json` vs.
+`boss_sweep_u3d.json`/`plus3_u3d.json`).
