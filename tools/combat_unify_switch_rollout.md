@@ -91,3 +91,27 @@ above already landed), `tools/audit.js` 0 errors, both harnesses
 re-run against U2's own after-state
 (`boss_sweep_u3b.json`/`plus3_u3b.json` vs.
 `boss_sweep_u2.json`/`plus3_u2.json`).
+
+## U3c — Winter's Verdict vs. an ally
+
+**Zero cells moved on either harness.** Winter's Verdict (First
+Sword's Regalia 8pc) fires when the ally carrying `ally.statuses.chilled`
+is hit, which needs Chill to already be on an ally in the first place —
+same party-share-roll gate as U3b, plus whatever applies Chill in the
+current roster, narrow enough to not cross the 3-point threshold here
+either.
+
+Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
+against U3b's own after-state
+(`boss_sweep_u3c.json`/`plus3_u3c.json` vs.
+`boss_sweep_u3b.json`/`plus3_u3b.json`).
+
+**Dregnar's combined total change across all three of his switches
+(U2 + U3b + U3c):** zero cells moved on either harness, confirmed by
+comparing the §5 zero-switches baseline directly against
+`boss_sweep_u3c.json`/`plus3_u3c.json` (the state after all three are
+on) rather than just summing three zero deltas. None of Unquenched
+Focus, Flowing Discipline, or Winter's Verdict crossed the 3-point
+threshold individually or cumulatively against this roster at current
+trial counts — a real, measured "no impact yet," not an assumption
+that three zeros add to zero.
