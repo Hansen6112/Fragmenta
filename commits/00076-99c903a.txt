@@ -1,0 +1,66 @@
+range: d12c186e1f7c6dcbe0fa6a9f77e156bdf3307ddb..99c903ac40efa8c78b06666d6729b64e2d10c9b9
+=== 99c903ac40efa8c78b06666d6729b64e2d10c9b9 2026-11-12 01:08:42 +0000
+Step 1h-iv §4: delete wireActiveEnemyProxy -- PER_ENEMY_FIELDS proxy fully removed
+The last call sites were rewritten in d12c186; this commit deletes the
+proxy constructor itself and its one call site in startCombat, completing
+step 1h-iv. PER_ENEMY_FIELDS (the field-name list) stays -- it's still a
+live reference, both for activeEnemySlot's own neighboring comment and
+for the 6 Layer 1 parity test files' snapshot() flattening (below).
+
+Two things found while confirming the deletion was genuinely clean, not
+just passing tests by coincidence:
+
+1. state.combat's own object literal (in startCombat) carried a stray
+   `reinforcedAttackCount: 0` data property -- a leftover default seed
+   that predates the multi-enemy refactor. While wireActiveEnemyProxy was
+   still wired, Object.defineProperty silently replaced it with the
+   accessor on the same tick, so it was never visible. Once the proxy
+   was gone, this would have made `state.combat.reinforcedAttackCount`
+   quietly return 0 instead of genuinely being undefined -- the real
+   "stale value, not a clean break" risk the handoff flagged for this
+   step, just arrived from the literal rather than from the proxy's own
+   construction. Removed; the real per-enemy initializer two lines
+   earlier in the same function (enemies.map(...)) is untouched and was
+   always the one that mattered.
+
+2. Deleting the proxy changes what JSON.stringify(state.combat) produces
+   again, the same way deleting wirePlayerFieldsProxy did in 1h-iii: the
+   24 PER_ENEMY_FIELDS entries stop being enumerable top-level keys on
+   combat. The 6 Layer 1 parity files' snapshot() functions already
+   reconstruct the pre-1h-iii flat shape for .player; extended the same
+   function in each to also copy the active enemy's own PER_ENEMY_FIELDS
+   values back onto the flattened copy (by name, not a wholesale object
+   merge, since the enemy record also carries fields -- alive,
+   counterGuardUsedThisRound, ... -- that were never part of the old
+   flat alias and must not leak into the comparison). Verified this was
+   actually necessary, not just precautionary, by running the suite
+   before writing the fix and confirming exactly these 6 files'
+   PARITY-tagged scenarios failed; re-ran after and confirmed the
+   expected 445/445 with no further changes needed elsewhere.
+
+Verified with a direct in-page check (new GameState, startCombat,
+inspect state.combat for all 24 field names): every one is a genuine
+own-property miss (Object.prototype.hasOwnProperty -> false), while
+activeEnemySlot(state.combat).hp correctly resolves to the real
+per-enemy value -- the proof condition the handoff asked for.
+
+Full suite 445/445, zero audit errors, both Layer 2 whole-fight harnesses
+(boss_sweep.js, plus3_run.js) bit-for-bit identical against the
+pre-deletion baseline.
+
+Step 1h-iv (remove PER_ENEMY_FIELDS proxy) is now complete. Remaining in
+step 1h: 1h-v (turn on audit rule P3, regenerate the field ledger, write
+tools/combat_1h_coverage.md, update the tests README).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                | 61 +++++++---------------
+ tools/tests/phase1_step1b_pipeline_parity.js       | 33 ++++++++----
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  | 13 +++--
+ .../phase1_step1d_ally_attack_pipeline_parity.js   | 13 +++--
+ ...hase1_step1e_i_player_attack_pipeline_parity.js | 13 +++--
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    | 13 +++--
+ .../phase1_step1e_iii_elements_pipeline_parity.js  | 13 +++--
+ 7 files changed, 91 insertions(+), 68 deletions(-)

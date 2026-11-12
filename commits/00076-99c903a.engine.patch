@@ -1,0 +1,93 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 4d30e8b..62664d9 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -49,21 +49,10 @@ function getCombatCreature(state) {
+ // hp/maxHp/creatureObj plus every debuff that's genuinely inflicted ON a
+ // specific creature (Disarm, Corrode, Hamstring, burn/bleed, Reinforced's
+ // counter, the stun flag, its own last-damage-type). state.combat.activeIndex
+-// is whichever enemy the player is currently targeting.
+-//
+-// Rather than rewrite the ~50 existing damage/effect functions throughout
+-// this file to thread an enemy index through everywhere, these dozen or so
+-// fields are defined as live getters/setters on state.combat itself,
+-// transparently proxying to state.combat.enemies[state.combat.activeIndex].
+-// Every existing line of code that reads or writes state.combat.hp,
+-// .creatureObj, .corroded, etc. keeps working completely unchanged — it
+-// always operates on "whichever enemy is currently active," and switching
+-// target (or resolveKill advancing past a dead one) just moves what that
+-// means. Everything else on state.combat (all the Divine Regalia/
+-// Legendary/Mythic stacking buffs, cooldowns, action counters) is genuinely
+-// player-side and fight-scoped, not tied to any one enemy, so it's
+-// untouched by this — a plain property on the shared object, same as before
+-// multi-enemy fights existed.
++// is whichever enemy the player is currently targeting. PER_ENEMY_FIELDS
++// below is just the list of field names that live there, not on
++// state.combat itself — activeEnemySlot(combat), right after it, is how
++// every call site reaches them.
+ const PER_ENEMY_FIELDS = [
+   "creatureId", "creatureObj", "dynamicCreature", "name",
+   "hp", "maxHp",
+@@ -77,31 +66,21 @@ const PER_ENEMY_FIELDS = [
+   "summonSourceKey", // null for anything rolled into the fight normally; set to the summoning ability's own id for anything summoned mid-fight — see resolveEnemySummon
+ ];
+ 
+-function wireActiveEnemyProxy(combat) {
+-  PER_ENEMY_FIELDS.forEach((field) => {
+-    Object.defineProperty(combat, field, {
+-      configurable: true,
+-      enumerable: true,
+-      get() { return combat.enemies[combat.activeIndex][field]; },
+-      set(v) { combat.enemies[combat.activeIndex][field] = v; },
+-    });
+-  });
+-}
+-
+-// Step 1h-iv: the explicit replacement for the alias above -- takes
+-// `combat` (state.combat), same as wireActiveEnemyProxy itself, so a
+-// call site already holding that local needs no extra lookup. Re-reads
+-// activeIndex fresh on every call, exactly like the proxy's own get/set
+-// above do -- so a call site that invokes activeEnemySlot(combat) at
+-// each individual access point (rather than caching its return value
+-// across a span of code that might itself change activeIndex, e.g.
+-// resolveKill advancing to a survivor) is unconditionally safe at any
+-// call depth, matching the proxy's behavior exactly. Where a function
+-// already holds a stable local reference to the specific enemy record
+-// it means (one that provably doesn't change out from under it for the
+-// span it's used), that local is used directly instead, for both
+-// clarity and because it's often the record this step's own call site
+-// needs regardless of whatever "active" currently means elsewhere.
++// Step 1h-iv: until this step, the ~50 existing damage/effect functions
++// throughout this file read/wrote these fields as flat combat.<field>
++// properties, transparently proxied (via wireActiveEnemyProxy, now
++// deleted) to combat.enemies[combat.activeIndex][field]. Every call site
++// now calls activeEnemySlot(combat) directly at each individual access
++// point instead (rather than caching its return value across a span of
++// code that might itself change activeIndex, e.g. resolveKill advancing
++// to a survivor), which re-reads activeIndex fresh on every call exactly
++// like the old proxy's own get/set did — unconditionally safe at any call
++// depth, matching the deleted proxy's behavior exactly. Where a function
++// already holds a stable local reference to the specific enemy record it
++// means (one that provably doesn't change out from under it for the span
++// it's used), that local is used directly instead, for both clarity and
++// because it's often the record that call site needs regardless of
++// whatever "active" currently means elsewhere.
+ function activeEnemySlot(combat) {
+   return combat.enemies[combat.activeIndex];
+ }
+@@ -5609,7 +5588,6 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     avatarOfFreedomUsed: false, // gates Avatar of Freedom's (Regalia of the Endless Horizon 6pc) below-25%-HP burst
+     avatarOfFreedomTurns: 0, // Avatar of Freedom's temporary evasion/cooldown-speed/restriction-bypass duration remaining
+     temperedSteelStacks: 0, // Tempered Steel's (Divine Regalia) stacking +2% damage per successful attack, capped at 15 (+30%)
+-    reinforcedAttackCount: 0, // Reinforced's (Divine Regalia) every-3rd-enemy-attack counter
+     reinforcedDefStacks: 0, // Reinforced's stacking +2 Defense per 3rd enemy attack, capped at 20
+     workRefinesAtkStacks: 0, // Work Refines' (Divine Regalia) stacking +2 Attack per 3rd action, capped at 20
+     workRefinesMagicStacks: 0, // Work Refines' stacking +2 Magic per 3rd action, capped at 20
+@@ -5662,7 +5640,6 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     // pick the down's injury group (§5).
+     playerLastHitType: null,
+   };
+-  wireActiveEnemyProxy(state.combat);
+   // Step 1h-iii: the player's own combat state, same shape as every
+   // other state.combat key (enemies, activeIndex, ...) now that nothing
+   // reads any of the 130 PLAYER_FIELDS entries off the flat
