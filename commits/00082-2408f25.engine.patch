@@ -1,0 +1,13 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 95e7b17..f54d309 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -109,7 +109,7 @@ const COMBAT_UNIFY = {
+   // the TARGET (combat.player.exposedTarget), not just the player, and the
+   // marked-target accuracy bonus is read/consumed on an ally-targeted
+   // roll too.
+-  U3a: false,
++  U3a: true,
+   // Flowing Discipline (First Sword's Regalia 6pc): the banked +10%
+   // physical-damage bonus fires on an ally-targeted hit too.
+   U3b: true,

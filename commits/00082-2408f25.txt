@@ -1,0 +1,18 @@
+range: a10360d8eb683902e5f3c69d384d1ec484f36858..2408f25a207010fdf1c268c1022181877994cd39
+=== 2408f25a207010fdf1c268c1022181877994cd39 2026-11-12 06:07:18 +0000
+Phase 1 handoff §6, switch 4/9: flip U3a (Marked Target vs. ally)
+U3a lets Marked Target (sang_cu_ie002_marked_target) mark the TARGET
+(combat.player.exposedTarget) rather than always the player, and the
+marked-target accuracy bonus is read/consumed on an ally-targeted
+roll too -- reach: Sanguivorum fights.
+
+Full suite 454/454, tools/audit.js 0 errors. Layer 2 harness
+comparison against U3c's after-state is running in the background;
+result to follow in tools/combat_unify_switch_rollout.md.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
