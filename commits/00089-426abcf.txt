@@ -1,0 +1,16 @@
+range: 4aad89b65509abefcb6ead2a593bab3d7c2cf326..426abcf55a4d609746d723dcbdb9c58062a6d82a
+=== 426abcf55a4d609746d723dcbdb9c58062a6d82a 2026-11-12 06:27:35 +0000
+Phase 1 handoff §6: document U3f result (real trigger surface, below threshold)
+U3f (Smuggler's Guard/Commander's Poise vs. Hadrian): zero cells
+moved on either harness against U3e's after-state. Real trigger
+confirmed -- the Highway Captain wears Commander's Insignia -- but
+Commander's Poise is a single, once-per-combat 10% reduction on
+whichever hit lands first, small and rare enough to plausibly stay
+below the 3-point threshold at 200 trials/cell.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
