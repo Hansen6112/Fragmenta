@@ -1678,6 +1678,8 @@ const BESTIARY = {
     name: "Elder Voreth-Sael",
     native: "Elder Voreth-Sael",
     tags: ["lake", "cave"],
+    // Decisions Addendum (Tyler, 12 Nov 2026, approved): a fish, and it bites.
+    attackType: "piercing",
     hp: 37, atk: 20, def: 8, spd: 18, acc: 7, agi: 11,
     description: "An ancient mirror-scaled fish said to live in sacred springs, its reflection dangerous long before its bite is.",
     combatNotes: "From the Fragmenta Master Enemy Codex.",
@@ -1889,6 +1891,8 @@ const BESTIARY = {
     native: "Rau-Thauln Voreth",
     tags: ["forest", "tundra"],
     nations: ["norrvael"],
+    // Decisions Addendum (Tyler, 12 Nov 2026, approved): claws.
+    attackType: "slashing",
     hp: 40, atk: 15, def: 10, spd: 19, acc: 7, agi: 6,
     description: "A frost-pale hunter of the boreal snowfields whose exact position is never quite where it looks.",
     combatNotes: "From the Fragmenta Master Enemy Codex.",
@@ -1906,6 +1910,8 @@ const BESTIARY = {
     native: "Elder Rau-Thauln Voreth",
     tags: ["forest", "tundra"],
     nations: ["norrvael"],
+    // Decisions Addendum (Tyler, 12 Nov 2026, approved): claws.
+    attackType: "slashing",
     hp: 47, atk: 10, def: 10, spd: 22, acc: 9, agi: 6,
     description: "Its illusion has perfected past mere misdirection — glacial passes are said to hold a dozen of it at once, all false but one.",
     combatNotes: "From the Fragmenta Master Enemy Codex.",

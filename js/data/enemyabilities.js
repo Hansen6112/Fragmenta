@@ -366,9 +366,12 @@ const ENEMY_ABILITIES = {
   // Reacts only to Mirror Scales actually triggering, so it's equally
   // unwired for the same reason.
   distorted_reality: { name: "Distorted Reality", type: "passive", trigger: "onMirrorScalesProc", selfBuff: { spd: 10, acc: 10, turns: 1 } },
-  reflection_strike: { name: "Reflection Strike", type: "active", cooldown: 2, dmgMult: 1.45, inflict: { status: "disoriented", chance: 1 } },
+  // Decisions Addendum (Tyler, 12 Nov 2026, approved): the mirror/illusion
+  // theme lives in Disoriented and the Agility buffs, not the damage
+  // type -- Elder Voreth-Sael is a fish, and it bites. Piercing.
+  reflection_strike: { name: "Reflection Strike", type: "active", cooldown: 2, dmgMult: 1.45, damageType: "piercing", inflict: { status: "disoriented", chance: 1 } },
   ripple_veil: { name: "Ripple Veil", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 10, turns: 1 } },
-  mirrored_assault: { name: "Mirrored Assault", type: "active", cooldown: 5, dmgMult: 1.8, bonusVsStatus: { status: "disoriented", mult: 1.25 } },
+  mirrored_assault: { name: "Mirrored Assault", type: "active", cooldown: 5, dmgMult: 1.8, damageType: "piercing", bonusVsStatus: { status: "disoriented", mult: 1.25 } },
   // Not yet wired — no hook fires when a creature uses a specific active,
   // only firstAttack-style one-shot bonuses (see Ambush/Patient Hunter
   // above).
@@ -422,13 +425,17 @@ const ENEMY_ABILITIES = {
   master_canopy_hunter: { name: "Master Canopy Hunter", type: "passive", trigger: "onCrit", selfBuff: { spd: 10, acc: 10, turns: 1 } },
   diving_pounce: { name: "Diving Pounce", type: "active", cooldown: 3, dmgMult: 1.6, inflict: { status: "off_balance", chance: 1 } },
   branchbound_retreat: { name: "Branchbound Retreat", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 1 } },
-  death_from_above: { name: "Death From Above", type: "active", cooldown: 5, dmgMult: 2.0, bonusVsStatus: { status: "off_balance", mult: 1.3 } },
+  // Decisions Addendum (Tyler, 12 Nov 2026, approved): talons -- Slashing.
+  death_from_above: { name: "Death From Above", type: "active", cooldown: 5, dmgMult: 2.0, damageType: "slashing", bonusVsStatus: { status: "off_balance", mult: 1.3 } },
   // ---- Voreth ----
   illusory_form: { name: "Illusory Form", type: "passive", trigger: "independentMissChance", chance: 0.25 },
   perfect_illusion: { name: "Perfect Illusion", type: "passive", trigger: "onMirrorScalesProc", selfBuff: { spd: 10, acc: 10, turns: 1 } },
-  phantom_strike: { name: "Phantom Strike", type: "active", cooldown: 3, dmgMult: 1.55, inflict: { status: "disoriented", chance: 1 } },
+  // Decisions Addendum (Tyler, 12 Nov 2026, approved): claws, not Spirit
+  // -- same "illusion lives in the status, not the damage type" ruling
+  // as Elder Voreth-Sael's own pair, above.
+  phantom_strike: { name: "Phantom Strike", type: "active", cooldown: 3, dmgMult: 1.55, damageType: "slashing", inflict: { status: "disoriented", chance: 1 } },
   veilstep: { name: "Veilstep", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { agi: 20, turns: 1 } },
-  mirror_hunt: { name: "Mirror Hunt", type: "active", cooldown: 5, dmgMult: 1.95, bonusVsStatus: { status: "disoriented", mult: 1.3 } },
+  mirror_hunt: { name: "Mirror Hunt", type: "active", cooldown: 5, dmgMult: 1.95, damageType: "slashing", bonusVsStatus: { status: "disoriented", mult: 1.3 } },
 
   // ---- Dreadroot (Magical Creatures D) ----
   // Corrupted Grove and Grave Bloom are now real (see the Summoner
