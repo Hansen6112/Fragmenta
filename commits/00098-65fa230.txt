@@ -1,0 +1,142 @@
+range: a79b50cc0c63c5aa7edb02f727ba55637af1f1e6..65fa23083f7e6994143398f4d603e109ac69fc3c
+=== 65fa23083f7e6994143398f4d603e109ac69fc3c 2026-11-12 23:05:44 +0000
+Damage Types: Content Load (Step 3 Data) + §2/§3 engine work
+Loads the three reviewed CSVs (damage-types-candidates/1_weapons.csv,
+2_enemy_abilities.csv, 3_creatures.csv -- ~1,000 rows, Tyler's 12 Nov
+review) onto ITEM_DEFS/ENEMY_ABILITIES/BESTIARY via a committed,
+idempotent script (tools/load_damage_types_content.js) rather than by
+hand. 4_statuses.csv and 5_variants.csv are included too for the
+record; variants were already fully loaded in A5/the Addendum, and
+4_statuses.csv's T7 decisions land as the status-engine work below.
+
+Loaded: 331 weapon damageType fields, 161 ENEMY_ABILITIES damageType
+fields, 143 BESTIARY attackType + 17 dmgTags + 6 statusImmune fields.
+Skipped per the handoff's own table: "(not a weapon)"/"(attacker's
+basic type)" rows (no field, engine falls back), and the 8 explicitly
+held weapons (§4: Widow's Lament, Emberfall, Black Horizon, Oathbreaker,
+Seven Sorrows, Sovereign, Night Requiem, Galecaller).
+
+Flagged, not guessed at: 6 mainhand "(not a weapon)" CSV rows carry the
+OFFHAND reasoning text ("shield/focus/quiver-type offhand") on a
+mainhand row, suggesting a CSV-authoring mismatch -- "a caravan guard
+saber" and "a red banner greatsword" look like straightforward
+mis-tagged weapons (their own atk bonuses and effects say otherwise);
+"a river focus staff", "a crystal focus rod", "Lantern of Quiet
+Passage", "Codex of Infinite Horizons" are plausibly correct as mage
+foci but share the same wrong reasoning text. Left unloaded exactly as
+the CSV says rather than silently overridden. Separately, 12 BESTIARY
+NPCs ("(from weapon)") have no actual equipped mainhand weapon either
+(caravan_sellsword, veteran_merchant_guard, veteran_fedahl,
+bandit_cutthroat, highway_cutthroat, ferratum_veteran, aqualis_marine,
+gradus_veteran, ductus_section_commander, veteran_city_guard,
+rural_militia_fighter, road_convoy_guard) -- a pre-existing equipment-
+wiring gap unrelated to this content load, left alone as out of scope.
+
+Engine extensions (js/data/damagetypes.js, js/engine/combat.js), off
+by default:
+- §2a: resolveDamageType's creatureAttackType can now also be
+  "fromCreature" -- a generic Elemental's own basic attack (no weapon,
+  no ability) uses its spawned variant's element, same as A5 already
+  did for abilities.
+- §2b: a variant can declare abilityOverrides ({abilityId: {dmgMult,
+  aoe}}), read in resolveEnemyActiveAbility right alongside A5's own
+  variantStatus override. Heated Mist (Mist-blooded Skrel-Drak) uses it
+  for the Codex's "150% Attack to all enemies, applies Burn" --
+  inherited_breath's base 1.8x single-target becomes 1.5x AoE only for
+  that one variant.
+
+Status work (js/data/enemyabilities.js), all off by default and
+verified not to touch any EXISTING unconditional use of these statuses
+(venom/sang_iag_poison/chilled are already inflicted by content that
+predates this switch entirely):
+- T7: Venom becomes stacking (max 3); Poison (sang_iag_poison) gains a
+  -10% Atk/Acc debuff (Accuracy approximated as a flat -8, same
+  precedent as Stagger's own Defense approximation) while staying
+  non-stacking. Both land in a new `v2` sub-object merged in by
+  getStatusEffect only when the switch is on -- DAMAGE_TYPES_V2 isn't
+  defined yet when this file's own STATUS_EFFECTS literal evaluates
+  (it loads before damagetypes.js), but it is by the time the function
+  actually runs, same pattern already used elsewhere in files with this
+  load order (js/data/actions.js's equipmentWeaponDamageType).
+- Blight's damageType is Necrotic (not Poison) -- corrects
+  damagetypes.js's own LEGACY_STATUS_DAMAGE_TYPE_V2 bridge, which had
+  guessed Poison for all three DOTs before this review existed.
+- T8: Chilled escalates into a new Frozen status (Initiative -10,
+  Accuracy -5, 2 turns) at the end of its own natural duration, via the
+  existing-but-previously-undispatched escalatesAt/escalatesTo fields.
+  Wired generically in tickPlayerStatuses/tickAllyStatuses, gated by
+  the switch; this also activates Drowsy -> Asleep as an accepted,
+  lossless side effect of using the field rather than special-casing
+  Chilled alone (Blight Seed/Constrict's own STACK-based escalation --
+  escalatesAt counts stacks, turns: 99 so it never naturally expires by
+  duration -- is untouched).
+- New signature statuses for the remaining elementVariants not already
+  covered (Rooted, for the Plant Elemental, already existed and needed
+  nothing): Corrosion, Shocked, Drenched, Crushed, Obscured, Ashen
+  Lungs, with Codex values from 5_variants.csv. Ashen Lungs' own -25%
+  healing-received clause needed one new generic debuff key
+  (healingReceivedPct, read in applyHeal the same way every other *Pct
+  modifier already is via playerStatusStatPctTotal) -- scoped to the
+  player only, matching every other such modifier in applyHeal; no
+  ally equivalent exists to hook into.
+
+Bug found and fixed along the way: six historical Phase 1 migration-
+proof test files (phase1_step1{b,c,d,e_i,e_ii,e_iii}_*.js) all use
+Stoneback Beetle as their one fixed subject creature and compare a live
+run against a snap string frozen (step 1h-i) before the legacy oracle
+functions were deleted -- there is no way to regenerate that frozen
+half ever again. Giving Stoneback Beetle real content (attackType)
+for the first time grew its creatureObj, which both runs embed in full,
+so the two snaps diverged on pure static-template growth having nothing
+to do with the parity these tests actually check (every one of these
+failures showed resultMatch: true, snapMatch: false). Fixed by having
+each file's own snap-comparison strip a creatureObj (detected by shape:
+bestiaryKey present) down to everything except
+attackType/dmgTags/statusImmune before comparing, applied uniformly to
+both the live and frozen side.
+
+Also fixed: tools/audit.js's BESTIARY D1 rule only ever accepted
+slashing/piercing/blunt as a valid attackType -- correct before any
+creature had a real attackType at all, but now wrong given this load's
+own data (Fire Elemental "fire", Banshee/Wraith "spirit", the Kabal
+Enforcer Patrol "force", ...). Now accepts the full DAMAGE_TYPES_SET
+plus "fromCreature".
+
+New VM-sandbox ledger (tools/tests/damage_types_content_load_ledger.js,
+same text-patched-switch technique as the A1/A5 ledgers) proves §2a,
+§2b (including the switch-off control case), Venom/Poison/Chilled-
+Frozen/Ashen-Lungs under both switch states, plus a content-load spot
+check. 16/16, registered in run_all.js.
+
+Full suite 515/515, audit 0 errors / 247 warnings (down from 869
+before this session's damage-types work began; the remainder is the
+8 held weapons, the 6 flagged CSV rows, the 12 pre-existing equipment
+gaps above, and abilities/tactics/elements correctly left generic by
+Tyler's own review -- none of it a gap this load left behind). Switch
+off throughout; off-switch behavior is unchanged.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ damage-types-candidates/1_weapons.csv              | 525 ++++++++++++++++
+ damage-types-candidates/2_enemy_abilities.csv      | 224 +++++++
+ damage-types-candidates/3_creatures.csv            | 234 ++++++++
+ damage-types-candidates/4_statuses.csv             |   6 +
+ damage-types-candidates/5_variants.csv             |  18 +
+ js/data/bestiary.js                                | 176 +++++-
+ js/data/damagetypes.js                             |  10 +
+ js/data/enemyabilities.js                          | 406 +++++++------
+ js/data/items.js                                   | 662 ++++++++++-----------
+ js/engine/combat.js                                |  59 +-
+ tools/audit.js                                     |  10 +-
+ tools/load_damage_types_content.js                 | 246 ++++++++
+ tools/tests/damage_types_content_load_ledger.js    | 226 +++++++
+ tools/tests/phase1_step1b_pipeline_parity.js       |  36 +-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |  25 +-
+ .../phase1_step1d_ally_attack_pipeline_parity.js   |  28 +-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |  28 +-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |  28 +-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |  28 +-
+ tools/tests/run_all.js                             |   1 +
+ 20 files changed, 2466 insertions(+), 510 deletions(-)

@@ -1,0 +1,7505 @@
+[
+ {
+  "reg": "SKREL_DRAK_VARIANTS",
+  "id": "heated_mist",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "abilityOverrides",
+    "new": {
+     "inherited_breath": {
+      "dmgMult": 1.5,
+      "aoe": true
+     }
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "stoneback_beetle",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "mirrorfish",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "gloomhawk",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "cave_scorpion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ridgeback_boar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "thornhide",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "veilwing",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ashwyrm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "plainswolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "river_serpent",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "thunderbird",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "drake",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "dragon",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "vampire_turned",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "vampire_lesser",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "skeleton",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "zombie",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "animated_armor",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "golem_stone",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "poison": "immune"
+    }
+   },
+   {
+    "f": "statusImmune",
+    "new": [
+     "bleed",
+     "fear"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elemental_fire",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "fire"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "fire": "resist"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elemental_ice",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "frost"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "frost": "resist"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "banshee",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "wraith",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "stitched",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "diamond_tail",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "druith",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "maur_rau",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "vaelorn",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "kabal_enforcer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "force"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "street_bandit",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "hired_blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "watch_patrol",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "wildBoar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "razorback",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "direBoar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ironTusk",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "tuskKing",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "blackBear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "brownBear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "polarBear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "caveBear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greatMatriarchBear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "timberWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "direWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "duskWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "frostWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "frost": "resist"
+    }
+   },
+   {
+    "f": "statusImmune",
+    "new": [
+     "chilled"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ashWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "fire": "resist"
+    }
+   },
+   {
+    "f": "statusImmune",
+    "new": [
+     "burning"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "emeraldWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "duneWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "crimsonWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "alphaWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientWolf",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "giantRat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "caveRat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "direBeaver",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "giantPorcupine",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "burrowKing",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "wildcat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "lynx",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "panther",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "mountainLion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "lion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "sabertooth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientSabertooth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "baboon",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "chimpanzee",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "gorilla",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greatApe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greatWhiteApe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "terrorBird",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "duneOwl",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "shrike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "boneRoc",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "marshCrocodile",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "riverCrocodile",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "giantCrocodile",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "theFirstScale",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "giantSerpent",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderSerpent",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "titanSerpent",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "worldSerpent",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "youngAkharu",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "akharu",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greatAkharu",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "akharuMatriarch",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greaterDhulorvae",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderDhulorvae",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "wildKethRhovael",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "kethRhovaelGuardian",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "kethRhovaelQueen",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "juvenileDravenDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "adultDravenDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "youngSkrelDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "heated_mist",
+      "damageType": "water",
+      "status": "burning",
+      "displayName": "Mist-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river"
+      ]
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "heated_mist",
+      "damageType": "water",
+      "status": "burning",
+      "displayName": "Mist-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river"
+      ],
+      "abilityOverrides": {
+       "inherited_breath": {
+        "dmgMult": 1.5,
+        "aoe": true
+       }
+      }
+     }
+    ]
+   },
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientSkrelDrak",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "elementVariants",
+    "old": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "heated_mist",
+      "damageType": "water",
+      "status": "burning",
+      "displayName": "Mist-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river"
+      ]
+     }
+    ],
+    "new": [
+     {
+      "id": "fire",
+      "damageType": "fire",
+      "status": "burning",
+      "displayName": "Fire-blooded Skrel-Drak",
+      "preferredTags": [
+       "volcanic",
+       "desert"
+      ]
+     },
+     {
+      "id": "ice",
+      "damageType": "frost",
+      "status": "chilled",
+      "displayName": "Ice-blooded Skrel-Drak",
+      "preferredTags": [
+       "tundra",
+       "mountain"
+      ]
+     },
+     {
+      "id": "lightning",
+      "damageType": "lightning",
+      "status": "shocked",
+      "displayName": "Storm-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "plains"
+      ]
+     },
+     {
+      "id": "acid",
+      "damageType": "acid",
+      "status": "corrosion",
+      "displayName": "Acid-blooded Skrel-Drak",
+      "preferredTags": [
+       "swamp"
+      ]
+     },
+     {
+      "id": "heated_mist",
+      "damageType": "water",
+      "status": "burning",
+      "displayName": "Mist-blooded Skrel-Drak",
+      "preferredTags": [
+       "coast",
+       "lake",
+       "river"
+      ],
+      "abilityOverrides": {
+       "inherited_breath": {
+        "dmgMult": 1.5,
+        "aoe": true
+       }
+      }
+     }
+    ]
+   },
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "valdrekKethLarva",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "valdrekKethHunter",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "valdrekKethBroodQueen",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderVorethMauth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderLorvaunNauri",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "fire": "resist",
+     "frost": "resist",
+     "water": "resist",
+     "air": "resist",
+     "lightning": "resist",
+     "earth": "resist",
+     "acid": "resist",
+     "poison": "resist",
+     "force": "resist",
+     "spatial": "resist",
+     "spirit": "resist",
+     "necrotic": "resist",
+     "divine": "resist"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rauThaulnThaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientRauThaulnThaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rauThaulnMaur",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderRauThaulnMaur",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientRauThaulnMaur",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rauThaulnRavek",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderRauThaulnRavek",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientRauThaulnRavek",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rauThaulnVaelin",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderRauThaulnVaelin",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "dreadroot",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "lesserElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "greaterElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "primalElemental",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "fromCreature"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rootSulDaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "mummifiedSulDaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "bloatedSulDaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientSulDaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "armoredSulKeth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientSulKeth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "runicSulKeth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "boneSovereign",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "newSulRau",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "sulRau",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "rampagingSulRau",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "lesserVoranDaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "grandVoranDaun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "mauvenSulei",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "tormentedMauvenSulei",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "mourningSpirit",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "restlessDead",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "orvuinBoss",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "ancientOrvuin",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "homunculus",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "poison": "immune",
+     "blunt": "weak"
+    }
+   },
+   {
+    "f": "statusImmune",
+    "new": [
+     "bleed",
+     "fear"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "runicServitor",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "arcaneAutomaton",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "poison": "immune"
+    }
+   },
+   {
+    "f": "statusImmune",
+    "new": [
+     "bleed",
+     "fear"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "runeSentinel",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "primeConstruct",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "poison": "immune"
+    }
+   },
+   {
+    "f": "statusImmune",
+    "new": [
+     "bleed",
+     "fear"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "lesserThuelnMaur",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   },
+   {
+    "f": "dmgTags",
+    "new": {
+     "blunt": "weak"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "timberThuelnMaur",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "crystalThuelnMaur",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "elderThuelnMaur",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "BESTIARY",
+  "id": "legion_hound",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "attackType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "bleed",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "venom",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   },
+   {
+    "f": "v2",
+    "new": {
+     "stackable": true,
+     "maxStacks": 3
+    }
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "burning",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fire"
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "chilled",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "escalatesAt",
+    "new": 2
+   },
+   {
+    "f": "escalatesTo",
+    "new": "frozen"
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "blight",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "necrotic"
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "sang_iag_poison",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   },
+   {
+    "f": "v2",
+    "new": {
+     "debuff": {
+      "atkPct": -0.1,
+      "acc": -8
+     }
+    }
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "frozen",
+  "type": "added"
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "corrosion",
+  "type": "added"
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "shocked",
+  "type": "added"
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "drenched",
+  "type": "added"
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "crushed",
+  "type": "added"
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "obscured",
+  "type": "added"
+ },
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "ashen_lungs",
+  "type": "added"
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "reckless_charge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "gore",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dominant_charge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "overrun",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "earthshaker",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "earth"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "hamstring_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "frost_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "frost"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "searing_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fire"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sand_rush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "earth"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rend",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "savage_maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "execution_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "gnaw",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "quill_burst",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "stone_throw",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "earth"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ground_slam",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_grab",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_swing",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sweeping_blow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rending_peck",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "talon_rush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dive_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "impale",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "wing_buffet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "air"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_talons",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "tempest_wings",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "air"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "tail_whip",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "death_roll",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "tail_slam",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rending_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "cataclysmic_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "venom_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "quick_coil",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_coil",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "devour",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "cataclysmic_coil",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "chitin_charge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_mandibles",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "bone_slash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "bone_volley",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "shield_crush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_bones",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "bone_prison",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "bone_storm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "charge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "smash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "kings_maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "venomous_sting",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "venomous_sting_dhulorvae",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "pincer_slam",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "pincer_crush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "pincer_crush_dhulorvae",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "impaling_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "cataclysmic_sting",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_pincers",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "claw_rend",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "tail_sweep",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crystal_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "piercing_tail",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crystal_ram",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crystal_impalement",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dust_cloud",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dust_cloud_aoe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "startled_flight",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "air"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dream_mist",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crystal_gore",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "somersault_charge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "blink_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spatial"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rift_rend",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spatial"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "cavebreaker",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "earth"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "volcanic_ambush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fire"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "root_harvest",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "earth"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "withering_roots",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "necrotic"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "putrid_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "root_snare",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "earth"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crushing_grip",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "putrid_burst",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "necrotic"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "grave_tide",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "necrotic"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sever_the_heart",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "soul_rend",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "flesh_hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rending_claw",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "catastrophic_slam",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "harvest_of_limbs",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "soul_drain",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "wail_beyond_death",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "spirit_rend",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ghostly_grasp",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "death_wail",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "eternal_grasp",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "spectral_touch",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "soul_chill",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "wail_of_the_forgotten",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "soul_rend_orvuin",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "deathly_lament",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "death_chorus",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "spirit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "arcane_jab",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "force"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "shield_bash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "arcane_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "force"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rune_pulse",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "force"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "cataclysm_beam",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "force"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "stone_fist",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "earth"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "branch_slam",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crystal_lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mana_pulse",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "force"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "cataclysmic_slam",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "elemental_convergence",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "fire"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "guardians_judgment",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "divine"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "precise_shot",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "calculated_volley",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "scorpion_lunge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dra_hammerfall",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dra_cleave",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "frost"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dra_judgment",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "frost"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dra_frostbite_brand",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "frost"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "club_smash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "quick_stab",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "committed_slash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "crossbow_volley",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dirty_cut",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "twin_blade_rush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "feinting_slash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "officers_cut",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "blood_price",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "shielded_thrust",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sabotaging_bolt",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ballista_discharge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ballista_scattershot",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "disrupting_javelin",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "impetum_lance_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "boarding_slash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "weapon_hook",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "veterans_cut",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "commanders_sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "handlers_spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "hound_bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_enforcement_baton",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_wardens_thrust",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_boarding_hook",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_harbor_cut",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_gatekeepers_spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_captains_sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_militia_thrust",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_heavy_axe_swing",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_disrupting_arrow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_hunters_shot",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_measured_sword_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_contract_bolt",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_captains_sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_trident_combination",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_entangling_net",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_masterful_cut",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_assassins_cut",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_bleeding_cut",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_disabling_slice",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_poisoned_edge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "poison"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_warleaders_cleave",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a short sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a curved desert blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a hunting bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a dwarven hand-axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a well-oiled dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a well-balanced hand-axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a nicked legion gladius",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sahrimor trade dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a well-balanced arming sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a dwarven mining pick, honed for war",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a lizardfolk bone-spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ash-tempered war-axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Kabal-forged conduit blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a plainsman's utility blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Sanguivorum infantry spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Vaeloris hunting knife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Sahrimori caravan saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Thraekor splitting axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Norrvael boarding sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a legion arming spear, weighted for formation fighting",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an elven thornwood bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Kharzun canyon pick",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a desert duelist's shamshir",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Norrvael watchman's poleaxe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a lizardfolk marsh-hunting spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a legion veteran's gladius",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Vaeloris heartwood longbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ash-weighted dwarven maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Sahrimori serpent-blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Norrvael storm-rider lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a swamp-forged bone billhook",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a legion commander's spatha",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a black-ash executioner's axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a mistwood recurve bow strung with silver sinew",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Kabal dueling focus shaped as a narrow blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Thraekor forge-hammer bearing an intact clan mark",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a glass-edged saber from the Black Sands",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a drakebone hunting bow, fletched with shed scale",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a masterwork blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a bundle of roughly fletched hunting arrows",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a Sahrimori parrying dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a siege engineer's war pick",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a stonebreaker hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a novitiate conduit rod",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an examiner's focus blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a river warden staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a legion recruit's gladius",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a legion centurion's spatha",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a legion formation spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a vanguard breaching axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a vanguard great hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a vanguard execution blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a vanguard war maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a scout corps recurve",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a long patrol bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a border scout spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a silent hunting knife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ashforged war axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a forge master's hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a black iron longsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ember pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a heartwood longbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a thornwoven bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an elder branch staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a willow spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a grand conduit blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an eightfold wand",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a guild enforcer's arming sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a guild caravan spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a safor trade saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a guild marshal's mace",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a courier's short sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a dispatch dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a roadwarden spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a messenger's hatchet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a hunter's longsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a beastslayer spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a trophy axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a monster cleaver",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an appraiser's walking staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a gem inspector's hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a precision chisel",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a valuation blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a stonewarden warhammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a granite cleaver",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a bastion axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a citadel spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a canopy longbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a thornrunner bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a branchguard spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a vineknife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sandstrider saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a dune spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a caravan defender blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a curved dust knife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a tide captain's saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a boarding pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a merchant prince's blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a harbor cutlass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a stormwatch longsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a tempest spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a cliffwarden axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a storm cutlass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a white watch blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a noble duelist's saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a silent pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a white watch dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a bone fang spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a marsh cleaver",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a spine club",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a drakebone greatsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a drakefang spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a scale cleaver",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a serrated carapace blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a queen spine lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a chitin crusher",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an elder bark staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a living branch spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a grovekeeper bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a bonecaller's scythe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ossuary spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a leviathan harpoon",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a tidebreaker blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a king's longsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a royal war spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a riverbranch staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a primordial focus blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a fragmenta blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a fragmenta lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a village blacksmith's sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a hunter's skinning knife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a river ferryman's polearm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an orchard billhook",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a woodsman's hatchet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a marsh reed spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an iron-banded mace",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a falconer's hunting spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a border militia sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a cliff watch axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a noble duelist's rapier",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a river warden pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a veteran huntsman's bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a high magistrate's ceremonial blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a tanner's skinning blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a cooper's mallet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a forester's hatchet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a fisherman's gaff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a boar hunter's spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a militia sergeant's sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a stone quarry pick",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a falcon knight's saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a highland claymore",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a noble huntsman's longbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ironwood war club",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a magistrate's execution sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a veteran pathfinder's spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a silver court rapier",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sanguivorum legionary's side sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a vaeloris ashwood hunting bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a thraekor black-iron cleaver",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a norrvael icewind saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sahrimor caravan scimitar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sanguivorum border pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a vaeloris thornblade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a thraekor forge pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a norrvael stormsteel longsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sahrimor dune falcon spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a crimson border sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an iron drill pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a highland war axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a blood oak longbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a magistrate's ceremonial sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ashwood hunting bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a thornwood spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a briar fang knife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a willowbranch staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a living vine whip",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an elderwood longbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a rootbound glaive",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a grovekeeper's blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a moonbark spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a heartwood warstaff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a black-iron hatchet",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a basalt war pick",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a forge clan axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an embersteel longsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a furnace hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an obsidian cleaver",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a runic forge spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a molten edge greatsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ashen king's hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a hearthfire war axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a white ash saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an icebreaker axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a coastwarden spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a stormglass rapier",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a froststeel longsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a harbor defender mace",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a whalebone harpoon",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a navigator's boarding blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a tempest pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a silversteel officer's sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a river merchant's scimitar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an oasis guard spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a brass-edged khopesh",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a caravan master's saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sunsteel falchion",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a dune rider lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "an ivory-hilt rapier",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a golden crescent blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sapphire caravan pike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a sunfire war scimitar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Dawnpiercer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Winter's Bite",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Leviathan's Folly",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Crownsplitter",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Whisper of Ash",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Eclipse",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "River's End",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ashmaker",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "The Hollow Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Worldrender",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "The Nameless Staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Dawnbloom Branch",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Loom of Destinies",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Warfather's Edge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Roseheart Scepter",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Trickster's Cane",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Foundation's Hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Forgefather's Hammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Tidecaller",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Epochkeeper",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Bloodbound Champion's Maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ascended Bloodbound Champion's Maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sahrimori Alley Shiv",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sahrimori Veilknife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Desert Fang Parrying Knife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Duskfang Veilknife",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sahrimori Reaver's Shiv",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Nightglass Fang",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scorpion-Tail Shiv",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Outlaw Command Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scourge of the Sandroads",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Oathsteel Contract Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sahrimori Saltwind Bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sunclan Warleader's Khopesh",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Marshal's Warblade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Merchant Lord Bastion Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Captain's Edict Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Oathbound Shieldhammer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Bahrun Boarding Hook",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Farahl Scout Lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ramahsi Patrol Bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sahrimori Vigil Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ramahsi Sharpshooter Bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Filhari Elephant Goad",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Akharul Venom-Lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Qahir Field Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Amahri Marshal Saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sardarr War Scimitar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ashquench",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Streetbreaker Club",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Cutpurse's Dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Street Shiv",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Roadside Spotter's Crossbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Cutthroat's Blade V1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Cutthroat's Shiv V1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Cutthroat's Blade V2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Cutthroat's Shiv V2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Cutthroat's Blade V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Cutthroat's Shiv V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Caravan Breaker Maul",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Border Smuggler's Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Outcast Primary Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Outcast Secondary Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Outlaw Handler's Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Highway Captain's Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Roadlord's Veteran Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Training Gladius",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Formation Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Blade V1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Blade V2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Legion Blade V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Calculated Crossbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Engineer Sidearm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ballistarius Crankbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ingenum Sidearm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Scout's Javelin",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Heavy War Lance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Boarding Cutlass",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Sailor's Hook",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Boarding Sword V1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Marine Boarding Sword V2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gladius V1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gladius V2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Gladius V3",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ductus Command Sword V1",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ductus Command Sword V2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Vigilis Command Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arbitarius Command Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Legion Handler Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Military Handler Sidearm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Civic Watch Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Market Enforcement Baton",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Warden's Patrol Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Harbor Boarding Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Watch Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran City Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master City Guard Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Frontier Gate Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Investigator's Precision Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Concealed Investigator Shiv",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Watch Captain's Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Veteran Guard Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Village Militia Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Woodcutter Axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Militia War Axe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Independent Hunting Bow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Sellsword Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veteran Contract Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Master Contract Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Heavy Crossbow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Free Company Command Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Prizefighter Trident",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Ovum Champion Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Contract Killer's Short Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Concealed Contract Dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Veiled Precision Blade",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Executor's Poisoned Dagger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Arena Handler's Spear",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "piercing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Militia Warleader's Sword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ }
+]
