@@ -1,0 +1,13 @@
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 692da7b..086c573 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -97,7 +97,7 @@ const COMBAT_UNIFY = {
+   // already handled as its own reaction by step 1f-iii (this file's
+   // header departure note above); U1 doesn't entangle a second open
+   // question with it.
+-  U1: false,
++  U1: true,
+   // Dregnar's Unquenched Focus (dra_e07) applies on his first successful
+   // elemental hit against an ally too, not just the player. Only
+   // meaningful with U1 also on (there's no elemental hit on an ally for
