@@ -136,3 +136,17 @@ Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
 against U3c's own after-state
 (`boss_sweep_u3a.json`/`plus3_u3a.json` vs.
 `boss_sweep_u3c.json`/`plus3_u3c.json`).
+
+## U3d — Toxic Preparation vs. an ally
+
+**Zero cells moved on either harness, same reason as U3a:** Toxic
+Preparation's trigger item (Executor's Poisoned Dagger) is worn only
+by the Veiled Executor (`js/data/bestiary.js`), which isn't in either
+harness roster, so this switch also has nothing to trigger from in
+boss_sweep.js or plus3_run.js. Reach is Sanguivorum fights, same as
+U3a — neither harness contains one.
+
+Full suite 454/454, `tools/audit.js` 0 errors, both harnesses re-run
+against U3a's own after-state
+(`boss_sweep_u3d.json`/`plus3_u3d.json` vs.
+`boss_sweep_u3a.json`/`plus3_u3a.json`).
