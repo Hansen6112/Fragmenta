@@ -2300,8 +2300,8 @@ function attackFlavorLine(state, creature, dmg, activeElement) {
 // beginTurn (i.e. actually executes), not rejected/invalid attempts.
 function applyHeartwoodVitality(state) {
   const combat = state.combat;
-  combat.actionCounter += 1;
-  if (!hasSetTier(state, "Heartwood", 6) || combat.actionCounter % 3 !== 0) return [];
+  combat.player.actionCounter += 1;
+  if (!hasSetTier(state, "Heartwood", 6) || combat.player.actionCounter % 3 !== 0) return [];
   const heal = Math.ceil(state.maxHealth * 0.02);
   if (heal <= 0) return [];
   const { healed, lines } = applyHeal(state, heal);
@@ -3085,13 +3085,13 @@ function firstAttackPassiveBonus(state, creature) {
 // firstAttackPassiveBonus itself when this returns null, so a plain
 // basic attack isn't left out of H08's own "whether basic or active" rule.
 // Press the Advantage (Sanguivorum Criminal Underworld, IA-28): true if
-// any currently-active combat.playerStatuses entry carries a negative
+// any currently-active combat.player.playerStatuses entry carries a negative
 // `acc` or `spd` debuff — covers both a named status (chilled's own agi
 // debuff doesn't count; this is scoped to acc/spd specifically, matching
 // the codex's own wording) and an ability's inline "custom:..." inflict
 // (feinting_slash's -8 Accuracy, shield_bash's -15 Speed, ...).
 function playerHasAccOrSpdDebuff(state) {
-  const statuses = (state.combat && state.combat.playerStatuses) || {};
+  const statuses = (state.combat && state.combat.player.playerStatuses) || {};
   return Object.values(statuses).some((entry) => entry.debuff && ((entry.debuff.acc || 0) < 0 || (entry.debuff.spd || 0) < 0));
 }
 // Trident Combination (Ovum Prizefighter, Sanguivorum Independent Armed
@@ -3099,17 +3099,17 @@ function playerHasAccOrSpdDebuff(state) {
 // playerHasAccOrSpdDebuff shape just above, but checking acc/atk instead
 // of acc/spd (its own narrower pair, per the codex's own wording).
 function playerHasAccOrAtkDebuff(state) {
-  const statuses = (state.combat && state.combat.playerStatuses) || {};
+  const statuses = (state.combat && state.combat.player.playerStatuses) || {};
   return Object.values(statuses).some((entry) => entry.debuff && ((entry.debuff.acc || 0) < 0 || (entry.debuff.atk || 0) < 0));
 }
 // Opportunistic Strike (Contract Blade, Sanguivorum Independent Armed
 // Groups): "1.6x, or 1.8x vs a target with ANY negative combat status" —
 // broader than playerHasAccOrSpdDebuff/playerHasAccOrAtkDebuff above (not
 // scoped to any particular stat pair): true iff any currently-active
-// combat.playerStatuses entry's debuff object has ANY negative-value stat
+// combat.player.playerStatuses entry's debuff object has ANY negative-value stat
 // field at all.
 function playerHasAnyNegativeStatus(state) {
-  const statuses = (state.combat && state.combat.playerStatuses) || {};
+  const statuses = (state.combat && state.combat.player.playerStatuses) || {};
   return Object.values(statuses).some((entry) => entry.debuff && Object.values(entry.debuff).some((v) => typeof v === "number" && v < 0));
 }
 // Disciplined Riposte/Measured Counteroffensive (Sanguivorum Imperial
@@ -3207,7 +3207,7 @@ function resolveEnemyActiveAbility(state, creature) {
   const firstBonus = firstAttackPassiveBonus(state, creature);
   dmgMult *= firstBonus.dmgMultBonus;
   const firstAttackAccBonus = firstBonus.accBonus;
-  if (ability.bonusVsStatus && combat.playerStatuses && combat.playerStatuses[ability.bonusVsStatus.status]) {
+  if (ability.bonusVsStatus && combat.player.playerStatuses && combat.player.playerStatuses[ability.bonusVsStatus.status]) {
     dmgMult *= ability.bonusVsStatus.mult;
   }
   if (ability.bonusVsHealthBelowPct && state.health <= state.maxHealth * ability.bonusVsHealthBelowPct.pct) {
@@ -3218,7 +3218,7 @@ function resolveEnemyActiveAbility(state, creature) {
   }
   // Press the Advantage (Sanguivorum Criminal Underworld, IA-28): "1.6x,
   // or 1.85x if the target currently carries an Accuracy or Speed debuff"
-  // — reads the player's own combat.playerStatuses (named AND custom
+  // — reads the player's own combat.player.playerStatuses (named AND custom
   // inflicts both land there — see applyAbilityInflict), same table
   // bonusVsStatus above already reads, just checking any entry's debuff
   // shape instead of one specific status id.
@@ -3817,12 +3817,12 @@ function beginTurn(state) {
   // recovery for their own 4-round windows — read BEFORE the decrement
   // below, so the window's final round still gets the faster recovery.
   // Blessing of the Hour (Regalia of the Eternal Hour 2pc): the same
-  // extra-decrement bonus, but only every 4th round — combat.actionCounter
+  // extra-decrement bonus, but only every 4th round — combat.player.actionCounter
   // hasn't been incremented for THIS round yet (that happens further down,
   // via applyHeartwoodVitality), so "+1" here predicts what it's about to
   // become.
-  const blessingOfTheHourRound = hasSetTier(state, "Regalia of the Eternal Hour", 2) && (combat.actionCounter + 1) % 4 === 0;
-  const cooldownDecrement = combat.avatarOfFreedomTurns > 0 || combat.avatarOfCreationTurns > 0 || blessingOfTheHourRound ? 2 : 1;
+  const blessingOfTheHourRound = hasSetTier(state, "Regalia of the Eternal Hour", 2) && (combat.player.actionCounter + 1) % 4 === 0;
+  const cooldownDecrement = combat.player.avatarOfFreedomTurns > 0 || combat.player.avatarOfCreationTurns > 0 || blessingOfTheHourRound ? 2 : 1;
   // Living Forge (Divine Regalia — Embercore): every cooldown that
   // actually reaches 0 THIS tick ("completes") restores 3% max Health —
   // its "3% Mana" half is a no-op, since this engine has no Mana resource
@@ -3848,49 +3848,49 @@ function beginTurn(state) {
   // longer decrease" for its window — scoped to these 3 shared buff-turn
   // fields, the same "temporary stat bonus" scope Blessing of Creation
   // already uses.
-  const avatarOfTimeFreezesBuffs = combat.avatarOfTimeTurns > 0;
-  if (combat.defBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.defBuffTurns -= 1;
-  if (combat.atkBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.atkBuffTurns -= 1;
-  if (combat.magicBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.magicBuffTurns -= 1;
-  if (combat.avatarOfPassingTurns > 0) combat.avatarOfPassingTurns -= 1;
-  if (combat.avatarOfFateTurns > 0) combat.avatarOfFateTurns -= 1;
-  if (combat.avatarOfWarTurns > 0) combat.avatarOfWarTurns -= 1;
-  if (combat.avatarOfKnowledgeTurns > 0) {
-    combat.avatarOfKnowledgeTurns -= 1;
-    if (combat.avatarOfKnowledgeTurns === 0) combat.knowledgeBuffAmount = 0;
+  const avatarOfTimeFreezesBuffs = combat.player.avatarOfTimeTurns > 0;
+  if (combat.player.defBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.player.defBuffTurns -= 1;
+  if (combat.player.atkBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.player.atkBuffTurns -= 1;
+  if (combat.player.magicBuffTurns > 0 && !avatarOfTimeFreezesBuffs) combat.player.magicBuffTurns -= 1;
+  if (combat.player.avatarOfPassingTurns > 0) combat.player.avatarOfPassingTurns -= 1;
+  if (combat.player.avatarOfFateTurns > 0) combat.player.avatarOfFateTurns -= 1;
+  if (combat.player.avatarOfWarTurns > 0) combat.player.avatarOfWarTurns -= 1;
+  if (combat.player.avatarOfKnowledgeTurns > 0) {
+    combat.player.avatarOfKnowledgeTurns -= 1;
+    if (combat.player.avatarOfKnowledgeTurns === 0) combat.player.knowledgeBuffAmount = 0;
   }
-  if (combat.avatarOfDevotionTurns > 0) combat.avatarOfDevotionTurns -= 1;
-  if (combat.avatarOfChaosTurns > 0) {
-    combat.avatarOfChaosTurns -= 1;
-    if (combat.avatarOfChaosTurns === 0) {
-      combat.avatarOfChaosAtkBonus = 0;
-      combat.avatarOfChaosDefBonus = 0;
-      combat.avatarOfChaosMagicBonus = 0;
-      combat.avatarOfChaosKnowledgeBonus = 0;
+  if (combat.player.avatarOfDevotionTurns > 0) combat.player.avatarOfDevotionTurns -= 1;
+  if (combat.player.avatarOfChaosTurns > 0) {
+    combat.player.avatarOfChaosTurns -= 1;
+    if (combat.player.avatarOfChaosTurns === 0) {
+      combat.player.avatarOfChaosAtkBonus = 0;
+      combat.player.avatarOfChaosDefBonus = 0;
+      combat.player.avatarOfChaosMagicBonus = 0;
+      combat.player.avatarOfChaosKnowledgeBonus = 0;
     }
   }
-  if (combat.avatarOfEnduranceTurns > 0) {
-    combat.avatarOfEnduranceTurns -= 1;
-    if (combat.avatarOfEnduranceTurns === 0) {
-      combat.avatarOfEnduranceAtkBonus = 0;
-      combat.avatarOfEnduranceDefBonus = 0;
+  if (combat.player.avatarOfEnduranceTurns > 0) {
+    combat.player.avatarOfEnduranceTurns -= 1;
+    if (combat.player.avatarOfEnduranceTurns === 0) {
+      combat.player.avatarOfEnduranceAtkBonus = 0;
+      combat.player.avatarOfEnduranceDefBonus = 0;
     }
   }
-  if (combat.avatarOfFreedomTurns > 0) combat.avatarOfFreedomTurns -= 1;
+  if (combat.player.avatarOfFreedomTurns > 0) combat.player.avatarOfFreedomTurns -= 1;
   // Elemental Sovereignty (First Sword's Regalia 10pc, exclusive):
   // refresh-only, no stack — granted/refreshed in useElementAbility's
   // water case, decayed here at the same once-per-round cadence every
   // other player-side "Turns" buff above already uses.
-  if (combat.sovereigntyTurnsLeft > 0) combat.sovereigntyTurnsLeft -= 1;
+  if (combat.player.sovereigntyTurnsLeft > 0) combat.player.sovereigntyTurnsLeft -= 1;
   // Avatar of Creation (Regalia of the Eternal Forge 6pc): the +40%
   // Attack/Magic buff (via the shared atk/magicBuffTurns fields) expires
   // normally above, but the PERMANENT +2-per-attack/+2-per-spell stacks
   // it grows (see rollPlayerDamage) deliberately do NOT reset here when
   // the window ends — "permanently," per the source text.
-  if (combat.avatarOfCreationTurns > 0) combat.avatarOfCreationTurns -= 1;
-  if (combat.avatarOfRenewalTurns > 0) combat.avatarOfRenewalTurns -= 1;
-  if (combat.unyieldingWallCooldown > 0) combat.unyieldingWallCooldown -= 1;
-  if (combat.timelessGuardCooldown > 0) combat.timelessGuardCooldown -= 1;
+  if (combat.player.avatarOfCreationTurns > 0) combat.player.avatarOfCreationTurns -= 1;
+  if (combat.player.avatarOfRenewalTurns > 0) combat.player.avatarOfRenewalTurns -= 1;
+  if (combat.player.unyieldingWallCooldown > 0) combat.player.unyieldingWallCooldown -= 1;
+  if (combat.player.timelessGuardCooldown > 0) combat.player.timelessGuardCooldown -= 1;
   // Avatar of Time (Regalia of the Eternal Hour 6pc): "when the effect
   // ends, all cooldowns resume from whatever value they would have
   // naturally reached" is simplified here to "cooldowns simply remain at
@@ -3899,16 +3899,16 @@ function beginTurn(state) {
   // tracking system for a minor edge case; this is a deliberate,
   // documented simplification (slightly favors the player) rather than
   // that added complexity.
-  if (combat.avatarOfTimeTurns > 0) combat.avatarOfTimeTurns -= 1;
-  if (combat.damageReductionTurns > 0) combat.damageReductionTurns -= 1;
-  if (combat.calmWatersTurns > 0) combat.calmWatersTurns -= 1;
-  if (combat.evasionTurns > 0) combat.evasionTurns -= 1;
+  if (combat.player.avatarOfTimeTurns > 0) combat.player.avatarOfTimeTurns -= 1;
+  if (combat.player.damageReductionTurns > 0) combat.player.damageReductionTurns -= 1;
+  if (combat.player.calmWatersTurns > 0) combat.player.calmWatersTurns -= 1;
+  if (combat.player.evasionTurns > 0) combat.player.evasionTurns -= 1;
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
   // round spent in combat grants +1 Attack/+1 Defense, capped +10/+10.
   // Unconditional per-action, unlike Living Steel's every-3rd-action gate.
   if (hasEffect(state, "battle_tempered")) {
-    if ((combat.battleTemperedAtkStacks || 0) < 10) combat.battleTemperedAtkStacks = (combat.battleTemperedAtkStacks || 0) + 1;
-    if ((combat.battleTemperedDefStacks || 0) < 10) combat.battleTemperedDefStacks = (combat.battleTemperedDefStacks || 0) + 1;
+    if ((combat.player.battleTemperedAtkStacks || 0) < 10) combat.player.battleTemperedAtkStacks = (combat.player.battleTemperedAtkStacks || 0) + 1;
+    if ((combat.player.battleTemperedDefStacks || 0) < 10) combat.player.battleTemperedDefStacks = (combat.player.battleTemperedDefStacks || 0) + 1;
   }
   // Unwavering Devotion (Divine Regalia — Vestments of Boundless
   // Devotion): every round survived grants +2 Magic, capped +20 (10
@@ -3916,8 +3916,8 @@ function beginTurn(state) {
   // "Losing combat resets the effect" is automatically true here: every
   // new fight starts this counter fresh at 0 regardless of how the last
   // one ended.
-  if (hasEffect(state, "unwavering_devotion") && (combat.unwaveringDevotionStacks || 0) < 10) {
-    combat.unwaveringDevotionStacks = (combat.unwaveringDevotionStacks || 0) + 1;
+  if (hasEffect(state, "unwavering_devotion") && (combat.player.unwaveringDevotionStacks || 0) < 10) {
+    combat.player.unwaveringDevotionStacks = (combat.player.unwaveringDevotionStacks || 0) + 1;
   }
   // Winds of Change (Divine Regalia — Garments of the Wandering Breeze): at
   // the start of every round, replace last round's random +6 stat bonus
@@ -3927,16 +3927,16 @@ function beginTurn(state) {
   // re-roll always favors the player (there's no "no bonus" outcome), so
   // it also counts as "a random effect favors you" for Twist of Fate.
   if (hasEffect(state, "winds_of_change")) {
-    combat.windsOfChangeAtk = 0;
-    combat.windsOfChangeDef = 0;
-    combat.windsOfChangeMagic = 0;
-    combat.windsOfChangeKnowledge = 0;
+    combat.player.windsOfChangeAtk = 0;
+    combat.player.windsOfChangeDef = 0;
+    combat.player.windsOfChangeMagic = 0;
+    combat.player.windsOfChangeKnowledge = 0;
     const roll = Math.floor(Math.random() * 4);
     const labels = ["Attack", "Defense", "Magic", "Knowledge"];
-    if (roll === 0) combat.windsOfChangeAtk = 6;
-    else if (roll === 1) combat.windsOfChangeDef = 6;
-    else if (roll === 2) combat.windsOfChangeMagic = 6;
-    else combat.windsOfChangeKnowledge = 6;
+    if (roll === 0) combat.player.windsOfChangeAtk = 6;
+    else if (roll === 1) combat.player.windsOfChangeDef = 6;
+    else if (roll === 2) combat.player.windsOfChangeMagic = 6;
+    else combat.player.windsOfChangeKnowledge = 6;
     lines.push(`Winds of Change shifts — +6 ${labels[roll]} this round.`);
     lines.push(...applyTwistOfFate(state));
   }
@@ -3992,7 +3992,7 @@ function beginTurn(state) {
   lines.push(...tickPlayerStatuses(state));
   // combatOngoing, not a bare health check: a downed (not dead) player
   // must not freeze everything below for the rest of the fight — ally
-  // buff/status ticks and combat.actionCounter (several cadence-based
+  // buff/status ticks and combat.player.actionCounter (several cadence-based
   // effects read it) need to keep advancing exactly as if the player
   // were still standing, even though the player themselves isn't acting.
   if (!combatOngoing(state)) return lines;
@@ -4015,7 +4015,7 @@ function beginTurn(state) {
   // nulls state.combat — same "a kill mid-loop can end the fight" case
   // the enemy-DOT loop above already guards for (combat.enemies' own
   // "if (!state.combat) return lines;"), just reached from the ally side
-  // instead. Everything below this point reads combat.actionCounter
+  // instead. Everything below this point reads combat.player.actionCounter
   // (applyHeartwoodVitality re-reads state.combat itself, fresh, so the
   // `combat` local captured at the top of this function going stale
   // doesn't save it) and crashes without this same early-return.
@@ -4025,11 +4025,11 @@ function beginTurn(state) {
   // ticked here identically in shape to burn/bleed but healing instead of
   // damaging — routed through applyHeal so Flourishing Soul/Overflowing
   // Life/Living Current all still apply to it.
-  if (combat.regen && combat.regen.turnsLeft > 0) {
-    const { healed, lines: healLines } = applyHeal(state, combat.regen.healPerTurn);
+  if (combat.player.regen && combat.player.regen.turnsLeft > 0) {
+    const { healed, lines: healLines } = applyHeal(state, combat.player.regen.healPerTurn);
     if (healed > 0) lines.push(`Endless Bloom mends you for ${healed} health.`, ...healLines);
-    combat.regen.turnsLeft -= 1;
-    if (combat.regen.turnsLeft <= 0) combat.regen = null;
+    combat.player.regen.turnsLeft -= 1;
+    if (combat.player.regen.turnsLeft <= 0) combat.player.regen = null;
   }
   // Blessing of Renewal (Regalia of the First Bloom 2pc): an unconditional
   // 3% max Health heal at the start of every round, for as long as the set
@@ -4046,10 +4046,10 @@ function beginTurn(state) {
   lines.push(...applyLivingSteel(state));
   // Lasting Foundation (Divine Regalia — Keystone of Endurance): at the end
   // of every third combat round, restore 10% max Health — reuses the same
-  // combat.actionCounter Heartwood Vitality/Calming Presence already read,
+  // combat.player.actionCounter Heartwood Vitality/Calming Presence already read,
   // checked right after applyHeartwoodVitality has incremented it for
   // this round.
-  if (hasEffect(state, "lasting_foundation") && combat.actionCounter % 3 === 0) {
+  if (hasEffect(state, "lasting_foundation") && combat.player.actionCounter % 3 === 0) {
     const lastingFoundationHeal = Math.ceil(state.maxHealth * 0.1);
     if (lastingFoundationHeal > 0) {
       const { healed, lines: healLines } = applyHeal(state, lastingFoundationHeal);
@@ -4060,9 +4060,9 @@ function beginTurn(state) {
   // action permanently grants +2 Attack/+2 Magic, capped at +20/+20 (10
   // triggers) — the same actionCounter cadence Lasting Foundation/
   // Heartwood Vitality already read.
-  if (hasEffect(state, "work_refines") && combat.actionCounter % 3 === 0) {
-    if ((combat.workRefinesAtkStacks || 0) < 20) combat.workRefinesAtkStacks = Math.min(20, (combat.workRefinesAtkStacks || 0) + 2);
-    if ((combat.workRefinesMagicStacks || 0) < 20) combat.workRefinesMagicStacks = Math.min(20, (combat.workRefinesMagicStacks || 0) + 2);
+  if (hasEffect(state, "work_refines") && combat.player.actionCounter % 3 === 0) {
+    if ((combat.player.workRefinesAtkStacks || 0) < 20) combat.player.workRefinesAtkStacks = Math.min(20, (combat.player.workRefinesAtkStacks || 0) + 2);
+    if ((combat.player.workRefinesMagicStacks || 0) < 20) combat.player.workRefinesMagicStacks = Math.min(20, (combat.player.workRefinesMagicStacks || 0) + 2);
   }
   // Flowing Waters (Divine Regalia — Tidecaller): restore 3% max Health at
   // the end of every round — its "3% Mana" half is a no-op, the same
@@ -4079,7 +4079,7 @@ function beginTurn(state) {
   // second round spent in combat, ease a random currently-cooling-down
   // Ability/Tactic by 1 turn — the same random-pick-and-ease pattern
   // Universal Understanding/Twist of Fate already established.
-  if (hasEffect(state, "patient_current") && combat.actionCounter % 2 === 0) {
+  if (hasEffect(state, "patient_current") && combat.player.actionCounter % 2 === 0) {
     const cooling = Object.keys(combat.cooldowns).filter((k) => combat.cooldowns[k] > 0);
     if (cooling.length) {
       const key = cooling[Math.floor(Math.random() * cooling.length)];
@@ -4093,7 +4093,7 @@ function beginTurn(state) {
   // inert — no negative-status mechanic exists on the player side — and
   // its "every healing effect also restores an equal amount of Mana"
   // clause is a no-op for the same Mana-resource reason as Flowing Waters.
-  if (combat.avatarOfRenewalTurns > 0) {
+  if (combat.player.avatarOfRenewalTurns > 0) {
     const avatarOfRenewalHeal = Math.ceil(state.maxHealth * 0.1);
     if (avatarOfRenewalHeal > 0) {
       const { healed, lines: healLines } = applyHeal(state, avatarOfRenewalHeal);
@@ -4193,30 +4193,30 @@ function checkDeathPrevention(state) {
   const arenaResult = maybeArenaNonLethalLoss(state);
   if (arenaResult) return arenaResult;
   let msg = null;
-  if (hasSetTier(state, "Elder Bark", 6) && !combat.elderBarkSaveUsed) {
-    combat.elderBarkSaveUsed = true;
+  if (hasSetTier(state, "Elder Bark", 6) && !combat.player.elderBarkSaveUsed) {
+    combat.player.elderBarkSaveUsed = true;
     state.health = 1;
     msg = `The oldest wood remembers you yet — you survive this at 1 Health.`;
-  } else if (hasEffect(state, "last_stand") && !combat.lastStandUsed) {
-    combat.lastStandUsed = true;
+  } else if (hasEffect(state, "last_stand") && !combat.player.lastStandUsed) {
+    combat.player.lastStandUsed = true;
     state.health = 1;
-    combat.lastStandAtkBonus = (combat.lastStandAtkBonus || 0) + 5;
+    combat.player.lastStandAtkBonus = (combat.player.lastStandAtkBonus || 0) + 5;
     // v0.11 PLAYER_STAT_SCALE: lastStandAtkBonus is a raw stat-point
     // grant, folded into effectivePlayerAtk's flatStat()'d total.
     msg = `Last Stand — you refuse to fall. 1 Health, and +${flatStat(5)} Attack for what's left of this fight.`;
-  } else if (hasEffect(state, "between_worlds") && !combat.betweenWorldsUsed) {
+  } else if (hasEffect(state, "between_worlds") && !combat.player.betweenWorldsUsed) {
     // Between Worlds (Divine Regalia — Veil of the Ferryman): the same
     // "leaves you at 1 Health" cheat-death shape as Last Stand above, but
     // deliberately without its +5 Attack — a plain reprieve, nothing more.
-    combat.betweenWorldsUsed = true;
+    combat.player.betweenWorldsUsed = true;
     state.health = 1;
     msg = `Between Worlds — the Ferryman's veil catches you at the threshold. 1 Health, nothing more.`;
-  } else if (hasSetTier(state, "Regalia of the Woven Thread", 6) && combat.avatarOfFateTurns > 0 && !combat.avatarOfFateSaveUsed) {
+  } else if (hasSetTier(state, "Regalia of the Woven Thread", 6) && combat.player.avatarOfFateTurns > 0 && !combat.player.avatarOfFateSaveUsed) {
     // Avatar of Fate's (Regalia of the Woven Thread 6pc) "once during the
     // effect" 1-HP save — only available while its 4-round window is
     // active (see checkAvatarOfFate), on top of (not instead of) the
     // once-per-fight saves above.
-    combat.avatarOfFateSaveUsed = true;
+    combat.player.avatarOfFateSaveUsed = true;
     state.health = 1;
     msg = `Avatar of Fate — fate itself refuses to let you fall. 1 Health.`;
   }
@@ -4225,8 +4225,8 @@ function checkDeathPrevention(state) {
   // (once)" — a follow-up to WHICHEVER cheat-death save above just fired,
   // not a save of its own. Checked once, regardless of which branch set
   // health to 1.
-  if (msg && hasSetTier(state, "Regalia of the Eternal Heart", 6) && combat.avatarOfDevotionTurns > 0 && !combat.avatarOfDevotionSaveUsed) {
-    combat.avatarOfDevotionSaveUsed = true;
+  if (msg && hasSetTier(state, "Regalia of the Eternal Heart", 6) && combat.player.avatarOfDevotionTurns > 0 && !combat.player.avatarOfDevotionSaveUsed) {
+    combat.player.avatarOfDevotionSaveUsed = true;
     const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.2));
     if (healed > 0) msg += ` Avatar of Devotion answers in turn — mended for ${healed} health.${lines.length ? " " + lines.join(" ") : ""}`;
   }
@@ -4294,7 +4294,7 @@ function resolvePlayerDefeatOrDowned(state) {
     state.playerDowned = true;
     if (combat) {
       combat.downs = combat.downs || [];
-      combat.downs.push(combat.playerLastHitType || "physical");
+      combat.downs.push(combat.player.playerLastHitType || "physical");
     }
     return `The hit takes everything out of you — you go down hard, the world swimming, and there's nothing left in you to answer it with. Your allies close ranks and keep fighting; whatever happens next isn't yours to decide.`;
   }
@@ -4315,7 +4315,7 @@ function resolvePlayerDefeatOrDowned(state) {
   // point, so adding exactly one more down here can't push the result
   // past INJURY_MAX_LOAD (6) — the cap D14 asks for falls out for free.
   if (state.activeDungeon) {
-    const downsIncludingWipeHit = (combat && combat.downs ? combat.downs : []).concat([combat.playerLastHitType || "physical"]);
+    const downsIncludingWipeHit = (combat && combat.downs ? combat.downs : []).concat([combat.player.playerLastHitType || "physical"]);
     const injuryLines = applyInjuriesFromDowns(state, downsIncludingWipeHit);
     const rescueMsg = dungeonRescue(state);
     return [...injuryLines, rescueMsg].join(" ");
@@ -4444,9 +4444,9 @@ function applyPlayerDamage(state, dmg) {
   const combat = state.combat;
   let remaining = dmg;
   const lines = [];
-  if (combat && combat.tempHealth > 0) {
-    const absorbed = Math.min(combat.tempHealth, remaining);
-    combat.tempHealth -= absorbed;
+  if (combat && combat.player.tempHealth > 0) {
+    const absorbed = Math.min(combat.player.tempHealth, remaining);
+    combat.player.tempHealth -= absorbed;
     remaining -= absorbed;
     if (absorbed > 0) lines.push(`Your Temporary Health absorbs ${absorbed} of it.`);
   }
@@ -4458,16 +4458,16 @@ function applyPlayerDamage(state, dmg) {
   // +20. "Resets after combat" is automatic — a fresh fight always starts
   // this at 0 via startCombat's initializer.
   if (combat && hasSetTier(state, "Regalia of the Eternal Bastion", 4)) {
-    combat.wallsEndureDefStacks = Math.min(20, (combat.wallsEndureDefStacks || 0) + 1);
+    combat.player.wallsEndureDefStacks = Math.min(20, (combat.player.wallsEndureDefStacks || 0) + 1);
   }
   // Avatar of Endurance (Regalia of the Eternal Bastion 6pc): during its
   // 4-round window, every hit taken also grants +2 Attack/+2 Defense,
   // capped at +20/+20 for the window's duration — silent, the same
   // "roll/hit-time side effect with no narration channel" precedent Soul
   // Leech/Momentum/Blessing of Fortune's stack growth already established.
-  if (combat && combat.avatarOfEnduranceTurns > 0) {
-    combat.avatarOfEnduranceAtkBonus = Math.min(20, (combat.avatarOfEnduranceAtkBonus || 0) + 2);
-    combat.avatarOfEnduranceDefBonus = Math.min(20, (combat.avatarOfEnduranceDefBonus || 0) + 2);
+  if (combat && combat.player.avatarOfEnduranceTurns > 0) {
+    combat.player.avatarOfEnduranceAtkBonus = Math.min(20, (combat.player.avatarOfEnduranceAtkBonus || 0) + 2);
+    combat.player.avatarOfEnduranceDefBonus = Math.min(20, (combat.player.avatarOfEnduranceDefBonus || 0) + 2);
   }
   return lines;
 }
@@ -4483,12 +4483,12 @@ function applyPlayerDamage(state, dmg) {
 function applyUnbrokenLine(state, dmg) {
   if (!state.combat || !hasEffect(state, "unbroken_line")) return dmg;
   const combat = state.combat;
-  const reduced = combat.damageReductionTurns > 0 ? Math.round(dmg * 0.75) : dmg;
+  const reduced = combat.player.damageReductionTurns > 0 ? Math.round(dmg * 0.75) : dmg;
   if (dmg > 0) {
-    combat.unbrokenLineHitCount = (combat.unbrokenLineHitCount || 0) + 1;
-    if (combat.unbrokenLineHitCount >= 3) {
-      combat.unbrokenLineHitCount = 0;
-      combat.damageReductionTurns = applyBeneficialEffectBonuses(state, 2);
+    combat.player.unbrokenLineHitCount = (combat.player.unbrokenLineHitCount || 0) + 1;
+    if (combat.player.unbrokenLineHitCount >= 3) {
+      combat.player.unbrokenLineHitCount = 0;
+      combat.player.damageReductionTurns = applyBeneficialEffectBonuses(state, 2);
     }
   }
   return reduced;
@@ -4509,12 +4509,12 @@ function applyUnbrokenLine(state, dmg) {
 // fight only" shape as Guardian Spirit/Guided Footsteps just below, but a
 // stat bonus rather than a miss override: the enemy's accuracy roll against
 // the player is computed as if the player's Agility were temporarily +8,
-// for that one roll only. Mutates combat.scoutStealthUsed as a side effect
-// (mirrors combat.guardianSpiritUsed's check-and-consume pattern) so this
+// for that one roll only. Mutates combat.player.scoutStealthUsed as a side effect
+// (mirrors combat.player.guardianSpiritUsed's check-and-consume pattern) so this
 // is safe to call unconditionally at every resolveEnemyAttackOnPlayer call.
 function scoutStealthOpeningBonus(state, combat) {
-  if (!state.flags.scoutStealthBranchUnlocked || combat.scoutStealthUsed) return 0;
-  combat.scoutStealthUsed = true;
+  if (!state.flags.scoutStealthBranchUnlocked || combat.player.scoutStealthUsed) return 0;
+  combat.player.scoutStealthUsed = true;
   return 8;
 }
 

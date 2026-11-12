@@ -140,7 +140,7 @@ const { chromium } = require('playwright');
       const s = makePlayer(20);
       s.injuries = [];
       s.activeDungeon = { dungeonId: 'mugamiir_test' };
-      s.combat = { downs: [], playerLastHitType: 'acid', isHadrianAmbush: false }; // 0 prior downs this fight
+      s.combat = { downs: [], playerLastHitType: 'acid', player: { playerLastHitType: 'acid' }, isHadrianAmbush: false }; // 0 prior downs this fight
       s.health = 0;
       const dungeonRescueBackup = dungeonRescue;
       let rescueCalled = false;
@@ -158,7 +158,7 @@ const { chromium } = require('playwright');
         { id: 'corrosion_damaged_eyes', group: 'corrosion', severity: 'minor', acquiredDay: 1, sourceDamageType: null, fieldTreated: false },
       ]; // load = 5
       s.activeDungeon = { dungeonId: 'mugamiir_test' };
-      s.combat = { downs: [], playerLastHitType: 'water', isHadrianAmbush: false }; // pendingDowns=0, so 5+0=5 < 6, rescue path taken (not the 7th-fall branch)
+      s.combat = { downs: [], playerLastHitType: 'water', player: { playerLastHitType: 'water' }, isHadrianAmbush: false }; // pendingDowns=0, so 5+0=5 < 6, rescue path taken (not the 7th-fall branch)
       s.health = 0;
       const dungeonRescueBackup = dungeonRescue;
       dungeonRescue = function (st) { st.combat = null; return 'rescued'; };
