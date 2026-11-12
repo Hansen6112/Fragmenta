@@ -1,0 +1,14 @@
+range: e960353b983c80b7d26b1e86ed6d8fa9b2e9e7d2..06085dfa99cf05f7634a5290f7bf4d8ad365d09d
+=== 06085dfa99cf05f7634a5290f7bf4d8ad365d09d 2026-11-12 06:31:25 +0000
+Phase 1 handoff §6: document U3g result (zero trigger surface, confirmed in advance)
+U3g (enemy Riposte vs. Hadrian's miss): zero cells moved on either
+harness against U3f's after-state, as predicted before the run --
+none of boss_sweep.js's 16 bosses or plus3_run.js's Dregnar/Arbitarius
+carry the "riposte" effect this switch actually reads.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
