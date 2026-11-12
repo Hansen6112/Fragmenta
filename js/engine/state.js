@@ -614,6 +614,18 @@ class GameState {
     this.visited.add(id);
   }
 
+  // Damage Types spec v1.0, step 2d (T4/A1, off by default): the player's
+  // own tag map, derived fresh from their attunement every time it's
+  // read -- NOT a stored field, since primaryElement can change after
+  // creation (level 15's Deepen choice, Conduit Ascendant opening a
+  // second/third element) and a getter can never drift out of sync the
+  // way a field set once at creation time could. dmgTagMultiplier
+  // (js/data/damagetypes.js) reads this the same way it reads any other
+  // holder's dmgTags -- no special-casing needed there.
+  get dmgTags() {
+    return DAMAGE_TYPES_V2 ? playerAttunementDmgTags(this) : null;
+  }
+
   toJSON() {
     return {
       saveVersion: SAVE_VERSION,

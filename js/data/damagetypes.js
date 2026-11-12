@@ -13,6 +13,18 @@
  * nothing here changes any existing formula's output.
  */
 
+// §7.1: the system lives behind this switch, off by default. With it
+// off, every formula keeps today's math (attacker-power-vs-flat-Defense,
+// the element cycle via js/data/matchups.js) exactly — see each call
+// site's own "DAMAGE_TYPES_V2 ?" branch, added in the steps after this
+// one. Turning it on is the spec's own §7 step 3; content passes (§5)
+// land first, while it's still off. Declared FIRST in this file (not
+// last) — the Frost-element addition near the bottom checks it at load
+// time, not just inside a function, so the const must already exist by
+// then (a `const` isn't hoisted with its value the way a function
+// declaration is).
+const DAMAGE_TYPES_V2 = false;
+
 // T1: the locked 16-type roster, grouped by family, plus First River
 // (T9: story only, never shown to the player, no family of its own).
 // Spatial is the renamed Transportation (js/data/matchups.js's
@@ -121,10 +133,45 @@ function resolveStatusDamageType(statusKey, statusDef) {
   return LEGACY_STATUS_DAMAGE_TYPE_V2[statusKey] || "blunt";
 }
 
-// §7.1: the system lives behind this switch, off by default. With it
-// off, every formula keeps today's math (attacker-power-vs-flat-Defense,
-// the element cycle via js/data/matchups.js) exactly — see each call
-// site's own "DAMAGE_TYPES_V2 ?" branch, added in the steps after this
-// one. Turning it on is the spec's own §7 step 3; content passes (§5)
-// land first, while it's still off.
-const DAMAGE_TYPES_V2 = false;
+// A1/A2 (Tyler, 12 Nov 2026, approved) -- Character Creation spec v1.0,
+// Amendment 1: each attunement carries one Resist and one Weak (T4),
+// and Frost joins as a 9th starting choice. Spirit/Necrotic/Divine are
+// deliberately absent -- A2: not starting choices, reserved for Player
+// Skills and story paths. The "transportation" key is kept (Character
+// Creation's own ELEMENTS id, and every existing save's stored choice)
+// -- only its damage-type-facing name changes to Spatial (T1).
+const ATTUNEMENT_TAG_PAIRS = {
+  fire: { resist: "fire", weak: "water" },
+  water: { resist: "water", weak: "lightning" },
+  lightning: { resist: "lightning", weak: "earth" },
+  earth: { resist: "earth", weak: "air" },
+  air: { resist: "air", weak: "frost" },
+  frost: { resist: "frost", weak: "fire" },
+  acid: { resist: "acid", weak: "water" },
+  force: { resist: "force", weak: "spatial" },
+  transportation: { resist: "spatial", weak: "force" },
+};
+// The player's own dmgTags, derived from their primary attunement --
+// called by GameState's own dmgTags getter (js/engine/state.js), never
+// stored as a field (see that getter's own comment for why).
+function playerAttunementDmgTags(state) {
+  const pair = state && state.primaryElement && ATTUNEMENT_TAG_PAIRS[state.primaryElement];
+  if (!pair) return null;
+  return { [pair.resist]: "resist", [pair.weak]: "weak" };
+}
+// A2: Frost as a 9th starting choice -- added to ELEMENTS (js/data/
+// elements.js, already loaded by this point in index.html's script
+// order) only once here, under the switch, rather than unconditionally
+// in that file itself: elementList()/the element-keyword matcher both
+// already iterate Object.keys(ELEMENTS) generically (no hardcoded
+// 8-element list anywhere), so adding the key is the ONLY change needed
+// to make Frost selectable everywhere an element can be chosen -- and
+// gating it here, not there, keeps it unavailable while the switch is
+// off, exactly like every other new-roster-only addition in this file.
+if (DAMAGE_TYPES_V2 && typeof ELEMENTS !== "undefined" && !ELEMENTS.frost) {
+  ELEMENTS.frost = {
+    name: "Frost",
+    description: "Cold given a cutting edge -- the stillness before something breaks.",
+    verb: (target) => `You drive a shard of killing frost into ${target}`,
+  };
+}

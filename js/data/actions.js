@@ -549,7 +549,13 @@ const PIPELINE_FORMULAS = {
     }
 
     if (creature.element) {
-      const matchup = elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
+      // Damage Types v2 (step 2d, off by default): tags replace the old
+      // element-vs-element matchup cycle (T2/T4's own wording) -- the
+      // player's own resist/weak tag (from attunement, once V2 is on)
+      // and the enemy's own dmgTags (once content tags one) now do this
+      // job via dmgTagMultiplier below, so the cycle's multiplier is
+      // forced neutral here instead of double-counting the interaction.
+      const matchup = DAMAGE_TYPES_V2 ? 1 : elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
       const base = randInt(creature.magic - 2, creature.magic + 2);
       const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
       const def = effectivePlayerDef(state) + bonusDef + coldBonus;

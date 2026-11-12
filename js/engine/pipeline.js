@@ -1643,7 +1643,13 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     let base = randInt(magic - 2, magic + 2);
     if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
     const multiplier = 1 + magic / 60;
-    const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
+    // Damage Types v2 (step 2d, off by default): tags replace the old
+    // element-vs-element matchup cycle -- see enemyCore's own identical
+    // comment (js/data/actions.js) for the full reasoning. Avatar of
+    // Knowledge's own override still runs (matchup===1 passes through
+    // it unchanged either way) -- that buff isn't re-targeted at the new
+    // tag system here, out of this spec's own scope.
+    const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
     // Damage Types v2 (off by default, spec §3 steps 2-3): resist-by-
     // family defense value in place of the flat effDef above, then the
