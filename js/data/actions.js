@@ -459,7 +459,7 @@ const PIPELINE_FORMULAS = {
         // multiplier, in place of/alongside the flat `def` this formula
         // has always mitigated against. Off, dType is never resolved and
         // mitigateDef === def -- no behavior change.
-        const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+        const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
         const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, ally.magic) : def;
         let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, ally.health, ally.maxHealth)));
         if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
@@ -493,7 +493,7 @@ const PIPELINE_FORMULAS = {
       // enemy active with no `.element` at all can still deal a non-
       // Physical damageType once content (§5) declares one, so this
       // isn't conditioned on creature.element.
-      const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+      const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
       const flatMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(flatDType, effectiveDef, ally.magic) : effectiveDef;
       let edmg = abilityCtx
         ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
@@ -561,7 +561,7 @@ const PIPELINE_FORMULAS = {
       const def = effectivePlayerDef(state) + bonusDef + coldBonus;
       // Damage Types v2 (off by default) — see the ally-target magic
       // branch's own comment, above, for the full reasoning.
-      const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+      const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
       const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, state.magic) : def;
       let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
       if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
@@ -596,7 +596,7 @@ const PIPELINE_FORMULAS = {
     const playerDef = effectivePlayerDef(state) + bonusDef;
     // Damage Types v2 (off by default) — see the ally-target flat
     // branch's own comment, above, for the full reasoning.
-    const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+    const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
     const flatMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(flatDType, playerDef, state.magic) : playerDef;
     let edmg = abilityCtx
       ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
@@ -656,7 +656,7 @@ const PIPELINE_FORMULAS = {
     // physical counter (no spell branch), so only the target's tag
     // multiplier applies here -- the resisting-stat step is a no-op for
     // Physical-family damage regardless.
-    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
     let edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * 0.5));
     if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
     return { shortCircuit: false, edmg, kind: "physical" };
@@ -671,7 +671,7 @@ const PIPELINE_FORMULAS = {
     const creature = actor.ref.creatureObj;
     const atk = effectiveEnemyAtk(state, creature);
     const playerDef = effectivePlayerDef(state);
-    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
     let edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), playerDef) * (action.mult || 0.8)));
     if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
     return { shortCircuit: false, edmg, kind: "physical" };
@@ -689,7 +689,7 @@ const PIPELINE_FORMULAS = {
     const ally = target.ref;
     const atk = effectiveEnemyAtk(state, creature);
     const effectiveDef = effectiveAllyDef(ally);
-    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType) : null;
+    const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
     let edmg = Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + 2), effectiveDef) * 0.5));
     if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
     return { shortCircuit: false, edmg, kind: "physical" };

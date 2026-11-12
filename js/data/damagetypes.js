@@ -94,20 +94,43 @@ function isStatusImmune(holder, statusKey) {
   return !!(holder && holder.statusImmune && holder.statusImmune.includes(statusKey));
 }
 
-// §2: resolve the damage type for a hit. Priority: the action's own
-// declared damageType (a spell/ability/status tick) -> the attacker's
-// equipped weapon's damageType (a basic attack, or a basic-attack-shaped
-// ability with none of its own) -> the attacker creature's attackType
-// (no weapon — BESTIARY claw/bite/slam) -> Blunt, the explicit spec
+// §2: resolve the damage type for a hit. Priority: "fromCreature" (step
+// 2 follow-ups, A5 -- the ability uses whichever creature elementType
+// the acting creature's own randomly-picked elementVariant set, e.g.
+// Breath Weapon on a White Draven-Drak) -> the action's own declared
+// damageType (a spell/ability/status tick) -> the attacker's equipped
+// weapon's damageType (a basic attack, or a basic-attack-shaped ability
+// with none of its own) -> the attacker creature's attackType (no
+// weapon — BESTIARY claw/bite/slam) -> Blunt, the explicit spec
 // fallback ("If missing, Blunt, which reproduces today's Trauma
-// injuries"). Callers resolve weaponDamageType/creatureAttackType
-// themselves (equipment lookup differs by actor kind) and pass them in —
-// this function only picks among them.
-function resolveDamageType(action, weaponDamageType, creatureAttackType) {
+// injuries"). Callers resolve weaponDamageType/creatureAttackType/
+// creatureElementType themselves (equipment lookup differs by actor
+// kind, and only an enemy actor ever has an elementType) and pass them
+// in — this function only picks among them.
+function resolveDamageType(action, weaponDamageType, creatureAttackType, creatureElementType) {
+  if (action && action.damageType === "fromCreature") return creatureElementType || "blunt";
   if (action && action.damageType) return action.damageType;
   if (weaponDamageType) return weaponDamageType;
   if (creatureAttackType) return creatureAttackType;
   return "blunt";
+}
+
+// Damage Types spec v1.0, step 2 follow-ups, A5 (off by default): the
+// Codex makes dragons and Elementals "come in elemental variants" --
+// one is picked, weighted, when a creature carrying `elementVariants`
+// (a list of { id, damageType, status, displayName, weight }) spawns
+// (js/engine/combat.js's buildFightCreature). Weight defaults to 1 for
+// a variant that omits it, matching how every other weighted-pick table
+// in this codebase treats a missing weight.
+function pickElementVariant(variants) {
+  if (!variants || !variants.length) return null;
+  const total = variants.reduce((sum, v) => sum + (v.weight || 1), 0);
+  let roll = Math.random() * total;
+  for (const v of variants) {
+    roll -= v.weight || 1;
+    if (roll <= 0) return v;
+  }
+  return variants[variants.length - 1];
 }
 
 // Bridge (step 2b) for the 5 statuses js/engine/combat.js's own

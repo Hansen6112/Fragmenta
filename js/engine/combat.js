@@ -3221,8 +3221,14 @@ function resolveEnemyActiveAbility(state, creature) {
   const firstBonus = firstAttackPassiveBonus(state, creature);
   dmgMult *= firstBonus.dmgMultBonus;
   const firstAttackAccBonus = firstBonus.accBonus;
-  if (ability.bonusVsStatus && combat.player.playerStatuses && combat.player.playerStatuses[ability.bonusVsStatus.status]) {
-    dmgMult *= ability.bonusVsStatus.mult;
+  if (ability.bonusVsStatus) {
+    // A5 (off by default): an elemental-variant creature's own
+    // signature status (e.g. a White Draven-Drak's Chilled) replaces
+    // the ability's fixed status here too, not just in `inflict` below
+    // -- Elemental Surge's whole point is "bonus if the target already
+    // carries the SAME status this creature's own variant inflicts."
+    const statusKey = DAMAGE_TYPES_V2 && ability.damageType === "fromCreature" && creature.variantStatus ? creature.variantStatus : ability.bonusVsStatus.status;
+    if (combat.player.playerStatuses && combat.player.playerStatuses[statusKey]) dmgMult *= ability.bonusVsStatus.mult;
   }
   if (ability.bonusVsHealthBelowPct && state.health <= state.maxHealth * ability.bonusVsHealthBelowPct.pct) {
     dmgMult *= ability.bonusVsHealthBelowPct.mult;
@@ -3321,7 +3327,14 @@ function resolveEnemyActiveAbility(state, creature) {
   // the same banked-state flag Contract Bolt's bonusIfPreparedState above
   // reads, BEFORE this attack's own normal consumption clears it, and omit
   // the inflict entirely when it isn't set.
-  const inflict = ability.inflictRequiresPreparedState && !(creature.bankedAttackAccBonusTurnsLeft > 0) ? undefined : ability.inflict;
+  let inflict = ability.inflictRequiresPreparedState && !(creature.bankedAttackAccBonusTurnsLeft > 0) ? undefined : ability.inflict;
+  // A5 (off by default): an elemental-variant creature's own signature
+  // status replaces the ability's fixed one -- "Each variant's signature
+  // status replaces the ability's fixed inflict (today they're all
+  // Burning)."
+  if (DAMAGE_TYPES_V2 && ability.damageType === "fromCreature" && creature.variantStatus && inflict) {
+    inflict = Object.assign({}, inflict, { status: creature.variantStatus });
+  }
   return {
     id: abilityId,
     name: ability.name,
@@ -3333,6 +3346,11 @@ function resolveEnemyActiveAbility(state, creature) {
     // generically, the same as a player action's own `formula` is read
     // off getActionDef(id), never assumed by the caller.
     formula: ability.formula,
+    // Damage Types spec v1.0 step 2 follow-ups, A5: the ability's own
+    // declared damageType (e.g. "fromCreature" for Breath Weapon) --
+    // read generically by resolveDamageType via the action object
+    // resolveEnemyAttackOnPlayer/OnAlly build from this abilityCtx.
+    damageType: ability.damageType,
     dmgMult,
     accBonus: (ability.accBonus || 0) + firstAttackAccBonus + condAccBonus || undefined,
     aoe: !!ability.aoe,
@@ -5379,6 +5397,23 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId) {
     const p = getEnemyAbility(pid);
     if (p && p.trigger === "flatStatBonus" && p.stat) {
       creature[p.stat] = (creature[p.stat] || 0) + (p.amount || 0);
+    }
+  }
+  // Damage Types spec v1.0 step 2 follow-ups, A5 (off by default): a
+  // creature carrying elementVariants gets ONE picked, weighted, right
+  // here at build time -- the fighter's own elementType/variantStatus
+  // are what resolveDamageType's "fromCreature" branch and
+  // resolveEnemyActiveAbility's inflict-override (js/engine/combat.js)
+  // both read, and the variant's own displayName/auto-Resist apply for
+  // this whole fight, same as any other creature-build-time decision
+  // (equipment, passives) above.
+  if (DAMAGE_TYPES_V2 && creature.elementVariants && creature.elementVariants.length) {
+    const variant = pickElementVariant(creature.elementVariants);
+    if (variant) {
+      creature.elementType = variant.damageType;
+      creature.variantStatus = variant.status;
+      if (variant.displayName) creature.name = variant.displayName;
+      creature.dmgTags = Object.assign({}, creature.dmgTags, { [variant.damageType]: "resist" });
     }
   }
   return creature;

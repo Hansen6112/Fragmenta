@@ -28,6 +28,44 @@
  * creature could fill that gap.
  */
 
+// Damage Types spec v1.0, step 2 follow-ups, A5 (off by default): the
+// Codex makes dragons and Elementals "come in elemental variants" — one
+// is picked, weighted, when a creature carrying one of these lists
+// spawns (js/engine/combat.js's buildFightCreature/pickElementVariant).
+// `status` references a status id the content pass (original spec §5
+// item 4: Shocked/Corrosion/Drenched/... "using Codex values where they
+// exist") hasn't necessarily defined in STATUS_EFFECTS yet — applyAbilityInflict
+// already no-ops safely on an unknown status id (getStatusEffect returns
+// null), so referencing the FUTURE id now, rather than waiting for it,
+// means that content lands with zero further wiring here. Weight is
+// omitted on every entry (defaults to 1 — pickElementVariant), giving
+// each family's variants an equal, uniform chance. Heated Mist (the
+// Skrel-Drak breath AoE variant) is deliberately absent — still flagged
+// REVIEW ("Water or Fire?") in the Reference's own candidate list, not
+// decided yet.
+const DRAVEN_DRAK_VARIANTS = [
+  { id: "red", damageType: "fire", status: "burning", displayName: "Red Draven-Drak" },
+  { id: "white", damageType: "frost", status: "chilled", displayName: "White Draven-Drak" },
+  { id: "green", damageType: "poison", status: "venom", displayName: "Green Draven-Drak" },
+  { id: "black", damageType: "acid", status: "corrosion", displayName: "Black Draven-Drak" },
+  { id: "blue", damageType: "lightning", status: "shocked", displayName: "Blue Draven-Drak" },
+];
+const SKREL_DRAK_VARIANTS = [
+  { id: "fire", damageType: "fire", status: "burning", displayName: "Fire-blooded Skrel-Drak" },
+  { id: "ice", damageType: "frost", status: "chilled", displayName: "Ice-blooded Skrel-Drak" },
+  { id: "lightning", damageType: "lightning", status: "shocked", displayName: "Storm-blooded Skrel-Drak" },
+  { id: "acid", damageType: "acid", status: "corrosion", displayName: "Acid-blooded Skrel-Drak" },
+];
+const ELEMENTAL_VARIANTS = [
+  { id: "fire", damageType: "fire", status: "burning", displayName: "Fire Elemental" },
+  { id: "ash", damageType: "fire", status: "ashen_lungs", displayName: "Ash Elemental" },
+  { id: "stone", damageType: "earth", status: "crushed", displayName: "Stone Elemental" },
+  { id: "plant", damageType: "earth", status: "rooted", displayName: "Plant Elemental" },
+  { id: "water", damageType: "water", status: "drenched", displayName: "Water Elemental" },
+  { id: "mist", damageType: "water", status: "obscured", displayName: "Mist Elemental" },
+  { id: "ice", damageType: "frost", status: "frozen", displayName: "Ice Elemental" },
+];
+
 const BESTIARY = {
   stoneback_beetle: {
     name: "Stoneback Beetle",
@@ -1489,6 +1527,7 @@ const BESTIARY = {
     monsterTag: "draven",
     passives: ["draconic_presence", "dominance"],
     actives: ["claw_rend", "tail_sweep", "breath_weapon"],
+    elementVariants: DRAVEN_DRAK_VARIANTS,
   },
   adultDravenDrak: {
     name: "Adult Draven-Drak",
@@ -1507,6 +1546,7 @@ const BESTIARY = {
     monsterTag: "draven",
     passives: ["draconic_presence", "dominance", "ancient_instinct"],
     actives: ["claw_rend", "tail_sweep", "wing_buffet", "breath_weapon"],
+    elementVariants: DRAVEN_DRAK_VARIANTS,
   },
   // ---- Skrel-Drak ----
   youngSkrelDrak: {
@@ -1527,6 +1567,7 @@ const BESTIARY = {
     monsterTag: "draven",
     passives: ["draconic_insight"],
     actives: ["inherited_breath", "wing_buffet", "rending_bite"],
+    elementVariants: SKREL_DRAK_VARIANTS,
   },
   ancientSkrelDrak: {
     name: "Ancient Skrel-Drak",
@@ -1546,6 +1587,7 @@ const BESTIARY = {
     monsterTag: "draven",
     passives: ["ancient_draconic_insight", "sovereign_territory"],
     actives: ["inherited_breath", "wing_buffet", "tail_slam", "dragons_challenge"],
+    elementVariants: SKREL_DRAK_VARIANTS,
   },
   // ---- Magical Creatures B (Master Enemy Codex): Valdrek-Keth, Voreth-
   // Mauth, Voreth-Sael, Lorvaun-Nauri. Valdrek-Keth Diamond Tail skipped
@@ -1914,6 +1956,7 @@ const BESTIARY = {
     spawnGroup: "pack",
     passives: ["elemental_form"],
     actives: ["elemental_strike", "elemental_shift"],
+    elementVariants: ELEMENTAL_VARIANTS,
   },
   elemental: {
     name: "Elemental",
@@ -1930,6 +1973,7 @@ const BESTIARY = {
     spawnGroup: "pack",
     passives: ["elemental_form"],
     actives: ["elemental_strike", "elemental_shift", "elemental_surge"],
+    elementVariants: ELEMENTAL_VARIANTS,
   },
   greaterElemental: {
     name: "Greater Elemental",
@@ -1946,6 +1990,7 @@ const BESTIARY = {
     spawnGroup: "solitary",
     passives: ["elemental_form", "arcane_core"],
     actives: ["elemental_strike", "elemental_shift", "elemental_surge"],
+    elementVariants: ELEMENTAL_VARIANTS,
   },
   primalElemental: {
     name: "Primal Elemental",
@@ -1962,6 +2007,7 @@ const BESTIARY = {
     spawnGroup: "solitary",
     passives: ["primal_core", "elemental_form"],
     actives: ["elemental_strike", "elemental_shift", "elemental_surge"],
+    elementVariants: ELEMENTAL_VARIANTS,
   },
   // ---- Undead A (Master Enemy Codex): Sul-Daun, Sul-Keth. Standard tier
   // of each family skipped — already "Zombie" (native "Sul-Daun") and

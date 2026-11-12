@@ -312,10 +312,17 @@ const ENEMY_ABILITIES = {
   claw_rend: { name: "Claw Rend", type: "active", cooldown: 2, dmgMult: 1.6, inflict: { status: "bleed", chance: 1 } },
   tail_sweep: { name: "Tail Sweep", type: "active", cooldown: 3, dmgMult: 1.4, aoe: true, inflict: { custom: { spd: -5, turns: 1 }, chance: 1 } },
   // "Applies the dragon's elemental effect" branches five ways in the
-  // codex (Red/White/Green/Black/Blue) — Burn is used as the single
-  // representative element, same simplification as Inherited Breath below.
-  breath_weapon: { name: "Breath Weapon", type: "active", cooldown: 5, dmgMult: 2.1, inflict: { status: "burning", chance: 1 } },
-  catastrophic_breath: { name: "Catastrophic Breath", type: "active", cooldown: 6, dmgMult: 2.6, aoe: true, inflict: { status: "burning", chance: 1 } },
+  // codex (Red/White/Green/Black/Blue). Damage Types spec v1.0 step 2
+  // follow-ups, A5: damageType: "fromCreature" means this reads whichever
+  // elementType the wielding creature's own randomly-picked
+  // elementVariants entry set at spawn (js/engine/combat.js's
+  // buildFightCreature) — Burning is still the literal `inflict` here
+  // (and the default when DAMAGE_TYPES_V2 is off, or the creature has no
+  // variants), but once the switch is on, resolveEnemyActiveAbility
+  // (js/engine/combat.js) overrides it with the creature's own variant
+  // status, same simplification as Inherited Breath below.
+  breath_weapon: { name: "Breath Weapon", type: "active", cooldown: 5, dmgMult: 2.1, damageType: "fromCreature", inflict: { status: "burning", chance: 1 } },
+  catastrophic_breath: { name: "Catastrophic Breath", type: "active", cooldown: 6, dmgMult: 2.6, aoe: true, damageType: "fromCreature", inflict: { status: "burning", chance: 1 } },
   // Not yet wired — needs per-ability damage-history tracking the engine
   // doesn't keep (matches Ancient Instinct above).
   draconic_insight: { name: "Draconic Insight", type: "passive", trigger: "adaptToRepeatedAbility", reductionPct: 0.2 },
@@ -324,7 +331,7 @@ const ENEMY_ABILITIES = {
   // Not yet wired — triggers off the player being inflicted with an
   // elemental status, which has no dispatch hook here.
   sovereign_territory: { name: "Sovereign Territory", type: "passive", trigger: "onPlayerElementalStatusInflicted", healPctMaxHp: 0.03 },
-  inherited_breath: { name: "Inherited Breath", type: "active", cooldown: 4, dmgMult: 1.8, inflict: { status: "burning", chance: 1 } },
+  inherited_breath: { name: "Inherited Breath", type: "active", cooldown: 4, dmgMult: 1.8, damageType: "fromCreature", inflict: { status: "burning", chance: 1 } },
   dragons_challenge: { name: "Dragon's Challenge", type: "active", cooldown: 6, dmgMult: 2.4, bonusVsStatus: { status: "burning", mult: 1.5 } },
 
   // ---- Valdrek-Keth / Voreth-Mauth / Voreth-Sael / Lorvaun-Nauri
@@ -448,8 +455,8 @@ const ENEMY_ABILITIES = {
   // single representative variant (matching Breath Weapon/Inherited
   // Breath's own element simplification above), with a cooldown and
   // damage multiplier inferred to match this tier's other actives.
-  elemental_strike: { name: "Elemental Strike", type: "active", cooldown: 2, dmgMult: 1.3, inflict: { status: "burning", chance: 1 } },
-  elemental_surge: { name: "Elemental Surge", type: "active", cooldown: 5, dmgMult: 1.8, bonusVsStatus: { status: "burning", mult: 1.25 } },
+  elemental_strike: { name: "Elemental Strike", type: "active", cooldown: 2, dmgMult: 1.3, damageType: "fromCreature", inflict: { status: "burning", chance: 1 } },
+  elemental_surge: { name: "Elemental Surge", type: "active", cooldown: 5, dmgMult: 1.8, damageType: "fromCreature", bonusVsStatus: { status: "burning", mult: 1.25 } },
   // Drops the "remove one negative status effect" clause (no cleanse
   // hook, same as several abilities above).
   elemental_shift: { name: "Elemental Shift", type: "active", cooldown: 4, dmgMult: 0, selfBuff: { spd: 10, turns: 1 } },

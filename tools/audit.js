@@ -621,6 +621,21 @@ for (const s of scripts) {
   });
 }
 
+// A5 (step 2 follow-ups): an ability with damageType "fromCreature"
+// used by a creature with no elementVariants is an error -- "fromCreature"
+// means "read the wielding creature's own elementType," so a creature
+// with no variants to pick one from would have nothing to read, and the
+// ability would silently fall to Blunt (resolveDamageType's own
+// fallback) instead of the elemental hit it's supposed to be.
+for (const [id, c] of Object.entries(BESTIARY)) {
+  for (const abilityId of c.actives || []) {
+    const a = ENEMY_ABILITIES_TABLE[abilityId];
+    if (a && a.damageType === "fromCreature" && !(c.elementVariants && c.elementVariants.length)) {
+      err("damage-type", `BESTIARY.${id} uses "${abilityId}" (damageType: "fromCreature") but has no elementVariants (A5)`);
+    }
+  }
+}
+
 // ---- save coverage ----
 const fresh = G("new GameState()");
 const saved = Object.keys(fresh.toJSON());

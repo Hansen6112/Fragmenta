@@ -589,7 +589,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
     // branch resolved it in step 4.
     if (edmg > 0) {
       combat.player.playerLastHitType = DAMAGE_TYPES_V2
-        ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
+        ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
         : creature.element;
     }
     const lines = [edmg > 0 ? `${withThe(creature.name, true)} answers with ${dmgInfo.elName} of its own, for ${edmg} damage.` : `Its ${dmgInfo.elName} washes over you harmlessly.`, ...absorbLines];
@@ -602,7 +602,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
 
   if (edmg > 0) {
     combat.player.playerLastHitType = DAMAGE_TYPES_V2
-      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
+      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
       : "physical";
   }
   if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
@@ -653,7 +653,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
 function resolveEnemyAttackOnPlayer(state, creature, atkSpread, extraDef, abilityCtx, basicFirstBonus) {
   const actor = findEnemyCombatant(state, creature);
   const target = makePlayerCombatant(state);
-  const action = { atkSpread, extraDef, abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula };
+  const action = { atkSpread, extraDef, abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula, damageType: abilityCtx && abilityCtx.damageType };
   const ctx = { state, pendingAction: action, target };
 
   // chooseAction never actually returns null for an enemy actor any more
@@ -683,7 +683,7 @@ function resolveEnemyAttackOnPlayer(state, creature, atkSpread, extraDef, abilit
 function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstBonus) {
   const actor = findEnemyCombatant(state, creature);
   const target = makeAllyCombatant(ally);
-  const action = { abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula };
+  const action = { abilityCtx, basicFirstBonus, formula: (abilityCtx && abilityCtx.formula) || ENEMY_BASIC_ATTACK_DEF.formula, damageType: abilityCtx && abilityCtx.damageType };
   const ctx = { state, pendingAction: action, target };
 
   // Same dead-code note as resolveEnemyAttackOnPlayer above: chooseAction
@@ -1093,7 +1093,7 @@ function applyAndReactReactionOnPlayer(actor, target, dmgInfo, ctx, action) {
   // from the same inputs is safe).
   if (edmg > 0) {
     state.combat.player.playerLastHitType = DAMAGE_TYPES_V2
-      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType)
+      ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
       : "physical"; // Injury System v0.2
   }
   const lines = [action.flavorLine(creature, edmg), ...hitResult.absorbLines];
