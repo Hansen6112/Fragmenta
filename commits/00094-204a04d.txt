@@ -1,0 +1,28 @@
+range: 46ad4ef3ade82788daa240ec4d729f715ebdba28..204a04d19ce16385d3d705510a29d453e59c1a37
+=== 204a04d19ce16385d3d705510a29d453e59c1a37 2026-11-12 07:00:09 +0000
+Phase 1 handoff §7: record the post-Phase-1 baseline
+post_phase1_baseline_46ad4ef.json: 5 classes, every legal-party cell,
+the full 16-boss sweep (alone + asSpawned) and the Dregnar/Arbitarius
+plus3 sweep (3 gear tiers), N=1000/cell, all 9 COMBAT_UNIFY switches
+on -- recorded at this rollout's own final commit. Supersedes
+post_phase0_baseline_fb35087.json as the Phase 2 reference; kept, not
+deleted, labeled superseded. Lives in the scratchpad's
+expectedgear_rerun/deliverables/ alongside its own README, same
+convention as every other Layer 2 harness output -- not git-tracked,
+same as the Phase 0 baseline itself never was. Pointer recorded here
+in combat_unify_switch_rollout.md so a future session can find it.
+
+This closes out every item in the Phase 1 close-out handoff's "Done
+when" list: §1 (enemy test-strike proof), §2 (intermittent-failure
+fix + 50/50 clean runs), §3 (Groundbreaker fix logged), §4
+(phase1_acceptance.md, Phase 1 closed), §5 (5-class harness
+coverage), §6 (all 9 switches flipped and measured, stop rule never
+triggered), §7 (this baseline). Phase 2 (the modifier registry)
+starts from here.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/combat_unify_switch_rollout.md | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
