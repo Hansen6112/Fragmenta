@@ -139,7 +139,7 @@ const COMBAT_UNIFY = {
   U3f: true,
   // Riposte-on-miss: the enemy's own Riposte effect counters a plain
   // ally's miss (riposteCounterByEnemyOnAlly) but not Hadrian's.
-  U3g: false,
+  U3g: true,
 };
 
 // ---- Step 1: choose action ----
