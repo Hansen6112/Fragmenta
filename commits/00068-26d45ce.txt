@@ -1,0 +1,22 @@
+range: 6b58f4a44c5f283702e9c21b9ce86b120772c1ad..26d45ce805d0c33e46dac3044118cc618dcb1c8d
+=== 26d45ce805d0c33e46dac3044118cc618dcb1c8d 2026-11-12 00:19:46 +0000
+Step 1h-iii §3: rewrite pipeline.js onto combat.player
+Combat Rebuild Phase 1, step 1h-iii: pipeline.js's own batch (94
+occurrences, whole file in one commit, per the handoff's own
+sequencing -- combat.js in batches, then pipeline.js whole, then
+companion.js/resolver.js). Same mechanism and verification as the
+combat.js batches.
+
+Verification: full suite 445/445, tools/audit.js 0 errors/72 warnings
+(both unchanged). Layer 2: boss_sweep.js and plus3_run.js both
+bit-for-bit identical to their pre-this-commit output.
+
+Last batch: companion.js/resolver.js, then delete
+wirePlayerFieldsProxy and flip combat.player back to enumerable.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/pipeline.js | 160 +++++++++++++++++++++++++-------------------------
+ 1 file changed, 80 insertions(+), 80 deletions(-)
