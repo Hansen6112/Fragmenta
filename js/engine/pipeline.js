@@ -121,7 +121,7 @@ const COMBAT_UNIFY = {
   // Toxic Preparation (sang_iag_ie008): fires when the ALLY (not just
   // the player) carries the Sanguivorum poison status — reads
   // ally.statuses["sang_iag_poison"], same per-ally status bag as U3c.
-  U3d: false,
+  U3d: true,
   // Step 1e handoff §0 (9 Nov follow-up): three more kind-A rows added to
   // the register while reconciling Hadrian's attack against Kessa's —
   // all three are an ENEMY's own kit mitigating/countering damage, same
