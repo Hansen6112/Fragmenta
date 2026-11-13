@@ -1,5 +1,5 @@
 
-WARNINGS (247)
+WARNINGS (229)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -221,10 +221,6 @@ WARNINGS (247)
   [damage-type] "sang_iag_all_out_assault" (ENEMY_ABILITIES) has no valid damageType (D1)
   [damage-type] "sang_iag_raise_the_militia" (ENEMY_ABILITIES) has no valid damageType (D1)
   [damage-type] ENEMY_BASIC_ATTACK_DEF has no valid damageType (D1)
-  [damage-type] "a river focus staff" (mainhand) has no valid Physical-family damageType (D1)
-  [damage-type] "a crystal focus rod" (mainhand) has no valid Physical-family damageType (D1)
-  [damage-type] "a caravan guard saber" (mainhand) has no valid Physical-family damageType (D1)
-  [damage-type] "a red banner greatsword" (mainhand) has no valid Physical-family damageType (D1)
   [damage-type] "Widow's Lament" (mainhand) has no valid Physical-family damageType (D1)
   [damage-type] "Emberfall" (mainhand) has no valid Physical-family damageType (D1)
   [damage-type] "Black Horizon" (mainhand) has no valid Physical-family damageType (D1)
@@ -232,25 +228,11 @@ WARNINGS (247)
   [damage-type] "Seven Sorrows" (mainhand) has no valid Physical-family damageType (D1)
   [damage-type] "Sovereign" (mainhand) has no valid Physical-family damageType (D1)
   [damage-type] "Night Requiem" (mainhand) has no valid Physical-family damageType (D1)
-  [damage-type] "Lantern of Quiet Passage" (mainhand) has no valid Physical-family damageType (D1)
-  [damage-type] "Codex of Infinite Horizons" (mainhand) has no valid Physical-family damageType (D1)
   [damage-type] "Galecaller" (mainhand) has no valid Physical-family damageType (D1)
-  [damage-type] BESTIARY.caravan_sellsword has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.veteran_merchant_guard has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.veteran_fedahl has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.bandit_cutthroat has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.highway_cutthroat has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.ferratum_veteran has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.aqualis_marine has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.gradus_veteran has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.ductus_section_commander has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.veteran_city_guard has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.rural_militia_fighter has no attackType and no equipped mainhand weapon (D1)
-  [damage-type] BESTIARY.road_convoy_guard has no attackType and no equipped mainhand weapon (D1)
 
 [items] live-reachable: 1368/1865; reserved: 497 ({"contract":263,"faction":70,"world_boss (unworn)":20,"hidden_dungeon":3,"quest":11,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"devotion_quest":72}); R2 violations: 0
 [actions] P4 action-identity checks found: 0 (must be 0)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 247 warning(s) across 52 scripts.
+0 error(s), 229 warning(s) across 52 scripts.

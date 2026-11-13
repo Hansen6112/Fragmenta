@@ -1,0 +1,68 @@
+[
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a river focus staff",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a crystal focus rod",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a caravan guard saber",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "a red banner greatsword",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "slashing"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Lantern of Quiet Passage",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ },
+ {
+  "reg": "ITEM_DEFS",
+  "id": "Codex of Infinite Horizons",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "blunt"
+   }
+  ]
+ }
+]

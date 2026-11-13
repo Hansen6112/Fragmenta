@@ -1,0 +1,59 @@
+range: 65fa23083f7e6994143398f4d603e109ac69fc3c..311f1f4258e29dce9b0d9a7ff24bf54ceb97dc91
+=== 311f1f4258e29dce9b0d9a7ff24bf54ceb97dc91 2026-11-13 00:26:13 +0000
+Damage Types follow-ups: mainhand rule, reapply-based escalation, D1 fix
+Three follow-ups to 65fa230, all behind the switch except the first
+(data):
+
+1. Loaded the 6 mainhand items that were incorrectly left untyped
+   (caravan guard saber/red banner greatsword -> slashing; river focus
+   staff/crystal focus rod/Lantern of Quiet Passage/Codex of Infinite
+   Horizons -> blunt), per the new rule: every mainhand item has a
+   damage type, only an offhand item can be "(not a weapon)". Corrects
+   the 6 CSV rows (they'd carried the OFFHAND reasoning template on a
+   mainhand row -- the actual generator bug) and tightens
+   load_damage_types_content.js to throw on a repeat of that mistake
+   instead of silently skipping it.
+
+2. Status escalation (Chilled -> Frozen, Drowsy -> Asleep) now fires on
+   REAPPLICATION while the status is already active (T8's own "build-
+   up" wording), not at natural expiry -- the previous pass had this
+   backwards. Reworked: removed the on-expiry dispatch from
+   tickPlayerStatuses/tickAllyStatuses entirely; applyPlayerStatus/
+   applyAllyStatus now check (via the new escalatedStatusOnReapply,
+   shared by both) whether the status being applied is already active,
+   and escalate instead of just refreshing its duration. Restricted to
+   non-stackable statuses so Constrict/Blight Seed's own untouched
+   stack-based escalation can't be reached by this path. Tests updated:
+   a single Chilled still expires harmlessly; a second frost hit while
+   Chilled gives Frozen; a second Drowsy gives Asleep.
+
+3. The 12 "BESTIARY.* has no attackType and no equipped mainhand
+   weapon" D1 warnings from 65fa230 were a false positive in my own
+   audit rule, not a real gap: all 12 (caravan_sellsword,
+   veteran_merchant_guard, veteran_fedahl, bandit_cutthroat,
+   highway_cutthroat, ferratum_veteran, aqualis_marine, gradus_veteran,
+   ductus_section_commander, veteran_city_guard, rural_militia_fighter,
+   road_convoy_guard) carry a real typed mainhand at every level in
+   their range via a level-banded `equipmentBands` array
+   (resolveEnemyEquipment, js/engine/combat.js, already reads this) --
+   the D1 rule only ever checked the flat `equipment.mainhand` shape,
+   never equipmentBands. Fixed to check both, and to separately warn if
+   any individual band is ever missing its own mainhand.
+
+Full suite 519/519 (20/20 in the content-load ledger, now including
+the mainhand-rule and reapply-escalation cases), audit 0 errors / 229
+warnings (18 fewer than 65fa230 -- exactly the 6 weapon + 12 creature
+false positives this fixes). Switch off throughout; off-switch
+behavior is unchanged.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ damage-types-candidates/1_weapons.csv           | 12 ++---
+ js/data/items.js                                | 12 ++---
+ js/engine/combat.js                             | 67 ++++++++++++++-----------
+ tools/audit.js                                  | 18 +++++--
+ tools/load_damage_types_content.js              | 10 ++++
+ tools/tests/damage_types_content_load_ledger.js | 58 +++++++++++++++++++--
+ 6 files changed, 130 insertions(+), 47 deletions(-)

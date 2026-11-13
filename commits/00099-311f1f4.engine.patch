@@ -1,0 +1,110 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 2c8c21a..d2a3e3c 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -554,6 +554,15 @@ function applyPlayerStatus(state, key, spec, sourceName) {
+     }
+   }
+   const existing = combat.player.playerStatuses[key];
++  // Content Load follow-up, T8 (off by default): reapplying a status
++  // while it's already active can escalate it instead of just
++  // refreshing it -- see escalatedStatusOnReapply's own comment.
++  const escalated = escalatedStatusOnReapply(existing, key, spec);
++  if (escalated) {
++    delete combat.player.playerStatuses[key];
++    combat.player.playerStatuses[escalated.key] = { name: escalated.name, debuff: escalated.debuff, dot: escalated.dot, turnsLeft: escalated.turnsLeft, stacks: escalated.stacks };
++    return [`${sourceName ? withThe(sourceName, true) + " inflicts" : "You suffer"} ${escalated.name} as ${label} intensifies.`];
++  }
+   if (spec.stackable) {
+     const stacks = Math.min(spec.maxStacks || 1, (existing ? existing.stacks : 0) + 1);
+     combat.player.playerStatuses[key] = { name: label, debuff, dot: spec.dot, turnsLeft: turns, stacks };
+@@ -626,6 +635,14 @@ function applyAllyStatus(ally, key, spec, sourceName) {
+   const label = spec.name || key;
+   const turns = spec.turns != null ? spec.turns : 2;
+   const existing = ally.statuses[key];
++  // Content Load follow-up, T8 (off by default) -- see
++  // escalatedStatusOnReapply's own comment (applyPlayerStatus above).
++  const escalated = escalatedStatusOnReapply(existing, key, spec);
++  if (escalated) {
++    delete ally.statuses[key];
++    ally.statuses[escalated.key] = { name: escalated.name, debuff: escalated.debuff, dot: escalated.dot, turnsLeft: escalated.turnsLeft, stacks: escalated.stacks };
++    return [sourceName ? `${withThe(sourceName, true)} inflicts ${escalated.name} on ${ally.name} as ${label} intensifies.` : `${ally.name} suffers ${escalated.name} as ${label} intensifies.`];
++  }
+   if (spec.stackable) {
+     const stacks = Math.min(spec.maxStacks || 1, (existing ? existing.stacks : 0) + 1);
+     ally.statuses[key] = { name: label, debuff: spec.debuff, dot: spec.dot, turnsLeft: turns, stacks };
+@@ -673,11 +690,7 @@ function tickAllyStatuses(state, ally) {
+       lines.push(...result.lines);
+     }
+     entry.turnsLeft -= 1;
+-    if (entry.turnsLeft <= 0) {
+-      delete statuses[key];
+-      const escalated = escalatedStatusEntry(key);
+-      if (escalated) statuses[escalated.key] = escalated.entry;
+-    }
++    if (entry.turnsLeft <= 0) delete statuses[key];
+   }
+   return lines;
+ }
+@@ -699,28 +712,30 @@ function statusDamageType(key) {
+   return "physical"; // any future/unknown DOT status
+ }
+ 
+-// Content Load handoff §3, T8 (off by default): fires right where a
+-// non-stacking status naturally expires (turnsLeft hits 0), using its
+-// own escalatesAt/escalatesTo fields (Drowsy/Constrict/Blight Seed
+-// already declared these; Chilled gains them in this same content pass)
+-// -- previously undispatched entirely ("declared for fidelity, not
+-// dispatched", STATUS_EFFECTS's own header). Wiring it generically here
+-// also activates Drowsy -> Asleep as a lossless side effect of using
+-// the existing field rather than special-casing Chilled alone; Blight
+-// Seed/Constrict's own STACK-based escalation (escalatesAt counts
+-// stacks, not turns -- their turns: 99 means they essentially never
+-// expire by duration) is untouched, since this only ever fires at a
+-// status's own natural end-of-duration delete. Gated by the switch
+-// since Chilled already gets inflicted today, unconditionally, by
+-// frost_bite/dra_cleave/dra_frostbite_brand -- this must change nothing
+-// about any of those existing fights with the switch off.
+-function escalatedStatusEntry(key) {
+-  if (!DAMAGE_TYPES_V2) return null;
++// Content Load follow-up, T8 (off by default): escalation fires on
++// REAPPLICATION while the status is already active (build-up) -- NOT
++// at natural expiry (an earlier pass here had it backwards; a lone
++// Chilled now simply expires harmlessly, same as today). A second
++// frost hit while still Chilled becomes Frozen instead of refreshing
++// Chilled's own duration; a second Drowsy the same way becomes Asleep,
++// a lossless side effect of using the existing escalatesTo field
++// generically rather than special-casing Chilled alone. Restricted to
++// non-stackable statuses (`!spec.stackable`) so this never touches
++// Constrict/Blight Seed's own STACK-count escalation (escalatesAt
++// counts stacks there, not reapplications, and is still unwired).
++// Shared by applyPlayerStatus/applyAllyStatus, both of which already
++// hold `existing` (the status's own current entry, if any) right where
++// this is called. Gated by the switch since Chilled already gets
++// inflicted today, unconditionally, by frost_bite/dra_cleave/
++// dra_frostbite_brand -- this must change nothing about any of those
++// existing fights with the switch off.
++function escalatedStatusOnReapply(existing, key, spec) {
++  if (!DAMAGE_TYPES_V2 || !existing || spec.stackable) return null;
+   const def = getStatusEffect(key);
+   if (!def || !def.escalatesTo) return null;
+   const nextDef = getStatusEffect(def.escalatesTo);
+   if (!nextDef) return null;
+-  return { key: def.escalatesTo, entry: { name: nextDef.name, debuff: nextDef.debuff, dot: nextDef.dot, turnsLeft: nextDef.turns != null ? nextDef.turns : 2, stacks: 1 } };
++  return { key: def.escalatesTo, name: nextDef.name, debuff: nextDef.debuff, dot: nextDef.dot, turnsLeft: nextDef.turns != null ? nextDef.turns : 2, stacks: 1 };
+ }
+ 
+ // Ticks every active player status by one turn: damage-over-time first
+@@ -742,11 +757,7 @@ function tickPlayerStatuses(state) {
+       if (result.comboEnded) break;
+     }
+     entry.turnsLeft -= 1;
+-    if (entry.turnsLeft <= 0) {
+-      delete combat.player.playerStatuses[key];
+-      const escalated = escalatedStatusEntry(key);
+-      if (escalated) combat.player.playerStatuses[escalated.key] = escalated.entry;
+-    }
++    if (entry.turnsLeft <= 0) delete combat.player.playerStatuses[key];
+   }
+   return lines;
+ }
