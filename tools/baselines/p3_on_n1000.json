@@ -1,0 +1,275 @@
+{
+  "generatedAt": "2026-11-13T14:13:19.531Z",
+  "switch": "on",
+  "n": 1000,
+  "results": {
+    "dregnar_ashvein:undergeared:warrior": {
+      "n": 1000,
+      "winRate": 0.695,
+      "allyDeathsPerFight": 1.553,
+      "injuryTotals": {
+        "laceration": 469
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:scout": {
+      "n": 1000,
+      "winRate": 0.669,
+      "allyDeathsPerFight": 1.611,
+      "injuryTotals": {
+        "laceration": 491
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.608,
+      "allyDeathsPerFight": 1.768,
+      "injuryTotals": {
+        "laceration": 466
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:mage": {
+      "n": 1000,
+      "winRate": 0.912,
+      "allyDeathsPerFight": 0.69,
+      "injuryTotals": {
+        "laceration": 404
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:bruise": {
+      "n": 1000,
+      "winRate": 0.874,
+      "allyDeathsPerFight": 0.916,
+      "injuryTotals": {
+        "laceration": 450
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:normal:warrior": {
+      "n": 1000,
+      "winRate": 0.982,
+      "allyDeathsPerFight": 0.432,
+      "injuryTotals": {
+        "laceration": 467
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:normal:scout": {
+      "n": 1000,
+      "winRate": 0.971,
+      "allyDeathsPerFight": 0.542,
+      "injuryTotals": {
+        "laceration": 579
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:normal:apothecary": {
+      "n": 1000,
+      "winRate": 0.977,
+      "allyDeathsPerFight": 0.55,
+      "injuryTotals": {
+        "laceration": 609
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:normal:mage": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.147,
+      "injuryTotals": {
+        "laceration": 271
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:normal:bruise": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.187,
+      "injuryTotals": {
+        "laceration": 264
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:warrior": {
+      "n": 1000,
+      "winRate": 0.98,
+      "allyDeathsPerFight": 0.456,
+      "injuryTotals": {
+        "laceration": 496
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:scout": {
+      "n": 1000,
+      "winRate": 0.976,
+      "allyDeathsPerFight": 0.516,
+      "injuryTotals": {
+        "laceration": 569
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.981,
+      "allyDeathsPerFight": 0.539,
+      "injuryTotals": {
+        "laceration": 579
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:mage": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.152,
+      "injuryTotals": {
+        "laceration": 259
+      },
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:bruise": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0.177,
+      "injuryTotals": {
+        "laceration": 283
+      },
+      "L": 30
+    },
+    "arbitarius_commander:undergeared:warrior": {
+      "n": 1000,
+      "winRate": 0.003,
+      "allyDeathsPerFight": 2.996,
+      "injuryTotals": {
+        "laceration": 1
+      },
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:scout": {
+      "n": 1000,
+      "winRate": 0.002,
+      "allyDeathsPerFight": 2.997,
+      "injuryTotals": {},
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.001,
+      "allyDeathsPerFight": 2.999,
+      "injuryTotals": {
+        "laceration": 1
+      },
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:mage": {
+      "n": 1000,
+      "winRate": 0.006,
+      "allyDeathsPerFight": 2.993,
+      "injuryTotals": {
+        "laceration": 2
+      },
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:bruise": {
+      "n": 1000,
+      "winRate": 0.003,
+      "allyDeathsPerFight": 2.996,
+      "injuryTotals": {
+        "laceration": 2
+      },
+      "L": 29
+    },
+    "arbitarius_commander:normal:warrior": {
+      "n": 1000,
+      "winRate": 0.055,
+      "allyDeathsPerFight": 2.895,
+      "injuryTotals": {
+        "laceration": 27
+      },
+      "L": 29
+    },
+    "arbitarius_commander:normal:scout": {
+      "n": 1000,
+      "winRate": 0.049,
+      "allyDeathsPerFight": 2.917,
+      "injuryTotals": {
+        "laceration": 25
+      },
+      "L": 29
+    },
+    "arbitarius_commander:normal:apothecary": {
+      "n": 1000,
+      "winRate": 0.051,
+      "allyDeathsPerFight": 2.907,
+      "injuryTotals": {
+        "laceration": 29
+      },
+      "L": 29
+    },
+    "arbitarius_commander:normal:mage": {
+      "n": 1000,
+      "winRate": 0.077,
+      "allyDeathsPerFight": 2.865,
+      "injuryTotals": {
+        "laceration": 39
+      },
+      "L": 29
+    },
+    "arbitarius_commander:normal:bruise": {
+      "n": 1000,
+      "winRate": 0.064,
+      "allyDeathsPerFight": 2.896,
+      "injuryTotals": {
+        "laceration": 34
+      },
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:warrior": {
+      "n": 1000,
+      "winRate": 0.062,
+      "allyDeathsPerFight": 2.902,
+      "injuryTotals": {
+        "laceration": 30
+      },
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:scout": {
+      "n": 1000,
+      "winRate": 0.039,
+      "allyDeathsPerFight": 2.929,
+      "injuryTotals": {
+        "laceration": 24
+      },
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.044,
+      "allyDeathsPerFight": 2.926,
+      "injuryTotals": {
+        "laceration": 24
+      },
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:mage": {
+      "n": 1000,
+      "winRate": 0.088,
+      "allyDeathsPerFight": 2.847,
+      "injuryTotals": {
+        "laceration": 34
+      },
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:bruise": {
+      "n": 1000,
+      "winRate": 0.069,
+      "allyDeathsPerFight": 2.893,
+      "injuryTotals": {
+        "laceration": 34
+      },
+      "L": 29
+    }
+  }
+}

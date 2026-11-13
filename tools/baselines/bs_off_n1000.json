@@ -1,0 +1,2529 @@
+{
+  "generatedAt": "2026-11-13T14:27:19.025Z",
+  "switch": "off",
+  "n": 1000,
+  "rows": "all",
+  "results": {
+    "boss:tribal_warleader:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.001,
+      "injuryTotals": {
+        "trauma": 4
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 4
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.001,
+      "injuryTotals": {
+        "trauma": 20
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.005,
+      "injuryTotals": {
+        "trauma": 7
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.004,
+      "injuryTotals": {
+        "trauma": 8
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.002,
+      "injuryTotals": {
+        "trauma": 6
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 22
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.001,
+      "injuryTotals": {
+        "trauma": 11
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.001,
+      "injuryTotals": {
+        "trauma": 31
+      },
+      "L": 25
+    },
+    "boss:tribal_warleader:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 25
+      },
+      "L": 25
+    },
+    "boss:mercenary_commander:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.013,
+      "injuryTotals": {
+        "trauma": 19
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0.188,
+      "injuryTotals": {
+        "trauma": 234
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.012,
+      "injuryTotals": {
+        "trauma": 48
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.178,
+      "injuryTotals": {
+        "trauma": 425
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.011,
+      "injuryTotals": {
+        "trauma": 64
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.992,
+      "allyDeathsPerFight": 0.238,
+      "injuryTotals": {
+        "trauma": 367
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.004,
+      "injuryTotals": {
+        "trauma": 45
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.992,
+      "allyDeathsPerFight": 0.189,
+      "injuryTotals": {
+        "trauma": 374
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.008,
+      "injuryTotals": {
+        "trauma": 64
+      },
+      "L": 28
+    },
+    "boss:mercenary_commander:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.147,
+      "injuryTotals": {
+        "trauma": 393
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_guard_captain:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0.064,
+      "injuryTotals": {
+        "trauma": 70
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0.064,
+      "injuryTotals": {
+        "trauma": 168
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.996,
+      "allyDeathsPerFight": 0.074,
+      "injuryTotals": {
+        "trauma": 140
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 2
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0.036,
+      "injuryTotals": {
+        "trauma": 121
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_guard_captain:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0.049,
+      "injuryTotals": {
+        "trauma": 158
+      },
+      "L": 25
+    },
+    "boss:merchant_lord_shieldmaster:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.001,
+      "injuryTotals": {
+        "trauma": 2
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 11
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 18
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 13
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 10
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 2
+      },
+      "L": 28
+    },
+    "boss:merchant_lord_shieldmaster:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 2
+      },
+      "L": 28
+    },
+    "boss:amahri_field_commander:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.002,
+      "injuryTotals": {
+        "trauma": 6
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.876,
+      "allyDeathsPerFight": 0.679,
+      "injuryTotals": {
+        "trauma": 295
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.004,
+      "injuryTotals": {
+        "trauma": 9
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.792,
+      "allyDeathsPerFight": 0.876,
+      "injuryTotals": {
+        "trauma": 332
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.003,
+      "injuryTotals": {
+        "trauma": 13
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.818,
+      "allyDeathsPerFight": 0.839,
+      "injuryTotals": {
+        "trauma": 316
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 5
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.864,
+      "allyDeathsPerFight": 0.633,
+      "injuryTotals": {
+        "trauma": 325
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 6
+      },
+      "L": 27
+    },
+    "boss:amahri_field_commander:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.857,
+      "allyDeathsPerFight": 0.666,
+      "injuryTotals": {
+        "trauma": 331
+      },
+      "L": 27
+    },
+    "boss:sardarr_army_commander:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.006,
+      "injuryTotals": {
+        "trauma": 4
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.017,
+      "injuryTotals": {
+        "trauma": 50
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.003,
+      "injuryTotals": {
+        "trauma": 20
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.026,
+      "injuryTotals": {
+        "trauma": 117
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.001,
+      "injuryTotals": {
+        "trauma": 16
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.045,
+      "injuryTotals": {
+        "trauma": 108
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 12
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.025,
+      "injuryTotals": {
+        "trauma": 136
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 9
+      },
+      "L": 29
+    },
+    "boss:sardarr_army_commander:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.024,
+      "injuryTotals": {
+        "trauma": 122
+      },
+      "L": 29
+    },
+    "boss:bandit_captain:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.002,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.951,
+      "allyDeathsPerFight": 0.469,
+      "injuryTotals": {
+        "trauma": 383
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 12
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.96,
+      "allyDeathsPerFight": 0.461,
+      "injuryTotals": {
+        "trauma": 526
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.002,
+      "injuryTotals": {
+        "trauma": 7
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.928,
+      "allyDeathsPerFight": 0.578,
+      "injuryTotals": {
+        "trauma": 470
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 13
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.945,
+      "allyDeathsPerFight": 0.521,
+      "injuryTotals": {
+        "trauma": 507
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {
+        "trauma": 12
+      },
+      "L": 24
+    },
+    "boss:bandit_captain:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.939,
+      "allyDeathsPerFight": 0.484,
+      "injuryTotals": {
+        "trauma": 503
+      },
+      "L": 24
+    },
+    "boss:bandit_warlord:alone:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.053,
+      "injuryTotals": {
+        "trauma": 75
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.954,
+      "allyDeathsPerFight": 0.393,
+      "injuryTotals": {
+        "trauma": 227
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:alone:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.045,
+      "injuryTotals": {
+        "trauma": 89
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.965,
+      "allyDeathsPerFight": 0.319,
+      "injuryTotals": {
+        "trauma": 301
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:alone:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.056,
+      "injuryTotals": {
+        "trauma": 90
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.945,
+      "allyDeathsPerFight": 0.452,
+      "injuryTotals": {
+        "trauma": 287
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:alone:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.034,
+      "injuryTotals": {
+        "trauma": 45
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.928,
+      "allyDeathsPerFight": 0.452,
+      "injuryTotals": {
+        "trauma": 289
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:alone:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.025,
+      "injuryTotals": {
+        "trauma": 56
+      },
+      "L": 28
+    },
+    "boss:bandit_warlord:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.953,
+      "allyDeathsPerFight": 0.378,
+      "injuryTotals": {
+        "trauma": 328
+      },
+      "L": 28
+    },
+    "boss:highway_captain:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.962,
+      "allyDeathsPerFight": 0.64,
+      "injuryTotals": {
+        "trauma": 511
+      },
+      "L": 23
+    },
+    "boss:highway_captain:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.105,
+      "allyDeathsPerFight": 2.803,
+      "injuryTotals": {
+        "trauma": 67,
+        "laceration": 2
+      },
+      "L": 23
+    },
+    "boss:highway_captain:alone:scout": {
+      "n": 1000,
+      "winRate": 0.955,
+      "allyDeathsPerFight": 0.651,
+      "injuryTotals": {
+        "trauma": 545
+      },
+      "L": 23
+    },
+    "boss:highway_captain:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.088,
+      "allyDeathsPerFight": 2.824,
+      "injuryTotals": {
+        "trauma": 58,
+        "laceration": 3
+      },
+      "L": 23
+    },
+    "boss:highway_captain:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.943,
+      "allyDeathsPerFight": 0.714,
+      "injuryTotals": {
+        "trauma": 568
+      },
+      "L": 23
+    },
+    "boss:highway_captain:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.115,
+      "allyDeathsPerFight": 2.771,
+      "injuryTotals": {
+        "trauma": 81,
+        "laceration": 3
+      },
+      "L": 23
+    },
+    "boss:highway_captain:alone:mage": {
+      "n": 1000,
+      "winRate": 0.977,
+      "allyDeathsPerFight": 0.457,
+      "injuryTotals": {
+        "trauma": 433
+      },
+      "L": 23
+    },
+    "boss:highway_captain:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.103,
+      "allyDeathsPerFight": 2.792,
+      "injuryTotals": {
+        "trauma": 53,
+        "laceration": 8
+      },
+      "L": 23
+    },
+    "boss:highway_captain:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.974,
+      "allyDeathsPerFight": 0.479,
+      "injuryTotals": {
+        "trauma": 448
+      },
+      "L": 23
+    },
+    "boss:highway_captain:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.094,
+      "allyDeathsPerFight": 2.818,
+      "injuryTotals": {
+        "trauma": 51,
+        "laceration": 3
+      },
+      "L": 23
+    },
+    "boss:roadlord:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.077,
+      "allyDeathsPerFight": 2.876,
+      "injuryTotals": {
+        "trauma": 27,
+        "laceration": 2
+      },
+      "L": 27
+    },
+    "boss:roadlord:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.003,
+      "allyDeathsPerFight": 2.999,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "L": 27
+    },
+    "boss:roadlord:alone:scout": {
+      "n": 1000,
+      "winRate": 0.037,
+      "allyDeathsPerFight": 2.932,
+      "injuryTotals": {
+        "trauma": 18,
+        "laceration": 2
+      },
+      "L": 27
+    },
+    "boss:roadlord:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.007,
+      "allyDeathsPerFight": 2.986,
+      "injuryTotals": {
+        "trauma": 3
+      },
+      "L": 27
+    },
+    "boss:roadlord:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.038,
+      "allyDeathsPerFight": 2.931,
+      "injuryTotals": {
+        "trauma": 18,
+        "laceration": 1
+      },
+      "L": 27
+    },
+    "boss:roadlord:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.003,
+      "allyDeathsPerFight": 2.997,
+      "injuryTotals": {
+        "trauma": 2
+      },
+      "L": 27
+    },
+    "boss:roadlord:alone:mage": {
+      "n": 1000,
+      "winRate": 0.092,
+      "allyDeathsPerFight": 2.84,
+      "injuryTotals": {
+        "trauma": 31,
+        "laceration": 1
+      },
+      "L": 27
+    },
+    "boss:roadlord:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.011,
+      "allyDeathsPerFight": 2.983,
+      "injuryTotals": {
+        "trauma": 3
+      },
+      "L": 27
+    },
+    "boss:roadlord:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.083,
+      "allyDeathsPerFight": 2.865,
+      "injuryTotals": {
+        "trauma": 36,
+        "laceration": 1
+      },
+      "L": 27
+    },
+    "boss:roadlord:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.004,
+      "allyDeathsPerFight": 2.994,
+      "injuryTotals": {},
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.687,
+      "allyDeathsPerFight": 1.517,
+      "injuryTotals": {
+        "trauma": 430
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.671,
+      "allyDeathsPerFight": 1.565,
+      "injuryTotals": {
+        "trauma": 394
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:alone:scout": {
+      "n": 1000,
+      "winRate": 0.661,
+      "allyDeathsPerFight": 1.613,
+      "injuryTotals": {
+        "trauma": 441
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.625,
+      "allyDeathsPerFight": 1.709,
+      "injuryTotals": {
+        "trauma": 418
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.617,
+      "allyDeathsPerFight": 1.713,
+      "injuryTotals": {
+        "trauma": 420
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.598,
+      "allyDeathsPerFight": 1.767,
+      "injuryTotals": {
+        "trauma": 391
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:alone:mage": {
+      "n": 1000,
+      "winRate": 0.748,
+      "allyDeathsPerFight": 1.322,
+      "injuryTotals": {
+        "trauma": 418
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.747,
+      "allyDeathsPerFight": 1.291,
+      "injuryTotals": {
+        "trauma": 428
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.684,
+      "allyDeathsPerFight": 1.495,
+      "injuryTotals": {
+        "trauma": 415
+      },
+      "L": 27
+    },
+    "boss:vigilis_unit_commander:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.71,
+      "allyDeathsPerFight": 1.407,
+      "injuryTotals": {
+        "trauma": 412
+      },
+      "L": 27
+    },
+    "boss:arbitarius_commander:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.077,
+      "allyDeathsPerFight": 2.864,
+      "injuryTotals": {
+        "trauma": 35
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.072,
+      "allyDeathsPerFight": 2.877,
+      "injuryTotals": {
+        "trauma": 35
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:alone:scout": {
+      "n": 1000,
+      "winRate": 0.05,
+      "allyDeathsPerFight": 2.927,
+      "injuryTotals": {
+        "trauma": 28
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.05,
+      "allyDeathsPerFight": 2.91,
+      "injuryTotals": {
+        "trauma": 30
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.035,
+      "allyDeathsPerFight": 2.938,
+      "injuryTotals": {
+        "trauma": 15
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.03,
+      "allyDeathsPerFight": 2.949,
+      "injuryTotals": {
+        "trauma": 12
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:alone:mage": {
+      "n": 1000,
+      "winRate": 0.08,
+      "allyDeathsPerFight": 2.869,
+      "injuryTotals": {
+        "trauma": 30
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.097,
+      "allyDeathsPerFight": 2.834,
+      "injuryTotals": {
+        "trauma": 36
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.068,
+      "allyDeathsPerFight": 2.878,
+      "injuryTotals": {
+        "trauma": 33
+      },
+      "L": 29
+    },
+    "boss:arbitarius_commander:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.074,
+      "allyDeathsPerFight": 2.891,
+      "injuryTotals": {
+        "trauma": 35
+      },
+      "L": 29
+    },
+    "boss:watch_captain:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.926,
+      "allyDeathsPerFight": 0.741,
+      "injuryTotals": {
+        "trauma": 483
+      },
+      "L": 27
+    },
+    "boss:watch_captain:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.074,
+      "allyDeathsPerFight": 2.849,
+      "injuryTotals": {
+        "trauma": 46
+      },
+      "L": 27
+    },
+    "boss:watch_captain:alone:scout": {
+      "n": 1000,
+      "winRate": 0.894,
+      "allyDeathsPerFight": 0.869,
+      "injuryTotals": {
+        "trauma": 566
+      },
+      "L": 27
+    },
+    "boss:watch_captain:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.056,
+      "allyDeathsPerFight": 2.899,
+      "injuryTotals": {
+        "trauma": 42
+      },
+      "L": 27
+    },
+    "boss:watch_captain:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.9,
+      "allyDeathsPerFight": 0.898,
+      "injuryTotals": {
+        "trauma": 528
+      },
+      "L": 27
+    },
+    "boss:watch_captain:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.047,
+      "allyDeathsPerFight": 2.917,
+      "injuryTotals": {
+        "trauma": 33
+      },
+      "L": 27
+    },
+    "boss:watch_captain:alone:mage": {
+      "n": 1000,
+      "winRate": 0.938,
+      "allyDeathsPerFight": 0.697,
+      "injuryTotals": {
+        "trauma": 503
+      },
+      "L": 27
+    },
+    "boss:watch_captain:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.076,
+      "allyDeathsPerFight": 2.836,
+      "injuryTotals": {
+        "trauma": 46
+      },
+      "L": 27
+    },
+    "boss:watch_captain:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.927,
+      "allyDeathsPerFight": 0.743,
+      "injuryTotals": {
+        "trauma": 487
+      },
+      "L": 27
+    },
+    "boss:watch_captain:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.059,
+      "allyDeathsPerFight": 2.876,
+      "injuryTotals": {
+        "trauma": 34
+      },
+      "L": 27
+    },
+    "boss:free_company_captain:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.975,
+      "allyDeathsPerFight": 0.41,
+      "injuryTotals": {
+        "trauma": 310
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.889,
+      "allyDeathsPerFight": 0.847,
+      "injuryTotals": {
+        "trauma": 422
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:alone:scout": {
+      "n": 1000,
+      "winRate": 0.954,
+      "allyDeathsPerFight": 0.445,
+      "injuryTotals": {
+        "trauma": 409
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.811,
+      "allyDeathsPerFight": 1.083,
+      "injuryTotals": {
+        "trauma": 478
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.967,
+      "allyDeathsPerFight": 0.462,
+      "injuryTotals": {
+        "trauma": 384
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.863,
+      "allyDeathsPerFight": 0.96,
+      "injuryTotals": {
+        "trauma": 463
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:alone:mage": {
+      "n": 1000,
+      "winRate": 0.969,
+      "allyDeathsPerFight": 0.346,
+      "injuryTotals": {
+        "trauma": 351
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.862,
+      "allyDeathsPerFight": 0.863,
+      "injuryTotals": {
+        "trauma": 411
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.967,
+      "allyDeathsPerFight": 0.396,
+      "injuryTotals": {
+        "trauma": 389
+      },
+      "L": 25
+    },
+    "boss:free_company_captain:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.859,
+      "allyDeathsPerFight": 0.858,
+      "injuryTotals": {
+        "trauma": 461
+      },
+      "L": 25
+    },
+    "boss:ovum_champion:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.022,
+      "allyDeathsPerFight": 2.964,
+      "injuryTotals": {
+        "trauma": 9
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.013,
+      "allyDeathsPerFight": 2.98,
+      "injuryTotals": {
+        "trauma": 7
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:alone:scout": {
+      "n": 1000,
+      "winRate": 0.018,
+      "allyDeathsPerFight": 2.97,
+      "injuryTotals": {
+        "trauma": 14
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.025,
+      "allyDeathsPerFight": 2.963,
+      "injuryTotals": {
+        "trauma": 14
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.014,
+      "allyDeathsPerFight": 2.977,
+      "injuryTotals": {
+        "trauma": 8
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.015,
+      "allyDeathsPerFight": 2.976,
+      "injuryTotals": {
+        "trauma": 13
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:alone:mage": {
+      "n": 1000,
+      "winRate": 0.043,
+      "allyDeathsPerFight": 2.929,
+      "injuryTotals": {
+        "trauma": 30
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.034,
+      "allyDeathsPerFight": 2.948,
+      "injuryTotals": {
+        "trauma": 20
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.028,
+      "allyDeathsPerFight": 2.949,
+      "injuryTotals": {
+        "trauma": 19
+      },
+      "L": 28
+    },
+    "boss:ovum_champion:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.031,
+      "allyDeathsPerFight": 2.948,
+      "injuryTotals": {
+        "trauma": 20
+      },
+      "L": 28
+    },
+    "boss:militia_warleader:alone:warrior": {
+      "n": 1000,
+      "winRate": 0.232,
+      "allyDeathsPerFight": 2.566,
+      "injuryTotals": {
+        "trauma": 67
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:asSpawned:warrior": {
+      "n": 1000,
+      "winRate": 0.236,
+      "allyDeathsPerFight": 2.53,
+      "injuryTotals": {
+        "trauma": 72
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:alone:scout": {
+      "n": 1000,
+      "winRate": 0.212,
+      "allyDeathsPerFight": 2.603,
+      "injuryTotals": {
+        "trauma": 80
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:asSpawned:scout": {
+      "n": 1000,
+      "winRate": 0.226,
+      "allyDeathsPerFight": 2.604,
+      "injuryTotals": {
+        "trauma": 71
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:alone:apothecary": {
+      "n": 1000,
+      "winRate": 0.19,
+      "allyDeathsPerFight": 2.647,
+      "injuryTotals": {
+        "trauma": 70
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:asSpawned:apothecary": {
+      "n": 1000,
+      "winRate": 0.21,
+      "allyDeathsPerFight": 2.595,
+      "injuryTotals": {
+        "trauma": 73
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:alone:mage": {
+      "n": 1000,
+      "winRate": 0.305,
+      "allyDeathsPerFight": 2.367,
+      "injuryTotals": {
+        "trauma": 74
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:asSpawned:mage": {
+      "n": 1000,
+      "winRate": 0.293,
+      "allyDeathsPerFight": 2.393,
+      "injuryTotals": {
+        "trauma": 81
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:alone:bruise": {
+      "n": 1000,
+      "winRate": 0.3,
+      "allyDeathsPerFight": 2.41,
+      "injuryTotals": {
+        "trauma": 87
+      },
+      "L": 27
+    },
+    "boss:militia_warleader:asSpawned:bruise": {
+      "n": 1000,
+      "winRate": 0.295,
+      "allyDeathsPerFight": 2.401,
+      "injuryTotals": {
+        "trauma": 79
+      },
+      "L": 27
+    },
+    "new:fire_ashWolf:warrior": {
+      "n": 1000,
+      "winRate": 0.992,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:fire_ashWolf:scout": {
+      "n": 1000,
+      "winRate": 0.991,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:fire_ashWolf:apothecary": {
+      "n": 1000,
+      "winRate": 0.988,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:fire_ashWolf:mage": {
+      "n": 1000,
+      "winRate": 0.992,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:fire_ashWolf:bruise": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:frost_frostWolf:warrior": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:frost_frostWolf:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:frost_frostWolf:apothecary": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:frost_frostWolf:mage": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:frost_frostWolf:bruise": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:water_lesserElemental_pinned:warrior": {
+      "n": 1000,
+      "winRate": 0.967,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:water_lesserElemental_pinned:scout": {
+      "n": 1000,
+      "winRate": 0.96,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:water_lesserElemental_pinned:apothecary": {
+      "n": 1000,
+      "winRate": 0.961,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:water_lesserElemental_pinned:mage": {
+      "n": 1000,
+      "winRate": 0.9,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:water_lesserElemental_pinned:bruise": {
+      "n": 1000,
+      "winRate": 0.888,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:lightning_youngSkrelDrak_pinned:warrior": {
+      "n": 1000,
+      "winRate": 0.852,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:lightning_youngSkrelDrak_pinned:scout": {
+      "n": 1000,
+      "winRate": 0.696,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:lightning_youngSkrelDrak_pinned:apothecary": {
+      "n": 1000,
+      "winRate": 0.761,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:lightning_youngSkrelDrak_pinned:mage": {
+      "n": 1000,
+      "winRate": 0.857,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:lightning_youngSkrelDrak_pinned:bruise": {
+      "n": 1000,
+      "winRate": 0.828,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:acid_youngSkrelDrak_pinned:warrior": {
+      "n": 1000,
+      "winRate": 0.804,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:acid_youngSkrelDrak_pinned:scout": {
+      "n": 1000,
+      "winRate": 0.664,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:acid_youngSkrelDrak_pinned:apothecary": {
+      "n": 1000,
+      "winRate": 0.757,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:acid_youngSkrelDrak_pinned:mage": {
+      "n": 1000,
+      "winRate": 0.855,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:acid_youngSkrelDrak_pinned:bruise": {
+      "n": 1000,
+      "winRate": 0.847,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:earth_duneWolf:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:earth_duneWolf:scout": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:earth_duneWolf:apothecary": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:earth_duneWolf:mage": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:earth_duneWolf:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 13,
+      "tier": "normal"
+    },
+    "new:poison_giantSerpent:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:poison_giantSerpent:scout": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:poison_giantSerpent:apothecary": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:poison_giantSerpent:mage": {
+      "n": 1000,
+      "winRate": 0.996,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:poison_giantSerpent:bruise": {
+      "n": 1000,
+      "winRate": 0.996,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:force_homunculus:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:force_homunculus:scout": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:force_homunculus:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:force_homunculus:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:force_homunculus:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:spatial_rauThaulnMaur:warrior": {
+      "n": 1000,
+      "winRate": 0.958,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:spatial_rauThaulnMaur:scout": {
+      "n": 1000,
+      "winRate": 0.965,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:spatial_rauThaulnMaur:apothecary": {
+      "n": 1000,
+      "winRate": 0.952,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:spatial_rauThaulnMaur:mage": {
+      "n": 1000,
+      "winRate": 0.939,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:spatial_rauThaulnMaur:bruise": {
+      "n": 1000,
+      "winRate": 0.935,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 3,
+      "tier": "normal"
+    },
+    "new:spirit_restlessDead:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:spirit_restlessDead:scout": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:spirit_restlessDead:apothecary": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:spirit_restlessDead:mage": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:spirit_restlessDead:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 8,
+      "tier": "normal"
+    },
+    "new:necrotic_bloatedSulDaun:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.029,
+      "injuryTotals": {
+        "trauma": 18
+      },
+      "L": 17,
+      "tier": "boss"
+    },
+    "new:necrotic_bloatedSulDaun:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.05,
+      "injuryTotals": {
+        "trauma": 52
+      },
+      "L": 17,
+      "tier": "boss"
+    },
+    "new:necrotic_bloatedSulDaun:apothecary": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.034,
+      "injuryTotals": {
+        "trauma": 47
+      },
+      "L": 17,
+      "tier": "boss"
+    },
+    "new:necrotic_bloatedSulDaun:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.014,
+      "injuryTotals": {
+        "trauma": 25
+      },
+      "L": 17,
+      "tier": "boss"
+    },
+    "new:necrotic_bloatedSulDaun:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.013,
+      "injuryTotals": {
+        "trauma": 29
+      },
+      "L": 17,
+      "tier": "boss"
+    },
+    "new:divine_elderThuelnMaur:warrior": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.238,
+      "injuryTotals": {
+        "trauma": 199,
+        "burns": 1
+      },
+      "L": 23,
+      "tier": "world_boss"
+    },
+    "new:divine_elderThuelnMaur:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.227,
+      "injuryTotals": {
+        "trauma": 312,
+        "burns": 15
+      },
+      "L": 23,
+      "tier": "world_boss"
+    },
+    "new:divine_elderThuelnMaur:apothecary": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.326,
+      "injuryTotals": {
+        "trauma": 292,
+        "burns": 5
+      },
+      "L": 23,
+      "tier": "world_boss"
+    },
+    "new:divine_elderThuelnMaur:mage": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0.21,
+      "injuryTotals": {
+        "trauma": 246,
+        "burns": 34
+      },
+      "L": 23,
+      "tier": "world_boss"
+    },
+    "new:divine_elderThuelnMaur:bruise": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0.26,
+      "injuryTotals": {
+        "trauma": 303,
+        "burns": 47
+      },
+      "L": 23,
+      "tier": "world_boss"
+    },
+    "new:allresist_elderLorvaunNauri:warrior": {
+      "n": 1000,
+      "winRate": 0.995,
+      "allyDeathsPerFight": 0.031,
+      "injuryTotals": {
+        "trauma": 33
+      },
+      "L": 13,
+      "tier": "elite"
+    },
+    "new:allresist_elderLorvaunNauri:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.053,
+      "injuryTotals": {
+        "trauma": 81
+      },
+      "L": 13,
+      "tier": "elite"
+    },
+    "new:allresist_elderLorvaunNauri:apothecary": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0.041,
+      "injuryTotals": {
+        "trauma": 89
+      },
+      "L": 13,
+      "tier": "elite"
+    },
+    "new:allresist_elderLorvaunNauri:mage": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0.049,
+      "injuryTotals": {
+        "trauma": 97
+      },
+      "L": 13,
+      "tier": "elite"
+    },
+    "new:allresist_elderLorvaunNauri:bruise": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.043,
+      "injuryTotals": {
+        "trauma": 114
+      },
+      "L": 13,
+      "tier": "elite"
+    },
+    "new:variant_juvenileDravenDrak_white:warrior": {
+      "n": 1000,
+      "winRate": 0.311,
+      "allyDeathsPerFight": 2.415,
+      "injuryTotals": {
+        "trauma": 183,
+        "laceration": 9
+      },
+      "L": 13,
+      "tier": "boss"
+    },
+    "new:variant_juvenileDravenDrak_white:scout": {
+      "n": 1000,
+      "winRate": 0.292,
+      "allyDeathsPerFight": 2.46,
+      "injuryTotals": {
+        "trauma": 187,
+        "laceration": 6
+      },
+      "L": 13,
+      "tier": "boss"
+    },
+    "new:variant_juvenileDravenDrak_white:apothecary": {
+      "n": 1000,
+      "winRate": 0.285,
+      "allyDeathsPerFight": 2.46,
+      "injuryTotals": {
+        "trauma": 199,
+        "laceration": 4
+      },
+      "L": 13,
+      "tier": "boss"
+    },
+    "new:variant_juvenileDravenDrak_white:mage": {
+      "n": 1000,
+      "winRate": 0.395,
+      "allyDeathsPerFight": 2.222,
+      "injuryTotals": {
+        "trauma": 233,
+        "laceration": 11,
+        "burns": 1
+      },
+      "L": 13,
+      "tier": "boss"
+    },
+    "new:variant_juvenileDravenDrak_white:bruise": {
+      "n": 1000,
+      "winRate": 0.353,
+      "allyDeathsPerFight": 2.327,
+      "injuryTotals": {
+        "trauma": 232,
+        "burns": 1,
+        "laceration": 5
+      },
+      "L": 13,
+      "tier": "boss"
+    },
+    "new:variant_ancientSkrelDrak_heatedmist:warrior": {
+      "n": 1000,
+      "winRate": 0.894,
+      "allyDeathsPerFight": 1.125,
+      "injuryTotals": {
+        "trauma": 458,
+        "burns": 1
+      },
+      "L": 23,
+      "tier": "boss"
+    },
+    "new:variant_ancientSkrelDrak_heatedmist:scout": {
+      "n": 1000,
+      "winRate": 0.831,
+      "allyDeathsPerFight": 1.327,
+      "injuryTotals": {
+        "trauma": 527,
+        "burns": 28
+      },
+      "L": 23,
+      "tier": "boss"
+    },
+    "new:variant_ancientSkrelDrak_heatedmist:apothecary": {
+      "n": 1000,
+      "winRate": 0.857,
+      "allyDeathsPerFight": 1.29,
+      "injuryTotals": {
+        "trauma": 516,
+        "burns": 20
+      },
+      "L": 23,
+      "tier": "boss"
+    },
+    "new:variant_ancientSkrelDrak_heatedmist:mage": {
+      "n": 1000,
+      "winRate": 0.906,
+      "allyDeathsPerFight": 1.068,
+      "injuryTotals": {
+        "trauma": 520,
+        "burns": 21
+      },
+      "L": 23,
+      "tier": "boss"
+    },
+    "new:variant_ancientSkrelDrak_heatedmist:bruise": {
+      "n": 1000,
+      "winRate": 0.876,
+      "allyDeathsPerFight": 1.13,
+      "injuryTotals": {
+        "trauma": 497,
+        "burns": 13
+      },
+      "L": 23,
+      "tier": "boss"
+    },
+    "new:variant_elemental_fire:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.184,
+      "injuryTotals": {
+        "trauma": 100,
+        "burns": 26
+      },
+      "L": 8,
+      "tier": "elite"
+    },
+    "new:variant_elemental_fire:scout": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.182,
+      "injuryTotals": {
+        "trauma": 131,
+        "burns": 18
+      },
+      "L": 8,
+      "tier": "elite"
+    },
+    "new:variant_elemental_fire:apothecary": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0.199,
+      "injuryTotals": {
+        "burns": 19,
+        "trauma": 142
+      },
+      "L": 8,
+      "tier": "elite"
+    },
+    "new:variant_elemental_fire:mage": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.19,
+      "injuryTotals": {
+        "trauma": 119,
+        "burns": 17
+      },
+      "L": 8,
+      "tier": "elite"
+    },
+    "new:variant_elemental_fire:bruise": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0.19,
+      "injuryTotals": {
+        "trauma": 125,
+        "burns": 17
+      },
+      "L": 8,
+      "tier": "elite"
+    },
+    "new:enemyMage_fire:warrior": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_fire:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_fire:apothecary": {
+      "n": 1000,
+      "winRate": 0.996,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_fire:mage": {
+      "n": 1000,
+      "winRate": 0.994,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_fire:bruise": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_water:warrior": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_water:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_water:apothecary": {
+      "n": 1000,
+      "winRate": 0.992,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_water:mage": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_water:bruise": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_earth:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_earth:scout": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_earth:apothecary": {
+      "n": 1000,
+      "winRate": 0.99,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_earth:mage": {
+      "n": 1000,
+      "winRate": 0.994,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_earth:bruise": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_lightning:warrior": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_lightning:scout": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_lightning:apothecary": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_lightning:mage": {
+      "n": 1000,
+      "winRate": 0.995,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_lightning:bruise": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_acid:warrior": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_acid:scout": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_acid:apothecary": {
+      "n": 1000,
+      "winRate": 0.994,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_acid:mage": {
+      "n": 1000,
+      "winRate": 0.995,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_acid:bruise": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_force:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_force:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_force:apothecary": {
+      "n": 1000,
+      "winRate": 0.993,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_force:mage": {
+      "n": 1000,
+      "winRate": 0.995,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_force:bruise": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_transportation:warrior": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_transportation:scout": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_transportation:apothecary": {
+      "n": 1000,
+      "winRate": 0.994,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_transportation:mage": {
+      "n": 1000,
+      "winRate": 0.992,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_transportation:bruise": {
+      "n": 1000,
+      "winRate": 0.995,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_air:warrior": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_air:scout": {
+      "n": 1000,
+      "winRate": 1,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_air:apothecary": {
+      "n": 1000,
+      "winRate": 0.993,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_air:mage": {
+      "n": 1000,
+      "winRate": 0.995,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_air:bruise": {
+      "n": 1000,
+      "winRate": 0.998,
+      "allyDeathsPerFight": 0,
+      "injuryTotals": {},
+      "L": 20,
+      "tier": "normal"
+    },
+    "new:enemyMage_frost:warrior": {
+      "n": 0,
+      "winRate": null,
+      "allyDeathsPerFight": null,
+      "injuryTotals": {},
+      "skipped": "frost requires the switch on (no ELEMENTS.frost pre-switch)"
+    },
+    "new:enemyMage_frost:scout": {
+      "n": 0,
+      "winRate": null,
+      "allyDeathsPerFight": null,
+      "injuryTotals": {},
+      "skipped": "frost requires the switch on (no ELEMENTS.frost pre-switch)"
+    },
+    "new:enemyMage_frost:apothecary": {
+      "n": 0,
+      "winRate": null,
+      "allyDeathsPerFight": null,
+      "injuryTotals": {},
+      "skipped": "frost requires the switch on (no ELEMENTS.frost pre-switch)"
+    },
+    "new:enemyMage_frost:mage": {
+      "n": 0,
+      "winRate": null,
+      "allyDeathsPerFight": null,
+      "injuryTotals": {},
+      "skipped": "frost requires the switch on (no ELEMENTS.frost pre-switch)"
+    },
+    "new:enemyMage_frost:bruise": {
+      "n": 0,
+      "winRate": null,
+      "allyDeathsPerFight": null,
+      "injuryTotals": {},
+      "skipped": "frost requires the switch on (no ELEMENTS.frost pre-switch)"
+    }
+  }
+}
