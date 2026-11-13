@@ -1,0 +1,26 @@
+range: b5c2d60d38f69c3bceb6ea43bb68166c30b9751c..99ea225bf4be855770f0b652922857b90e1df78f
+=== 99ea225bf4be855770f0b652922857b90e1df78f 2026-11-13 15:21:27 +0000
+Rename baseline summary to the commit that recorded it (249f74f)
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ ...es_baseline_PENDING.json => post_damage_types_baseline_249f74f.json} | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+=== 249f74f4c307d8578c0b772a31da34efa204e4c4 2026-11-13 15:21:22 +0000
+Damage Types Step 4, 3rd follow-up: rerun N=1000 baseline + metrics
+Recommitted baseline: boss_sweep.js and plus3_run.js rerun at N=1000,
+switch off and on, now carrying the mean-player-HP%/mean-ally-HP%/
+mean-rounds metrics added in the prior follow-up. Replaces
+tools/baselines/bf0e92e's raw/baseline files. Full suite 550/550.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/baselines/bs_off_n1000.json                  | 1962 +++++++++++-----
+ tools/baselines/bs_on_n1000.json                   | 2121 +++++++++++------
+ tools/baselines/p3_off_n1000.json                  |  258 ++-
+ tools/baselines/p3_on_n1000.json                   |  254 ++-
+ ...son => post_damage_types_baseline_PENDING.json} | 2377 ++++++++++++++------
+ 5 files changed, 4882 insertions(+), 2090 deletions(-)
