@@ -1,0 +1,65 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index d2a3e3c..b406658 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -2020,8 +2020,22 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // and companions have their own separate damage path that doesn't
+     // reference this constant.
+     const multiplier = 1 + magic / 60;
+-    const matchup = avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
++    // Damage Types Step 4, A5 (off by default): this is the ONE live
++    // caller of rollPlayerDamage that still reaches the spell branch
++    // without going through rollPlayerDamageCoreForPipeline -- Riposte
++    // (actions.js, "rollPlayerDamage(state, creature)" with no 3rd arg)
++    // on a Mage. Gated the same way that pipeline function's own
++    // equivalent spell branch already is (pipeline.js), including
++    // bypassing Avatar of Knowledge's old override under the switch.
++    // There's no `action` object here (this function predates the
++    // pipeline's own action-definition shape) and no explicit cast
++    // element either (activeElement is always undefined on this path),
++    // so spellDType resolves the same way pipeline.js's own call does
++    // with neither: the player's own equipped weapon type, or Blunt.
++    const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
+     const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
++    const spellDType = DAMAGE_TYPES_V2 ? resolveDamageType(null, equipmentWeaponDamageType(state), null) : null;
++    const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
+     const overflowMult = arcaneOverflowMultiplier(state);
+     // v0.11: spell power is mitigated by the target's FULL Defense through
+     // the shared ratio rule (was a near-irrelevant flat -Defense/10), then
+@@ -2030,13 +2044,17 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // now the spell-side armor-penetration tool rather than a rounding
+     // error.
+     const spellPower = base * multiplier;
+-    const preMitigation = Math.round(mitigate(spellPower, effDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
++    const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
+     // dmgReduction (Enemy Ability Engine — Guarded Stance/
+     // Protective Cover/Last Stand, Gate 5B.8 skills codex): a flat final
+     // percentage shave off whatever damage already made it through every
+     // other multiplier and the Defense subtraction above — applied last,
+     // same as a shield would be, not folded into the multiplier chain.
+     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
++    if (DAMAGE_TYPES_V2) {
++      const avatarOfKnowledgeActive = state.combat && state.combat.player.avatarOfKnowledgeTurns > 0;
++      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(creature, spellDType, avatarOfKnowledgeActive));
++    }
+     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
+     // cast during its 4-round window PERMANENTLY increases Magic by +2 —
+     // unlike Avatar of Chaos/Endurance's own window-scoped bonus fields,
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index db7dfc4..17a9b51 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -434,11 +434,12 @@ function calculateDamage(actor, target, action, ctx, hitInfo) {
+     // reflected damage type (its own element, translated onto the new
+     // roster) -- it's the creature taking its own spell back, so it's
+     // the creature's tags that apply, same as any other hit under T2.
++    // elementKeyToDamageType (js/data/damagetypes.js, Step 4 A4):
+     // "transportation" is the old ELEMENTS key for the type the new
+     // roster calls Spatial (T1) -- translated here since creature.element
+     // is never itself migrated to new-roster spelling.
+     const matchup = DAMAGE_TYPES_V2
+-      ? dmgTagMultiplier(creature, creature.element === "transportation" ? "spatial" : creature.element)
++      ? dmgTagMultiplier(creature, elementKeyToDamageType(creature.element))
+       : elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
+     const base = randInt(creature.magic - 2, creature.magic + 2);
+     const reflected = Math.max(0, Math.round(base * matchup));

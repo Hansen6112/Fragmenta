@@ -1,0 +1,25 @@
+[
+ {
+  "reg": "STATUS_EFFECTS",
+  "id": "frozen",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "debuff",
+    "old": {
+     "spd": -10,
+     "acc": -5
+    },
+    "new": {
+     "agi": -10,
+     "spd": -10,
+     "acc": -5
+    }
+   }
+  ]
+ },
+ {
+  "reg": "STATUS_IMMUNITY_FAMILY",
+  "type": "registry added"
+ }
+]

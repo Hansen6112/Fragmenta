@@ -1,0 +1,104 @@
+range: 311f1f4258e29dce9b0d9a7ff24bf54ceb97dc91..c764211eb2b1d12560109fdaa6befe2265f74f2a
+=== c764211eb2b1d12560109fdaa6befe2265f74f2a 2026-11-13 02:00:42 +0000
+Damage Types Step 4, Part A: fixes before the switch turns on
+All behind DAMAGE_TYPES_V2 (still off). A3 (Frost's signature ability)
+and A6's "should any nation favor Frost" are explicitly left for Tyler
+per the handoff; A6's own default (append, lowest weight) is applied.
+
+A1 (approved): Frozen is now strictly worse than Chilled -- keeps
+Chilled's own Agility -10 and adds Speed -10 / Accuracy -5 on top,
+instead of replacing Agility with Speed/Accuracy (which let escalating
+remove a penalty). js/data/enemyabilities.js.
+
+A2 (approved): isChillFamily(statuses) (js/data/damagetypes.js) treats
+Chilled and Frozen as one condition for callers that don't care which
+specific one is active -- both of Winter's Verdict's own checks
+(js/data/actions.js, ally + player branches) now use it instead of a
+bare .chilled read. isStatusImmune also gained a small family map
+(frozen -> chilled): a Winter-Coat creature's existing chilled immunity
+now blocks Frozen directly too (nothing inflicts Frozen except via
+Chilled's own build-up today, which immunity already stops at the
+source, but this closes the gap for any future direct-Frozen ability).
+
+A4: "Transportation" is the OLD ELEMENTS key for Spatial (T1) -- with
+the switch on, every ELEMENTS[key].name read (character creation, the
+element list, combat lines, the death log) now shows "Spatial" instead,
+via one mutation (ELEMENTS.transportation.name = "Spatial") matching
+the existing Frost-addition pattern in js/data/damagetypes.js. The
+stored key itself is untouched (every save, ATTUNEMENT_TAG_PAIRS).
+Added elementKeyToDamageType(key) and used it at the one inline
+"transportation" -> "spatial" ternary found (pipeline.js's Mirror Soul
+reflection) -- a source-level test confirms no other inline conversion
+exists anywhere else in the codebase.
+
+A5: js/engine/combat.js's rollPlayerDamage (Riposte's own only live
+caller into the pre-pipeline spell-damage path -- isSpell depends only
+on state.flags.isMage/state.primaryElement, not the activeElement
+argument Riposte always omits, so this WAS reachable, not dead code)
+had no DAMAGE_TYPES_V2 gate at all on its old element-cycle matchup.
+Gated the same way rollPlayerDamageCoreForPipeline's own spell branch
+already is: matchup forced to 1 under the switch, resistingDefenseValue/
+resolveDamageType/dmgTagMultiplierForAttacker added for the resist-by-
+family + tag-multiplier steps. No `action` object exists on this old
+signature, so spellDType resolves via the player's own equipped weapon
+type (or Blunt), same as pipeline.js's own call with neither an action
+override nor a creature attackType.
+
+A6 (default, pending Tyler/Codex on which nation if any should FAVOR
+Frost): js/data/enemymages.js's NATION_ELEMENT_WEIGHTS gains "frost"
+appended at the end of every nation's list under the switch --
+pickWeightedElement's own pool only up-weights the first three entries,
+so appending reaches the same lowest weight as everything else past
+position 3 without touching any nation's existing top-3 flavor.
+
+A7: five historical Phase 1 parity/fixture tests (phase1_step1b, 1e-i,
+1e-ii, 1e-iii, 1f-iv) store/assert a fixed playerLastHitType string
+that legitimately changes once DAMAGE_TYPES_V2 is permanently true in
+the committed source (Part C) -- a Bleed tick alone now correctly
+records "slashing" instead of "physical". DAMAGE_TYPES_V2 is a `const`,
+so unlike COMBAT_UNIFY's own object fields there is no way to force it
+back to false from inside an already-loaded page; the four fixture-
+based files (1b, 1e-i, 1e-ii, 1e-iii) now null this one field out of
+their snap comparison instead (same treatment, and the same reasoning,
+as the content-load commit's creatureObj fix: a legitimate switch-
+driven difference in a field this suite was never testing in the first
+place). 1f-iv's own hand-computed assertion (no frozen fixture at all)
+now checks against whichever value is actually live. Verified for real:
+temporarily flipped the committed DAMAGE_TYPES_V2 to true, ran all five
+files directly (all passed), then reverted the flip before touching
+anything else -- this file stays off at the end of this commit.
+
+New VM-sandbox ledger (tools/tests/damage_types_step4_parta_ledger.js,
+same technique as the A1/A5/content-load ledgers) covers A1 (values +
+reapply integration), A2 (isChillFamily, statusImmune family, a Winter-
+Coat creature's own immunity, a source-level check that both Winter's
+Verdict sites use the helper), A4 (elementKeyToDamageType, the ELEMENTS
+rename under both switch states, findElement matching old+new, a
+source-level check for stray inline conversions), A5 (gated-source
+check + an end-to-end run under both switch states), and A6 (frost
+appended under the switch, absent with it off, never in anyone's own
+top 3). 17/17, registered in run_all.js.
+
+Full suite 536/536, audit 0 errors / 229 warnings -- unchanged from
+311f1f4 (every warning already accounted for there). Switch off
+throughout; off-switch harness behavior is unchanged.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  10 +-
+ js/data/damagetypes.js                             |  45 +++-
+ js/data/enemyabilities.js                          |   6 +-
+ js/data/enemymages.js                              |  16 ++
+ js/engine/combat.js                                |  22 +-
+ js/engine/pipeline.js                              |   3 +-
+ tools/tests/damage_types_content_load_ledger.js    |   2 +-
+ tools/tests/damage_types_step4_parta_ledger.js     | 240 +++++++++++++++++++++
+ tools/tests/phase1_step1b_pipeline_parity.js       |  15 +-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |  15 +-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |  15 +-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |  15 +-
+ .../phase1_step1f_iv_ticks_pipeline_parity.js      |  15 +-
+ tools/tests/run_all.js                             |   1 +
+ 14 files changed, 407 insertions(+), 13 deletions(-)
