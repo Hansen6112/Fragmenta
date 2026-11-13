@@ -1,0 +1,28 @@
+range: 85276e12d29ca94729998bc4db5c4ccafd897a0d..bf0e92e35ac4891226c273e9e42fad2b17785ca5
+=== bf0e92e35ac4891226c273e9e42fad2b17785ca5 2026-11-13 14:13:01 +0000
+Commit the Layer 2 harnesses (Damage Types Step 4 follow-up)
+tools/sim/sim_common.js, boss_sweep.js, plus3_run.js -- per Tyler's own
+explicit instruction this step ("Commit the harnesses and baselines"),
+overriding the project's prior scratch-only convention for this whole
+Layer 2 harness (tools/combat_unify_switch_rollout.md's own "lives in
+the scratchpad... not git-tracked" note, which is exactly why the
+original was lost and had to be rebuilt from documented methodology
+earlier this step). tools/sim/README.md records what was rebuilt vs.
+recovered and the specific judgment calls made (player turn policy,
+the 16-boss roster, party composition, "3 gear tiers," variant
+pinning) -- see that file for the full list.
+
+N=1000 on/off reruns (now with this step's own fixes -- spell element,
+Enemy Mage element, A3 Rime, D1 hardening -- already in) are running in
+the background; the baseline JSONs (tools/baselines/) and the before/
+after report follow in a separate commit once they land.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/sim/README.md     |  67 ++++++++++++
+ tools/sim/boss_sweep.js | 154 ++++++++++++++++++++++++++++
+ tools/sim/plus3_run.js  |  73 +++++++++++++
+ tools/sim/sim_common.js | 264 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 558 insertions(+)
