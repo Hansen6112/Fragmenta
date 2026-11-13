@@ -169,17 +169,50 @@ function tickChilledToExpiry(ctx) {
   tickPlayerStatuses(state);
   return state.combat.player.playerStatuses;
 }
-record("CL-3-CHILLED-ESCALATE-ON-01", "Switch on: Chilled expiring (turnsLeft hits 0) escalates into Frozen instead of just ending", () => {
+record("CL-3-CHILLED-EXPIRE-ON-01", "Switch on: a single Chilled, never reapplied, expires harmlessly (no on-expiry escalation)", () => {
   const statuses = tickChilledToExpiry(on);
   if (statuses.chilled) throw new Error(`expected chilled to be gone, got ${JSON.stringify(statuses.chilled)}`);
-  if (!statuses.frozen) throw new Error(`expected frozen to replace it, got ${JSON.stringify(statuses)}`);
-  if (statuses.frozen.debuff.spd !== -10 || statuses.frozen.debuff.acc !== -5) throw new Error(`unexpected Frozen debuff: ${JSON.stringify(statuses.frozen.debuff)}`);
+  if (statuses.frozen) throw new Error(`expected no escalation on plain expiry, got ${JSON.stringify(statuses)}`);
   return statuses;
 });
-record("CL-3-CHILLED-ESCALATE-OFF-01", "Switch off: Chilled expiring just ends, no escalation (today's behavior, unchanged)", () => {
+record("CL-3-CHILLED-EXPIRE-OFF-01", "Switch off: a single Chilled expires harmlessly (today's behavior, unchanged)", () => {
   const statuses = tickChilledToExpiry(off);
   if (statuses.chilled) throw new Error(`expected chilled to be gone, got ${JSON.stringify(statuses.chilled)}`);
   if (statuses.frozen) throw new Error(`expected no escalation with the switch off, got ${JSON.stringify(statuses)}`);
+  return statuses;
+});
+function secondFrostHitWhileChilled(ctx) {
+  const applyPlayerStatus = vm.runInContext("applyPlayerStatus", ctx);
+  const getStatusEffect = vm.runInContext("getStatusEffect", ctx);
+  const state = { combat: { player: { playerStatuses: {} } } };
+  const chilled = getStatusEffect("chilled");
+  applyPlayerStatus(state, "chilled", chilled, "Frost Wolf");
+  applyPlayerStatus(state, "chilled", chilled, "Frost Wolf");
+  return state.combat.player.playerStatuses;
+}
+record("CL-3-CHILLED-REAPPLY-ON-01", "Switch on: a second frost hit while still Chilled gives Frozen (build-up on reapplication, not natural expiry)", () => {
+  const statuses = secondFrostHitWhileChilled(on);
+  if (statuses.chilled) throw new Error(`expected chilled to be replaced, got ${JSON.stringify(statuses.chilled)}`);
+  if (!statuses.frozen) throw new Error(`expected frozen from the second hit, got ${JSON.stringify(statuses)}`);
+  if (statuses.frozen.debuff.spd !== -10 || statuses.frozen.debuff.acc !== -5) throw new Error(`unexpected Frozen debuff: ${JSON.stringify(statuses.frozen.debuff)}`);
+  return statuses;
+});
+record("CL-3-CHILLED-REAPPLY-OFF-01", "Switch off: a second frost hit while still Chilled just refreshes Chilled's own duration (today's behavior, unchanged)", () => {
+  const statuses = secondFrostHitWhileChilled(off);
+  if (!statuses.chilled) throw new Error(`expected chilled to still be the active status, got ${JSON.stringify(statuses)}`);
+  if (statuses.frozen) throw new Error(`expected no escalation with the switch off, got ${JSON.stringify(statuses)}`);
+  return statuses;
+});
+record("CL-3-DROWSY-REAPPLY-ON-01", "Switch on: a second Drowsy reapplication becomes Asleep, the same generic mechanism as Chilled -> Frozen", () => {
+  const applyPlayerStatus = vm.runInContext("applyPlayerStatus", on);
+  const getStatusEffect = vm.runInContext("getStatusEffect", on);
+  const state = { combat: { player: { playerStatuses: {} } } };
+  const drowsy = getStatusEffect("drowsy");
+  applyPlayerStatus(state, "drowsy", drowsy, "Veilwing");
+  applyPlayerStatus(state, "drowsy", drowsy, "Veilwing");
+  const statuses = state.combat.player.playerStatuses;
+  if (statuses.drowsy) throw new Error(`expected drowsy to be replaced, got ${JSON.stringify(statuses.drowsy)}`);
+  if (!statuses.asleep) throw new Error(`expected asleep from the second application, got ${JSON.stringify(statuses)}`);
   return statuses;
 });
 record("CL-3-ASHEN-LUNGS-HEAL-01", "Switch on: Ashen Lungs' -25% healing received reduces a player heal via applyHeal", () => {
@@ -214,6 +247,23 @@ record("CL-LOAD-SPOTCHECK-01", "A few representative loaded fields, sampled dire
   const bad = checks.filter(([got, want]) => got !== want);
   if (bad.length) throw new Error(`mismatch(es): ${JSON.stringify(bad)}`);
   return { checked: checks.length };
+});
+record("CL-LOAD-MAINHAND-RULE-01", "Follow-up (13 Nov): the 6 corrected mainhand items (2 mis-tagged weapons, 4 mage foci) all have a real damageType now; every mainhand item in ITEM_DEFS has one except the 8 still-held weapons", () => {
+  const ITEM_DEFS = vm.runInContext("ITEM_DEFS", on);
+  const checks = [
+    [ITEM_DEFS["a caravan guard saber"].damageType, "slashing"],
+    [ITEM_DEFS["a red banner greatsword"].damageType, "slashing"],
+    [ITEM_DEFS["a river focus staff"].damageType, "blunt"],
+    [ITEM_DEFS["a crystal focus rod"].damageType, "blunt"],
+    [ITEM_DEFS["Lantern of Quiet Passage"].damageType, "blunt"],
+    [ITEM_DEFS["Codex of Infinite Horizons"].damageType, "blunt"],
+  ];
+  const bad = checks.filter(([got, want]) => got !== want);
+  if (bad.length) throw new Error(`mismatch(es): ${JSON.stringify(bad)}`);
+  const HELD = ["Widow's Lament", "Emberfall", "Black Horizon", "Oathbreaker", "Seven Sorrows", "Sovereign", "Night Requiem", "Galecaller"];
+  const untyped = Object.entries(ITEM_DEFS).filter(([name, d]) => d.slot === "mainhand" && !d.damageType && !HELD.includes(name));
+  if (untyped.length) throw new Error(`mainhand item(s) with no damageType, not in the held list: ${untyped.map(([n]) => n).join(", ")}`);
+  return { checked: checks.length, untyped: untyped.length };
 });
 
 console.log(ledger.map((l) => `${l.passed ? "ok  " : "FAIL"} ${l.code}: ${l.description}`).join("\n"));

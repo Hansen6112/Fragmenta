@@ -565,7 +565,12 @@ for (const [name, d] of Object.entries(ITEM_DEFS)) {
   }
 }
 // D1, creatures: attackType or a weapon. "A weapon" means an equipped
-// mainhand item (equipment.mainhand) — the same slot checked above.
+// mainhand item — either a flat equipment.mainhand, or (resolveEnemyEquipment,
+// js/engine/combat.js) a level-banded equipmentBands array, where every
+// band needs its own mainhand ("a typed mainhand at every level in its
+// range" — a band missing one would silently fall through to no weapon
+// at exactly that level range, worth its own warning rather than being
+// masked by an earlier band that does have one).
 // Unlike the weapon rule above, attackType isn't Physical-family-only:
 // the content load's own creatures.csv deliberately gives plenty of
 // creatures a non-physical natural attack (Fire Elemental "fire",
@@ -575,9 +580,16 @@ for (const [name, d] of Object.entries(ITEM_DEFS)) {
 // "fromCreature" (the 4 generic Elementals' basic attack, §2a) counts
 // too, same as DAMAGE_TYPES_SET's own roster.
 for (const [id, c] of Object.entries(BESTIARY)) {
-  const hasWeapon = c.equipment && c.equipment.mainhand;
+  const hasFlatWeapon = c.equipment && c.equipment.mainhand;
+  const hasBandedWeapon = Array.isArray(c.equipmentBands) && c.equipmentBands.length > 0;
   const validAttackType = DAMAGE_TYPES_SET.has(c.attackType) || c.attackType === "fromCreature";
-  if (!hasWeapon && !validAttackType) warn("damage-type", `BESTIARY.${id} has no attackType and no equipped mainhand weapon (D1)`);
+  if (!hasFlatWeapon && !hasBandedWeapon && !validAttackType) {
+    warn("damage-type", `BESTIARY.${id} has no attackType and no equipped mainhand weapon (D1)`);
+  }
+  if (hasBandedWeapon) {
+    const bareBands = c.equipmentBands.filter((b) => !(b.equipment && b.equipment.mainhand)).map((b) => b.maxLevel);
+    if (bareBands.length) warn("damage-type", `BESTIARY.${id} has an equipmentBands entry with no mainhand weapon (maxLevel: ${bareBands.join(", ")}) (D1)`);
+  }
 }
 // D1, statuses: every damage-over-time STATUS_EFFECTS entry needs a
 // damageType, so a tick can resolve a resisting stat/tag the same way a

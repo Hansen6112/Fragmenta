@@ -100,9 +100,9 @@ a willow spear,mainhand,3,piercing,high,matched 'spear'
 a living root shield,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
 a woven bark shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
 a grand conduit blade,mainhand,4,slashing,high,matched 'blade'
-a river focus staff,mainhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a river focus staff,mainhand,4,blunt,high,corrected 13 Nov: every mainhand item has a damage type; staff
 an eightfold wand,mainhand,3,blunt,high,matched 'wand'
-a crystal focus rod,mainhand,3,(not a weapon),high,shield/focus/quiver-type offhand
+a crystal focus rod,mainhand,3,blunt,high,corrected 13 Nov: every mainhand item has a damage type; rod
 a river focus disc,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
 an eightfold ward,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
 a guild enforcer's arming sword,mainhand,3,slashing,high,matched 'sword'
@@ -206,7 +206,7 @@ a river ferryman's polearm,mainhand,1,piercing,first pass,"point, bow, hook or k
 an orchard billhook,mainhand,1,slashing,first pass,edged weapon
 a woodsman's hatchet,mainhand,1,slashing,high,matched 'hatchet'
 a marsh reed spear,mainhand,2,piercing,high,matched 'spear'
-a caravan guard saber,mainhand,2,(not a weapon),high,shield/focus/quiver-type offhand
+a caravan guard saber,mainhand,2,slashing,high,corrected 13 Nov: every mainhand item has a damage type; saber
 an iron-banded mace,mainhand,2,blunt,high,matched 'mace'
 a falconer's hunting spear,mainhand,2,piercing,high,matched 'spear'
 a border militia sword,mainhand,3,slashing,high,matched 'sword'
@@ -266,7 +266,7 @@ an iron drill pike,mainhand,2,piercing,high,matched 'pike'
 a highland war axe,mainhand,3,slashing,high,matched 'axe'
 a blood oak longbow,mainhand,3,piercing,high,matched 'longbow'
 a magistrate's ceremonial sword,mainhand,4,slashing,high,matched 'sword'
-a red banner greatsword,mainhand,4,(not a weapon),high,shield/focus/quiver-type offhand
+a red banner greatsword,mainhand,4,slashing,high,corrected 13 Nov: every mainhand item has a damage type; greatsword
 a blood oak shield,offhand,2,(not a weapon),high,shield/focus/quiver-type offhand
 an iron-rim kite shield,offhand,3,(not a weapon),high,shield/focus/quiver-type offhand
 a crimson guard bulwark,offhand,4,(not a weapon),high,shield/focus/quiver-type offhand
@@ -355,13 +355,13 @@ The Nameless Staff,mainhand,7,blunt,high,matched 'Staff'
 Aegis of the Last Wall,offhand,7,(not a weapon),high,shield/focus/quiver-type offhand
 Dawnbloom Branch,mainhand,8,blunt,high,matched 'Branch'
 Verdant Aegis,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
-Lantern of Quiet Passage,mainhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Lantern of Quiet Passage,mainhand,8,blunt,high,corrected 13 Nov: every mainhand item has a damage type; lantern-staff
 Veil of the Ferryman,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
 Loom of Destinies,mainhand,8,blunt,first pass,"staff, focus, hammer or crusher (Magic-only mainhand: staff/focus)"
 Threadkeeper's Spindle,offhand,8,(not a weapon),first pass,shield / focus / tool offhand
 Warfather's Edge,mainhand,8,slashing,high,matched 'Edge'
 Bulwark of Champions,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
-Codex of Infinite Horizons,mainhand,8,(not a weapon),high,shield/focus/quiver-type offhand
+Codex of Infinite Horizons,mainhand,8,blunt,high,corrected 13 Nov: every mainhand item has a damage type; tome used as a bludgeon
 Librarian's Ward,offhand,8,(not a weapon),high,shield/focus/quiver-type offhand
 Roseheart Scepter,mainhand,8,blunt,high,matched 'Scepter'
 Heartward Embrace,offhand,8,(not a weapon),first pass,shield / focus / tool offhand

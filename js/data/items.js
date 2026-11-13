@@ -586,9 +586,9 @@ const ITEM_DEFS = {
 
   // ---- Conduit Master set (20 items) ----
   "a grand conduit blade": { damageType: "slashing", slot: "mainhand", tier: 4, bonuses: { magic: 4 }, effects: ["conduit_ease"], source: "faction", set: "Conduit Master" },
-  "a river focus staff": { slot: "mainhand", tier: 4, bonuses: { magic: 4 }, effects: ["elemental_focus"], source: "faction", set: "Conduit Master" },
+  "a river focus staff": { damageType: "blunt", slot: "mainhand", tier: 4, bonuses: { magic: 4 }, effects: ["elemental_focus"], source: "faction", set: "Conduit Master" },
   "an eightfold wand": { damageType: "blunt", slot: "mainhand", tier: 3, bonuses: { magic: 3 }, effects: ["elemental_focus"], source: "faction", set: "Conduit Master" },
-  "a crystal focus rod": { slot: "mainhand", tier: 3, bonuses: { magic: 3 }, effects: ["conduit_ease"], source: "faction", set: "Conduit Master" },
+  "a crystal focus rod": { damageType: "blunt", slot: "mainhand", tier: 3, bonuses: { magic: 3 }, effects: ["conduit_ease"], source: "faction", set: "Conduit Master" },
   "a river focus disc": { slot: "offhand", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["elemental_focus"], source: "faction", set: "Conduit Master" },
   "an eightfold ward": { slot: "offhand", tier: 4, bonuses: { def: 2, magic: 2 }, effects: ["spell_ward"], source: "faction", set: "Conduit Master" },
   "a river crown": { slot: "helmet", tier: 4, bonuses: { magic: 4 }, effects: ["conduit_ease"], source: "faction", set: "Conduit Master" },
@@ -980,7 +980,7 @@ const ITEM_DEFS = {
   "an orchard billhook": { damageType: "slashing", slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
   "a woodsman's hatchet": { damageType: "slashing", slot: "mainhand", tier: 1, bonuses: { atk: 1 }, source: "shop" },
   "a marsh reed spear": { damageType: "piercing", slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["opening_reach"], source: "monster" },
-  "a caravan guard saber": { slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "job" },
+  "a caravan guard saber": { damageType: "slashing", slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["guarded_strike"], source: "job" },
   "an iron-banded mace": { damageType: "blunt", slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["crushing_impact"], source: "shop" },
   "a falconer's hunting spear": { damageType: "piercing", slot: "mainhand", tier: 2, bonuses: { atk: 2 }, effects: ["patient_aim"], source: "job" },
   "a border militia sword": { damageType: "slashing", slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["riposte"], source: "monster" },
@@ -1279,7 +1279,7 @@ const ITEM_DEFS = {
   "a highland war axe": { damageType: "slashing", slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["crushing_impact"], source: "monster", region: "sanguivorum" },
   "a blood oak longbow": { damageType: "piercing", slot: "mainhand", tier: 3, bonuses: { atk: 3 }, effects: ["patient_aim"], source: "contract", region: "sanguivorum" },
   "a magistrate's ceremonial sword": { damageType: "slashing", slot: "mainhand", tier: 4, bonuses: { atk: 2, knowledge: 2 }, effects: ["tactical_memory"], source: "job", region: "sanguivorum" },
-  "a red banner greatsword": { slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["riposte"], source: "contract", region: "sanguivorum" },
+  "a red banner greatsword": { damageType: "slashing", slot: "mainhand", tier: 4, bonuses: { atk: 4 }, effects: ["riposte"], source: "contract", region: "sanguivorum" },
 
   "a blood oak shield": { slot: "offhand", tier: 2, bonuses: { def: 2 }, effects: ["brace"], source: "shop", region: "sanguivorum" },
   "an iron-rim kite shield": { slot: "offhand", tier: 3, bonuses: { def: 3 }, effects: ["stalwart"], source: "monster", region: "sanguivorum" },
@@ -1767,7 +1767,7 @@ const ITEM_DEFS = {
   "Seed of First Dawn": { slot: "trinkets", tier: 8, bonuses: { health: 10, magic: 6 }, effects: ["endless_bloom"], source: "devotion_quest", set: "Regalia of the First Bloom" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Final Veil (Mortasha) ----
-  "Lantern of Quiet Passage": { slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["gentle_crossing"], source: "devotion_quest", set: "Regalia of the Final Veil" },
+  "Lantern of Quiet Passage": { damageType: "blunt", slot: "mainhand", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["gentle_crossing"], source: "devotion_quest", set: "Regalia of the Final Veil" },
   "Veil of the Ferryman": { slot: "offhand", tier: 8, bonuses: { def: 10, magic: 6 }, effects: ["between_worlds"], source: "devotion_quest", set: "Regalia of the Final Veil" },
   "Vestments of Silent Repose": { slot: "chest", tier: 8, bonuses: { def: 12, magic: 4 }, effects: ["rest_eternal"], source: "devotion_quest", set: "Regalia of the Final Veil" },
   "Ring of Last Breath": { slot: "rings", tier: 8, bonuses: { magic: 8, knowledge: 8 }, effects: ["passing_whisper"], source: "devotion_quest", set: "Regalia of the Final Veil" },
@@ -1791,7 +1791,7 @@ const ITEM_DEFS = {
   "General's Standard": { slot: "trinkets", tier: 8, bonuses: { atk: 8, def: 8 }, effects: ["rally_the_line"], source: "devotion_quest", set: "Regalia of the Crimson Vanguard" },
 
   // ---- Divine Regalia (tier 8) — Regalia of the Endless Archive (Ithrien) ----
-  "Codex of Infinite Horizons": { slot: "mainhand", tier: 8, bonuses: { magic: 12, knowledge: 4 }, effects: ["endless_study"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
+  "Codex of Infinite Horizons": { damageType: "blunt", slot: "mainhand", tier: 8, bonuses: { magic: 12, knowledge: 4 }, effects: ["endless_study"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
   "Librarian's Ward": { slot: "offhand", tier: 8, bonuses: { def: 10, knowledge: 6 }, effects: ["prepared_response"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
   "Vestments of the First Scholar": { slot: "chest", tier: 8, bonuses: { magic: 10, knowledge: 6 }, effects: ["expanding_mind"], source: "devotion_quest", set: "Regalia of the Endless Archive" },
   "Ring of Boundless Inquiry": { slot: "rings", tier: 8, bonuses: { knowledge: 8, magic: 8 }, effects: ["eureka"], source: "devotion_quest", set: "Regalia of the Endless Archive" },

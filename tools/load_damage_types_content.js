@@ -94,6 +94,16 @@ function loadWeapons() {
     const item = row.item;
     const proposed = row.proposed;
     if (!item) continue;
+    // Content Load follow-up (13 Nov): every mainhand item has a damage
+    // type -- only an OFFHAND item (shield/quiver/tome, never swung on
+    // its own) can be "(not a weapon)". The CSV's own generator had been
+    // applying the offhand reasoning template to a handful of mainhand
+    // rows by mistake (6 caught and corrected by hand before this rule
+    // existed); this turns a repeat of that mistake into a loud failure
+    // instead of a silently-skipped row next time the CSV changes.
+    if (row.slot === "mainhand" && proposed === "(not a weapon)") {
+      throw new Error(`"${item}" is slot:mainhand but proposed "(not a weapon)" -- only offhand items may skip a damage type. Fix the CSV row.`);
+    }
     if (proposed === "(not a weapon)" || proposed === "(unassigned)") continue;
     // Find the entry's line: `  "item name": { ... }` or `  BareKey: { ... }`.
     const quotedKeyLine = `  ${q(item)}: {`;
