@@ -282,7 +282,7 @@ function rollToHit(actor, target, action, ctx) {
   // any normal enemy attack.
   if (action.toHit === "none") return { hit: true };
   if (action.toHit === "simple") {
-    return attackConnects(creature.acc, effectivePlayerAgility(state)) ? { hit: true } : miss(action.missLine(creature));
+    return attackConnects(effectiveEnemyAccuracy(actor.ref), effectivePlayerAgility(state)) ? { hit: true } : miss(action.missLine(creature));
   }
 
   if (target.kind === "ally") {
@@ -309,7 +309,7 @@ function rollToHit(actor, target, action, ctx) {
     creature.bankedAttackDmgMultBonus = 0;
     const accBonus = baseAccBonus + markedTargetBonusAlly + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
     creature.duelistMeasurePendingTarget = null;
-    if (!attackConnects(creature.acc + accBonus, stat(state, target, "agi"))) {
+    if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, stat(state, target, "agi"))) {
       // Riposte, generalized: a miss on an ally provokes a counter FROM
       // the ally onto the attacker — the player-targeted path has no
       // equivalent (a miss there is just a miss). See this file's header.
@@ -340,7 +340,7 @@ function rollToHit(actor, target, action, ctx) {
   creature.bankedAttackDmgMultBonus = 0;
   const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus + measuredAimAccBonus;
 
-  if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
+  if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
     return miss(`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`);
   }
   if (applyTimelessGuard(state)) {
@@ -777,7 +777,7 @@ function rollToHitAllyActor(actor, target, action, ctx) {
   if (action.toHit === "none") return { hit: true };
 
   if (action.formula !== "allyPlain") {
-    if (!attackConnects(ally.accuracy, creature.agi, action.veteranPct)) {
+    if (!attackConnects(ally.accuracy, effectiveEnemyAgility(enemySlot), action.veteranPct)) {
       // basicCompanionAttackLegacy's miss line (no ability) vs
       // useHadrianActive's (a named active) — genuinely different text.
       // U3g (off by default, handoff §0): with it on, a miss here also
@@ -793,7 +793,7 @@ function rollToHitAllyActor(actor, target, action, ctx) {
   }
 
   const allyAcc = stat(state, actor, "acc");
-  if (!attackConnects(allyAcc, creature.agi)) {
+  if (!attackConnects(allyAcc, effectiveEnemyAgility(enemySlot))) {
     return { hit: false, result: { lines: [`${ally.name} lunges at ${withThe(creature.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, enemySlot, ally)], damage: null } };
   }
   return { hit: true };
@@ -1553,7 +1553,7 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
   const state = ctx.state;
   const enemySlot = target.store;
   const creature = enemySlot.creatureObj;
-  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
+  if (!attackConnects(effectivePlayerAccuracy(state), effectiveEnemyAgility(enemySlot))) {
     const lines = action.missLine(state, creature);
     return { hit: false, result: { lines, damage: null } };
   }
@@ -1662,10 +1662,18 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     // instead, below, per the Decisions Addendum's A3.
     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
-    // Damage Types v2 (off by default, spec §3 steps 2-3): resist-by-
-    // family defense value in place of the flat effDef above, then the
-    // enemy's own tag multiplier on the final number below.
-    const spellDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(state), null) : null;
+    // Damage Types v2 (spec §3 steps 2-3): resist-by-family defense value
+    // in place of the flat effDef above, then the enemy's own tag
+    // multiplier on the final number below. A spell's own damage type
+    // comes from the CASTER's element, never their weapon -- a basic
+    // attack's own weapon fallback (the else branch below) doesn't apply
+    // here at all. Found and fixed (Step 4 follow-up, Tyler 13 Nov): this
+    // used to fall through resolveDamageType's weapon-fallback branch
+    // exactly like a physical attack, which is wrong for every basic
+    // "spell-shaped" attack (an ability with its own explicit damageType,
+    // e.g. the elemental actives, already worked correctly -- those hit
+    // the `action.damageType` branch first and never reached the bug).
+    const spellDType = DAMAGE_TYPES_V2 ? (action && action.damageType && action.damageType !== "inherit" ? action.damageType : elementKeyToDamageType(activeElement)) : null;
     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
     const overflowMult = arcaneOverflowMultiplier(state);
     const spellPower = base * multiplier;

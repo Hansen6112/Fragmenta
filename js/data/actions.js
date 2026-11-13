@@ -103,6 +103,15 @@ const PLAYER_ACTION_DEFS = {
     actionType: "attack",
     targeting: "singleEnemy",
     toHit: "roll",
+    // D1 hardening (Step 4 follow-up, Tyler 13 Nov): "inherit" is an
+    // explicit value, not an absence -- it means resolveDamageType
+    // (js/data/damagetypes.js) is meant to fall through to the wielder's
+    // own weapon type, which is exactly what a basic attack's damage type
+    // IS. Before this, a missing damageType field read as "nobody has
+    // checked this" to the audit (D1) with no way to tell it apart from
+    // "deliberately inherits" -- which is exactly how both the A5 old-
+    // matchup-path bug and the Enemy Mage attackType bug stayed hidden.
+    damageType: "inherit",
     missLine: (state, creature) => [`Your attack goes wide — ${withThe(creature.name, false)} isn't where you expected.`, ...riposteCounterOnPlayer(state, creature)],
     missProvokesRiposte: true,
     formula: "playerCore",
@@ -175,6 +184,28 @@ const PIPELINE_HOOKS = {
   airOnHit(h) {
     h.state.combat.player.evasionTurns = 2;
     return { lines: [`${ELEMENTS.air.verb(withThe(h.creature.name, false))} for ${h.edmg} damage, leaving you lighter on your feet.`], castDamageDealt: h.edmg };
+  },
+  // Rime (ELEMENT_ABILITIES.frost), A3 (Tyler 13 Nov, approved): the same
+  // build-up rule enemies already use on the player -- Chilled on the
+  // first hit, Frozen (A1's own values) if the target is already
+  // Chilled. Respects statusImmune for the whole family (Winter Coat) --
+  // an immune creature still takes the damage, just never gets `chill`
+  // set, so effectiveEnemyAgility/Speed/Accuracy (js/engine/combat.js)
+  // never see a penalty for it.
+  frostOnHit(h) {
+    const lines = [`${ELEMENTS.frost.verb(withThe(h.creature.name, false))} for ${h.edmg} damage`];
+    if (isStatusImmune(h.creature, "chilled")) {
+      return { lines: [lines[0] + " -- the cold slides off its hide."], castDamageDealt: h.edmg };
+    }
+    const slot = activeEnemySlot(h.state.combat);
+    if (slot.chill && slot.chill.tier === "chilled") {
+      slot.chill = { tier: "frozen", turnsLeft: 2 };
+      lines.push("-- already numbed through, it locks up completely, frozen solid.");
+    } else {
+      slot.chill = { tier: "chilled", turnsLeft: 2 };
+      lines.push("-- and the cold sinks in, chilling it.");
+    }
+    return { lines, castDamageDealt: h.edmg };
   },
   // "Stagger": this engine has no generic "named status, arbitrary
   // chance" system for a player-on-enemy effect -- Force/Acid/Fire's own

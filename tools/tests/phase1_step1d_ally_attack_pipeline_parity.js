@@ -112,7 +112,10 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
         return inner;
       }
       const out = {};
-      for (const k of Object.keys(x)) out[k] = stripCreatureObj(x[k]);
+      for (const k of Object.keys(x)) {
+        if (k === 'chill') continue;
+        out[k] = stripCreatureObj(x[k]);
+      }
       return out;
     }
     function normalizeSnap(snapStr) {

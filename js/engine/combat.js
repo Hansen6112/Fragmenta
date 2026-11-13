@@ -59,6 +59,11 @@ const PER_ENEMY_FIELDS = [
   "corroded", "disarmed", "enemyAtkPenalty", "enemyDefPenalty", "enemyStunCharges",
   "hamstringApplied", "burn", "bleed", "reinforcedAttackCount", "lastDamageType",
   "actedEarlyThisRound",
+  // Damage Types Step 4 follow-up, A3 (Tyler 13 Nov, approved): Chilled/
+  // Frozen on an enemy -- { tier: "chilled"|"frozen", turnsLeft }. Enemies
+  // have no status bag the way player/ally do (playerStatuses/statuses),
+  // so this is its own per-enemy field, same shape as burn/bleed above.
+  "chill",
   // Enemy Ability Engine (data/enemyabilities.js) — per-enemy so a pack of
   // several creatures each track their own cooldowns/stacks independently.
   "abilityCooldowns", "selfBuffs", "passiveOnceFlags", "firstActiveUsed",
@@ -263,6 +268,43 @@ function effectiveEnemyAtk(state, creature) {
   // state.health / ally.health permanently. Fall back to their magic.
   const base = creature.atk != null ? creature.atk : creature.magic != null ? creature.magic : 1;
   return Math.max(1, base - (activeEnemySlot(state.combat).enemyAtkPenalty || 0));
+}
+
+// A3 (Tyler 13 Nov, approved): Chilled/Frozen's own debuff on an enemy --
+// Agility -10 for either tier, plus Speed -10/Accuracy -5 once it's
+// escalated to Frozen (A1's own "strictly worse than Chilled" values).
+// Immunity (Winter Coat/statusImmune) is checked once, at application
+// (PIPELINE_HOOKS.frostOnHit) -- an immune creature never has `chill` set
+// at all, so every read site below needs no immunity check of its own.
+// `chill` lives on the PER_ENEMY_FIELDS wrapper (state.combat.enemies[i]),
+// never on creatureObj (the shared BESTIARY template) -- these three take
+// that wrapper, not the template, same as effectiveEnemyAtk's own
+// enemyAtkPenalty read just above (a slot field, read via activeEnemySlot
+// there only because Disarm's penalty is always against the active
+// target; here every call site already holds its own specific wrapper
+// directly, so that's passed in instead of assuming "active").
+function enemyChillPenalty(enemySlot, stat) {
+  const chill = enemySlot && enemySlot.chill;
+  if (!chill) return 0;
+  if (stat === "agi") return 10;
+  if (chill.tier !== "frozen") return 0;
+  if (stat === "spd") return 10;
+  if (stat === "acc") return 5;
+  return 0;
+}
+// Everything that reads an enemy's own Agility/Speed/Accuracy for combat
+// math (hit chance, initiative order) should go through these instead of
+// creature.agi/.spd/.acc directly, same convention effectiveEnemyAtk
+// already set for Disarm's own attack penalty. Takes the enemy's own
+// PER_ENEMY_FIELDS wrapper (NOT creatureObj) -- see the comment above.
+function effectiveEnemyAgility(enemySlot) {
+  return Math.max(0, (enemySlot.creatureObj.agi || 0) - enemyChillPenalty(enemySlot, "agi"));
+}
+function effectiveEnemySpeed(enemySlot) {
+  return Math.max(0, (enemySlot.creatureObj.spd || 0) - enemyChillPenalty(enemySlot, "spd"));
+}
+function effectiveEnemyAccuracy(enemySlot) {
+  return Math.max(0, (enemySlot.creatureObj.acc || 0) - enemyChillPenalty(enemySlot, "acc"));
 }
 
 // Whether an attack connects at all, before any damage math or special
@@ -2020,21 +2062,32 @@ function rollPlayerDamage(state, creature, activeElement) {
     // and companions have their own separate damage path that doesn't
     // reference this constant.
     const multiplier = 1 + magic / 60;
-    // Damage Types Step 4, A5 (off by default): this is the ONE live
-    // caller of rollPlayerDamage that still reaches the spell branch
-    // without going through rollPlayerDamageCoreForPipeline -- Riposte
-    // (actions.js, "rollPlayerDamage(state, creature)" with no 3rd arg)
-    // on a Mage. Gated the same way that pipeline function's own
-    // equivalent spell branch already is (pipeline.js), including
-    // bypassing Avatar of Knowledge's old override under the switch.
-    // There's no `action` object here (this function predates the
-    // pipeline's own action-definition shape) and no explicit cast
-    // element either (activeElement is always undefined on this path),
-    // so spellDType resolves the same way pipeline.js's own call does
-    // with neither: the player's own equipped weapon type, or Blunt.
+    // Damage Types Step 4, A5: this is the ONE live caller of
+    // rollPlayerDamage that still reaches the spell branch without going
+    // through rollPlayerDamageCoreForPipeline -- Riposte (actions.js,
+    // "rollPlayerDamage(state, creature)" with no 3rd arg) on a Mage.
+    // Gated the same way that pipeline function's own equivalent spell
+    // branch already is (pipeline.js), including bypassing Avatar of
+    // Knowledge's old override under the switch. There's no `action`
+    // object here (this function predates the pipeline's own action-
+    // definition shape), and Riposte never passes activeElement (it
+    // isn't a cast against a chosen target element the way a basic
+    // attack's own orchestrator picks one) -- so this picks one itself,
+    // the exact same way that orchestrator does (pickElement), rather
+    // than falling through to the player's weapon (fixed alongside
+    // pipeline.js's identical bug, Step 4 follow-up, Tyler 13 Nov): a
+    // spell's damage type is the caster's own element, never their
+    // weapon.
+    // pickElement(state) is only ever evaluated inside the DAMAGE_TYPES_V2
+    // branch (short-circuited by the ternary) -- the legacy matchup line
+    // right above is untouched and must stay that way: it's still exercised
+    // (with activeElement genuinely undefined, same as always) by the
+    // historical fixture tests that pin the switch off for comparison, and
+    // calling pickElement there would burn an extra Math.random() draw
+    // those fixtures never budgeted for.
     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
     const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
-    const spellDType = DAMAGE_TYPES_V2 ? resolveDamageType(null, equipmentWeaponDamageType(state), null) : null;
+    const spellDType = DAMAGE_TYPES_V2 ? elementKeyToDamageType(activeElement || pickElement(state)) : null;
     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
     const overflowMult = arcaneOverflowMultiplier(state);
     // v0.11: spell power is mitigated by the target's FULL Defense through
@@ -2422,7 +2475,7 @@ function buildInitiativeOrder(state) {
   entries.push({ kind: "player", group: 0, speed: effectivePlayerSpeedForInitiative(state), actsFirst: hasEffect(state, "unhurried_step") });
   combat.enemies.forEach((e, i) => {
     if (!e.alive || !e.creatureObj || e.creatureObj.friendly) return;
-    entries.push({ kind: "enemy", ref: e, index: i, group: 1, speed: e.creatureObj.spd || 0, actsFirst: !!e.creatureObj.actsFirst });
+    entries.push({ kind: "enemy", ref: e, index: i, group: 1, speed: effectiveEnemySpeed(e), actsFirst: !!e.creatureObj.actsFirst });
   });
   entries.sort((a, b) => {
     if (a.actsFirst !== b.actsFirst) return a.actsFirst ? -1 : 1;
@@ -4080,6 +4133,17 @@ function beginTurn(state) {
       if (e.bleed.turnsLeft <= 0) e.bleed = null;
       if (bleedResult.comboEnded) return lines;
     }
+    // A3 (Tyler 13 Nov, approved): Chilled/Frozen on an enemy -- no
+    // damage of its own (it's a pure debuff, read via
+    // effectiveEnemyAgility/Speed/Accuracy below), so this is just a
+    // countdown, same cadence as burn/bleed above, no DOT tick call.
+    if (e.alive && e.chill && e.chill.turnsLeft > 0) {
+      e.chill.turnsLeft -= 1;
+      if (e.chill.turnsLeft <= 0) {
+        lines.push(`${withThe(e.creatureObj.name, true)} ${e.chill.tier === "frozen" ? "thaws out" : "shakes off the cold"}.`);
+        e.chill = null;
+      }
+    }
     // Enemy Ability Engine: this creature's own self-buff countdown and
     // recurring Health-based/regen passives — same per-enemy, every-round
     // cadence as burn/bleed above.
@@ -5624,6 +5688,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     enemyStunCharges: 0, // set (incremented) by Concuss, consumed one at a time per eligible action — see resolveEnemyAttackOnPlayer and resolveDregnarAction
     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
     bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
+    chill: null, // Rime's (ELEMENT_ABILITIES.frost) own build-up debuff: { tier: "chilled"|"frozen", turnsLeft } -- A3, Step 4 follow-up (Tyler 13 Nov)
     lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit this creature, for resolveKill's damage-type-flavored death line
     hamstringApplied: false, // gates Hamstring (once per target per fight)
     reinforcedAttackCount: 0, // Reinforced's (Divine Regalia) every-3rd-enemy-attack counter

@@ -536,48 +536,52 @@ const D1_HELD_WEAPON_ALLOWLIST = new Set([
   "Seven Sorrows", "Sovereign", "Night Requiem", "Galecaller",
 ]);
 
-// D1: every damaging action definition has a valid damageType -- OR
-// deliberately none at all. resolveDamageType (js/data/damagetypes.js)
-// only reads `action.damageType` when it's truthy; left absent, it
-// falls through to the wielder's own weaponDamageType/attackType/
-// elementType instead (basic_attack, Decoy/Ambush/Disarm, every enemy
-// active with no override, and ENEMY_BASIC_ATTACK_DEF are ALL meant to
-// inherit this way -- that's the whole point of "inherited_breath"'s
-// own name). So this only flags a damageType that's PRESENT but not a
-// real member of DAMAGE_TYPES (a typo/stale value), never an absent
-// one -- except on ELEMENT_ABILITIES, where there is no wielder-level
-// fallback that makes sense (a mage's own weapon has nothing to do
-// with what element Ignite deals) and every toHit:"roll" entry needs
-// its own fixed type. Reuses the same action enumeration the P2 checks
-// above already built (ACTION_TABLE_NAMES + ENEMY_ABILITIES actives +
+// D1: every damaging action definition declares an EXPLICIT damageType --
+// a real DAMAGE_TYPES member, "fromCreature" (resolveDamageType's own
+// sentinel for "read the wielding creature's own elementType"), or
+// "inherit" (same resolver's sentinel for "fall through to the
+// wielder's own weapon/attackType" -- basic_attack, Decoy/Ambush/Disarm,
+// most ENEMY_ABILITIES actives, and ENEMY_BASIC_ATTACK_DEF all declare
+// this). Hardened (Step 4 follow-up, Tyler 13 Nov) from "absence is
+// fine" back to "absence is an error": the two real bugs this step
+// found (rollPlayerDamageCoreForPipeline's spell branch silently
+// falling through to a weapon type it should never have read; Enemy
+// Mages having no attackType at all) both hid behind exactly that
+// silent-absence gap, indistinguishable from "deliberately inherits"
+// until every one of the 137 entries that actually DO inherit said so
+// explicitly. Reuses the same action enumeration the P2 checks above
+// already built (ACTION_TABLE_NAMES + ENEMY_ABILITIES actives +
 // ENEMY_BASIC_ATTACK_DEF) — "damaging" here means toHit:"roll" (P2
 // already guarantees toHit:"none" actions have damage:null, so they're
 // not damage-dealing at all).
+const D1_SENTINELS = new Set(["fromCreature", "inherit"]);
+function validDamageTypeDecl(dt) {
+  return dt != null && (DAMAGE_TYPES_SET.has(dt) || D1_SENTINELS.has(dt));
+}
 for (const tableName of ACTION_TABLE_NAMES) {
   const table = G(tableName);
   for (const id of Object.keys(table)) {
     const def = G(`getActionDef(${JSON.stringify(id)})`);
     if (def.toHit !== "roll") continue;
     if (tableName === "ELEMENT_ABILITIES") {
+      // No wielder-level fallback makes sense here (a mage's own weapon
+      // has nothing to do with what element Ignite deals) -- "inherit"
+      // is never valid on this table, only a real fixed type.
       if (!DAMAGE_TYPES_SET.has(def.damageType)) err("damage-type", `"${id}" (${tableName}) has no valid damageType (D1)`);
-    } else if (def.damageType != null && def.damageType !== "fromCreature" && !DAMAGE_TYPES_SET.has(def.damageType)) {
-      err("damage-type", `"${id}" (${tableName}) has an invalid damageType "${def.damageType}" (D1)`);
+    } else if (!validDamageTypeDecl(def.damageType)) {
+      err("damage-type", `"${id}" (${tableName}) has no explicit damageType (D1)`);
     }
   }
 }
 for (const id of Object.keys(ENEMY_ABILITIES_TABLE)) {
   if (ENEMY_ABILITIES_TABLE[id].type !== "active") continue;
   const def = G(`getEnemyAbility(${JSON.stringify(id)})`);
-  // "fromCreature" is resolveDamageType's own sentinel (js/data/damagetypes.js)
-  // for "read the wielding creature's own elementType" -- a deliberate
-  // value, not a DAMAGE_TYPES member, same treatment the D1 BESTIARY
-  // attackType check above already gives it.
-  if (def.toHit === "roll" && def.damageType != null && def.damageType !== "fromCreature" && !DAMAGE_TYPES_SET.has(def.damageType)) {
-    err("damage-type", `"${id}" (ENEMY_ABILITIES) has an invalid damageType "${def.damageType}" (D1)`);
+  if (def.toHit === "roll" && !validDamageTypeDecl(def.damageType)) {
+    err("damage-type", `"${id}" (ENEMY_ABILITIES) has no explicit damageType (D1)`);
   }
 }
-if (G("ENEMY_BASIC_ATTACK_DEF").damageType != null && !DAMAGE_TYPES_SET.has(G("ENEMY_BASIC_ATTACK_DEF").damageType)) {
-  err("damage-type", `ENEMY_BASIC_ATTACK_DEF has an invalid damageType (D1)`);
+if (!validDamageTypeDecl(G("ENEMY_BASIC_ATTACK_DEF").damageType)) {
+  err("damage-type", `ENEMY_BASIC_ATTACK_DEF has no explicit damageType (D1)`);
 }
 // D1, weapons: every mainhand item (the one slot that sets a wielder's
 // basic-attack damage type, per the spec's own §2 field table) needs a

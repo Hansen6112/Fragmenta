@@ -40,6 +40,7 @@ const TACTICS = {
     action: {
       actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
       targeting: "singleEnemy", toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
+      damageType: "inherit", // D1 hardening (Step 4 follow-up): same physical-weapon inheritance as basic_attack
       missLine: (state, creature) => [`Your own strike goes wide, even with ${withThe(creature.name, false)} distracted.`],
       openingReach: "unconditional", reportPhysical: "always",
       flavorLine: (state, creature, edmg) => [`${attackFlavorLine(state, creature, edmg)} (while it's distracted)`],
@@ -54,6 +55,7 @@ const TACTICS = {
     action: {
       actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
       targeting: "singleEnemy", toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
+      damageType: "inherit", // D1 hardening (Step 4 follow-up): same physical-weapon inheritance as basic_attack
       missLine: (state, creature) => [`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`],
       extraDamageMultiplierFn: (state) => ambushMultiplier(state), borrowedSecondsBonusInDamage: true,
       reportPhysical: "always",
@@ -69,6 +71,7 @@ const TACTICS = {
     action: {
       actorKinds: ["player"], actionType: "tactic", usesPerfectMemory: true, consumesTrailblazer: true,
       targeting: "singleEnemy", toHit: "roll", formula: "playerCore",
+      damageType: "inherit", // D1 hardening (Step 4 follow-up): same physical-weapon inheritance as basic_attack
       missLine: () => [`The follow-up strike doesn't land, but the disarm holds.`],
       extraDamageMultiplierFn: () => 0.7, openingReach: "unconditional", reportPhysical: "always",
       flavorLine: (state, creature, edmg) => [`You still land a hit for ${edmg} damage.`],

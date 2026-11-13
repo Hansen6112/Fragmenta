@@ -168,7 +168,15 @@ function isChillFamily(statuses) {
 // itself would never usefully match as a literal damage type.
 function resolveDamageType(action, weaponDamageType, creatureAttackType, creatureElementType) {
   if (action && action.damageType === "fromCreature") return creatureElementType || "blunt";
-  if (action && action.damageType) return action.damageType;
+  // D1 hardening (Step 4 follow-up, Tyler 13 Nov): "inherit" is an
+  // explicit value meaning exactly what an absent damageType used to
+  // mean, silently -- fall through to the wielder's own weapon/
+  // attackType. Declared on the 137 action/ability entries that rely on
+  // it (PLAYER_ACTION_DEFS.basic_attack, TACTICS.decoy/ambush/disarm,
+  // ENEMY_BASIC_ATTACK_DEF, most of ENEMY_ABILITIES), so the audit (D1)
+  // can go back to treating a truly ABSENT damageType as a real error
+  // again, instead of a silence it can't tell apart from this.
+  if (action && action.damageType && action.damageType !== "inherit") return action.damageType;
   if (weaponDamageType) return weaponDamageType;
   if (creatureAttackType === "fromCreature") return creatureElementType || "blunt";
   if (creatureAttackType) return creatureAttackType;

@@ -94,6 +94,18 @@ const ELEMENT_ABILITIES = {
     description: "A cutting blade of compressed air that leaves you harder to hit for a few turns.",
     action: pipelinedElementAction((creature) => `The gust tears past ${withThe(creature.name, false)}, missing.`, "airOnHit", null, "air"),
   },
+  // A3 (Tyler 13 Nov, approved): Frost's own signature -- "Rime" is a
+  // working name, Narrative owns the real one. Same build-up rule
+  // enemies already use on the player (Chilled -> Frozen on a second
+  // application while already Chilled): frostOnHit (js/data/actions.js's
+  // PIPELINE_HOOKS) does the actual escalation.
+  frost: {
+    name: "Rime",
+    knowledgeReq: 10,
+    cooldown: 3,
+    description: "A lance of killing cold that locks up whatever it hits -- cast it again on a target that's already Chilled, and it freezes solid.",
+    action: pipelinedElementAction((creature) => `The frost shatters short of ${withThe(creature.name, false)}, missing.`, "frostOnHit", null, "frost"),
+  },
 };
 
 // Verb names mapped back to element ids, for command routing.

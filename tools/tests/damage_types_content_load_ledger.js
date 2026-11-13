@@ -248,7 +248,12 @@ record("CL-LOAD-SPOTCHECK-01", "A few representative loaded fields, sampled dire
     [ITEM_DEFS["a short sword"].damageType, "slashing"],
     [ITEM_DEFS["Widow's Lament"].damageType, undefined],
     [ENEMY_ABILITIES.gore.damageType, "piercing"],
-    [ENEMY_ABILITIES.pounce.damageType, undefined],
+    // Step 4 follow-up (D1 hardening, Tyler 13 Nov): pounce used to have
+    // no damageType at all (silently inherits the wielder's own
+    // attackType); it's "inherit" explicitly now, same meaning, so the
+    // audit can tell "deliberately inherits" apart from "nobody's
+    // checked this yet" again.
+    [ENEMY_ABILITIES.pounce.damageType, "inherit"],
   ];
   const bad = checks.filter(([got, want]) => got !== want);
   if (bad.length) throw new Error(`mismatch(es): ${JSON.stringify(bad)}`);

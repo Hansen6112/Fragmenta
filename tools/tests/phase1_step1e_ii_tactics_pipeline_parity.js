@@ -110,7 +110,10 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
         return inner;
       }
       const out = {};
-      for (const k of Object.keys(x)) out[k] = k === 'playerLastHitType' ? null : stripCreatureObj(x[k]);
+      for (const k of Object.keys(x)) {
+        if (k === 'chill') continue; // omitted, not nulled -- the frozen fixture's own object never had this key at all (A3 added it after every fixture here was last frozen), so nulling the VALUE would still leave the KEY present on only one side
+        out[k] = k === 'playerLastHitType' ? null : stripCreatureObj(x[k]);
+      }
       return out;
     }
     function normalizeSnap(snapStr) {

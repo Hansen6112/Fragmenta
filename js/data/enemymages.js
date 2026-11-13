@@ -105,6 +105,15 @@ function generateEnemyMage(nationId, tier, playerLevel) {
     // than a real roll.
     level,
     element,
+    // Step 4 follow-up (Tyler 13 Nov): an Enemy Mage's own spells use its
+    // element, same as a player Mage's -- resolveDamageType's fallback
+    // chain reads attackType (not `element`, a name only this file and
+    // ELEMENTS use) when an attack has no action-level damageType of its
+    // own, so without this an Enemy Mage's cast fell through to Blunt
+    // instead of its own element. Set once at spawn, covering both the
+    // player-target (resolveEnemyAttackOnPlayer) and ally-target
+    // (resolveEnemyAttackOnAlly) paths, which already read creature.attackType.
+    attackType: elementKeyToDamageType(element),
     magic: stats.atk,
     def: stats.def,
     hp: stats.hp,
