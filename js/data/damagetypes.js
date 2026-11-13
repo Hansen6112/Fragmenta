@@ -53,6 +53,18 @@ function damageFamily(damageType) {
   return DAMAGE_TYPE_FAMILY[damageType] || "physical";
 }
 
+// Step 4, A4: "transportation" is the OLD ELEMENTS key for the type the
+// new roster calls Spatial (T1) -- it's never itself migrated (Character
+// Creation's own stored choice, every existing save, ATTUNEMENT_TAG_PAIRS'
+// own key), so any code that reads creature.element/state.primaryElement
+// directly and feeds it into a damage-type-keyed lookup (dmgTagMultiplier,
+// resistingDefenseValue, an injury-group table, ...) needs this
+// translation first, same as ATTUNEMENT_TAG_PAIRS.transportation already
+// gets it right. Everything else passes through unchanged.
+function elementKeyToDamageType(key) {
+  return key === "transportation" ? "spatial" : key;
+}
+
 // T2: the four tag values and their multipliers (starting values — tuned
 // in Phase 4, per T2's own note).
 const DAMAGE_TAG_MULTIPLIER = { immune: 0, resist: 0.5, normal: 1, weak: 1.5 };
@@ -106,8 +118,30 @@ function dmgTagMultiplierForAttacker(holder, damageType, avatarOfKnowledgeActive
 // T3: status immunity is a separate flag from damage tags (Ash Hide:
 // Resist Fire *and* immune to Burning) — holder.statusImmune is a plain
 // array of status keys, same holders as dmgTags above.
+// Step 4, A2 (Tyler, 12 Nov, approved): Frozen is a deeper Chilled, not
+// a different condition, so immunity to Chilled blocks Frozen too.
+// Nothing inflicts Frozen directly today (it only ever arrives through
+// Chilled's own build-up escalation, which already can't start on a
+// Chilled-immune holder), but this stops a future direct-Frozen ability
+// from bypassing Winter Coat.
+const STATUS_IMMUNITY_FAMILY = { frozen: "chilled" };
 function isStatusImmune(holder, statusKey) {
-  return !!(holder && holder.statusImmune && holder.statusImmune.includes(statusKey));
+  if (!holder || !holder.statusImmune) return false;
+  if (holder.statusImmune.includes(statusKey)) return true;
+  const family = STATUS_IMMUNITY_FAMILY[statusKey];
+  return !!(family && holder.statusImmune.includes(family));
+}
+
+// Step 4, A2 (off by default everywhere upstream of this function --
+// this check itself needs no gate of its own: "frozen" can only ever
+// appear once DAMAGE_TYPES_V2 lets Chilled's own build-up escalation
+// run, so with the switch off this is identical to checking chilled
+// alone). True if either half of the Chilled/Frozen family is present
+// on a status bag -- combat.player.playerStatuses, or an ally's own
+// .statuses -- for callers (Winter's Verdict) that treat the two as one
+// condition rather than checking chilled specifically.
+function isChillFamily(statuses) {
+  return !!(statuses && (statuses.chilled || statuses.frozen));
 }
 
 // §2: resolve the damage type for a hit. Priority: "fromCreature" (step
@@ -268,4 +302,13 @@ if (DAMAGE_TYPES_V2 && typeof ELEMENTS !== "undefined" && !ELEMENTS.frost) {
     description: "Cold given a cutting edge -- the stillness before something breaks.",
     verb: (target) => `You drive a shard of killing frost into ${target}`,
   };
+}
+// Step 4, A4: display-only rename, same mutation shape as the Frost
+// addition just above. The stored key stays "transportation" (Character
+// Creation, every existing save, ATTUNEMENT_TAG_PAIRS) -- only the name
+// every UI/combat-line/death-log read of ELEMENTS[key].name shows
+// changes, since every one of those call sites already reads the name
+// generically rather than hardcoding the word "Transportation".
+if (DAMAGE_TYPES_V2 && typeof ELEMENTS !== "undefined" && ELEMENTS.transportation) {
+  ELEMENTS.transportation.name = "Spatial";
 }

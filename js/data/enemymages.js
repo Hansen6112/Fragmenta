@@ -33,6 +33,22 @@ const NATION_ELEMENT_WEIGHTS = {
   norrvael: ["water", "air", "lightning", "transportation", "acid", "fire", "earth", "force"],
   kabal: ["transportation", "force", "acid", "lightning", "fire", "water", "earth", "air"],
 };
+// Damage Types Step 4, A6 (default, pending a Codex/Tyler call on
+// whether any nation should FAVOR Frost rather than merely have access
+// to it -- Norrvael's cold-themed creatures are the obvious candidate,
+// but nothing here promotes it into any nation's own top-3 without
+// that approval): with the switch on, every nation gets Frost appended
+// at the END of its own list. pickWeightedElement's pool only up-
+// weights the first three entries of whichever list it reads, so
+// appending (not inserting) makes Frost reachable at the same lowest
+// weight as everything else past position 3, without touching any
+// nation's existing top-3 flavor. js/data/damagetypes.js (the switch's
+// own home) loads before this file, so DAMAGE_TYPES_V2 already exists.
+if (DAMAGE_TYPES_V2) {
+  for (const nationId of Object.keys(NATION_ELEMENT_WEIGHTS)) {
+    NATION_ELEMENT_WEIGHTS[nationId].push("frost");
+  }
+}
 
 // Chance that any given random encounter roll (travel leg or explore) turns
 // up an enemy mage instead of a normal BESTIARY creature.

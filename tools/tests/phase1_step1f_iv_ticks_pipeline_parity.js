@@ -150,7 +150,20 @@ const { seedPageRandom } = require('./seed_rng');
       const expected = Math.round(s.maxHealth * 0.05);
       tickPlayerStatuses(s);
       const dealt = hpBefore - s.health;
-      return { pass: dealt === expected && !s.combat.player.playerStatuses.bleed && s.combat.player.playerLastHitType === 'bleed', dealt, expected };
+      // Damage Types Step 4, A7: playerLastHitType's own resolved string
+      // is DAMAGE_TYPES_V2-dependent (applyAndReactTickOnPlayer,
+      // pipeline.js) -- "bleed" pre-switch, STATUS_EFFECTS.bleed's own
+      // damageType ("slashing") once the switch is permanently on in
+      // the committed source (Part C). DAMAGE_TYPES_V2 itself is a
+      // `const`, so there's no way to force the OFF branch from inside
+      // an already-loaded page the way COMBAT_UNIFY's own object fields
+      // get cloned/zeroed/restored elsewhere in this engagement -- this
+      // check tracks whichever branch is actually live instead, since
+      // this scenario was never about which exact string gets banked,
+      // only that a status tick banks ONE AT ALL for the Injury System
+      // to read.
+      const expectedHitType = typeof DAMAGE_TYPES_V2 !== 'undefined' && DAMAGE_TYPES_V2 ? resolveStatusDamageType('bleed', STATUS_EFFECTS.bleed) : 'bleed';
+      return { pass: dealt === expected && !s.combat.player.playerStatuses.bleed && s.combat.player.playerLastHitType === expectedHitType, dealt, expected, expectedHitType };
     });
     record('P1F4-PLAYER-DOT-HEATPROOF-01', 'Player status tick: Heatproof halves a "burning" tick specifically (floor, not round), via tickStatusPlayer\'s own formula', () => {
       const origHasEffect = window.hasEffect;

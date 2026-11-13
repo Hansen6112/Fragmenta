@@ -194,7 +194,7 @@ record("CL-3-CHILLED-REAPPLY-ON-01", "Switch on: a second frost hit while still 
   const statuses = secondFrostHitWhileChilled(on);
   if (statuses.chilled) throw new Error(`expected chilled to be replaced, got ${JSON.stringify(statuses.chilled)}`);
   if (!statuses.frozen) throw new Error(`expected frozen from the second hit, got ${JSON.stringify(statuses)}`);
-  if (statuses.frozen.debuff.spd !== -10 || statuses.frozen.debuff.acc !== -5) throw new Error(`unexpected Frozen debuff: ${JSON.stringify(statuses.frozen.debuff)}`);
+  if (statuses.frozen.debuff.agi !== -10 || statuses.frozen.debuff.spd !== -10 || statuses.frozen.debuff.acc !== -5) throw new Error(`unexpected Frozen debuff: ${JSON.stringify(statuses.frozen.debuff)}`);
   return statuses;
 });
 record("CL-3-CHILLED-REAPPLY-OFF-01", "Switch off: a second frost hit while still Chilled just refreshes Chilled's own duration (today's behavior, unchanged)", () => {

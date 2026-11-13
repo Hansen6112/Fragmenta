@@ -89,6 +89,19 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // subject creature, and which the functions under test only ever
     // read, never mutate, so they carry no signal about pipeline parity.
     const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune'];
+    // Damage Types Step 4, A7: playerLastHitType is a damage-type STRING
+    // (physical/an ELEMENTS key pre-switch, a real DAMAGE_TYPES member
+    // once DAMAGE_TYPES_V2 is permanently on in the committed source --
+    // Part C) -- a Bleed tick alone now legitimately records "slashing"
+    // instead of "physical", a Fire spell "fire" either way, and so on.
+    // Pipeline-migration parity (this whole file's own subject) was
+    // never about which exact string gets banked, only that the new
+    // pipeline path banks THE SAME one the kept oracle does -- a claim
+    // this field can't test at all once the switch is permanently on,
+    // since the frozen half of the comparison predates the switch
+    // existing and can never pick up its own resolved value. Nulled out
+    // on both sides rather than compared, same treatment as creatureObj
+    // above and for the same reason.
     function stripCreatureObj(x) {
       if (Array.isArray(x)) return x.map(stripCreatureObj);
       if (x === null || typeof x !== 'object') return x;
@@ -100,7 +113,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
         return inner;
       }
       const out = {};
-      for (const k of Object.keys(x)) out[k] = stripCreatureObj(x[k]);
+      for (const k of Object.keys(x)) out[k] = k === 'playerLastHitType' ? null : stripCreatureObj(x[k]);
       return out;
     }
     function normalizeSnap(snapStr) {

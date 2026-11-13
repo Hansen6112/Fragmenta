@@ -57,7 +57,11 @@ const STATUS_EFFECTS = {
   // T8: Frost Wolf's own signature status (per the Reference's roster)
   // and the Decisions Addendum's Ice Elemental variant both land here.
   // Codex values: Initiative -10, Accuracy -5 for 2 turns.
-  frozen: { name: "Frozen", debuff: { spd: -10, acc: -5 }, stackable: false, turns: 2 },
+  // Damage Types Step 4, A1 (Tyler, 12 Nov, approved): Frozen must be
+  // strictly worse than Chilled, not a lateral swap -- keeps Chilled's
+  // own Agility -10 and adds Speed -10 / Accuracy -5 on top, so
+  // escalating never takes a penalty away.
+  frozen: { name: "Frozen", debuff: { agi: -10, spd: -10, acc: -5 }, stackable: false, turns: 2 },
   slowed: { name: "Slowed", debuff: { spdPct: -0.2, agiPct: -0.1 }, stackable: false, turns: 2 },
   constrict: { name: "Constricted", debuff: { agi: -5 }, stackable: true, maxStacks: 4, turns: 99, escalatesAt: 4, escalatesTo: "restrained" },
   restrained: { name: "Restrained", debuff: { agi: -20 }, stackable: false, turns: 2 },

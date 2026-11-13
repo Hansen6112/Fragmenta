@@ -527,7 +527,10 @@ const PIPELINE_FORMULAS = {
       // U3c (off by default): Winter's Verdict reads the ALLY's own
       // Chilled status (ally.statuses.chilled) rather than the player's
       // combat.player.playerStatuses.chilled.
-      if (COMBAT_UNIFY.U3c && edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && ally.statuses && ally.statuses.chilled) {
+      // Damage Types Step 4, A2: isChillFamily also counts Frozen (a
+      // deeper Chilled, not a different condition) -- a no-op today
+      // with the switch off, since Frozen can't exist then.
+      if (COMBAT_UNIFY.U3c && edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && isChillFamily(ally.statuses)) {
         creature.wintersVerdictUsed = true;
         edmg = Math.round(edmg * 1.15);
       }
@@ -626,7 +629,10 @@ const PIPELINE_FORMULAS = {
       creature.flowingDisciplineTurnsLeft = 0;
       edmg = Math.round(edmg * 1.10);
     }
-    if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && combat.player.playerStatuses && combat.player.playerStatuses.chilled) {
+    // Damage Types Step 4, A2: isChillFamily also counts Frozen (a
+    // deeper Chilled, not a different condition) -- a no-op today with
+    // the switch off, since Frozen can't exist then.
+    if (edmg > 0 && !creature.wintersVerdictUsed && hasSetTier(creature, "First Sword's Regalia", 8) && isChillFamily(combat.player.playerStatuses)) {
       creature.wintersVerdictUsed = true;
       edmg = Math.round(edmg * 1.15);
     }

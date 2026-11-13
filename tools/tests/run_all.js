@@ -71,6 +71,7 @@ const LEDGERS = [
   "damage_types_a1_injury_v2_ledger.js",
   "damage_types_a5_variant_weighting_ledger.js",
   "damage_types_content_load_ledger.js",
+  "damage_types_step4_parta_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
