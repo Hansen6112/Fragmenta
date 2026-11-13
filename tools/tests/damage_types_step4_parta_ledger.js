@@ -216,12 +216,22 @@ record("S4-A5-ROLLPLAYERDAMAGE-RUNS-01", "rollPlayerDamage's spell branch still 
   return { ok: true };
 });
 
-// ---- A6: enemy Mage nation weights gain Frost ----
-record("S4-A6-NATION-WEIGHTS-ON-01", "Switch on: every nation's NATION_ELEMENT_WEIGHTS gains 'frost' appended at the end (lowest weight)", () => {
+// ---- A6: enemy Mage nation weights gain Frost (resolved, Tyler 13 Nov:
+// Norrvael favors it -- every other nation keeps the original default
+// of lowest weight only) ----
+record("S4-A6-NATION-WEIGHTS-ON-01", "Switch on: every nation except Norrvael gains 'frost' appended at the end (lowest weight)", () => {
   const NATION_ELEMENT_WEIGHTS = vm.runInContext("NATION_ELEMENT_WEIGHTS", on);
-  const bad = Object.entries(NATION_ELEMENT_WEIGHTS).filter(([nation, list]) => list[list.length - 1] !== "frost");
+  const bad = Object.entries(NATION_ELEMENT_WEIGHTS).filter(([nation, list]) => nation !== "norrvael" && list[list.length - 1] !== "frost");
   if (bad.length) throw new Error(`nation(s) missing frost at the end: ${bad.map(([n]) => n).join(", ")}`);
   return { nations: Object.keys(NATION_ELEMENT_WEIGHTS).length };
+});
+record("S4-A6-NORRVAEL-FROST-FIRST-ON-01", "Switch on: Norrvael's own list is Frost first, every other element keeping its prior relative order behind it", () => {
+  const NATION_ELEMENT_WEIGHTS = vm.runInContext("NATION_ELEMENT_WEIGHTS", on);
+  const norrvael = NATION_ELEMENT_WEIGHTS.norrvael;
+  const expected = ["frost", "water", "air", "lightning", "transportation", "acid", "fire", "earth", "force"];
+  const match = JSON.stringify(norrvael) === JSON.stringify(expected);
+  if (!match) throw new Error(`Norrvael's list is ${JSON.stringify(norrvael)}, expected ${JSON.stringify(expected)}`);
+  return { norrvael };
 });
 record("S4-A6-NATION-WEIGHTS-OFF-01", "Switch off: NATION_ELEMENT_WEIGHTS has no frost entry anywhere (today's behavior, unchanged)", () => {
   const NATION_ELEMENT_WEIGHTS = vm.runInContext("NATION_ELEMENT_WEIGHTS", off);
@@ -229,11 +239,13 @@ record("S4-A6-NATION-WEIGHTS-OFF-01", "Switch off: NATION_ELEMENT_WEIGHTS has no
   if (bad.length) throw new Error(`nation(s) unexpectedly have frost with the switch off: ${bad.map(([n]) => n).join(", ")}`);
   return { nations: Object.keys(NATION_ELEMENT_WEIGHTS).length };
 });
-record("S4-A6-LOWEST-WEIGHT-01", "Frost is reachable but never in a nation's own top-3 (highest-weighted) slots", () => {
+record("S4-A6-LOWEST-WEIGHT-01", "Frost is reachable but never in a nation's own top-3 (highest-weighted) slots -- except Norrvael, the one approved exception, where it's position 1 of 3", () => {
   const NATION_ELEMENT_WEIGHTS = vm.runInContext("NATION_ELEMENT_WEIGHTS", on);
-  const bad = Object.entries(NATION_ELEMENT_WEIGHTS).filter(([nation, list]) => list.slice(0, 3).includes("frost"));
+  const bad = Object.entries(NATION_ELEMENT_WEIGHTS).filter(([nation, list]) => nation !== "norrvael" && list.slice(0, 3).includes("frost"));
   if (bad.length) throw new Error(`nation(s) with frost in the top 3: ${bad.map(([n]) => n).join(", ")}`);
-  return { ok: true };
+  const norrvaelTop3 = NATION_ELEMENT_WEIGHTS.norrvael.slice(0, 3);
+  if (norrvaelTop3[0] !== "frost") throw new Error(`Norrvael's own top 3 should lead with frost, got ${JSON.stringify(norrvaelTop3)}`);
+  return { ok: true, norrvaelTop3 };
 });
 
 console.log(ledger.map((l) => `${l.passed ? "ok  " : "FAIL"} ${l.code}: ${l.description}`).join("\n"));

@@ -33,20 +33,23 @@ const NATION_ELEMENT_WEIGHTS = {
   norrvael: ["water", "air", "lightning", "transportation", "acid", "fire", "earth", "force"],
   kabal: ["transportation", "force", "acid", "lightning", "fire", "water", "earth", "air"],
 };
-// Damage Types Step 4, A6 (default, pending a Codex/Tyler call on
-// whether any nation should FAVOR Frost rather than merely have access
-// to it -- Norrvael's cold-themed creatures are the obvious candidate,
-// but nothing here promotes it into any nation's own top-3 without
-// that approval): with the switch on, every nation gets Frost appended
-// at the END of its own list. pickWeightedElement's pool only up-
-// weights the first three entries of whichever list it reads, so
-// appending (not inserting) makes Frost reachable at the same lowest
-// weight as everything else past position 3, without touching any
-// nation's existing top-3 flavor. js/data/damagetypes.js (the switch's
-// own home) loads before this file, so DAMAGE_TYPES_V2 already exists.
+// Damage Types Step 4, A6 (resolved, Tyler 13 Nov): Norrvael favors
+// Frost -- its own cold-themed creatures made it the obvious candidate,
+// and it's now the exception. Every OTHER nation still just gets Frost
+// appended at the END of its own list (pickWeightedElement's pool only
+// up-weights the first three entries of whichever list it reads, so
+// appending reaches the same lowest weight as everything else past
+// position 3, without touching that nation's existing top-3 flavor).
+// Norrvael instead gets it PREPENDED -- Frost first, every other
+// element keeping its existing relative order behind it (water, air,
+// lightning, transportation, acid, fire, earth, force), the opposite
+// end of the same list for the one nation that's supposed to reach it
+// most often. js/data/damagetypes.js (the switch's own home) loads
+// before this file, so DAMAGE_TYPES_V2 already exists.
 if (DAMAGE_TYPES_V2) {
   for (const nationId of Object.keys(NATION_ELEMENT_WEIGHTS)) {
-    NATION_ELEMENT_WEIGHTS[nationId].push("frost");
+    if (nationId === "norrvael") NATION_ELEMENT_WEIGHTS[nationId].unshift("frost");
+    else NATION_ELEMENT_WEIGHTS[nationId].push("frost");
   }
 }
 

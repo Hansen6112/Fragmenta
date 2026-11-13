@@ -38,7 +38,7 @@ const GEAR_TIERS = [
 ];
 
 function runCell(sb, cls, L, spawn, gearFn) {
-  let wins = 0, allyDeaths = 0, n = 0;
+  let wins = 0, allyDeaths = 0, n = 0, roundsSum = 0, playerHpSum = 0, allyHpSum = 0, allyHpCells = 0;
   const injuryTotals = {};
   for (let i = 0; i < N; i++) {
     const r = sb.runFight({ cls, L, spawn, party: true, spawnMode: "alone", gearFn });
@@ -46,9 +46,17 @@ function runCell(sb, cls, L, spawn, gearFn) {
     n++;
     wins += r.won ? 1 : 0;
     allyDeaths += r.allyDeaths;
+    roundsSum += r.rounds;
+    playerHpSum += r.playerHpFrac;
+    if (r.allyHpFrac != null) { allyHpSum += r.allyHpFrac; allyHpCells++; }
     for (const [g, c] of Object.entries(r.injuryGroups)) injuryTotals[g] = (injuryTotals[g] || 0) + c;
   }
-  return { n, winRate: n ? wins / n : null, allyDeathsPerFight: n ? allyDeaths / n : null, injuryTotals };
+  return {
+    n, winRate: n ? wins / n : null, allyDeathsPerFight: n ? allyDeaths / n : null, injuryTotals,
+    meanRounds: n ? roundsSum / n : null,
+    meanPlayerHpPct: n ? (playerHpSum / n) * 100 : null,
+    meanAllyHpPct: allyHpCells ? (allyHpSum / allyHpCells) * 100 : null,
+  };
 }
 
 function main() {

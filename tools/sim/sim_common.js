@@ -245,7 +245,13 @@ function buildSandbox(switchOn) {
     const enemiesAlive = s.combat && s.combat.enemies.some((e) => e.alive && e.hp > 0);
     const won = (s.health > 0 || s.playerDowned) && !enemiesAlive;
     const allyDeaths = (s.party || []).filter((a) => !a.alive).length;
-    return { rounds, won, timedOut: rounds >= cap, allyDeaths, playerHpFrac: Math.max(0, s.health) / s.maxHealth, wasDowned: !!s.playerDowned, injuryGroups: injuryGroupsOf(s) };
+    // Mean ally health remaining (Step 4 2nd follow-up): averaged over
+    // every ally THIS fight actually had (a dead one counts as 0%, not
+    // excluded) -- null, not 0, for a solo cell with no party at all, so
+    // the two don't get averaged together downstream as if "no allies"
+    // meant "allies at 0%."
+    const allyHpFrac = (s.party && s.party.length) ? s.party.reduce((sum, a) => sum + Math.max(0, a.health) / a.maxHealth, 0) / s.party.length : null;
+    return { rounds, won, timedOut: rounds >= cap, allyDeaths, playerHpFrac: Math.max(0, s.health) / s.maxHealth, allyHpFrac, wasDowned: !!s.playerDowned, injuryGroups: injuryGroupsOf(s) };
   }
 
   function spawnEnemyMage(nationId, level, element) {

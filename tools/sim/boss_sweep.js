@@ -69,7 +69,7 @@ const ENEMY_MAGE_ELEMENTS = ["fire", "water", "earth", "lightning", "acid", "for
 function median(a) { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; }
 
 function runCell(sb, cls, L, cellSpec) {
-  let wins = 0, allyDeaths = 0, n = 0;
+  let wins = 0, allyDeaths = 0, n = 0, roundsSum = 0, playerHpSum = 0, allyHpSum = 0, allyHpCells = 0;
   const injuryTotals = {};
   for (let i = 0; i < N; i++) {
     let spawnArg = cellSpec.spawn;
@@ -84,9 +84,17 @@ function runCell(sb, cls, L, cellSpec) {
     n++;
     wins += r.won ? 1 : 0;
     allyDeaths += r.allyDeaths;
+    roundsSum += r.rounds;
+    playerHpSum += r.playerHpFrac;
+    if (r.allyHpFrac != null) { allyHpSum += r.allyHpFrac; allyHpCells++; }
     for (const [g, c] of Object.entries(r.injuryGroups)) injuryTotals[g] = (injuryTotals[g] || 0) + c;
   }
-  return { n, winRate: n ? wins / n : null, allyDeathsPerFight: n ? allyDeaths / n : null, injuryTotals };
+  return {
+    n, winRate: n ? wins / n : null, allyDeathsPerFight: n ? allyDeaths / n : null, injuryTotals,
+    meanRounds: n ? roundsSum / n : null,
+    meanPlayerHpPct: n ? (playerHpSum / n) * 100 : null,
+    meanAllyHpPct: allyHpCells ? (allyHpSum / allyHpCells) * 100 : null,
+  };
 }
 
 function levelFor(sb, id) {
