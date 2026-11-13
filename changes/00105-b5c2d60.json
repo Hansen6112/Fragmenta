@@ -1,0 +1,54 @@
+[
+ {
+  "reg": "NATION_ELEMENT_WEIGHTS",
+  "id": "norrvael",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "0",
+    "old": "water",
+    "new": "frost"
+   },
+   {
+    "f": "1",
+    "old": "air",
+    "new": "water"
+   },
+   {
+    "f": "2",
+    "old": "lightning",
+    "new": "air"
+   },
+   {
+    "f": "3",
+    "old": "transportation",
+    "new": "lightning"
+   },
+   {
+    "f": "4",
+    "old": "acid",
+    "new": "transportation"
+   },
+   {
+    "f": "5",
+    "old": "fire",
+    "new": "acid"
+   },
+   {
+    "f": "6",
+    "old": "earth",
+    "new": "fire"
+   },
+   {
+    "f": "7",
+    "old": "force",
+    "new": "earth"
+   },
+   {
+    "f": "8",
+    "old": "frost",
+    "new": "force"
+   }
+  ]
+ }
+]

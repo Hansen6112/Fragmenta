@@ -1,0 +1,39 @@
+range: 87888a64a70a77ac36b1af4b109cba5d3dbf4508..b5c2d60d38f69c3bceb6ea43bb68166c30b9751c
+=== b5c2d60d38f69c3bceb6ea43bb68166c30b9751c 2026-11-13 15:03:28 +0000
+Damage Types Step 4, 2nd follow-up: A6 Norrvael, harness metrics
+A6 (resolved, Tyler 13 Nov): Norrvael favors Frost. Its own
+NATION_ELEMENT_WEIGHTS list is now ["frost", "water", "air", "lightning",
+"transportation", "acid", "fire", "earth", "force"] -- Frost prepended
+(pickWeightedElement's own top-3 up-weight now lands on frost/water/air,
+pushing lightning out of Norrvael's favored set), every other element
+keeping its prior relative order behind it. Every OTHER nation is
+unchanged: Frost still just appended at the end (lowest weight), the
+original default. S4-A6-LOWEST-WEIGHT-01 and S4-A6-NATION-WEIGHTS-ON-01
+updated to treat Norrvael as the one named exception instead of
+asserting the old blanket rule; added S4-A6-NORRVAEL-FROST-FIRST-ON-01
+to check the exact resulting list.
+
+Harness metrics: every cell in both tools/sim/boss_sweep.js and
+tools/sim/plus3_run.js now reports meanRounds, meanPlayerHpPct, and
+meanAllyHpPct (null, not 0, for a solo cell with no party at all --
+distinct from "allies present but all at 0%"), alongside the existing
+winRate/allyDeathsPerFight/injuryTotals. sim_common.js's own runFight
+already tracked rounds/playerHpFrac; added allyHpFrac (mean over every
+ally the fight actually had, a dead one counting as 0%, not excluded).
+
+Full suite 550/550, 3 consecutive clean runs. audit.js: 0 errors, 72
+warnings (unchanged).
+
+Rerun + recommitted baseline, and the investigation into the Lightning
+Skrel-Drak win-rate drop (no tuning applied), follow in separate commits.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/enemymages.js                          | 27 ++++++++++++++------------
+ tools/sim/boss_sweep.js                        | 12 ++++++++++--
+ tools/sim/plus3_run.js                         | 12 ++++++++++--
+ tools/sim/sim_common.js                        |  8 +++++++-
+ tools/tests/damage_types_step4_parta_ledger.js | 24 +++++++++++++++++------
+ 5 files changed, 60 insertions(+), 23 deletions(-)
