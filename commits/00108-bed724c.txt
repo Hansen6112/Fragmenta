@@ -1,0 +1,35 @@
+range: 754b72af2a9fe849b2f0c23509488ad63a184ab8..bed724cd826a3a69f0eb5dd2b2b63dfcec19c32f
+=== bed724cd826a3a69f0eb5dd2b2b63dfcec19c32f 2026-11-13 20:42:27 +0000
+Combat Rebuild Phase 2 step 2a: modifier catalogue (draft for review)
+tools/modifier_catalogue.md: 175 gear-effect rows, 110 set-bonus tier
+rows, 64 enemy-passive trigger-type rows (covering all 169 passives),
+and the kind-D named-item gap -- source, current call site, kind, who
+it works for today, proposed hook, proposed bucket, per
+combat_rebuild_phase2_spec.md §6's own definition of this step.
+
+Flagged for review before 2b (not acted on here):
+- 6 EFFECT_DEFS ids (armor_crack, spell_ward, storm_barrier,
+  ambush_mastery, coldproof, river_harmony, dra_e03_flowing_guard) have
+  no live call site anywhere in engine code and aren't marked
+  "Currently inert" in their own description -- undocumented dead code,
+  unlike the ~20 effects that already flag themselves honestly.
+- ~53 of 110 set-tier rows (mostly 2pc/4pc tiers) have the same gap --
+  no dispatch site found.
+- Worst-case outgoing-damage stack (x8.2 bucketed) matches the spec's
+  own §1/§4 example exactly. Defense-ignore is already at the proposed
+  -100% cap's floor today (Commanding Presence alone zeroes it), so R3
+  introduces no regression there. Incoming-mitigation's two live
+  sources don't co-occur on one holder yet (Stonewarden 6pc is
+  player-only today, the Sanguivorum chain is enemy-only) -- worth
+  re-checking once R1/R2 widen holders.
+
+Draft, not final -- rows marked "-- REVIEW" and the dead-effect/
+unimplemented-set-tier list need a decision before 2b starts moving
+entries in.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/modifier_catalogue.md | 400 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 400 insertions(+)
