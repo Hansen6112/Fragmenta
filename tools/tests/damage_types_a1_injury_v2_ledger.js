@@ -27,9 +27,15 @@ const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
 const sources = Object.fromEntries(scripts.map((s) => [s, fs.readFileSync(path.join(ROOT, s), "utf8")]));
 
-const SWITCH_LINE = "const DAMAGE_TYPES_V2 = false;";
-if (!sources["js/data/damagetypes.js"].includes(SWITCH_LINE)) {
-  throw new Error(`Expected to find "${SWITCH_LINE}" in js/data/damagetypes.js — update this test's patch alongside it.`);
+// Damage Types Step 4, Part C: the real committed switch is now
+// permanently true -- this file still needs to build a sandbox with
+// EITHER state (its own off-state assertions are still real
+// regression coverage for the conditional logic itself), so the patch
+// is direction-agnostic: whichever literal is currently committed,
+// replace it with whichever this call actually wants.
+const SWITCH_LINE_RE = /const DAMAGE_TYPES_V2 = (true|false);/;
+if (!SWITCH_LINE_RE.test(sources["js/data/damagetypes.js"])) {
+  throw new Error(`Expected to find a "const DAMAGE_TYPES_V2 = true|false;" line in js/data/damagetypes.js — update this test's patch alongside it.`);
 }
 
 function el() {
@@ -53,7 +59,7 @@ function buildSandbox(switchOn) {
   ctx.window = ctx;
   vm.createContext(ctx);
   for (const s of scripts) {
-    const src = s === "js/data/damagetypes.js" && switchOn ? sources[s].replace(SWITCH_LINE, "const DAMAGE_TYPES_V2 = true;") : sources[s];
+    const src = s === "js/data/damagetypes.js" ? sources[s].replace(SWITCH_LINE_RE, `const DAMAGE_TYPES_V2 = ${!!switchOn};`) : sources[s];
     vm.runInContext(src, ctx, { filename: s });
   }
   return ctx;

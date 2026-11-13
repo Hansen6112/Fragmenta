@@ -28,6 +28,24 @@ const { seedPageRandom } = require('./seed_rng');
       window.attackConnects = () => true;
       try { return fn(); } finally { window.attackConnects = oc; }
     }
+    // Damage Types Step 4, Part C: with the switch permanently on,
+    // kabal_enforcer's "force" attack (metaphysical family) now mitigates
+    // through resistingDefenseValue's (2*magic+def)/3 blend instead of a
+    // flat physical defense -- a real, correct behavior change, not a
+    // bug -- which happens to land close enough to a rounding boundary
+    // that the formula's own pre-existing damage-roll variance can tip
+    // the integer result either side of it. AP-01/AP-03 compare two
+    // SEPARATELY rolled hits (no item vs with item) and expect an exact
+    // 0.9x ratio between them, which only holds if both draws land on
+    // the same side of that boundary. withForcedHit already pins out
+    // hit/miss variance the same way; this pins out the damage roll's
+    // own variance too, so both halves of the comparison see the same
+    // "random" draw and only the item's own effect can move the result.
+    function withFixedRandom(value, fn) {
+      const or = Math.random;
+      Math.random = () => value;
+      try { return fn(); } finally { Math.random = or; }
+    }
 
     // Register synthetic test-only items carrying each of the 3 ids,
     // in-memory only (never touches the real shipped ITEM_DEFS on disk).
@@ -59,20 +77,20 @@ const { seedPageRandom } = require('./seed_rng');
       const [kessa, hadrian] = allies;
       const creature = activeEnemySlot(s.combat).creatureObj;
       // Baseline: no item equipped, hit hadrian directly.
-      const dmgNoItem = withForcedHit(() => {
+      const dmgNoItem = withFixedRandom(0.5, () => withForcedHit(() => {
         const before = hadrian.health;
         resolveEnemyAttackOnAlly(s, creature, hadrian, null, { accBonus: 0, dmgMultBonus: 1 });
         return before - hadrian.health;
-      });
+      }));
       // Reset and re-run with kessa (protector) wearing the item.
       const { s: s2, allies: allies2 } = freshParty(2);
       const [kessa2, hadrian2] = allies2;
       kessa2.equipment.offhand = 'Test Gatekeeper Shield';
-      const dmgWithItem = withForcedHit(() => {
+      const dmgWithItem = withFixedRandom(0.5, () => withForcedHit(() => {
         const before = hadrian2.health;
         resolveEnemyAttackOnAlly(s2, activeEnemySlot(s2.combat).creatureObj, hadrian2, null, { accBonus: 0, dmgMultBonus: 1 });
         return before - hadrian2.health;
-      });
+      }));
       const expected = Math.round(dmgNoItem * 0.9);
       return { pass: dmgWithItem === expected, dmgNoItem, dmgWithItem, expected };
     });
@@ -94,17 +112,17 @@ const { seedPageRandom } = require('./seed_rng');
       s.equipment.offhand = 'Test Gatekeeper Shield';
       const dmgNoItem = (() => {
         const { s: s2, allies: a2 } = freshParty(1);
-        return withForcedHit(() => {
+        return withFixedRandom(0.5, () => withForcedHit(() => {
           const before = a2[0].health;
           resolveEnemyAttackOnAlly(s2, activeEnemySlot(s2.combat).creatureObj, a2[0], null, { accBonus: 0, dmgMultBonus: 1 });
           return before - a2[0].health;
-        });
+        }));
       })();
-      const dmgWithPlayerItem = withForcedHit(() => {
+      const dmgWithPlayerItem = withFixedRandom(0.5, () => withForcedHit(() => {
         const before = kessa.health;
         resolveEnemyAttackOnAlly(s, activeEnemySlot(s.combat).creatureObj, kessa, null, { accBonus: 0, dmgMultBonus: 1 });
         return before - kessa.health;
-      });
+      }));
       return { pass: dmgWithPlayerItem === Math.round(dmgNoItem * 0.9), dmgNoItem, dmgWithPlayerItem, playerUses: s.allyProtectionUsesThisCombat };
     });
 

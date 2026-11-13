@@ -23,7 +23,7 @@
 // time, not just inside a function, so the const must already exist by
 // then (a `const` isn't hoisted with its value the way a function
 // declaration is).
-const DAMAGE_TYPES_V2 = false;
+const DAMAGE_TYPES_V2 = true;
 
 // T1: the locked 16-type roster, grouped by family, plus First River
 // (T9: story only, never shown to the player, no family of its own).

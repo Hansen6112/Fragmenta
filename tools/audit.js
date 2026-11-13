@@ -522,46 +522,73 @@ const P4_ENEMY_ABILITY_ID_PATTERN = /\babilityId\s*(?:===|!==)|\bability\.id\s*(
   }
 }
 
-// ---- damage types (Damage Types spec v1.0, §6: D1-D4, warnings only
-// for now — step 2 of the spec's order of work. They become errors in
-// step 4, once the content passes (§5) that D1/D2 need have actually
-// landed; running them as warnings here just means they're visible and
-// not yet blocking, exactly as the spec's own order-of-work describes. ----
+// ---- damage types (Damage Types spec v1.0, §6: D1-D4). Promoted from
+// warnings to errors per the Damage Types Step 4 handoff, Part C item
+// 2, now that content (§5) has landed and the switch is permanently on:
+// D1 keeps one named allowlist, the 8 held weapons Tyler asked to keep
+// untyped for now (Widow's Lament, Emberfall, Black Horizon, Oathbreaker,
+// Seven Sorrows, Sovereign, Night Requiem, Galecaller) — anything else
+// without a type is now a real error, not a visible-but-ignorable warning. ----
 const DAMAGE_TYPES_SET = new Set(G("DAMAGE_TYPES"));
 const DAMAGE_TAG_VALUES = new Set(["immune", "resist", "normal", "weak"]);
+const D1_HELD_WEAPON_ALLOWLIST = new Set([
+  "Widow's Lament", "Emberfall", "Black Horizon", "Oathbreaker",
+  "Seven Sorrows", "Sovereign", "Night Requiem", "Galecaller",
+]);
 
-// D1: every damaging action definition has a valid damageType. Reuses
-// the same action enumeration the P2 checks above already built
-// (ACTION_TABLE_NAMES + ENEMY_ABILITIES actives + ENEMY_BASIC_ATTACK_DEF)
-// — "damaging" here means toHit:"roll" (P2 already guarantees toHit:
-// "none" actions have damage:null, so they're not damage-dealing at all).
+// D1: every damaging action definition has a valid damageType -- OR
+// deliberately none at all. resolveDamageType (js/data/damagetypes.js)
+// only reads `action.damageType` when it's truthy; left absent, it
+// falls through to the wielder's own weaponDamageType/attackType/
+// elementType instead (basic_attack, Decoy/Ambush/Disarm, every enemy
+// active with no override, and ENEMY_BASIC_ATTACK_DEF are ALL meant to
+// inherit this way -- that's the whole point of "inherited_breath"'s
+// own name). So this only flags a damageType that's PRESENT but not a
+// real member of DAMAGE_TYPES (a typo/stale value), never an absent
+// one -- except on ELEMENT_ABILITIES, where there is no wielder-level
+// fallback that makes sense (a mage's own weapon has nothing to do
+// with what element Ignite deals) and every toHit:"roll" entry needs
+// its own fixed type. Reuses the same action enumeration the P2 checks
+// above already built (ACTION_TABLE_NAMES + ENEMY_ABILITIES actives +
+// ENEMY_BASIC_ATTACK_DEF) — "damaging" here means toHit:"roll" (P2
+// already guarantees toHit:"none" actions have damage:null, so they're
+// not damage-dealing at all).
 for (const tableName of ACTION_TABLE_NAMES) {
   const table = G(tableName);
   for (const id of Object.keys(table)) {
     const def = G(`getActionDef(${JSON.stringify(id)})`);
-    if (def.toHit === "roll" && !DAMAGE_TYPES_SET.has(def.damageType)) {
-      warn("damage-type", `"${id}" (${tableName}) has no valid damageType (D1)`);
+    if (def.toHit !== "roll") continue;
+    if (tableName === "ELEMENT_ABILITIES") {
+      if (!DAMAGE_TYPES_SET.has(def.damageType)) err("damage-type", `"${id}" (${tableName}) has no valid damageType (D1)`);
+    } else if (def.damageType != null && def.damageType !== "fromCreature" && !DAMAGE_TYPES_SET.has(def.damageType)) {
+      err("damage-type", `"${id}" (${tableName}) has an invalid damageType "${def.damageType}" (D1)`);
     }
   }
 }
 for (const id of Object.keys(ENEMY_ABILITIES_TABLE)) {
   if (ENEMY_ABILITIES_TABLE[id].type !== "active") continue;
   const def = G(`getEnemyAbility(${JSON.stringify(id)})`);
-  if (def.toHit === "roll" && !DAMAGE_TYPES_SET.has(def.damageType)) {
-    warn("damage-type", `"${id}" (ENEMY_ABILITIES) has no valid damageType (D1)`);
+  // "fromCreature" is resolveDamageType's own sentinel (js/data/damagetypes.js)
+  // for "read the wielding creature's own elementType" -- a deliberate
+  // value, not a DAMAGE_TYPES member, same treatment the D1 BESTIARY
+  // attackType check above already gives it.
+  if (def.toHit === "roll" && def.damageType != null && def.damageType !== "fromCreature" && !DAMAGE_TYPES_SET.has(def.damageType)) {
+    err("damage-type", `"${id}" (ENEMY_ABILITIES) has an invalid damageType "${def.damageType}" (D1)`);
   }
 }
-if (!DAMAGE_TYPES_SET.has(G("ENEMY_BASIC_ATTACK_DEF").damageType)) {
-  warn("damage-type", `ENEMY_BASIC_ATTACK_DEF has no valid damageType (D1)`);
+if (G("ENEMY_BASIC_ATTACK_DEF").damageType != null && !DAMAGE_TYPES_SET.has(G("ENEMY_BASIC_ATTACK_DEF").damageType)) {
+  err("damage-type", `ENEMY_BASIC_ATTACK_DEF has an invalid damageType (D1)`);
 }
 // D1, weapons: every mainhand item (the one slot that sets a wielder's
 // basic-attack damage type, per the spec's own §2 field table) needs a
 // Physical-family type. Offhand items (shields, quivers, tomes) aren't
-// checked — only one slot's damageType feeds the basic attack.
+// checked — only one slot's damageType feeds the basic attack. The 8
+// held weapons above are the only allowed exception.
 for (const [name, d] of Object.entries(ITEM_DEFS)) {
   if (d.slot !== "mainhand") continue;
+  if (D1_HELD_WEAPON_ALLOWLIST.has(name)) continue;
   if (!(d.damageType === "slashing" || d.damageType === "piercing" || d.damageType === "blunt")) {
-    warn("damage-type", `"${name}" (mainhand) has no valid Physical-family damageType (D1)`);
+    err("damage-type", `"${name}" (mainhand) has no valid Physical-family damageType (D1)`);
   }
 }
 // D1, creatures: attackType or a weapon. "A weapon" means an equipped
@@ -584,18 +611,18 @@ for (const [id, c] of Object.entries(BESTIARY)) {
   const hasBandedWeapon = Array.isArray(c.equipmentBands) && c.equipmentBands.length > 0;
   const validAttackType = DAMAGE_TYPES_SET.has(c.attackType) || c.attackType === "fromCreature";
   if (!hasFlatWeapon && !hasBandedWeapon && !validAttackType) {
-    warn("damage-type", `BESTIARY.${id} has no attackType and no equipped mainhand weapon (D1)`);
+    err("damage-type", `BESTIARY.${id} has no attackType and no equipped mainhand weapon (D1)`);
   }
   if (hasBandedWeapon) {
     const bareBands = c.equipmentBands.filter((b) => !(b.equipment && b.equipment.mainhand)).map((b) => b.maxLevel);
-    if (bareBands.length) warn("damage-type", `BESTIARY.${id} has an equipmentBands entry with no mainhand weapon (maxLevel: ${bareBands.join(", ")}) (D1)`);
+    if (bareBands.length) err("damage-type", `BESTIARY.${id} has an equipmentBands entry with no mainhand weapon (maxLevel: ${bareBands.join(", ")}) (D1)`);
   }
 }
 // D1, statuses: every damage-over-time STATUS_EFFECTS entry needs a
 // damageType, so a tick can resolve a resisting stat/tag the same way a
 // direct hit does.
 for (const [id, s] of Object.entries(STATUS_EFFECTS)) {
-  if (s.dot && !DAMAGE_TYPES_SET.has(s.damageType)) warn("damage-type", `STATUS_EFFECTS.${id} has a dot but no valid damageType (D1)`);
+  if (s.dot && !DAMAGE_TYPES_SET.has(s.damageType)) err("damage-type", `STATUS_EFFECTS.${id} has a dot but no valid damageType (D1)`);
 }
 
 // D2: every dmgTags map (BESTIARY creatures, ALLY_DEFS, mercenary
@@ -606,8 +633,8 @@ for (const [id, s] of Object.entries(STATUS_EFFECTS)) {
 function checkDmgTags(label, holder) {
   if (!holder || !holder.dmgTags) return;
   for (const [k, v] of Object.entries(holder.dmgTags)) {
-    if (!DAMAGE_TYPES_SET.has(k)) warn("damage-type", `${label}.dmgTags has unknown key "${k}" (D2)`);
-    if (!DAMAGE_TAG_VALUES.has(v)) warn("damage-type", `${label}.dmgTags.${k} has invalid value "${v}" (D2)`);
+    if (!DAMAGE_TYPES_SET.has(k)) err("damage-type", `${label}.dmgTags has unknown key "${k}" (D2)`);
+    if (!DAMAGE_TAG_VALUES.has(v)) err("damage-type", `${label}.dmgTags.${k} has invalid value "${v}" (D2)`);
   }
 }
 for (const [id, c] of Object.entries(BESTIARY)) checkDmgTags(`BESTIARY.${id}`, c);
@@ -625,7 +652,7 @@ for (const [id, a] of Object.entries(ALLY_DEFS)) checkDmgTags(`ALLY_DEFS.${id}`,
 for (const [id, c] of Object.entries(BESTIARY)) {
   if (!c.dmgTags) continue;
   const allPhysicalWalled = ["slashing", "piercing", "blunt"].every((t) => c.dmgTags[t] === "immune" || c.dmgTags[t] === "resist");
-  if (allPhysicalWalled) warn("damage-type", `BESTIARY.${id} is Resist/Immune to every Physical sub-type — walls off every melee class (D3)`);
+  if (allPhysicalWalled) err("damage-type", `BESTIARY.${id} is Resist/Immune to every Physical sub-type — walls off every melee class (D3)`);
 }
 
 // D4: First River (T9) never appears in player-facing text. Scanned
@@ -637,7 +664,7 @@ for (const [id, c] of Object.entries(BESTIARY)) {
 for (const s of scripts) {
   const codeOnly = sources[s].replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.split("//")[0]);
   codeOnly.forEach((line, i) => {
-    if (/first\s+river/i.test(line)) warn("damage-type", `${s}:${i + 1} mentions "First River" in live code — player-facing text must never name it (D4): "${line.trim()}"`);
+    if (/first\s+river/i.test(line)) err("damage-type", `${s}:${i + 1} mentions "First River" in live code — player-facing text must never name it (D4): "${line.trim()}"`);
   });
 }
 

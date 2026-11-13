@@ -188,7 +188,15 @@ const { seedPageRandom } = require('./seed_rng');
     record('INJ-13', 'A successful flee banks the fight\'s downs into real injuries, same as a win', () => {
       const s = makePlayer(20);
       s.injuries = [];
-      s.combat = { downs: ['bleed'] };
+      // 'bleed' was the old (V1) table's own literal key for this group
+      // (DAMAGE_TYPE_TO_INJURY_GROUP's laceration entry) -- under
+      // DAMAGE_TYPES_V2 the real resolved type a bleed tick ever banks is
+      // "slashing" (js/data/damagetypes.js's LEGACY_STATUS_DAMAGE_TYPE_V2),
+      // which still lands in "laceration" either way (INJURY_GROUPS_V2's
+      // own laceration entry). Damage Types Step 4, Part C: found when the
+      // switch went permanently on -- 'bleed' has no entry in the new
+      // table at all, so it was silently falling back to "trauma" instead.
+      s.combat = { downs: [typeof DAMAGE_TYPES_V2 !== 'undefined' && DAMAGE_TYPES_V2 ? 'slashing' : 'bleed'] };
       const lines = applyInjuriesFromDowns(s, s.combat.downs);
       return { pass: s.injuries.length === 1 && s.injuries[0].group === 'laceration', injuries: s.injuries, lines };
     });
