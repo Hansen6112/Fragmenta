@@ -1,0 +1,31 @@
+range: 99ea225bf4be855770f0b652922857b90e1df78f..754b72af2a9fe849b2f0c23509488ad63a184ab8
+=== 754b72af2a9fe849b2f0c23509488ad63a184ab8 2026-11-13 19:28:06 +0000
+Combat Rebuild Phase 2 step 2a: modifier registry skeleton
+Tyler ruled all six §2 decisions in tools/combat_rebuild_phase2_spec.md
+(all per the stated recommendation: bucketed damage math, ally gear
+effects including sets, enemy worn-gear effects, Stonewarden 6pc as
+kind B, ally Riposte on any zero-damage result, scope confirmed as
+written).
+
+js/data/modifiers.js: the MODIFIERS registry skeleton (empty --
+2b-2g migrate entries in), modifiersFor()/modifiersForHook() lookup
+reusing hasEffect()/hasSetTier() unchanged, sumBucket() for the §4
+bucket math. Nothing in the engine calls it yet, so this is behavior-
+inert infrastructure.
+
+tools/audit.js: M1-M5 as warnings (401 total, 0 errors) -- tracks
+registry-migration coverage the same way D1-D4 tracked damage-types
+migration. Full suite 550/550.
+
+The catalogue (tools/modifier_catalogue.md) follows in a separate
+commit once the cataloguing pass finishes.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ index.html                          |   1 +
+ js/data/modifiers.js                | 140 +++++++++++++++++++++++++++++++++++
+ tools/audit.js                      |  93 +++++++++++++++++++++++
+ tools/combat_rebuild_phase2_spec.md | 143 ++++++++++++++++++++++++++++++++++++
+ 4 files changed, 377 insertions(+)

@@ -1,0 +1,18 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "type": "registry added"
+ },
+ {
+  "reg": "MOD_BUCKET_CAPS",
+  "type": "registry added"
+ },
+ {
+  "reg": "MOD_UNCAPPED_BUCKETS",
+  "type": "registry added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "type": "registry added"
+ }
+]
