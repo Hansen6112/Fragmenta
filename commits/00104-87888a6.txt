@@ -1,0 +1,30 @@
+range: bf0e92e35ac4891226c273e9e42fad2b17785ca5..87888a64a70a77ac36b1af4b109cba5d3dbf4508
+=== 87888a64a70a77ac36b1af4b109cba5d3dbf4508 2026-11-13 14:28:07 +0000
+Record the N=1000 baseline (Damage Types Step 4 follow-up, post-fixes)
+tools/baselines/post_damage_types_baseline_bf0e92e.json, plus the raw
+switch-off/switch-on per-harness runs it's built from
+(bs_off_n1000.json/bs_on_n1000.json/p3_off_n1000.json/p3_on_n1000.json).
+
+Rerun after this step's own follow-up fixes (spell damage type from
+element not weapon, Enemy Mage attackType, A3 Rime, D1 hardening) --
+supersedes the first Part C baseline (09d4131), recorded before any of
+those landed.
+
+0 existing cells moved more than 10 points (160 boss_sweep cells, 30
+plus3_run cells, both switch states) -- same result as the first Part
+C run, consistent: none of the 16 existing-roster bosses or Dregnar/
+Arbitarius are spellcasters or Frost-themed, so nothing in the old
+roster can exercise the mage-vs-tag or Chilled->Frozen changes this
+step's own fixes touch. New cells reported as new (no before), per
+Part C's own rule.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/baselines/bs_off_n1000.json                  | 2529 +++++++++++++++++
+ tools/baselines/bs_on_n1000.json                   | 2593 ++++++++++++++++++
+ tools/baselines/p3_off_n1000.json                  |  275 ++
+ tools/baselines/p3_on_n1000.json                   |  275 ++
+ .../post_damage_types_baseline_bf0e92e.json        | 2864 ++++++++++++++++++++
+ 5 files changed, 8536 insertions(+)
