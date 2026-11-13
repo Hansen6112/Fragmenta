@@ -687,6 +687,99 @@ for (const [id, c] of Object.entries(BESTIARY)) {
   }
 }
 
+// ---- Combat Rebuild Phase 2 (Modifier Registry), step 2a: M1-M5 ----
+// tools/combat_rebuild_phase2_spec.md §7. All WARNINGS, not errors, by
+// design — step 2a only builds the registry's skeleton (js/data/
+// modifiers.js, empty MODIFIERS) and the catalogue (tools/
+// modifier_catalogue.md); migrating entries in is 2b-2g's job. These
+// rules exist now so the migration's remaining surface is visible and
+// shrinks measurably step by step, same as D1-D4 did for Damage Types.
+const MODIFIERS_TABLE = G("MODIFIERS");
+const MOD_BUCKET_CAPS_TABLE = G("MOD_BUCKET_CAPS");
+const MOD_UNCAPPED_BUCKETS_SET = G("MOD_UNCAPPED_BUCKETS");
+const M1_COMBAT_EFFECT_CATEGORIES = new Set(["combat", "defense", "magic"]);
+function isTextuallyInert(description) { return /currently inert/i.test(description || ""); }
+
+// M1: every combat-relevant EFFECT_DEFS id, and every SETS tier that
+// grants a `special` or `effects` bonus (a flat `bonuses: {...}` tier
+// needs no registry entry — stat() reads those directly, unchanged),
+// has a MODIFIERS entry, or is textually marked "Currently inert" in
+// its own description (effects.js already writes that for the ones
+// with no live trigger yet: stalwart, concussion_guard, heatproof,
+// corrosionproof, surefooted, marsh_survivor, and others).
+for (const [id, def] of Object.entries(EFFECT_DEFS)) {
+  if (!M1_COMBAT_EFFECT_CATEGORIES.has(def.category)) continue;
+  if (isTextuallyInert(def.description)) continue;
+  if (!MODIFIERS_TABLE[`effect:${id}`]) warn("modifiers", `EFFECT_DEFS.${id} (${def.category}) has no registry entry yet (M1)`);
+}
+for (const [setName, set] of Object.entries(SETS)) {
+  for (const [tier, bonus] of Object.entries(set.bonuses || {})) {
+    if (!bonus.special && !bonus.effects) continue; // flat-stat tier, not this registry's concern
+    if (isTextuallyInert(bonus.description)) continue;
+    if (!MODIFIERS_TABLE[`set:${setName}:${tier}`]) warn("modifiers", `SETS.${setName} tier ${tier} ("${bonus.special || (bonus.effects || []).join(",")}") has no registry entry yet (M1)`);
+  }
+}
+for (const [id, a] of Object.entries(ENEMY_ABILITIES_TABLE)) {
+  if (a.type !== "passive") continue;
+  if (!MODIFIERS_TABLE[`passive:${id}`]) warn("modifiers", `ENEMY_ABILITIES.${id} (passive, trigger "${a.trigger}") has no registry entry yet (M1)`);
+}
+
+// M2: no hasEffect()/hasSetTier() calls left in the combat-relevant
+// engine files once migration finishes (becomes an ERROR at step 2g's
+// close-out, M2's own target). For now, a per-file count so the
+// remaining surface is visible and shrinks measurably each step.
+// companion.js/parser.js/state.js are allowlisted here — their calls
+// are non-combat (travel/jobs/save-load), exactly §2-P2-6's "out" list.
+const M2_SCOPED_FILES = ["js/engine/combat.js", "js/engine/pipeline.js", "js/engine/resolver.js"];
+for (const file of M2_SCOPED_FILES) {
+  if (!sources[file]) continue;
+  const hasEffectCount = (sources[file].match(/\bhasEffect\(/g) || []).length;
+  const hasSetTierCount = (sources[file].match(/\bhasSetTier\(/g) || []).length;
+  if (hasEffectCount) warn("modifiers", `${file} still has ${hasEffectCount} hasEffect() call(s) not yet migrated to the registry (M2)`);
+  if (hasSetTierCount) warn("modifiers", `${file} still has ${hasSetTierCount} hasSetTier() call(s) not yet migrated to the registry (M2)`);
+}
+
+// M3: every registry entry declares hook + holders; every damage/
+// defense multiplier entry (hook starts with "calculateDamage.")
+// declares a bucket. Independent of registerModifier()'s own throw, in
+// case an entry is ever added by direct assignment instead.
+for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
+  if (!entry.hook) warn("modifiers", `MODIFIERS["${key}"] has no hook (M3)`);
+  if (!Array.isArray(entry.holders) || !entry.holders.length) warn("modifiers", `MODIFIERS["${key}"] has no holders (M3)`);
+  if (entry.hook && entry.hook.startsWith("calculateDamage.") && !entry.bucket) {
+    warn("modifiers", `MODIFIERS["${key}"] is a damage/defense multiplier with no bucket (M3)`);
+  }
+}
+
+// M4: every bucket any entry actually uses has a cap (MOD_BUCKET_CAPS)
+// or is explicitly uncapped (MOD_UNCAPPED_BUCKETS) — catches a typo'd
+// bucket name silently escaping both the cap and the "deliberately
+// uncapped" list.
+for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
+  if (!entry.bucket) continue;
+  if (!(entry.bucket in MOD_BUCKET_CAPS_TABLE) && !MOD_UNCAPPED_BUCKETS_SET.has(entry.bucket)) {
+    warn("modifiers", `MODIFIERS["${key}"] uses bucket "${entry.bucket}", which has no cap and isn't marked uncapped (M4)`);
+  }
+}
+
+// M5: `when`/`value` functions are pure — a frozen-context run must not
+// mutate the ctx object they're handed. Deep-compares a JSON snapshot
+// before/after rather than relying on Object.freeze's strict-mode throw,
+// since these files aren't guaranteed to run in strict mode.
+const M5_SAMPLE_CTX = { target: { hpPct: 0.5 }, attacker: { hpPct: 1 }, action: {}, dmgInfo: {} };
+function checkPurity(label, fn) {
+  if (typeof fn !== "function") return;
+  const ctx = JSON.parse(JSON.stringify(M5_SAMPLE_CTX));
+  const before = JSON.stringify(ctx);
+  try { fn(ctx); } catch (e) { /* a synthetic ctx missing real fields may throw; that's not an M5 finding */ }
+  const after = JSON.stringify(ctx);
+  if (before !== after) warn("modifiers", `${label} mutated its ctx argument (M5)`);
+}
+for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
+  checkPurity(`MODIFIERS["${key}"].when`, entry.when);
+  checkPurity(`MODIFIERS["${key}"].value`, entry.value);
+}
+
 // ---- save coverage ----
 const fresh = G("new GameState()");
 const saved = Object.keys(fresh.toJSON());
