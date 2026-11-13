@@ -1,0 +1,222 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index b406658..fafd7d7 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -59,6 +59,11 @@ const PER_ENEMY_FIELDS = [
+   "corroded", "disarmed", "enemyAtkPenalty", "enemyDefPenalty", "enemyStunCharges",
+   "hamstringApplied", "burn", "bleed", "reinforcedAttackCount", "lastDamageType",
+   "actedEarlyThisRound",
++  // Damage Types Step 4 follow-up, A3 (Tyler 13 Nov, approved): Chilled/
++  // Frozen on an enemy -- { tier: "chilled"|"frozen", turnsLeft }. Enemies
++  // have no status bag the way player/ally do (playerStatuses/statuses),
++  // so this is its own per-enemy field, same shape as burn/bleed above.
++  "chill",
+   // Enemy Ability Engine (data/enemyabilities.js) — per-enemy so a pack of
+   // several creatures each track their own cooldowns/stacks independently.
+   "abilityCooldowns", "selfBuffs", "passiveOnceFlags", "firstActiveUsed",
+@@ -265,6 +270,43 @@ function effectiveEnemyAtk(state, creature) {
+   return Math.max(1, base - (activeEnemySlot(state.combat).enemyAtkPenalty || 0));
+ }
+ 
++// A3 (Tyler 13 Nov, approved): Chilled/Frozen's own debuff on an enemy --
++// Agility -10 for either tier, plus Speed -10/Accuracy -5 once it's
++// escalated to Frozen (A1's own "strictly worse than Chilled" values).
++// Immunity (Winter Coat/statusImmune) is checked once, at application
++// (PIPELINE_HOOKS.frostOnHit) -- an immune creature never has `chill` set
++// at all, so every read site below needs no immunity check of its own.
++// `chill` lives on the PER_ENEMY_FIELDS wrapper (state.combat.enemies[i]),
++// never on creatureObj (the shared BESTIARY template) -- these three take
++// that wrapper, not the template, same as effectiveEnemyAtk's own
++// enemyAtkPenalty read just above (a slot field, read via activeEnemySlot
++// there only because Disarm's penalty is always against the active
++// target; here every call site already holds its own specific wrapper
++// directly, so that's passed in instead of assuming "active").
++function enemyChillPenalty(enemySlot, stat) {
++  const chill = enemySlot && enemySlot.chill;
++  if (!chill) return 0;
++  if (stat === "agi") return 10;
++  if (chill.tier !== "frozen") return 0;
++  if (stat === "spd") return 10;
++  if (stat === "acc") return 5;
++  return 0;
++}
++// Everything that reads an enemy's own Agility/Speed/Accuracy for combat
++// math (hit chance, initiative order) should go through these instead of
++// creature.agi/.spd/.acc directly, same convention effectiveEnemyAtk
++// already set for Disarm's own attack penalty. Takes the enemy's own
++// PER_ENEMY_FIELDS wrapper (NOT creatureObj) -- see the comment above.
++function effectiveEnemyAgility(enemySlot) {
++  return Math.max(0, (enemySlot.creatureObj.agi || 0) - enemyChillPenalty(enemySlot, "agi"));
++}
++function effectiveEnemySpeed(enemySlot) {
++  return Math.max(0, (enemySlot.creatureObj.spd || 0) - enemyChillPenalty(enemySlot, "spd"));
++}
++function effectiveEnemyAccuracy(enemySlot) {
++  return Math.max(0, (enemySlot.creatureObj.acc || 0) - enemyChillPenalty(enemySlot, "acc"));
++}
++
+ // Whether an attack connects at all, before any damage math or special
+ // miss/evasion effect runs — a contested Accuracy-vs-Agility roll, 50/50
+ // at equal stats, shifting 3% per point of difference either way and
+@@ -2020,21 +2062,32 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // and companions have their own separate damage path that doesn't
+     // reference this constant.
+     const multiplier = 1 + magic / 60;
+-    // Damage Types Step 4, A5 (off by default): this is the ONE live
+-    // caller of rollPlayerDamage that still reaches the spell branch
+-    // without going through rollPlayerDamageCoreForPipeline -- Riposte
+-    // (actions.js, "rollPlayerDamage(state, creature)" with no 3rd arg)
+-    // on a Mage. Gated the same way that pipeline function's own
+-    // equivalent spell branch already is (pipeline.js), including
+-    // bypassing Avatar of Knowledge's old override under the switch.
+-    // There's no `action` object here (this function predates the
+-    // pipeline's own action-definition shape) and no explicit cast
+-    // element either (activeElement is always undefined on this path),
+-    // so spellDType resolves the same way pipeline.js's own call does
+-    // with neither: the player's own equipped weapon type, or Blunt.
++    // Damage Types Step 4, A5: this is the ONE live caller of
++    // rollPlayerDamage that still reaches the spell branch without going
++    // through rollPlayerDamageCoreForPipeline -- Riposte (actions.js,
++    // "rollPlayerDamage(state, creature)" with no 3rd arg) on a Mage.
++    // Gated the same way that pipeline function's own equivalent spell
++    // branch already is (pipeline.js), including bypassing Avatar of
++    // Knowledge's old override under the switch. There's no `action`
++    // object here (this function predates the pipeline's own action-
++    // definition shape), and Riposte never passes activeElement (it
++    // isn't a cast against a chosen target element the way a basic
++    // attack's own orchestrator picks one) -- so this picks one itself,
++    // the exact same way that orchestrator does (pickElement), rather
++    // than falling through to the player's weapon (fixed alongside
++    // pipeline.js's identical bug, Step 4 follow-up, Tyler 13 Nov): a
++    // spell's damage type is the caster's own element, never their
++    // weapon.
++    // pickElement(state) is only ever evaluated inside the DAMAGE_TYPES_V2
++    // branch (short-circuited by the ternary) -- the legacy matchup line
++    // right above is untouched and must stay that way: it's still exercised
++    // (with activeElement genuinely undefined, same as always) by the
++    // historical fixture tests that pin the switch off for comparison, and
++    // calling pickElement there would burn an extra Math.random() draw
++    // those fixtures never budgeted for.
+     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
+     const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+-    const spellDType = DAMAGE_TYPES_V2 ? resolveDamageType(null, equipmentWeaponDamageType(state), null) : null;
++    const spellDType = DAMAGE_TYPES_V2 ? elementKeyToDamageType(activeElement || pickElement(state)) : null;
+     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
+     const overflowMult = arcaneOverflowMultiplier(state);
+     // v0.11: spell power is mitigated by the target's FULL Defense through
+@@ -2422,7 +2475,7 @@ function buildInitiativeOrder(state) {
+   entries.push({ kind: "player", group: 0, speed: effectivePlayerSpeedForInitiative(state), actsFirst: hasEffect(state, "unhurried_step") });
+   combat.enemies.forEach((e, i) => {
+     if (!e.alive || !e.creatureObj || e.creatureObj.friendly) return;
+-    entries.push({ kind: "enemy", ref: e, index: i, group: 1, speed: e.creatureObj.spd || 0, actsFirst: !!e.creatureObj.actsFirst });
++    entries.push({ kind: "enemy", ref: e, index: i, group: 1, speed: effectiveEnemySpeed(e), actsFirst: !!e.creatureObj.actsFirst });
+   });
+   entries.sort((a, b) => {
+     if (a.actsFirst !== b.actsFirst) return a.actsFirst ? -1 : 1;
+@@ -4080,6 +4133,17 @@ function beginTurn(state) {
+       if (e.bleed.turnsLeft <= 0) e.bleed = null;
+       if (bleedResult.comboEnded) return lines;
+     }
++    // A3 (Tyler 13 Nov, approved): Chilled/Frozen on an enemy -- no
++    // damage of its own (it's a pure debuff, read via
++    // effectiveEnemyAgility/Speed/Accuracy below), so this is just a
++    // countdown, same cadence as burn/bleed above, no DOT tick call.
++    if (e.alive && e.chill && e.chill.turnsLeft > 0) {
++      e.chill.turnsLeft -= 1;
++      if (e.chill.turnsLeft <= 0) {
++        lines.push(`${withThe(e.creatureObj.name, true)} ${e.chill.tier === "frozen" ? "thaws out" : "shakes off the cold"}.`);
++        e.chill = null;
++      }
++    }
+     // Enemy Ability Engine: this creature's own self-buff countdown and
+     // recurring Health-based/regen passives — same per-enemy, every-round
+     // cadence as burn/bleed above.
+@@ -5624,6 +5688,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     enemyStunCharges: 0, // set (incremented) by Concuss, consumed one at a time per eligible action — see resolveEnemyAttackOnPlayer and resolveDregnarAction
+     burn: null, // Ignite's damage-over-time: { turnsLeft, dmgPerTurn }
+     bleed: null, // Deep Cut's damage-over-time: { turnsLeft, dmgPerTurn }
++    chill: null, // Rime's (ELEMENT_ABILITIES.frost) own build-up debuff: { tier: "chilled"|"frozen", turnsLeft } -- A3, Step 4 follow-up (Tyler 13 Nov)
+     lastDamageType: null, // "physical"/"bleed"/an element key — whatever last hit this creature, for resolveKill's damage-type-flavored death line
+     hamstringApplied: false, // gates Hamstring (once per target per fight)
+     reinforcedAttackCount: 0, // Reinforced's (Divine Regalia) every-3rd-enemy-attack counter
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 17a9b51..bb042a2 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -282,7 +282,7 @@ function rollToHit(actor, target, action, ctx) {
+   // any normal enemy attack.
+   if (action.toHit === "none") return { hit: true };
+   if (action.toHit === "simple") {
+-    return attackConnects(creature.acc, effectivePlayerAgility(state)) ? { hit: true } : miss(action.missLine(creature));
++    return attackConnects(effectiveEnemyAccuracy(actor.ref), effectivePlayerAgility(state)) ? { hit: true } : miss(action.missLine(creature));
+   }
+ 
+   if (target.kind === "ally") {
+@@ -309,7 +309,7 @@ function rollToHit(actor, target, action, ctx) {
+     creature.bankedAttackDmgMultBonus = 0;
+     const accBonus = baseAccBonus + markedTargetBonusAlly + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
+     creature.duelistMeasurePendingTarget = null;
+-    if (!attackConnects(creature.acc + accBonus, stat(state, target, "agi"))) {
++    if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, stat(state, target, "agi"))) {
+       // Riposte, generalized: a miss on an ally provokes a counter FROM
+       // the ally onto the attacker — the player-targeted path has no
+       // equivalent (a miss there is just a miss). See this file's header.
+@@ -340,7 +340,7 @@ function rollToHit(actor, target, action, ctx) {
+   creature.bankedAttackDmgMultBonus = 0;
+   const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus + measuredAimAccBonus;
+ 
+-  if (!attackConnects(creature.acc + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
++  if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
+     return miss(`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`);
+   }
+   if (applyTimelessGuard(state)) {
+@@ -777,7 +777,7 @@ function rollToHitAllyActor(actor, target, action, ctx) {
+   if (action.toHit === "none") return { hit: true };
+ 
+   if (action.formula !== "allyPlain") {
+-    if (!attackConnects(ally.accuracy, creature.agi, action.veteranPct)) {
++    if (!attackConnects(ally.accuracy, effectiveEnemyAgility(enemySlot), action.veteranPct)) {
+       // basicCompanionAttackLegacy's miss line (no ability) vs
+       // useHadrianActive's (a named active) — genuinely different text.
+       // U3g (off by default, handoff §0): with it on, a miss here also
+@@ -793,7 +793,7 @@ function rollToHitAllyActor(actor, target, action, ctx) {
+   }
+ 
+   const allyAcc = stat(state, actor, "acc");
+-  if (!attackConnects(allyAcc, creature.agi)) {
++  if (!attackConnects(allyAcc, effectiveEnemyAgility(enemySlot))) {
+     return { hit: false, result: { lines: [`${ally.name} lunges at ${withThe(creature.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, enemySlot, ally)], damage: null } };
+   }
+   return { hit: true };
+@@ -1553,7 +1553,7 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
+   const state = ctx.state;
+   const enemySlot = target.store;
+   const creature = enemySlot.creatureObj;
+-  if (!attackConnects(effectivePlayerAccuracy(state), creature.agi)) {
++  if (!attackConnects(effectivePlayerAccuracy(state), effectiveEnemyAgility(enemySlot))) {
+     const lines = action.missLine(state, creature);
+     return { hit: false, result: { lines, damage: null } };
+   }
+@@ -1662,10 +1662,18 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+     // instead, below, per the Decisions Addendum's A3.
+     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
+     const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+-    // Damage Types v2 (off by default, spec §3 steps 2-3): resist-by-
+-    // family defense value in place of the flat effDef above, then the
+-    // enemy's own tag multiplier on the final number below.
+-    const spellDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(state), null) : null;
++    // Damage Types v2 (spec §3 steps 2-3): resist-by-family defense value
++    // in place of the flat effDef above, then the enemy's own tag
++    // multiplier on the final number below. A spell's own damage type
++    // comes from the CASTER's element, never their weapon -- a basic
++    // attack's own weapon fallback (the else branch below) doesn't apply
++    // here at all. Found and fixed (Step 4 follow-up, Tyler 13 Nov): this
++    // used to fall through resolveDamageType's weapon-fallback branch
++    // exactly like a physical attack, which is wrong for every basic
++    // "spell-shaped" attack (an ability with its own explicit damageType,
++    // e.g. the elemental actives, already worked correctly -- those hit
++    // the `action.damageType` branch first and never reached the bug).
++    const spellDType = DAMAGE_TYPES_V2 ? (action && action.damageType && action.damageType !== "inherit" ? action.damageType : elementKeyToDamageType(activeElement)) : null;
+     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
+     const overflowMult = arcaneOverflowMultiplier(state);
+     const spellPower = base * multiplier;

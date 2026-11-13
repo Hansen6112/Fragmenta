@@ -1,0 +1,1636 @@
+[
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "pounce",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "shadow_pounce",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "leap",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "earth_tunnel",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "disarm_swipe",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "screech",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "devastating_dive",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "savage_rush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "grave_formation",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "howl",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "brush_stalk",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rallying_howl",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "coordinated_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "call_the_hunt",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "kings_howl",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "rallying_roar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sand_burrow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dragons_challenge",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "skitter_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ripple_veil",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dread_roar",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "kings_hunt",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "phase_shift",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "impossible_pursuit",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "burrow_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "tunnel_shift",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "diving_pounce",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "branchbound_retreat",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "veilstep",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "elemental_shift",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "grasping_dead",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "relentless_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "execute_the_guilty",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "death_frenzy",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "endless_pursuit",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "flesh_reconstruction",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "guard_protocol",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "overclock",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "arcane_barrier",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "burrow_call",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "nest_call",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "brood_call",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "grave_bloom",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "opportunistic_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "committed_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "suppressing_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "coordinated_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "heavy_impact",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "exposed_weakness",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "heavy_commitment",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "breakthrough_order",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "guarded_stance",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "protective_cover",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "focused_rally",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "defensive_command",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "adaptive_orders",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "call_the_crew",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "guard_reinforcements",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "dra_barrier",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "spotters_signal",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ambush_blow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "guarded_exchange",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "precision_riposte",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "call_outlaw_hounds",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "handlers_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "pack_signal",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "raid_order",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "press_the_advantage",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "roadlords_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "warband_fury",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ruthless_execution",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "measured_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "readied_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "ferratum_brace",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mil_veterans_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "disciplined_riposte",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "calculated_preparation",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "prepare_ballista",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "scouts_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "recovery_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "boarding_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "mil_coordinated_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "naval_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "call_boarding_party",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "steady_the_line",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "coordinated_order",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "officers_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "defensive_instruction",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "hold_the_line",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "measured_counteroffensive",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "combined_arms_order",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "arbitarius_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "tactical_suppression",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "final_directive",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "deploy_legion_hounds",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "pack_coordination",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_watchmans_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_readied_watch",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_crowd_control",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_roadside_brace",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_veteran_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_disciplined_counterstrike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_fortified_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_checkpoint_suppression",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_identify_weakness",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_precision_interrogation",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_restraining_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_protective_orders",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_coordinated_detainment",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_stand_firm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_ovum_shield_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_sec_veteran_duelists_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_desperate_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_call_for_help",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_reckless_blow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_rally_the_locals",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_contractors_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_take_aim",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_company_assault_order",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_defensive_contract",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_call_company_reinforcements",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_duelists_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_champions_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_final_exchange",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_opportunistic_strike",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_silent_preparation",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_veiled_precision",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_release_the_beasts",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_arena_pack_command",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_rally_the_fighters",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_all_out_assault",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_ABILITIES",
+  "id": "sang_iag_raise_the_militia",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "ENEMY_BASIC_ATTACK_DEF",
+  "id": "damageType",
+  "type": "added"
+ },
+ {
+  "reg": "TACTICS",
+  "id": "decoy",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "excludesTargetFromRound": true,
+     "missLine": "[fn]",
+     "openingReach": "unconditional",
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "runsLowHealthChecks": true,
+     "followupForm": "unconditional"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "excludesTargetFromRound": true,
+     "damageType": "inherit",
+     "missLine": "[fn]",
+     "openingReach": "unconditional",
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "runsLowHealthChecks": true,
+     "followupForm": "unconditional"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "TACTICS",
+  "id": "ambush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "excludesTargetFromRound": true,
+     "missLine": "[fn]",
+     "extraDamageMultiplierFn": "[fn]",
+     "borrowedSecondsBonusInDamage": true,
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "evasiveReleaseCheck": true,
+     "runsLowHealthChecks": true,
+     "followupForm": "unconditional"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "excludesTargetFromRound": true,
+     "damageType": "inherit",
+     "missLine": "[fn]",
+     "extraDamageMultiplierFn": "[fn]",
+     "borrowedSecondsBonusInDamage": true,
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "evasiveReleaseCheck": true,
+     "runsLowHealthChecks": true,
+     "followupForm": "unconditional"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "TACTICS",
+  "id": "disarm",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "missLine": "[fn]",
+     "extraDamageMultiplierFn": "[fn]",
+     "openingReach": "unconditional",
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "runsLowHealthChecks": true,
+     "followupForm": "gated"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "damageType": "inherit",
+     "missLine": "[fn]",
+     "extraDamageMultiplierFn": "[fn]",
+     "openingReach": "unconditional",
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "runsLowHealthChecks": true,
+     "followupForm": "gated"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "frost",
+  "type": "added"
+ },
+ {
+  "reg": "ELEMENT_VERB_TO_KEY",
+  "id": "rime",
+  "type": "added"
+ },
+ {
+  "reg": "PLAYER_ACTION_DEFS",
+  "id": "basic_attack",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "damageType",
+    "new": "inherit"
+   }
+  ]
+ },
+ {
+  "reg": "PIPELINE_HOOKS",
+  "id": "frostOnHit",
+  "type": "added"
+ }
+]

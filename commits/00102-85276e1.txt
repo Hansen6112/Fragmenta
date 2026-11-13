@@ -1,0 +1,102 @@
+range: 09d413142c4fc1aef69190b227e83e141bcf269f..85276e12d29ca94729998bc4db5c4ccafd897a0d
+=== 85276e12d29ca94729998bc4db5c4ccafd897a0d 2026-11-13 14:11:18 +0000
+Damage Types Step 4 follow-up: spell element, Enemy Mage element, D1 hardening, A3 Rime
+Four fixes from the same handoff, found investigating this step's own
+first before/after run.
+
+1. A Mage's spell damage type comes from their own element, not their
+weapon. rollPlayerDamageCoreForPipeline's isSpell branch (pipeline.js)
+resolved spellDType via resolveDamageType(action, equipmentWeaponDamageType(state),
+null) -- for any spell-shaped hit with no action.damageType of its own
+(every Mage/Bruise basic attack; every elemental active already had one
+and never hit this path), that fell through to the caster's own EQUIPPED
+WEAPON type instead of their element. Now: action.damageType if set,
+else elementKeyToDamageType(activeElement) directly -- no weapon
+fallback for a spell at all. combat.js's rollPlayerDamage (Riposte's
+own only live caller into this branch, activeElement always omitted
+there) gets the same fix, picking an element itself (pickElement) when
+none was passed, exactly like the orchestrator already does for every
+other cast.
+
+2. An Enemy Mage's own spells now use its element too.
+generateEnemyMage (enemymages.js) stamps attackType =
+elementKeyToDamageType(element) once at spawn -- resolveDamageType's
+own fallback chain already reads creature.attackType on both the
+player-target and ally-target paths, so this one field change covers
+both without touching pipeline.js at all. Before this, an Enemy Mage's
+own hits fell through to Blunt.
+
+3. D1 hardening: damageType: "inherit" is now an explicit value on the
+137 action/ability entries that rely on inheriting the wielder's own
+weapon/attackType (PLAYER_ACTION_DEFS.basic_attack, TACTICS.decoy/
+ambush/disarm, ENEMY_BASIC_ATTACK_DEF, 132 ENEMY_ABILITIES actives --
+tools/harden_inherited_damagetype.js, which enumerates the live engine
+itself rather than a hand-maintained id list, same convention as the
+content-load script), rather than silently absent. resolveDamageType
+treats "inherit" exactly like absence (falls through); D1 (audit.js)
+treats absence as an error again, now that there's no ambiguity left
+between "nobody's decided this yet" and "deliberately inherits" --
+which is exactly the gap that hid both bugs above. "fromCreature" (5
+dragon-breath/Elemental-surge abilities) is the resolver's other
+sentinel, unchanged, also exempted from the hardened check.
+
+4. A3 (approved, Tyler 13 Nov): ELEMENT_ABILITIES.frost ("Rime",
+working name). Knowledge 10, cooldown 3, damageType "frost",
+PIPELINE_HOOKS.frostOnHit: Chilled on the first hit (Agility -10, 2
+turns), Frozen if the target is already Chilled (A1's own values),
+respecting statusImmune for the whole family. Enemies have no status
+bag, so this is one new PER_ENEMY_FIELDS field, `chill: { tier,
+turnsLeft }`, ticked down alongside burn/bleed in the same per-round
+loop. Three new helpers (effectiveEnemyAgility/Speed/Accuracy,
+combat.js) read it wherever an enemy's own Agility/Speed/Accuracy feeds
+combat math (6 attackConnects call sites in pipeline.js, the initiative
+order builder in combat.js) -- all take the enemy's own PER_ENEMY_FIELDS
+wrapper, not creatureObj (chill lives on the wrapper; an earlier version
+of this fix passed creatureObj instead and was a silent no-op, caught
+by directly inspecting effective values after a cast, not just trusting
+the hook fired). Without this, Frost was already selectable as a 9th
+starting attunement (A2, prior step) with no Knowledge-10 ability behind
+it at all -- a Frost Mage reaching combat crashed outright
+(elementAbilityAvailable reading ELEMENT_ABILITIES.frost.knowledgeReq
+off undefined), not just "weaker." Synergy uses the existing generic
++25% (no curated combo needed); the level-15 second-element unlock
+reads this same table generically, so it already works for Frost too.
+
+Five old parity fixtures (phase1_step1b/1c/1d/1e-i/1e-ii/1e-iii) needed
+one more A7-style fix: `chill` (new on every enemy slot, value always
+null outside combat but still a NEW OWN KEY the frozen pre-switch
+fixtures never had) must be OMITTED from the snapshot comparison, not
+nulled -- nulling the value still leaves the key present on only the
+live side, which is a real mismatch even though both sides mean "no
+chill." One content-load spot-check updated to match pounce's own new
+"inherit" value instead of its old bare absence.
+
+New ledger (damage_types_step4_followup_ledger.js, 13/13) covers all
+four fixes directly against the real engine. Full suite 549/549, 11
+consecutive clean runs. audit.js: 0 errors, 72 warnings (unchanged,
+all pre-existing and unrelated).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  31 +++
+ js/data/damagetypes.js                             |  10 +-
+ js/data/elementabilities.js                        |  12 +
+ js/data/enemyabilities.js                          | 270 +++++++++++----------
+ js/data/enemymages.js                              |   9 +
+ js/data/tactics.js                                 |   3 +
+ js/engine/combat.js                                |  93 +++++--
+ js/engine/pipeline.js                              |  28 ++-
+ tools/audit.js                                     |  52 ++--
+ tools/harden_inherited_damagetype.js               | 110 +++++++++
+ tools/tests/damage_types_content_load_ledger.js    |   7 +-
+ tools/tests/damage_types_step4_followup_ledger.js  | 209 ++++++++++++++++
+ tools/tests/phase1_step1b_pipeline_parity.js       |   5 +-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |   5 +-
+ .../phase1_step1d_ally_attack_pipeline_parity.js   |   5 +-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |   5 +-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |   5 +-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |   5 +-
+ tools/tests/run_all.js                             |   1 +
+ 19 files changed, 676 insertions(+), 189 deletions(-)
