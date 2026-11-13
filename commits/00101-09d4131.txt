@@ -1,0 +1,91 @@
+range: c764211eb2b1d12560109fdaa6befe2265f74f2a..09d413142c4fc1aef69190b227e83e141bcf269f
+=== 09d413142c4fc1aef69190b227e83e141bcf269f 2026-11-13 12:24:19 +0000
+Damage Types Step 4, Part C: switch permanently on
+DAMAGE_TYPES_V2 is now a committed `true`. Everything else in this
+commit exists because flipping it for real surfaced things that
+simply being able to force it on in a sandbox (the entire Step 2-4
+testing approach up to now) could not: a few genuine content gaps, one
+audit rule that was checking the wrong thing, and two tests whose own
+setup assumed the old 6-group injury table.
+
+Audit D1-D4, promoted from warnings to errors (Part C item 2). D1's
+own weapon rule keeps a named allowlist for the 8 held weapons
+(Widow's Lament, Emberfall, Black Horizon, Oathbreaker, Seven Sorrows,
+Sovereign, Night Requiem, Galecaller) -- every other mainhand item,
+creature, status, and the four action tables are unconditional now.
+
+Promoting D1 on PLAYER_ACTION_DEFS/TACTICS/ENEMY_ABILITIES/
+ENEMY_BASIC_ATTACK_DEF from warning to error surfaced 149 hits, not 0.
+Investigated rather than silenced: resolveDamageType (js/data/
+damagetypes.js) only reads `action.damageType` when it's truthy --
+left absent, by design, it falls through to the wielder's own
+weapon/attackType/elementType instead (that's the entire point of
+"inherited_breath"'s own name, and of basic_attack/Decoy/Ambush/Disarm
+never having had one). 142 of the 149 were exactly that: the audit
+rule itself was checking the wrong thing, for every entry across those
+four tables that's SUPPOSED to inherit. Narrowed the rule to match
+what the resolver actually does: absent is fine everywhere except
+ELEMENT_ABILITIES (where there's no sensible wielder fallback -- a
+mage's own weapon has nothing to do with what element Ignite deals,
+so every one of its 7 damaging entries needs its own fixed type, which
+none of them had -- the real gap, now filled: fire/water/lightning/
+acid/force/air keep their own element name, transportation's own
+entry uses "spatial", the roster's real member). "fromCreature" (5
+dragon-breath/Elemental-surge abilities) is resolveDamageType's own
+deliberate sentinel, not a DAMAGE_TYPES member -- allowlisted the same
+way the D1 BESTIARY attackType check already treats it.
+
+Two tests' own fixed setup assumed the OLD 6-group injury table and
+broke once the real table flipped (not caught by A7, whose fixture
+list was fixed parity snapshots -- these two roll real randomness):
+injury_ledger.js's INJ-13 fed the literal status key 'bleed' into
+applyInjuriesFromDowns as a stand-in damage type, which only worked
+because the OLD table happened to use "bleed" as one of its own literal
+keys; the new table doesn't, so it silently fell back to "trauma"
+instead of "laceration". Now feeds whichever is actually live
+(bleed's real V2 type, "slashing", maps to the same "laceration" group
+either way). ally_protection_ledger.js's AP-01/AP-03 compare two
+SEPARATELY rolled hits (no item vs with item) and expect an exact 0.9x
+ratio -- kabal_enforcer's "force" attack now mitigates through
+resistingDefenseValue's (2*magic+def)/3 blend instead of a flat
+physical defense (correct, intended behavior from the switch), which
+happens to sit close enough to a rounding boundary that the formula's
+own pre-existing damage-roll variance can tip the integer result
+either side of it between the two separate rolls -- a real flake
+(~50% in repeated local runs), not a one-off. Added withFixedRandom,
+pinning Math.random for the scored measurement the same way
+withForcedHit already pins out hit/miss, so both halves of the
+comparison see the same draw and only the item's own effect can move
+the result. 13 consecutive clean full-suite runs after, 0 failures.
+
+The four VM-sandbox damage-types ledgers (a1/a5/content_load/
+step4_parta) patched the committed `false` to `true` in memory to
+exercise the on-state; with the real switch now permanently true, that
+patch's own guard rightly refused to find the string it expected.
+Made the patch direction-agnostic (detect whichever literal is
+committed, replace it with whichever state that specific test actually
+wants) instead of assuming which way the default runs -- future-proof
+if the switch (or any ledger using this exact pattern) ever moves
+again.
+
+Full suite: 536/536, 13 consecutive clean runs. audit.js: 0 errors,
+72 warnings (every one pre-existing and unrelated to damage types --
+inert enemy-passive triggers, same count as recorded at 311f1f4 before
+any of this step's work; every warning that WAS damage-type-tagged is
+now accounted for: fixed (149 false positives + 7 real gaps) or
+allowlisted (8 held weapons)).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/damagetypes.js                             |  2 +-
+ js/data/elementabilities.js                        | 26 +++++---
+ tools/audit.js                                     | 77 +++++++++++++++-------
+ tools/tests/ally_protection_ledger.js              | 34 +++++++---
+ tools/tests/damage_types_a1_injury_v2_ledger.js    | 14 ++--
+ .../damage_types_a5_variant_weighting_ledger.js    | 14 ++--
+ tools/tests/damage_types_content_load_ledger.js    | 14 ++--
+ tools/tests/damage_types_step4_parta_ledger.js     | 14 ++--
+ tools/tests/injury_ledger.js                       | 10 ++-
+ 9 files changed, 145 insertions(+), 60 deletions(-)
