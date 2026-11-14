@@ -1,0 +1,28 @@
+range: bed724cd826a3a69f0eb5dd2b2b63dfcec19c32f..21c8733b7cb82fe3f74a55a2fa324974fcfe2a52
+=== 21c8733b7cb82fe3f74a55a2fa324974fcfe2a52 2026-11-14 14:12:40 +0000
+Phase 2 P2-7: defer pre-existing dead effects/set-tiers, don't implement
+Tyler ruled (14 Nov, recommended option): the 6 EFFECT_DEFS ids and 40
+set-bonus tiers the step 2a catalogue found with no live call site
+anywhere (armor_crack, ambush_mastery, spell_ward, coldproof,
+river_harmony, dra_e03_flowing_guard, plus 40 set tiers -- mostly
+2pc/4pc) stay exactly as dead. Implementing them now would be new
+gameplay, not the byte-identical registry migration Phase 2 promises.
+
+tools/audit.js: M1_DEFERRED_EFFECT_IDS/M1_DEFERRED_SET_TIERS exempt
+this exact list from M1's "needs a registry entry" warning, same
+treatment as an effect that already self-describes as "Currently
+inert." Warnings 401 -> 356 (45 fewer -- the deferred items, not
+newly-fixed ones). 0 errors, suite 550/550.
+
+tools/combat_rebuild_phase2_spec.md: P2-7 recorded in §2.
+tools/modifier_catalogue.md: decision noted; rows left as the
+cataloguing pass found them, now covered by this ruling.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js                      | 36 ++++++++++++++++++++++++++++++++----
+ tools/combat_rebuild_phase2_spec.md |  1 +
+ tools/modifier_catalogue.md         |  2 ++
+ 3 files changed, 35 insertions(+), 4 deletions(-)
