@@ -700,22 +700,50 @@ const MOD_UNCAPPED_BUCKETS_SET = G("MOD_UNCAPPED_BUCKETS");
 const M1_COMBAT_EFFECT_CATEGORIES = new Set(["combat", "defense", "magic"]);
 function isTextuallyInert(description) { return /currently inert/i.test(description || ""); }
 
+// M1 deferral list (Tyler, 14 Nov, Phase 2 step 2a follow-up): the
+// catalogue (tools/modifier_catalogue.md §1/§2) found these registered
+// but with NO live call site anywhere in engine code -- unlike the
+// effects/tiers that honestly say "Currently inert" in their own
+// description, these just look implemented and aren't. Ruling: leave
+// them exactly as dead and defer implementing them to a separate
+// future content pass, NOT as part of this migration -- Phase 2
+// restructures EXISTING behavior (spec §5's "move first, change
+// later"/byte-identical guarantee), and implementing ~47 previously-
+// dead behaviors for the first time here would be new gameplay, not a
+// registry refactor. M1 treats every id/tier below the same as a
+// textually-marked-inert one: not a migration gap, a separate backlog.
+const M1_DEFERRED_EFFECT_IDS = new Set([
+  "armor_crack", "ambush_mastery", "spell_ward", "coldproof", "river_harmony", "dra_e03_flowing_guard",
+]);
+const M1_DEFERRED_SET_TIERS = new Set([
+  "Vaeloris:4", "Thraekor:6", "Sahrimor:2", "Sahrimor:4", "Sahrimor:6", "Kabal:4", "Kabal:6",
+  "Vanguard:4", "Vanguard:6", "Scout Corps:4", "Scout Corps:6", "Siege Corps:4", "Novitiate:4",
+  "Examiner:4", "Examiner:6", "Conduit Master:4", "Conduit Master:6", "River Warden:4",
+  "Mugamiir Safor:6", "Courier:4", "Courier:6", "Contract Hunter:4", "Master Appraiser:6",
+  "Ashforged:6", "Stonewarden:4", "Heartwood:4", "Sandstrider:6", "Tide Merchant:6", "Stormwatch:4",
+  "White Watch:4", "Drake Hunter:4", "Elder Bark:4", "Bonecaller:4", "Leviathan:4", "Leviathan:6",
+  "First Kingdom:4", "Pre-Kabal:4", "Pre-Kabal:6", "Fragmenta:4", "Fragmenta:6",
+]);
+
 // M1: every combat-relevant EFFECT_DEFS id, and every SETS tier that
 // grants a `special` or `effects` bonus (a flat `bonuses: {...}` tier
 // needs no registry entry — stat() reads those directly, unchanged),
-// has a MODIFIERS entry, or is textually marked "Currently inert" in
-// its own description (effects.js already writes that for the ones
-// with no live trigger yet: stalwart, concussion_guard, heatproof,
-// corrosionproof, surefooted, marsh_survivor, and others).
+// has a MODIFIERS entry, is textually marked "Currently inert" in its
+// own description (effects.js already writes that for the ones with no
+// live trigger yet: stalwart, concussion_guard, heatproof,
+// corrosionproof, surefooted, marsh_survivor, and others), or is on the
+// M1 deferral list above.
 for (const [id, def] of Object.entries(EFFECT_DEFS)) {
   if (!M1_COMBAT_EFFECT_CATEGORIES.has(def.category)) continue;
   if (isTextuallyInert(def.description)) continue;
+  if (M1_DEFERRED_EFFECT_IDS.has(id)) continue;
   if (!MODIFIERS_TABLE[`effect:${id}`]) warn("modifiers", `EFFECT_DEFS.${id} (${def.category}) has no registry entry yet (M1)`);
 }
 for (const [setName, set] of Object.entries(SETS)) {
   for (const [tier, bonus] of Object.entries(set.bonuses || {})) {
     if (!bonus.special && !bonus.effects) continue; // flat-stat tier, not this registry's concern
     if (isTextuallyInert(bonus.description)) continue;
+    if (M1_DEFERRED_SET_TIERS.has(`${setName}:${tier}`)) continue;
     if (!MODIFIERS_TABLE[`set:${setName}:${tier}`]) warn("modifiers", `SETS.${setName} tier ${tier} ("${bonus.special || (bonus.effects || []).join(",")}") has no registry entry yet (M1)`);
   }
 }

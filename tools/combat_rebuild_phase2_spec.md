@@ -35,6 +35,7 @@
 | **P2-4** | **Stonewarden 6pc**: kind B gap or U1 item? | **Kind B.** The registry makes it work for whoever wears it. Register question closed |
 | **P2-5** | **Riposte for allies** on any zero-damage result. | **Yes.** Fixed inside step 2e, not left as a known gap |
 | **P2-6** | **Scope of "every effect".** | **Confirmed as written.** In: gear effects, set bonuses, enemy passives, status stat penalties. Out: non-combat effects, status damage ticks (already data), boss phases (Phase 3), cap tuning/budgets (Phase 4), new content |
+| **P2-7** | **Pre-existing dead content.** The 2a catalogue (`tools/modifier_catalogue.md`) found 6 EFFECT_DEFS ids and 40 set-bonus tiers registered with **no live call site anywhere** -- unlike effects that honestly self-describe as "Currently inert," these just silently do nothing. Implement them for the first time as part of 2b-2g, or leave them dead and defer to a separate content pass? | **Leave dead, defer.** Matches §5's byte-identical/"move first, change later" principle -- Phase 2 restructures EXISTING behavior, not new content. `tools/audit.js`'s M1 deferral list (`M1_DEFERRED_EFFECT_IDS`/`M1_DEFERRED_SET_TIERS`) tracks the exact list so it stays visible as a backlog item, not a migration gap |
 
 ---
 

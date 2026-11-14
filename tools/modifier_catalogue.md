@@ -4,6 +4,8 @@ Generated against `js/data/effects.js`, `js/data/sets.js`, `js/data/enemyabiliti
 
 **Totals:** 175 gear-effect rows (EFFECT_DEFS combat/defense/magic/legendary/mythic/artifact/regalia categories + `tactical_memory`), 110 set-bonus tier rows (SETS `special`/`effects` tiers only -- flat stat tiers excluded, handled by `stat()`), 64 enemy-passive trigger-type rows (covering all 169 passive entries).
 
+**Decided (Tyler, 14 Nov):** the 6 EFFECT_DEFS ids and 40 set-bonus tiers below marked "DEAD (no live call site)" / "NONE FOUND" are pre-existing content gaps, not Phase 2's problem -- they're left exactly as dead and deferred to a separate future content pass, per `tools/combat_rebuild_phase2_spec.md` §2 P2-7. `tools/audit.js`'s M1 rule exempts the exact list (`M1_DEFERRED_EFFECT_IDS`/`M1_DEFERRED_SET_TIERS`) so they read as a tracked backlog item, not a migration gap. The rows below are left as this pass found them (not retroactively edited) -- treat every "DEAD"/first "NONE FOUND" cluster in §1's gear-effects table (`armor_crack`, `ambush_mastery`, `spell_ward`, `coldproof`, `river_harmony`, `dra_e03_flowing_guard`) and every "NONE FOUND" row in §2's set-bonus table as covered by this decision.
+
 ---
 
 ## 1. Gear Effects
