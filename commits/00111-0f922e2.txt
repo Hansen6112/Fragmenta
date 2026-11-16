@@ -1,0 +1,49 @@
+range: 89618d15fdb75fa041e240b754e7ad75fed010f8..0f922e2b476bfc17e5fbc31c4c4a3185b5d9dc3f
+=== 0f922e2b476bfc17e5fbc31c4c4a3185b5d9dc3f 2026-11-16 12:52:20 +0000
+Phase 2 step 2b: migrate stat() internals (Bedrock) to the registry
+Audited every stat()-dispatched function in combat.js/companion.js for
+direct hasEffect()/hasSetTier() calls at read time. Found exactly one:
+Bedrock's Defense-reduction floor inside effectivePlayerDef. Every
+other stat formula (Agility/Accuracy/Speed/Atk, all of effectiveAlly*,
+effectiveEnemyAtk) reads only pre-accumulated per-fight fields or
+already-generic status-penalty totals (playerStatusStatTotal/Pct) --
+nothing else to migrate at this step; the per-fight accumulator fields
+themselves (evasiveGuardBonus, forestGuardianBonus, etc.) are granted
+by reaction code at rollToHit/applyAndReact call sites, which is 2c/2e's
+job, not 2b's.
+
+Found and fixed along the way: EFFECT_DEFS.bedrock's own description
+called it "Currently inert... nothing in this engine ever reduces the
+player's own Defense stat" -- false. Shield Crush's custom debuff and
+at least 7 named statuses (Spatial Fracture, Off Balance, Stagger,
+Exposed Weakness, Corrosion, Drenched, Corpse Rot) all reduce the
+player's effective Defense, and effectivePlayerDef reads every one of
+them through playerStatusStatTotal. Corrected the description.
+
+js/data/modifiers.js: first real entry (effect:bedrock, presence-only
+-- the 75%-of-base floor is bespoke math, not a generic add/multiply)
+and a new hasModifier(holder, holderRole, key) helper for exactly this
+"replace a raw hasEffect/hasSetTier call with a registry lookup, keep
+the bespoke math in place" pattern 2b-2g will reuse repeatedly.
+js/engine/combat.js: effectivePlayerDef reads hasModifier() instead of
+calling hasEffect() directly.
+
+Flagged, not fixed here (M1_COMBAT_EFFECT_CATEGORIES only checks
+combat/defense/magic -- bedrock's own "regalia" category, and
+legendary/mythic/artifact/regalia generally, are invisible to M1
+regardless of registry coverage; the catalogue's §1 table covers all 7
+categories, M1 doesn't -- a real scope gap, needs Tyler's call on
+whether to widen M1 given how large legendary/mythic/artifact/regalia
+is and how much of it is unverified).
+
+Suite 550/550, audit 0 errors/395 warnings (M2's combat.js count
+correctly drops 131->130), smoke-tested via plus3_run.js N=20.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/effects.js   |  2 +-
+ js/data/modifiers.js | 48 +++++++++++++++++++++++++++++++++++++++++-------
+ js/engine/combat.js  |  5 ++++-
+ 3 files changed, 46 insertions(+), 9 deletions(-)

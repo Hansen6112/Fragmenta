@@ -1,0 +1,19 @@
+[
+ {
+  "reg": "EFFECT_DEFS",
+  "id": "bedrock",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "description",
+    "old": "Defense reductions cannot lower your Defense below 75% of its base value. Currently inert — nothing in this engine ever reduces the player's own Defense stat (Corrode/Armor Crack/Disarm all only ever reduce the ENEMY's numbers), so there's no reduction for this to ever floor.",
+    "new": "Defense reductions cannot lower your Defense below 75% of its base value. Live (corrected 16 Nov, Phase 2 2b -- this description previously called it inert, which was wrong: several enemy abilities and statuses reduce the player's effective Defense, e.g. Shield Crush's custom debuff and Spatial Fracture/Off Balance/Stagger/Exposed Weakness/Corrosion/Drenched/Corpse Rot's own def debuffs, all read by effectivePlayerDef via playerStatusStatTotal)."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:bedrock",
+  "type": "added"
+ }
+]

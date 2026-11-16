@@ -1,0 +1,16 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index fafd7d7..e65d22d 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -402,7 +402,10 @@ function effectivePlayerDef(state) {
+   // negating it outright, unlike Unbreakable/Corrosionproof below (which
+   // shrink or fully ignore the FIRST reduction at the moment it's applied).
+   const reduced = base + penalty;
+-  const floored = hasEffect(state, "bedrock") ? Math.max(reduced, Math.round(base * 0.75)) : reduced;
++  // Bedrock's presence check reads the registry now (Phase 2 step 2b,
++  // js/data/modifiers.js's "effect:bedrock" entry) instead of a raw
++  // direct lookup; the floor math itself stays here unchanged.
++  const floored = hasModifier(state, "player", "effect:bedrock") ? Math.max(reduced, Math.round(base * 0.75)) : reduced;
+   return Math.round(floored * ratioMult);
+ }
+ 
