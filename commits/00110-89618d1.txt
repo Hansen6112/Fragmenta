@@ -1,0 +1,54 @@
+range: 21c8733b7cb82fe3f74a55a2fa324974fcfe2a52..89618d15fdb75fa041e240b754e7ad75fed010f8
+=== 89618d15fdb75fa041e240b754e7ad75fed010f8 2026-11-16 12:46:02 +0000
+Phase 2 2a correction: full js/ rescan fixes catalogue + M1/M2
+The first catalogue pass (bed724c) only grepped the engine files +
+actions.js for hasEffect()/hasSetTier() calls -- it never scanned
+js/data/sets.js (34 calls), synergy.js (2), matchups.js (1), or
+items.js (5). Tyler caught it: 45 of the 46 items it called
+dead/deferred are actually live, dispatched from those data files'
+own shared resolver functions.
+
+tools/modifier_catalogue.md: regenerated from a full js/-tree rescan.
+Real dead list shrinks to 4 items (dra_e03_flowing_guard + 3 SETS
+tiers that were meant to feed merchantsEyeRate() and never were). 10
+more set tiers are live but out of Phase 2 scope (shop/travel/job-gold
+bonuses, P2-6). Second pass on every "-- REVIEW" hook/bucket row found
+and fixed 15 more miscatalogued entries in two families: 11 defender-
+side incoming-mitigation effects (Stonewarden 6pc, Commander's Poise,
+Contractor's Endurance, Smuggler's Guard, Hardened Formation, Officer's
+Bearing, Watchman's Resilience, Duelist's Bulwark, Champion's Poise,
+Gatekeeper's Stand, Protective/Officer's Intercession) wrongly on
+outgoing/reaction/lifecycle hooks, and 4 defender's-hit-roll effects
+(Guardian Spirit, Guided Footsteps, Timeless Guard, Never Where
+Expected) wrongly on fight-lifecycle/rollToHit.attacker. Also fixed a
+math error in the fork's own worst-case writeup: the enemy-defense
+mitigation chain's -41% does NOT exceed the proposed 60% cap (only the
+player/ally-defense chain's -70% does) -- flagging that one real cap
+violation for Tyler before R3/2d, not both.
+
+tools/audit.js: M1_DEFERRED_EFFECT_IDS/M1_DEFERRED_SET_TIERS shrunk to
+the real 4-item dead list. New M1_OUT_OF_COMBAT_SET_TIERS exempts the
+10 live-but-non-combat tiers (same treatment as EFFECT_DEFS's
+"utility" category already gets). M2_SCOPED_FILES widened to cover
+js/data/sets.js/synergy.js/matchups.js, where real combat dispatch
+lives outside the engine files. Warnings 356 -> 395 (correctly
+re-flagging the 42 items that were never actually migration gaps the
+old deferred list was hiding). 0 errors, suite 550/550.
+
+tools/combat_rebuild_phase2_spec.md: P2-7 updated with the corrected
+counts.
+
+A §6 shared-helper worklist (crushingImpactMultiplier,
+spellWardMultiplier, and 16 others in sets.js/synergy.js/matchups.js,
+all hardcoded to read `state`) is new in the catalogue -- 2b-2g's own
+job to generalize before R1/R2 can reach what they govern, not
+actioned here.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js                      |  72 +++++++++-------
+ tools/combat_rebuild_phase2_spec.md |   2 +-
+ tools/modifier_catalogue.md         | 160 +++++++++++++++++++++---------------
+ 3 files changed, 137 insertions(+), 97 deletions(-)
