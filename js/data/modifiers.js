@@ -3,12 +3,11 @@
  * Spec: tools/combat_rebuild_phase2_spec.md. Catalogue of what migrates
  * in here, step by step: tools/modifier_catalogue.md.
  *
- * This file is the skeleton only — MODIFIERS starts EMPTY. Steps 2b-2g
- * migrate entries in, one pipeline step at a time, each migration
- * byte-identical to today's behavior (spec §5: "move first, change
- * later"). Nothing in the engine calls modifiersFor()/modifiersForHook()
- * yet, so adding this script tag changes no runtime behavior — it's
- * pure, unused infrastructure until a later step wires it in.
+ * Step 2b (16 Nov) adds the first real entry (Bedrock) and the first
+ * real call site (effectivePlayerDef, combat.js). Everything else below
+ * is still unused infrastructure -- 2c-2g migrate entries in, one
+ * pipeline step at a time, each migration byte-identical to today's
+ * behavior (spec §5: "move first, change later").
  *
  * The point of the registry: every in-combat effect (gear, set bonus,
  * enemy passive, status stat penalty) becomes ONE data entry instead of
@@ -66,7 +65,7 @@ function isKnownBucket(bucket) { return bucket in MOD_BUCKET_CAPS || MOD_UNCAPPE
 //     state: null | { ... },   // per-fight state this entry owns, reset at fight start
 //     notes: "string",
 //   }
-// Empty until 2b-2g. tools/audit.js's M1-M5 (added this step, as
+// Empty until 2b-2g. tools/audit.js's M1-M5 (added step 2a, as
 // warnings) track migration coverage from here on.
 const MODIFIERS = {};
 
@@ -78,6 +77,27 @@ function registerModifier(key, entry) {
   if (entry.bucket != null && !isKnownBucket(entry.bucket)) throw new Error(`modifiers.js: "${key}" has an unknown bucket "${entry.bucket}"`);
   MODIFIERS[key] = entry;
 }
+
+// ---- 2b: stat() internals ----
+// Bedrock (effectivePlayerDef, combat.js): floors a Defense REDUCTION at
+// 75% of unreduced base, rather than a simple additive/multiplicative
+// value -- too bespoke for `value`/`bucket`, so this entry is presence-
+// only (`value`/`bucket` stay null) and effectivePlayerDef's own floor
+// math stays exactly where it is, now gated by hasModifier() instead of
+// a raw hasEffect() call. Corrected 16 Nov: EFFECT_DEFS.bedrock's own
+// description used to call this "Currently inert" -- wrong, several
+// enemy abilities/statuses do reduce the player's effective Defense
+// (Shield Crush, Spatial Fracture, Off Balance, ...), so it's live.
+registerModifier("effect:bedrock", {
+  source: { kind: "effect", id: "bedrock" },
+  hook: statHook("def"),
+  bucket: null,
+  value: null,
+  when: null,
+  holders: ["player"],
+  state: null,
+  notes: "Bedrock (Regalia). Presence-only -- the 75%-of-base floor on a Defense reduction is bespoke math in effectivePlayerDef, not a generic add/multiply.",
+});
 
 // ---- holder lookup ----
 // `holder` is the real storage object hasEffect()/hasSetTier() already
@@ -111,6 +131,20 @@ function modifiersFor(holder, holderRole) {
     if (!sourceActiveOn(holder, entry.source)) return false;
     return entry.holders.includes(holderRole) || entry.holders.includes(holder.id);
   });
+}
+
+// Presence-only check: does `holder` (as `holderRole`) currently hold
+// the registry entry at `key` ("effect:bedrock", "set:Legion:6", ...)?
+// The direct replacement for a bespoke hasEffect()/hasSetTier() call at
+// a stat-read site (step 2b) whose own math is too specific (a floor, a
+// per-stat formula) to express as a generic additive/multiplicative
+// `value` — the presence check moves to the registry (so holders/R1/R2
+// apply), the bespoke math stays exactly where it was.
+function hasModifier(holder, holderRole, key) {
+  const entry = MODIFIERS[key];
+  if (!entry || !holder) return false;
+  if (!sourceActiveOn(holder, entry.source)) return false;
+  return entry.holders.includes(holderRole) || entry.holders.includes(holder.id);
 }
 
 // modifiersFor's result narrowed to one hook, then further narrowed by
