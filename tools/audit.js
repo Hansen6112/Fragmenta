@@ -700,29 +700,33 @@ const MOD_UNCAPPED_BUCKETS_SET = G("MOD_UNCAPPED_BUCKETS");
 const M1_COMBAT_EFFECT_CATEGORIES = new Set(["combat", "defense", "magic"]);
 function isTextuallyInert(description) { return /currently inert/i.test(description || ""); }
 
-// M1 deferral list (Tyler, 14 Nov, Phase 2 step 2a follow-up): the
-// catalogue (tools/modifier_catalogue.md §1/§2) found these registered
-// but with NO live call site anywhere in engine code -- unlike the
-// effects/tiers that honestly say "Currently inert" in their own
-// description, these just look implemented and aren't. Ruling: leave
-// them exactly as dead and defer implementing them to a separate
-// future content pass, NOT as part of this migration -- Phase 2
-// restructures EXISTING behavior (spec §5's "move first, change
-// later"/byte-identical guarantee), and implementing ~47 previously-
-// dead behaviors for the first time here would be new gameplay, not a
-// registry refactor. M1 treats every id/tier below the same as a
-// textually-marked-inert one: not a migration gap, a separate backlog.
-const M1_DEFERRED_EFFECT_IDS = new Set([
-  "armor_crack", "ambush_mastery", "spell_ward", "coldproof", "river_harmony", "dra_e03_flowing_guard",
-]);
-const M1_DEFERRED_SET_TIERS = new Set([
-  "Vaeloris:4", "Thraekor:6", "Sahrimor:2", "Sahrimor:4", "Sahrimor:6", "Kabal:4", "Kabal:6",
-  "Vanguard:4", "Vanguard:6", "Scout Corps:4", "Scout Corps:6", "Siege Corps:4", "Novitiate:4",
-  "Examiner:4", "Examiner:6", "Conduit Master:4", "Conduit Master:6", "River Warden:4",
-  "Mugamiir Safor:6", "Courier:4", "Courier:6", "Contract Hunter:4", "Master Appraiser:6",
-  "Ashforged:6", "Stonewarden:4", "Heartwood:4", "Sandstrider:6", "Tide Merchant:6", "Stormwatch:4",
-  "White Watch:4", "Drake Hunter:4", "Elder Bark:4", "Bonecaller:4", "Leviathan:4", "Leviathan:6",
-  "First Kingdom:4", "Pre-Kabal:4", "Pre-Kabal:6", "Fragmenta:4", "Fragmenta:6",
+// M1 deferral list (Tyler, 14/16 Nov, Phase 2 step 2a follow-up).
+// CORRECTED 16 Nov: the first pass (bed724c/21c8733) only grepped the
+// engine files + actions.js for hasEffect/hasSetTier calls -- it never
+// scanned js/data/sets.js (34 calls), synergy.js (2), matchups.js (1),
+// or items.js (5), so it wrongly called 45 of these 46 items dead. A
+// full js/-tree rescan (tools/modifier_catalogue.md, 16 Nov) found all
+// 40 set tiers and 5 of the 6 effect ids are live -- dispatch lives in
+// those data files' own shared resolver functions, not combat.js/
+// pipeline.js. The real dead list is now 4 items: 1 EFFECT_DEFS id with
+// genuinely no call site anywhere in the repo, plus 3 SETS tiers that
+// were supposed to feed js/data/items.js's merchantsEyeRate() shop-
+// discount check (Sahrimor:2 IS wired into it; these three just never
+// were) -- dead for real, not "no shop system yet."
+const M1_DEFERRED_EFFECT_IDS = new Set(["dra_e03_flowing_guard"]);
+const M1_DEFERRED_SET_TIERS = new Set(["Mugamiir Safor:4", "Tide Merchant:4", "Master Appraiser:4"]);
+
+// M1 out-of-combat exemption (16 Nov): these 10 SETS tiers ARE live --
+// shop discount (merchantsEyeRate), travel-encounter chance
+// (trailwiseMultiplier), or job/contract gold (jobGoldMultiplier) -- but
+// that puts them outside Phase 2's own scope per spec §2 P2-6 ("out:
+// non-combat effects"), same as EFFECT_DEFS's "utility" category is
+// already excluded above by M1_COMBAT_EFFECT_CATEGORIES. A SETS tier
+// has no category field to filter on the same way, so it needs its own
+// exemption list instead of a category check.
+const M1_OUT_OF_COMBAT_SET_TIERS = new Set([
+  "Sahrimor:2", "Sahrimor:4", "Sahrimor:6", "Scout Corps:4", "Courier:4", "Courier:6",
+  "Mugamiir Safor:6", "Sandstrider:6", "Tide Merchant:6", "Master Appraiser:6",
 ]);
 
 // M1: every combat-relevant EFFECT_DEFS id, and every SETS tier that
@@ -732,7 +736,7 @@ const M1_DEFERRED_SET_TIERS = new Set([
 // own description (effects.js already writes that for the ones with no
 // live trigger yet: stalwart, concussion_guard, heatproof,
 // corrosionproof, surefooted, marsh_survivor, and others), or is on the
-// M1 deferral list above.
+// M1 deferral/out-of-combat lists above.
 for (const [id, def] of Object.entries(EFFECT_DEFS)) {
   if (!M1_COMBAT_EFFECT_CATEGORIES.has(def.category)) continue;
   if (isTextuallyInert(def.description)) continue;
@@ -743,7 +747,8 @@ for (const [setName, set] of Object.entries(SETS)) {
   for (const [tier, bonus] of Object.entries(set.bonuses || {})) {
     if (!bonus.special && !bonus.effects) continue; // flat-stat tier, not this registry's concern
     if (isTextuallyInert(bonus.description)) continue;
-    if (M1_DEFERRED_SET_TIERS.has(`${setName}:${tier}`)) continue;
+    const key = `${setName}:${tier}`;
+    if (M1_DEFERRED_SET_TIERS.has(key) || M1_OUT_OF_COMBAT_SET_TIERS.has(key)) continue;
     if (!MODIFIERS_TABLE[`set:${setName}:${tier}`]) warn("modifiers", `SETS.${setName} tier ${tier} ("${bonus.special || (bonus.effects || []).join(",")}") has no registry entry yet (M1)`);
   }
 }
@@ -753,12 +758,23 @@ for (const [id, a] of Object.entries(ENEMY_ABILITIES_TABLE)) {
 }
 
 // M2: no hasEffect()/hasSetTier() calls left in the combat-relevant
-// engine files once migration finishes (becomes an ERROR at step 2g's
-// close-out, M2's own target). For now, a per-file count so the
+// engine/data files once migration finishes (becomes an ERROR at step
+// 2g's close-out, M2's own target). For now, a per-file count so the
 // remaining surface is visible and shrinks measurably each step.
 // companion.js/parser.js/state.js are allowlisted here — their calls
 // are non-combat (travel/jobs/save-load), exactly §2-P2-6's "out" list.
-const M2_SCOPED_FILES = ["js/engine/combat.js", "js/engine/pipeline.js", "js/engine/resolver.js"];
+// Widened 16 Nov: js/data/sets.js/synergy.js/matchups.js hold the
+// shared resolver functions the catalogue's §6 worklist found (e.g.
+// crushingImpactMultiplier, spellWardMultiplier) — combat-relevant
+// dispatch that lives in a data file, not an engine file, so M2's own
+// "no hasEffect/hasSetTier left" target has to cover them too.
+// js/data/items.js is NOT included — its few calls (merchantsEyeRate,
+// Master Appraiser loot) are the out-of-combat exemption above, not
+// combat dispatch.
+const M2_SCOPED_FILES = [
+  "js/engine/combat.js", "js/engine/pipeline.js", "js/engine/resolver.js",
+  "js/data/sets.js", "js/data/synergy.js", "js/data/matchups.js",
+];
 for (const file of M2_SCOPED_FILES) {
   if (!sources[file]) continue;
   const hasEffectCount = (sources[file].match(/\bhasEffect\(/g) || []).length;
