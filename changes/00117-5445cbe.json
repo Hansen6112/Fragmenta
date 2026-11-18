@@ -1,0 +1,183 @@
+[
+ {
+  "reg": "SETS",
+  "id": "Fragmenta",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "bonuses",
+    "old": {
+     "2": {
+      "bonuses": {
+       "magic": 2
+      },
+      "description": "+2 Magic"
+     },
+     "4": {
+      "special": "fragmenta_surging_twice",
+      "description": "Surging Conduit triggers twice each fight"
+     },
+     "6": {
+      "special": "fragmenta_matchups_150",
+      "description": "Elemental matchup strengths become 1.50x and weaknesses improve to 0.90x"
+     }
+    },
+    "new": {
+     "2": {
+      "bonuses": {
+       "magic": 2
+      },
+      "description": "+2 Magic"
+     },
+     "4": {
+      "special": "fragmenta_surging_twice",
+      "description": "Surging Conduit triggers twice each fight"
+     },
+     "6": {
+      "special": "fragmenta_tag_override",
+      "description": "Your non-physical hits treat a target's Weakness as ×1.75 and its Resistance as ×0.75"
+     }
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "calculateDamage.tags",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "tagValueOverride",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "criticalHitRoll",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "loadedDiceRoll",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Fragmenta:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:crushing_impact",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:executioner",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Drake Hunter:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Bonecaller:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:kingslayer",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:hunters_instinct",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:momentum",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:execution_protocol",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:temporal_echo",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:echoing_arsenal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:arcane_overflow",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:crit",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Woven Thread:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:worthy_challenge",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:loaded_dice",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Laughing Gale:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:momentum_unbound",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:tempered_steel",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:master_craftsman",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Hour:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:stones_patience",
+  "type": "added"
+ },
+ {
+  "reg": "CRIT_MODIFIER_KEY",
+  "type": "registry added"
+ }
+]

@@ -1,0 +1,206 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index fe75b69..dabb066 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -2032,34 +2032,19 @@ function rollPlayerDamage(state, creature, activeElement) {
+   // branch itself decides whether to consume it, since "magic bypasses"
+   // means a magic hit in between shouldn't spend the pending charge.
+   const sureFoundationDef = creature.sureFoundationBonusDef || 0;
+-  const execMult = executionerMultiplier(state);
+-  const dragonMult = dragonslayerMultiplier(state, creature);
+-  const bleedMult = bleedExploitationMultiplier(state);
+-  const kingMult = kingslayerMultiplier(state, creature);
+-  const instinctMult = huntersInstinctMultiplier(state);
+-  const momentumMult = momentumMultiplier(state);
+-  const executionMult = executionProtocolMultiplier(state);
+-  const echoMult = temporalEchoMultiplier(state);
+   const foreseenDefMult = foreseenStrikeDefMultiplier(state);
+   const isSpell = state.flags.isMage && state.primaryElement;
+-  const critMult = critMultiplier(state, isSpell);
+-  const threadsMult = state.combat && state.combat.player.threadsOfConsequencePending ? 1.4 : 1;
+-  // Stone's Patience (Divine Regalia — Foundation's Hammer): "whenever you
+-  // do not move first in a combat round, your next attack deals 30%
+-  // additional damage" — combat.enemyActedFirstThisRound is set by
+-  // resolveSpeedInitiative exactly when that happened, and consumed here
+-  // (reset below, alongside threadsOfConsequencePending) so it only ever
+-  // boosts the very next hit.
+-  const stonesPatienceMult = state.combat && state.combat.enemyActedFirstThisRound && hasEffect(state, "stones_patience") ? 1.3 : 1;
+-  const worthyMult = worthyChallengeMultiplier(state);
+-  const valorMult = blessingOfValorMultiplier(state);
+   const commandingDefMult = commandingPresenceDefMultiplier(state);
+-  const loadedDiceMult = loadedDiceMultiplier(state);
+-  const chaosMult = avatarOfChaosDamageMultiplier(state);
+-  const momentumUnboundMult = momentumUnboundMultiplier(state);
+-  const temperedSteelMult = temperedSteelMultiplier(state);
+-  const avatarOfTimeMult = state.combat && state.combat.player.avatarOfTimeTurns > 0 ? 1.25 : 1;
+   let dmg;
++  // 2d, increment 1: the 19/21-factor independent-multiplier chain below
++  // (crushMult..stonesPatienceMult) now comes from the registry's own
++  // calculateDamage.outgoing entries instead of a hand-written list of
++  // function calls -- see modifiers.js's own header on this entry group
++  // for why it's still byte-identical (same functions, same RNG order).
++  // `outgoing` is declared here, not inside either branch, because the
++  // crit entry's own resolved factor is read again after the roll
++  // (Blessing of Fortune/Avatar of Chaos's own stack growth, below).
++  let outgoing;
+   if (isSpell) {
+     const magic = effectiveMagic(state);
+     // Arcane Convergence (Artifact): rolls the base damage twice and keeps
+@@ -2105,7 +2090,6 @@ function rollPlayerDamage(state, creature, activeElement) {
+     const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+     const spellDType = DAMAGE_TYPES_V2 ? elementKeyToDamageType(activeElement || pickElement(state)) : null;
+     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
+-    const overflowMult = arcaneOverflowMultiplier(state);
+     // v0.11: spell power is mitigated by the target's FULL Defense through
+     // the shared ratio rule (was a near-irrelevant flat -Defense/10), then
+     // every multiplier applies to the post-armor result. Precision
+@@ -2113,7 +2097,8 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // now the spell-side armor-penetration tool rather than a rounding
+     // error.
+     const spellPower = base * multiplier;
+-    const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: true });
++    const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * outgoing.total);
+     // dmgReduction (Enemy Ability Engine — Guarded Stance/
+     // Protective Cover/Last Stand, Gate 5B.8 skills codex): a flat final
+     // percentage shave off whatever damage already made it through every
+@@ -2121,8 +2106,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // same as a shield would be, not folded into the multiplier chain.
+     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
+     if (DAMAGE_TYPES_V2) {
+-      const avatarOfKnowledgeActive = state.combat && state.combat.player.avatarOfKnowledgeTurns > 0;
+-      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(creature, spellDType, avatarOfKnowledgeActive));
++      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(state, "player", creature, spellDType));
+     }
+     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
+     // cast during its 4-round window PERMANENTLY increases Magic by +2 —
+@@ -2142,12 +2126,6 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // Called exactly once per damage roll, same as before extraction —
+     // it consumes Siege Corps' one-shot Attack charge internally.
+     const atk = effectivePlayerAtk(state);
+-    const crushBase = crushingImpactMultiplier(state);
+-    const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
+-    // Master Craftsman (Divine Regalia — Smith's Grasp): compares this
+-    // hit's own effective Attack (all the buffs/stacks above already
+-    // folded in) against the enemy's raw Defense.
+-    const craftsmanMult = hasEffect(state, "master_craftsman") ? masterCraftsmanMultiplier(atk, creature) : 1;
+     // v0.11: shared ratio mitigation (was a flat -Defense/3 before the
+     // multiplier chain) — see mitigate() near the top of this file.
+     const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), effDef);
+@@ -2157,10 +2135,10 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // combat.player.actionCounter, so mixing in elemental casts doesn't throw off
+     // the count of actual weapon swings.
+     state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
+-    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.player.weaponAttackCounter % 5 === 0 ? 2 : 1;
+     // dmgReduction: see the magic branch above for why this is
+     // the last step, after every other multiplier.
+-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0)) * sangMit));
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: false, atk, effDef });
++    dmg = Math.max(1, Math.round(base * outgoing.total * (1 - (creature.dmgReduction || 0)) * sangMit));
+     // Sure Foundation (DRA-E05): this physical hit just landed (dmg is
+     // always >= 1 by this point — a miss never reaches rollPlayerDamage
+     // at all) — so any pending charge is now spent (whether or not this
+@@ -2198,11 +2176,13 @@ function rollPlayerDamage(state, creature, activeElement) {
+     state.combat.player.worthyChallengeStacks = Math.min(10, (state.combat.player.worthyChallengeStacks || 0) + 1);
+   }
+   // Blessing of Fortune (Regalia of the Laughing Gale 2pc) and Avatar of
+-  // Chaos (6pc): both key off THIS hit having just critted (critMult > 1,
+-  // already read above) to grow their own effect for the NEXT hit — the
++  // Chaos (6pc): both key off THIS hit having just critted (the crit
++  // entry's own resolved factor, outgoing.byKey[CRIT_MODIFIER_KEY] > 1,
++  // read again here since the roll above only kept the overall product)
++  // to grow their own effect for the NEXT hit — the
+   // same "read the stack before this roll, grow it after" ordering
+   // Momentum/Worthy Challenge use, and just as silent (no line) as those.
+-  if (critMult > 1) {
++  if ((outgoing.byKey[CRIT_MODIFIER_KEY] || 1) > 1) {
+     if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
+       state.combat.player.blessingOfFortuneCritStacks = Math.min(5, (state.combat.player.blessingOfFortuneCritStacks || 0) + 1);
+     }
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 3ed4f0b..210cbb6 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1639,28 +1639,19 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+   // (step 5).
+   const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
+   const sureFoundationDef = creature.sureFoundationBonusDef || 0;
+-  const execMult = executionerMultiplier(state);
+-  const dragonMult = dragonslayerMultiplier(state, creature);
+-  const bleedMult = bleedExploitationMultiplier(state);
+-  const kingMult = kingslayerMultiplier(state, creature);
+-  const instinctMult = huntersInstinctMultiplier(state);
+-  const momentumMult = momentumMultiplier(state);
+-  const executionMult = executionProtocolMultiplier(state);
+-  const echoMult = temporalEchoMultiplier(state);
+   const foreseenDefMult = foreseenStrikeDefMultiplier(state);
+   const isSpell = !!(state.flags.isMage && state.primaryElement);
+-  const critMult = critMultiplier(state, isSpell);
+-  const threadsMult = state.combat && state.combat.player.threadsOfConsequencePending ? 1.4 : 1;
+-  const stonesPatienceMult = state.combat && state.combat.enemyActedFirstThisRound && hasEffect(state, "stones_patience") ? 1.3 : 1;
+-  const worthyMult = worthyChallengeMultiplier(state);
+-  const valorMult = blessingOfValorMultiplier(state);
+   const commandingDefMult = commandingPresenceDefMultiplier(state);
+-  const loadedDiceMult = loadedDiceMultiplier(state);
+-  const chaosMult = avatarOfChaosDamageMultiplier(state);
+-  const momentumUnboundMult = momentumUnboundMultiplier(state);
+-  const temperedSteelMult = temperedSteelMultiplier(state);
+-  const avatarOfTimeMult = state.combat && state.combat.player.avatarOfTimeTurns > 0 ? 1.25 : 1;
+   let dmg;
++  // 2d, increment 1: the 19/21-factor independent-multiplier chain below
++  // (crushMult..stonesPatienceMult) now comes from the registry's own
++  // calculateDamage.outgoing entries instead of a hand-written list of
++  // function calls -- see modifiers.js's own header on this entry group
++  // for why it's still byte-identical (same functions, same RNG order).
++  // `outgoing` is declared here, not inside either branch, because the
++  // crit entry's own resolved factor is read again after the roll
++  // (Blessing of Fortune/Avatar of Chaos's own stack growth, below).
++  let outgoing;
+   if (isSpell) {
+     const magic = effectiveMagic(state);
+     let base = randInt(magic - 2, magic + 2);
+@@ -1687,16 +1678,15 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+     // the `action.damageType` branch first and never reached the bug).
+     const spellDType = DAMAGE_TYPES_V2 ? (action && action.damageType && action.damageType !== "inherit" ? action.damageType : elementKeyToDamageType(activeElement)) : null;
+     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
+-    const overflowMult = arcaneOverflowMultiplier(state);
+     const spellPower = base * multiplier;
+-    const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * overflowMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * avatarOfTimeMult * stonesPatienceMult);
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: true });
++    const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * outgoing.total);
+     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
+     // A3 (off by default): Avatar of Knowledge shifts the TARGET's own
+     // tag one step better for the attacker, read here instead of the
+     // plain dmgTagMultiplier every other caller uses.
+     if (DAMAGE_TYPES_V2) {
+-      const avatarOfKnowledgeActive = state.combat && state.combat.player.avatarOfKnowledgeTurns > 0;
+-      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(creature, spellDType, avatarOfKnowledgeActive));
++      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(state, "player", creature, spellDType));
+     }
+     if (state.combat.player.avatarOfCreationTurns > 0) {
+       state.combat.player.avatarOfCreationMagicStacks = (state.combat.player.avatarOfCreationMagicStacks || 0) + 2;
+@@ -1714,13 +1704,10 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+     // Siege Corps purity fix. Produces the identical number as
+     // effectivePlayerAtk would have on this same single read.
+     const atk = stat(state, actor, "atk");
+-    const crushBase = crushingImpactMultiplier(state);
+-    const crushMult = hasEffect(state, "crushing_impact") && effDef > atk ? crushBase : 1;
+-    const craftsmanMult = hasEffect(state, "master_craftsman") ? masterCraftsmanMultiplier(atk, creature) : 1;
+     const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), weaponMitigateDef);
+     state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
+-    const echoingArsenalMult = hasEffect(state, "echoing_arsenal") && state.combat.player.weaponAttackCounter % 5 === 0 ? 2 : 1;
+-    dmg = Math.max(1, Math.round(base * crushMult * execMult * dragonMult * bleedMult * kingMult * instinctMult * momentumMult * executionMult * echoMult * echoingArsenalMult * critMult * threadsMult * worthyMult * valorMult * loadedDiceMult * chaosMult * momentumUnboundMult * temperedSteelMult * craftsmanMult * avatarOfTimeMult * stonesPatienceMult * (1 - (creature.dmgReduction || 0)) * sangMit));
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: false, atk, effDef });
++    dmg = Math.max(1, Math.round(base * outgoing.total * (1 - (creature.dmgReduction || 0)) * sangMit));
+     if (DAMAGE_TYPES_V2) dmg = Math.round(dmg * dmgTagMultiplier(creature, weaponDType));
+     if (state.combat.player.avatarOfCreationTurns > 0) {
+       state.combat.player.avatarOfCreationAtkStacks = (state.combat.player.avatarOfCreationAtkStacks || 0) + 2;
+@@ -1737,7 +1724,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+   if (hasEffect(state, "worthy_challenge")) {
+     state.combat.player.worthyChallengeStacks = Math.min(10, (state.combat.player.worthyChallengeStacks || 0) + 1);
+   }
+-  if (critMult > 1) {
++  if ((outgoing.byKey[CRIT_MODIFIER_KEY] || 1) > 1) {
+     if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
+       state.combat.player.blessingOfFortuneCritStacks = Math.min(5, (state.combat.player.blessingOfFortuneCritStacks || 0) + 1);
+     }

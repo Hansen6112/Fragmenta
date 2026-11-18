@@ -1,0 +1,99 @@
+range: 4abe7e09a94d2252a89c3331c053ed3b200ca7c5..5445cbe4976484bed42da39312583babfe1d3eb3
+=== 5445cbe4976484bed42da39312583babfe1d3eb3 2026-11-18 23:00:55 +0000
+Phase 2 step 2d, increment 1: calculateDamage.outgoing for the player roll
+Bucketed registry entries for the full outgoing-multiplier chain in
+rollPlayerDamage (combat.js) and rollPlayerDamageCoreForPipeline
+(pipeline.js) -- the spec's own illustrative x20.5 example (spec §1).
+Combined by the legacy flat product while R3 stays off (step 2d's own
+completion rule): calculateOutgoingMultiplier (modifiers.js) multiplies
+every active entry's own resolved factor together, in `order` matching
+today's exact left-to-right chain (including RNG call order for crit/
+loaded-dice/avatar-of-chaos), so this is byte-identical by construction
+-- every entry's value/behavior function delegates to its existing,
+unchanged multiplier function, never reimplementing the math.
+
+21 entries migrated: crushing_impact, executioner, dragonslayer (Drake
+Hunter:6), bleed_exploitation (Bonecaller:6), kingslayer,
+hunters_instinct, momentum, execution_protocol, temporal_echo,
+echoing_arsenal, arcane_overflow, the crit system (one composite entry
+under a new "always" source kind, since its three gear sources already
+blend into ONE roll today), threads_of_consequence (Regalia of the
+Woven Thread:4), worthy_challenge, blessing_of_valor (Regalia of the
+Crimson Vanguard:2), loaded_dice, Avatar of Chaos's damage
+randomization (Regalia of the Laughing Gale:6), momentum_unbound,
+tempered_steel, master_craftsman, Avatar of Time (Regalia of the
+Eternal Hour:6), stones_patience.
+
+Crit and loaded_dice are declared as `behavior`, not a bare `value` --
+both pre-existingly mutate state (a guaranteed-crit flag, Twist of
+Fate), carried over unchanged rather than restructured this round.
+calculateOutgoingMultiplier returns a per-key breakdown alongside the
+total, since Blessing of Fortune/Avatar of Chaos's own crit-stack
+growth (run right after the roll) needs to know whether THIS hit's own
+crit factor exceeded 1, not just the overall product.
+
+Deliberately not migrated yet: the set tiers that upgrade one of these
+values (Thraekor:6, Vanguard:4/6, Kabal:4, Novitiate:4, Pre-Kabal:4,
+Scout Corps:6, Drake Hunter:4, Contract Hunter:4, Examiner:4, River
+Warden:4, Stormwatch:4, Conduit Master:6, Leviathan:4's spell-ward
+half) -- their existing shared-resolver functions (crushingImpactMultiplier
+etc.) already fold them in correctly via Math.max, so nothing about
+their behavior changes; they still owe the audit a registry entry of
+their own (Rule 1's `upgrades` field), deferred to a later increment,
+same as defenseIgnore and incoming entirely.
+
+Suite 581/581 (including all 8 parity-fixture snapshot comparisons),
+audit 0 errors/449 warnings (down from 470). tools/audit.js's M3 gains
+a documented exemption for calculateDamage.tags (Rule 3's own
+bucket-less mechanics), confirmed against spec §7's M4 rule ("nothing
+multiplies damage outside a bucket, except damage-type tags and an
+action's own dmgMult").
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                         | 281 ++++++++++++++++++++++++++-
+ js/engine/combat.js                          |  55 ++----
+ js/engine/pipeline.js                        |  40 ++--
+ tools/audit.js                               |   5 +-
+ tools/modifier_catalogue.md                  |   2 +
+ tools/tests/phase2_step2d_outgoing_ledger.js | 196 +++++++++++++++++++
+ tools/tests/run_all.js                       |   1 +
+ 7 files changed, 515 insertions(+), 65 deletions(-)
+=== 7d3b051f170d214ba82ca6544ee4d9caca97f150 2026-11-18 22:58:37 +0000
+Fragmenta 6pc: replace the dead matchup-cycle bonus with a tag override
+elementMultiplier's Fragmenta boost (js/data/matchups.js) only ever ran
+with DAMAGE_TYPES_V2 off, which the switch's own permanent true made
+dead the moment damage types went live (09d4131) -- six Fragmenta
+pieces granted nothing. Tyler's approved replacement: against the
+wearer's own non-physical hits, a target's Weak tag counts as 1.75x
+(was 1.5x via the dead branch) and Resist as 0.75x (was 0.5x), with
+Avatar of Knowledge's own tag-shift (Immune->Resist, Resist->Normal)
+applied first, same order the Decisions Addendum's worked example uses.
+
+Implemented as a modifier-registry entry (set:Fragmenta:6, hook
+calculateDamage.tags, behavior tagValueOverride) outside the damage
+buckets per Bucket Review Rule 1's own §4 exemption for tag/synergy
+mechanics. dmgTagMultiplierForAttacker (js/data/damagetypes.js) now
+takes an explicit attacker/role instead of a lone holder + externally
+computed Avatar-of-Knowledge flag, so it can run the new hook for the
+attacker's own gear. The dead matchups.js branch is removed.
+
+No switch -- a bug fix with a new number, not new content. Neither
+simulation harness equips Fragmenta; both re-confirmed byte-identical
+at N=1000 against the prior baseline.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/damagetypes.js                           |  19 ++-
+ js/data/matchups.js                              |  17 ++-
+ js/data/sets.js                                  |   2 +-
+ js/engine/combat.js                              |   3 +-
+ js/engine/pipeline.js                            |   3 +-
+ tools/modifier_catalogue.md                      |   4 +-
+ tools/tests/fragmenta_6pc_tag_override_ledger.js | 187 +++++++++++++++++++++++
+ tools/tests/run_all.js                           |   1 +
+ 8 files changed, 219 insertions(+), 17 deletions(-)
