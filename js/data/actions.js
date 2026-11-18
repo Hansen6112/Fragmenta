@@ -613,7 +613,23 @@ const PIPELINE_FORMULAS = {
       const swMult = spellWardMultiplier(state);
       if (swMult < 1) {
         edmg = Math.round(edmg * swMult);
-        if (hasSetTier(state, "River Warden", 6)) combat.player.riverWardenMagicBonus = Math.min(8, combat.player.riverWardenMagicBonus + 2);
+        // Phase 2 Amendment 1 regression fix (18 Nov, caught by widening
+        // the parity-fixture comparison instead of omitting these fields):
+        // this write used to target the old flat combat.player.
+        // riverWardenMagicBonus field. Amendment 1 moved that field's
+        // READ site (combat.js's magic-total calc) onto the registry's
+        // modifierStateFor('set:River Warden:6').stacks, but missed this
+        // SECOND grant site -- River Warden 6pc stacks on EITHER an
+        // elemental evasion (rollToHit's own dispatch) OR a Spell-Ward-
+        // mitigated elemental hit landing (here), two independent
+        // triggers for the same stack, confirmed present in the pre-
+        // Amendment-1 code. Left writing to the orphaned flat field, this
+        // branch silently did nothing from Amendment 1 onward. Condition
+        // and clamp are unchanged -- only the write target is corrected.
+        if (hasSetTier(state, "River Warden", 6)) {
+          const st = modifierStateFor(state, "player", "set:River Warden:6", MODIFIERS["set:River Warden:6"]);
+          st.stacks = Math.min(8, st.stacks + 2);
+        }
       }
       if (edmg > 0 && !combat.player.stormBarrierUsed) {
         combat.player.stormBarrierUsed = true;

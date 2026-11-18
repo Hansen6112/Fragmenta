@@ -49,14 +49,35 @@ diverge from whatever the original did:
 ## Usage
 
 ```
-node tools/sim/boss_sweep.js --switch off|on --n 1000 --rows all|existing|new --out <file.json>
-node tools/sim/plus3_run.js  --switch off|on --n 1000 --out <file.json>
+node tools/sim/boss_sweep.js --switch off|on --n 1000 --rows all|existing|new --seed <n> --out <file.json>
+node tools/sim/plus3_run.js  --switch off|on --n 1000 --seed <n> --out <file.json>
 ```
 
 `--switch` patches `js/data/damagetypes.js`'s committed `DAMAGE_TYPES_V2`
 line in a VM sandbox only -- the real file on disk is never touched, and
 the patch is direction-agnostic (works whichever literal is actually
 committed).
+
+## Seeding (18 Nov)
+
+The sandbox's own `Math` used to just BE the real global `Math` object
+(same reference) -- seeding it would have meant overwriting the real
+Node process's own `Math.random`, since every `require`d module in this
+process shares that one object. It's now a standalone copy
+(`sim_common.js`'s `simMath`), decoupled before anything is seeded.
+
+Each cell gets its own seed, derived from one master seed (`--seed`, or
+a freshly chosen one if omitted -- printed as `seed: <n>` on stderr and
+recorded as the payload's own `seed` field either way) plus that cell's
+own key string (`cellSeed` in `sim_common.js`). A cell's own seed is also
+recorded on its own result row. Re-running with the same `--seed`
+reproduces every cell's own sequence exactly, confirmed byte-for-byte
+(not just aggregate stats) by running both harnesses twice at the same
+seed and diffing the two outputs. `makePlayer`'s own Mage/Bruise element
+pick used to draw from the unseeded global `Math.random` too (code
+outside the sandbox, so `seedRandom`'s own mutation never touched it) --
+fixed to draw from the same seeded source, confirmed by the same
+rerun-and-diff check (it's what the first version of this fix missed).
 
 ## Baselines
 

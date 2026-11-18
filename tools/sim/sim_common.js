@@ -39,8 +39,35 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { pickSeed } = require("../tests/seed_rng");
 
-const ROOT = "/home/user/Fragmenta";
+const ROOT = path.join(__dirname, "..", "..");
+
+// Same algorithm tools/tests/seed_rng.js already uses for the Playwright
+// ledgers (mulberry32) -- kept identical so "seeded" means one thing
+// across this whole project, not two different PRNGs by accident.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// Derives one cell's own seed from a master seed (printed/recorded once
+// per run, so a rerun with the same --seed reproduces every cell) and
+// that cell's own key string, so cells don't have to be visited in the
+// same order to get the same seeds, and adding/removing a cell doesn't
+// shift every cell after it the way a shared, threaded-through generator
+// would.
+function cellSeed(masterSeed, key) {
+  let h = masterSeed >>> 0;
+  for (let i = 0; i < key.length; i++) {
+    h = Math.imul(h ^ key.charCodeAt(i), 2654435761) >>> 0;
+    h ^= h >>> 15;
+  }
+  return h >>> 0;
+}
 
 function buildSandbox(switchOn) {
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
@@ -55,8 +82,17 @@ function buildSandbox(switchOn) {
     };
   }
   const store = {};
+  // A standalone copy of Math, not the real global object -- ctx.Math
+  // used to just BE Math (same reference), so seeding it by overwriting
+  // ctx.Math.random would have overwritten the real Node process's own
+  // Math.random too (every other `require`d module in this same process
+  // shares that one object). Copying every own property once, up front,
+  // decouples the sandbox's Math from the host's.
+  const simMath = {};
+  for (const k of Object.getOwnPropertyNames(Math)) simMath[k] = Math[k];
+  function seedRandom(seed) { simMath.random = mulberry32(seed); }
   const ctx = {
-    console: { log() {}, warn() {}, error() {} }, Math, JSON, Date, setTimeout: () => 0, clearTimeout() {},
+    console: { log() {}, warn() {}, error() {} }, Math: simMath, JSON, Date, setTimeout: () => 0, clearTimeout() {},
     localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
     document: { getElementById: () => el(), createElement: () => el(), querySelector: () => el(), querySelectorAll: () => [], addEventListener() {}, body: el() },
     addEventListener() {},
@@ -167,7 +203,13 @@ function buildSandbox(switchOn) {
     s.level = L;
     if (cls === "mage" || cls === "bruise") {
       s.flags.isMage = true;
-      s.primaryElement = ELEMENTS_FOR_SIM[Math.floor(Math.random() * ELEMENTS_FOR_SIM.length)];
+      // simMath, not the bare Math.random() this read before -- makePlayer
+      // runs as plain Node code in sim_common.js's own closure, OUTSIDE
+      // the vm sandbox, so it was never touched by seedRandom()'s own
+      // mutation of ctx.Math.random; it drew from the real, unseeded
+      // Math.random every fight, which is exactly the kind of leak that
+      // made two --seed-identical runs of a mage/bruise cell disagree.
+      s.primaryElement = ELEMENTS_FOR_SIM[Math.floor(simMath.random() * ELEMENTS_FOR_SIM.length)];
     }
     return s;
   }
@@ -264,7 +306,8 @@ function buildSandbox(switchOn) {
   return {
     G, BESTIARY, CLASS_IDS, gearFor, gearForTierOffset, gearTier, makePlayer, equipPlayer,
     buildLegalParty, runFight, injuryGroupsOf, spawnEnemyMage, setForceVariant, setSpawnMode,
+    seedRandom,
   };
 }
 
-module.exports = { buildSandbox, ROOT };
+module.exports = { buildSandbox, ROOT, mulberry32, cellSeed, pickSeed };

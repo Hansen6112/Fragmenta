@@ -100,24 +100,65 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // that content load existed) can never have picked up on its own
     // subject creature, and which the functions under test only ever
     // read, never mutate, so they carry no signal about pipeline parity.
-    // 'modifierState'/'calculatedAimUsed' added (Phase 2 Amendment 1, 18
-    // Nov): Duelist's Measure/Calculated Aim/Concealed Edge/Measured Aim
-    // moved onto the registry -- live code now lazily creates
-    // creature.modifierState (the frozen oracle can't), and conversely
-    // never sets the old creature.calculatedAimUsed flag at all anymore
-    // (the frozen oracle still has it at its old frozen value). Both
-    // directions get the same treatment as the three content-load fields
-    // above.
-    const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune', 'modifierState', 'calculatedAimUsed'];
+    // 'modifierState' added (Phase 2 Amendment 1, 18 Nov): the container
+    // itself is new infrastructure the frozen oracle has no way to
+    // produce, so it's still omitted here same as the three content-load
+    // fields above -- but as of the 18 Nov follow-up, mapMovedFieldsBack
+    // (below) copies its one relevant sub-value, creature.modifierState
+    // ['enemy:calculatedAim'].used, onto creature.calculatedAimUsed
+    // BEFORE this function runs, so calculatedAimUsed itself is no longer
+    // in this list: it's now actually compared, not skipped.
+    const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune', 'modifierState'];
     // Phase 2 Amendment 1 (18 Nov): combat.player.modifierState is new
     // infrastructure the frozen pre-Phase-2 oracle has no way to produce,
-    // and conversely guardianSpiritUsed/guidedFootstepsUsed/
-    // timelessGuardCooldown/evasiveGuardBonus/riverWardenMagicBonus moved
-    // OFF combat.player onto their own registry entries' state, so the
-    // frozen fixture still has them (at their old frozen values) while live
-    // code never sets them at all anymore -- both directions get the same
-    // "omitted, not nulled" treatment `chill` already had.
-    const PHASE2_AMENDMENT1_OMIT_KEYS = ['chill', 'modifierState', 'guardianSpiritUsed', 'guidedFootstepsUsed', 'timelessGuardCooldown', 'evasiveGuardBonus', 'riverWardenMagicBonus'];
+    // so the container itself stays omitted here. guardianSpiritUsed/
+    // guidedFootstepsUsed/timelessGuardCooldown/evasiveGuardBonus/
+    // riverWardenMagicBonus moved OFF combat.player onto their own
+    // registry entries' state -- the 18 Nov follow-up to Amendment 1
+    // found that omitting them here (the first pass's fix) stops
+    // actually checking them at all, and that list only grows with every
+    // later step, so mapMovedFieldsBack (below) copies each one's live
+    // modifierState value back onto its pre-Amendment-1 flat name before
+    // this function runs, and they're no longer in this list: the frozen
+    // fixture's own value at that flat name is genuinely compared again.
+    const PHASE2_AMENDMENT1_OMIT_KEYS = ['chill', 'modifierState'];
+    // Maps a Phase 2 Amendment 1 registry entry's live modifierState
+    // value back onto the flat field name it replaced, so normalizeSnap
+    // actually compares it against the frozen oracle's own value at that
+    // name instead of the two sides silently agreeing to skip it (the 18
+    // Nov follow-up to Amendment 1's own first-pass fix, which only
+    // omitted them). Runs on both the frozen (old) and live (new) parsed
+    // snapshot: the frozen side never has a `modifierState` key at any
+    // level, so every lookup below is a no-op there and its own flat
+    // field is left exactly as it was frozen; only the live side has
+    // anything to map.
+    const MODIFIER_STATE_FIELD_MAP = [
+      ['effect:guardian_spirit', 'used', 'guardianSpiritUsed'],
+      ['effect:guided_footsteps', 'used', 'guidedFootstepsUsed'],
+      ['effect:timeless_guard', 'cooldown', 'timelessGuardCooldown'],
+      ['effect:evasive_guard', 'stacks', 'evasiveGuardBonus'],
+      ['set:River Warden:6', 'stacks', 'riverWardenMagicBonus'],
+    ];
+    function mapMovedFieldsBack(x) {
+      if (Array.isArray(x)) return x.map(mapMovedFieldsBack);
+      if (x === null || typeof x !== 'object') return x;
+      if (x.modifierState && typeof x.modifierState === 'object') {
+        for (const [key, field, oldName] of MODIFIER_STATE_FIELD_MAP) {
+          if (x.modifierState[key] && field in x.modifierState[key] && !(oldName in x)) {
+            x[oldName] = x.modifierState[key][field];
+          }
+        }
+        // Calculated Aim / Concealed Edge share one state slot on the
+        // ENEMY creature (sharedStateKey: "enemy:calculatedAim"), not on
+        // combat.player -- this is the only one of the six relocated
+        // fields that lives on a creatureObj instead.
+        if (x.modifierState['enemy:calculatedAim'] && 'used' in x.modifierState['enemy:calculatedAim'] && !('calculatedAimUsed' in x)) {
+          x.calculatedAimUsed = x.modifierState['enemy:calculatedAim'].used;
+        }
+      }
+      for (const k of Object.keys(x)) x[k] = mapMovedFieldsBack(x[k]);
+      return x;
+    }
     function stripCreatureObj(x) {
       if (Array.isArray(x)) return x.map(stripCreatureObj);
       if (x === null || typeof x !== 'object') return x;
@@ -136,7 +177,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       return out;
     }
     function normalizeSnap(snapStr) {
-      return sortedStringify(stripCreatureObj(JSON.parse(snapStr)));
+      return sortedStringify(stripCreatureObj(mapMovedFieldsBack(JSON.parse(snapStr))));
     }
     // Step 1h-iii flattened the 130 PLAYER_FIELDS entries out of
     // state.combat's own top level into state.combat.player -- this

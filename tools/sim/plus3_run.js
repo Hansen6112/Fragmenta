@@ -19,13 +19,17 @@
  *   node plus3_run.js --switch off|on --n 1000 --out <file.json>
  */
 const fs = require("fs");
-const { buildSandbox } = require("./sim_common");
+const { buildSandbox, cellSeed, pickSeed } = require("./sim_common");
 
 const args = process.argv.slice(2);
 const argVal = (flag, def) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : def; };
 const SWITCH = argVal("--switch", "off");
 const N = Number(argVal("--n", 200));
 const OUT = argVal("--out", null);
+// See boss_sweep.js's own comment on SEED/cellSeed -- same convention,
+// one master seed per run, one derived sub-seed per cell, both recorded.
+const SEED = argVal("--seed", null) != null ? Number(argVal("--seed", null)) >>> 0 : pickSeed();
+console.error(`seed: ${SEED}`);
 
 const TARGETS = [
   { key: "dregnar_ashvein", spawn: "dregnar_ashvein", L: 30 },
@@ -37,7 +41,9 @@ const GEAR_TIERS = [
   { key: "overgeared", offset: 1 },
 ];
 
-function runCell(sb, cls, L, spawn, gearFn) {
+function runCell(sb, cls, L, spawn, gearFn, key) {
+  const seed = cellSeed(SEED, key);
+  sb.seedRandom(seed);
   let wins = 0, allyDeaths = 0, n = 0, roundsSum = 0, playerHpSum = 0, allyHpSum = 0, allyHpCells = 0;
   const injuryTotals = {};
   for (let i = 0; i < N; i++) {
@@ -56,6 +62,7 @@ function runCell(sb, cls, L, spawn, gearFn) {
     meanRounds: n ? roundsSum / n : null,
     meanPlayerHpPct: n ? (playerHpSum / n) * 100 : null,
     meanAllyHpPct: allyHpCells ? (allyHpSum / allyHpCells) * 100 : null,
+    seed,
   };
 }
 
@@ -67,12 +74,12 @@ function main() {
       const gearFn = (L, primary) => sb.gearForTierOffset(L, primary, tier.offset);
       for (const cls of sb.CLASS_IDS) {
         const key = `${t.key}:${tier.key}:${cls}`;
-        results[key] = runCell(sb, cls, t.L, t.spawn, gearFn);
+        results[key] = runCell(sb, cls, t.L, t.spawn, gearFn, key);
         results[key].L = t.L;
       }
     }
   }
-  const payload = { generatedAt: new Date().toISOString(), switch: SWITCH, n: N, results };
+  const payload = { generatedAt: new Date().toISOString(), switch: SWITCH, n: N, seed: SEED, results };
   const text = JSON.stringify(payload, null, 2);
   if (OUT) { fs.writeFileSync(OUT, text); console.log(`wrote ${OUT} (${Object.keys(results).length} cells)`); }
   else console.log(text);

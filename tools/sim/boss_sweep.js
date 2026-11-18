@@ -25,7 +25,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { buildSandbox } = require("./sim_common");
+const { buildSandbox, cellSeed, pickSeed } = require("./sim_common");
 
 const args = process.argv.slice(2);
 const argVal = (flag, def) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : def; };
@@ -33,6 +33,13 @@ const SWITCH = argVal("--switch", "off");
 const N = Number(argVal("--n", 200));
 const OUT = argVal("--out", null);
 const ROWS = argVal("--rows", "all"); // existing | new | all
+// One master seed for the whole run, printed/recorded so a rerun with
+// the same --seed reproduces every cell's own sequence exactly (each
+// cell still gets its OWN seed, derived from this one plus its own key
+// -- see cellSeed in sim_common.js). --seed wins over TEST_SEED/random
+// so a specific run can always be pinned down after the fact.
+const SEED = argVal("--seed", null) != null ? Number(argVal("--seed", null)) >>> 0 : pickSeed();
+console.error(`seed: ${SEED}`);
 
 const BOSS_ROSTER = [
   "tribal_warleader", "mercenary_commander", "merchant_lord_guard_captain", "merchant_lord_shieldmaster",
@@ -68,7 +75,9 @@ const ENEMY_MAGE_ELEMENTS = ["fire", "water", "earth", "lightning", "acid", "for
 
 function median(a) { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; }
 
-function runCell(sb, cls, L, cellSpec) {
+function runCell(sb, cls, L, cellSpec, key) {
+  const seed = cellSeed(SEED, key);
+  sb.seedRandom(seed);
   let wins = 0, allyDeaths = 0, n = 0, roundsSum = 0, playerHpSum = 0, allyHpSum = 0, allyHpCells = 0;
   const injuryTotals = {};
   for (let i = 0; i < N; i++) {
@@ -94,6 +103,7 @@ function runCell(sb, cls, L, cellSpec) {
     meanRounds: n ? roundsSum / n : null,
     meanPlayerHpPct: n ? (playerHpSum / n) * 100 : null,
     meanAllyHpPct: allyHpCells ? (allyHpSum / allyHpCells) * 100 : null,
+    seed,
   };
 }
 
@@ -115,7 +125,7 @@ function main() {
       for (const cls of sb.CLASS_IDS) {
         for (const mode of ["alone", "asSpawned"]) {
           const key = `boss:${id}:${mode}:${cls}`;
-          results[key] = runCell(sb, cls, L, { spawn: id, party: true, spawnMode: mode });
+          results[key] = runCell(sb, cls, L, { spawn: id, party: true, spawnMode: mode }, key);
           results[key].L = L;
         }
       }
@@ -128,7 +138,7 @@ function main() {
       const party = row.tier !== "normal";
       for (const cls of sb.CLASS_IDS) {
         const key = `new:${row.key}:${cls}`;
-        results[key] = runCell(sb, cls, L, { spawn: row.spawn, party, spawnMode: "alone", forceVariant: row.forceVariant });
+        results[key] = runCell(sb, cls, L, { spawn: row.spawn, party, spawnMode: "alone", forceVariant: row.forceVariant }, key);
         results[key].L = L;
         results[key].tier = row.tier;
       }
@@ -146,14 +156,14 @@ function main() {
       const L = 20;
       for (const cls of sb.CLASS_IDS) {
         const key = `new:enemyMage_${el}:${cls}`;
-        results[key] = runCell(sb, cls, L, { spawn: null, party: false, spawnMode: "alone", enemyMageElement: el });
+        results[key] = runCell(sb, cls, L, { spawn: null, party: false, spawnMode: "alone", enemyMageElement: el }, key);
         results[key].L = L;
         results[key].tier = "normal";
       }
     }
   }
 
-  const payload = { generatedAt: new Date().toISOString(), switch: SWITCH, n: N, rows: ROWS, results };
+  const payload = { generatedAt: new Date().toISOString(), switch: SWITCH, n: N, rows: ROWS, seed: SEED, results };
   const text = JSON.stringify(payload, null, 2);
   if (OUT) { fs.writeFileSync(OUT, text); console.log(`wrote ${OUT} (${Object.keys(results).length} cells)`); }
   else console.log(text);
