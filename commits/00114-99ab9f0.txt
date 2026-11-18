@@ -1,0 +1,92 @@
+range: 2da366c72294723d697ea34f91fa8fa1395b6630..99ab9f0e6f8c551a635772ffef64c1ffec6a4fcb
+=== 99ab9f0e6f8c551a635772ffef64c1ffec6a4fcb 2026-11-18 13:25:51 +0000
+Phase 2 Amendment 1: behavior/runHook rework of 2b+2c
+2b and 2c moved only the presence CHECK (hasModifier) into the
+registry, leaving what that presence actually DOES hardcoded in the
+player-only branch of rollToHit/effectivePlayerDef -- the ally branch
+never asked at all, so widening holders (R1) would have done nothing.
+That gap is Systems'/the spec's: §3 gave entries only value/when,
+suited to numeric multipliers, with no field for a behavior like
+"block this hit once per fight." This corrects it.
+
+Entry shape gains behavior/params/order/state. New infra in
+js/data/modifiers.js: MODIFIER_BEHAVIORS (named-function table, same
+pattern as Phase 1's PIPELINE_HOOKS), runHook(hook, holder, role, ctx)
+(dispatch, not lookup -- calls every matching entry's behavior, or
+treats a bare value as its own result, sorted by order, stopping on
+the first {stop:true}), modifierStateFor/modifierStateHost (resolves
+where an entry's live per-fight state lives -- combat.player for the
+player, the holder object itself for ally/enemy), and
+tickModifierCooldown for cooldowns ticked outside their own dispatch
+site. hasModifier is left defined but superseded; nothing calls it.
+
+Bedrock's floor is now a behavior on stat.def, dispatched via a shared
+applyStatDefFloor() helper from effectivePlayerDef, effectiveAllyDef,
+and stat()'s enemy "def" case -- only the player call matches today.
+
+All 7 rollToHit.defender entries (Timeless Guard, Guardian Spirit,
+Guided Footsteps, Never Where Expected, Blessing of Freedom, Evasive
+Guard, River Warden 6pc) are now behaviors with holder-side state,
+dispatched by rollToHit for BOTH the player and ally branches. Their
+per-fight fields (5 removed from PLAYER_FIELDS/the flat combat.player
+initializer) move under combat.player.modifierState; ally/enemy state
+lives on the holder itself, same as equipment. holders stays
+["player"] for all 7, so today's results are byte-identical -- the
+new ally-branch dispatch always finds zero matches.
+
+Migrated the 4 enemy-as-attacker accuracy entries missed in 2c
+(Duelist's Measure, Calculated Aim, Concealed Edge, Measured Aim) as
+rollToHit.attacker entries with holders: ["enemy"], in both the
+player-target and ally-target branches. Calculated Aim/Concealed Edge
+keep sharing one state slot via sharedStateKey, reproducing today's
+single creature.calculatedAimUsed flag. Unconditional bookkeeping that
+ran regardless of effect presence (duelistMeasurePendingTarget
+clearing, bankedAttackAccBonus zeroing) stays inline, not folded into
+the entries.
+
+audit.js M3 now warns on any entry with neither behavior nor a
+non-null value -- a presence-only entry that runHook can't actually
+dispatch, so widening its holders would do nothing. This is the
+concrete form of "M1 only counts an entry as migrated when runHook
+dispatches it." None of the 12 current entries trip it.
+
+New test-strike-proof ledger: widening Guardian Spirit's holders to
+include "ally" (a pure data mutation, zero engine change) makes an
+ally actually block the first hit; widening Calculated Aim's holders
+to include "player" makes the player's own attack roll actually gain
++8 accuracy. Both revert in a finally and are confirmed not to leak.
+This is the concrete proof that a rule written once now works for
+whichever fighter holds it.
+
+Six parity-test fixtures needed PHASE2_AMENDMENT1_OMIT_KEYS entries
+(same precedent as chill/playerLastHitType) since the frozen oracle
+predates both the removed flat fields and the new modifierState/
+calculatedAimUsed shape; 3 field-ledger tests updated for the 5
+relocated fields, with 2 new tests covering the modifierState
+round-trip/isolation behavior the old flat-field tests covered before.
+
+Full suite: 557/557 (552 prior + 5 new). audit.js: 0 errors, 472
+warnings.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               | 430 +++++++++++++++------
+ js/engine/combat.js                                |  90 +++--
+ js/engine/combatant.js                             |   7 +-
+ js/engine/companion.js                             |  22 +-
+ js/engine/pipeline.js                              |  98 ++---
+ tools/audit.js                                     |   9 +
+ tools/tests/phase1_step1b_pipeline_parity.js       |  21 +-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |  21 +-
+ .../phase1_step1d_ally_attack_pipeline_parity.js   |  21 +-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |  21 +-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |  21 +-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |  21 +-
+ .../phase1_step1g_iii_field_move_batch1_ledger.js  |  41 +-
+ .../phase1_step1g_v_field_move_batch3_ledger.js    |   5 +-
+ .../phase1_step1g_vi_field_move_batch4_ledger.js   |   5 +-
+ .../phase2_amendment1_test_strike_proof_ledger.js  | 152 ++++++++
+ tools/tests/run_all.js                             |   1 +
+ 17 files changed, 764 insertions(+), 222 deletions(-)

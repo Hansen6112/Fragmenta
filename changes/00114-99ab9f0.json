@@ -1,0 +1,312 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:bedrock",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Bedrock (Regalia). Presence-only -- the 75%-of-base floor on a Defense reduction is bespoke math in effectivePlayerDef, not a generic add/multiply.",
+    "new": "Bedrock (Regalia). Floors a Defense reduction at 75% of unreduced base."
+   },
+   {
+    "f": "order",
+    "new": 10
+   },
+   {
+    "f": "behavior",
+    "new": "defenseReductionFloor"
+   },
+   {
+    "f": "params",
+    "new": {
+     "floorPct": 0.75
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:timeless_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "state",
+    "old": null,
+    "new": {
+     "cooldown": 0
+    }
+   },
+   {
+    "f": "notes",
+    "old": "Timeless Guard. Presence-only -- the cooldown-gated full block is applyTimelessGuard's own logic (combat.js).",
+    "new": "Timeless Guard. Cooldown ticked by tickModifierCooldown, called from the same per-round tick site the old combat.player.timelessGuardCooldown field used."
+   },
+   {
+    "f": "order",
+    "new": 10
+   },
+   {
+    "f": "behavior",
+    "new": "cooldownGatedBlock"
+   },
+   {
+    "f": "params",
+    "new": {
+     "cooldown": 3,
+     "line": "Timeless Guard — for a moment, time itself refuses to let the blow land."
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guardian_spirit",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "state",
+    "old": null,
+    "new": {
+     "used": false
+    }
+   },
+   {
+    "f": "notes",
+    "old": "Guardian Spirit. Presence-only -- the once-per-fight full block is pipeline.js rollToHit's own logic.",
+    "new": "Guardian Spirit."
+   },
+   {
+    "f": "order",
+    "new": 20
+   },
+   {
+    "f": "behavior",
+    "new": "blockFirstHitOncePerFight"
+   },
+   {
+    "f": "params",
+    "new": {
+     "line": "Guardian Spirit turns the first blow aside completely."
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guided_footsteps",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "state",
+    "old": null,
+    "new": {
+     "used": false
+    }
+   },
+   {
+    "f": "notes",
+    "old": "Guided Footsteps. Presence-only -- the once-per-fight 75%-chance block is pipeline.js rollToHit's own logic.",
+    "new": "Guided Footsteps."
+   },
+   {
+    "f": "order",
+    "new": 30
+   },
+   {
+    "f": "behavior",
+    "new": "blockChanceOncePerFight"
+   },
+   {
+    "f": "params",
+    "new": {
+     "chance": 0.75,
+     "line": "Guided Footsteps — you're already a step from where it lands."
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:never_where_expected",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "notes",
+    "old": "Never Where Expected. Presence-only -- the flat 15% miss chance (every hit, not once-per-fight) is pipeline.js rollToHit's own logic. Corrected in the 2a catalogue's REVIEW pass: previously miscatalogued as rollToHit.attacker.",
+    "new": "Never Where Expected. Flat chance every hit, no once-per-fight gate. Corrected in the 2a catalogue's REVIEW pass: previously miscatalogued as rollToHit.attacker."
+   },
+   {
+    "f": "order",
+    "new": 40
+   },
+   {
+    "f": "behavior",
+    "new": "blockFlatChance"
+   },
+   {
+    "f": "params",
+    "new": {
+     "chance": 0.15,
+     "line": "Never Where Expected — it swings, and finds nothing there."
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of Freedom. Presence-only -- the flat 15% miss chance is pipeline.js rollToHit's own logic.",
+    "new": "Blessing of Freedom. Same behavior as Never Where Expected, reused rather than redefined."
+   },
+   {
+    "f": "order",
+    "new": 50
+   },
+   {
+    "f": "behavior",
+    "new": "blockFlatChance"
+   },
+   {
+    "f": "params",
+    "new": {
+     "chance": 0.15,
+     "line": "Blessing of Freedom carries you clear of the blow."
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:evasive_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "state",
+    "old": null,
+    "new": {
+     "stacks": 0
+    }
+   },
+   {
+    "f": "notes",
+    "old": "Evasive Guard (kind B, asymmetry register). Presence-only -- read inside rollToHit's own evasion-triggered branch; the +1 Defense stack it grants (up to +3) is a separate accumulator field (combat.player.evasiveGuardBonus), 2b/2e territory, not touched here.",
+    "new": "Evasive Guard (kind B, asymmetry register). Fires only once an evasion has already succeeded; grants +1 Defense per success, capped +3. effectivePlayerDef reads this entry's own state.stacks instead of the old combat.player.evasiveGuardBonus field."
+   },
+   {
+    "f": "order",
+    "new": 60
+   },
+   {
+    "f": "behavior",
+    "new": "grantStatStackOnEvasion"
+   },
+   {
+    "f": "params",
+    "new": {
+     "statKey": "def",
+     "amount": 1,
+     "max": 3
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:River Warden:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "state",
+    "old": null,
+    "new": {
+     "stacks": 0
+    }
+   },
+   {
+    "f": "notes",
+    "old": "River Warden 6pc. Presence-only -- read inside rollToHit's own evasion-triggered branch, gated on the incoming hit being magical (creature.element); the +2 Magic stack it grants (up to +8) is a separate accumulator field (combat.player.riverWardenMagicBonus), not touched here.",
+    "new": "River Warden 6pc. Same behavior as Evasive Guard, gated additionally on the incoming hit being magical. Grants +2 Magic per success, capped +8. The player's own Magic total reads this entry's own state.stacks instead of the old combat.player.riverWardenMagicBonus field."
+   },
+   {
+    "f": "order",
+    "new": 70
+   },
+   {
+    "f": "behavior",
+    "new": "grantStatStackOnEvasion"
+   },
+   {
+    "f": "params",
+    "new": {
+     "statKey": "magic",
+     "amount": 2,
+     "max": 8
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_cu_ie007_duelists_measure",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_mil_ie003_calculated_aim",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_iag_ie007_concealed_edge",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_iag_ie003_measured_aim",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "type": "registry added"
+ }
+]

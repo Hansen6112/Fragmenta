@@ -1,0 +1,410 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 227d3c9..fe75b69 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -123,11 +123,15 @@ const PLAYER_FIELDS = [
+   // Step 1g-iii: batch 1 of the 117-field move -- once-per-fight/cooldown
+   // flags (19 fields), moved as-is, no redesign of their own stacking/
+   // duration logic.
+-  "betweenWorldsUsed", "elderBarkSaveUsed", "firstHitTakenUsed", "guardianSpiritUsed",
+-  "guidedFootstepsUsed", "lastStandUsed", "mercyOfTheVeilUsed", "mirrorSoulUsed",
++  "betweenWorldsUsed", "elderBarkSaveUsed", "firstHitTakenUsed",
++  "lastStandUsed", "mercyOfTheVeilUsed", "mirrorSoulUsed",
+   "naturesPersistenceUsed", "preparedResponseWitnessed", "scoutStealthUsed", "sharedBurdenUsed",
+-  "stormBarrierUsed", "threadsOfConsequencePending", "timelessGuardCooldown", "trailblazerUsed",
++  "stormBarrierUsed", "threadsOfConsequencePending", "trailblazerUsed",
+   "unbreakableUsed", "unlikelyOutcomeGuaranteedCrit", "unyieldingWallCooldown",
++  // guardianSpiritUsed/guidedFootstepsUsed/timelessGuardCooldown moved
++  // off this list under Amendment 1 (Phase 2 step 2c rework) -- their
++  // state lives under their own registry entries now, initialized
++  // directly on combat.player.modifierState, never flat on combat.
+   // Step 1g-iv: batch 2 of the 117-field move -- every remaining avatarOf*
+   // field (the …Used flags moved already, in 1e). One family, read
+   // together; no redesign of the stacking/duration logic itself.
+@@ -151,7 +155,9 @@ const PLAYER_FIELDS = [
+   "everyChoiceAtkStacks", "everyChoiceMagicStacks", "forestGuardianBonus",
+   "groundbreakerDebuffs", "lastStandAtkBonus", "livingCurrentStacks", "livingSteelBonus",
+   "orderedMindDefStacks", "perfectMemoryKnowledgeBonus", "queenCarapaceBonus",
+-  "reinforcedDefStacks", "riverWardenMagicBonus", "sovereigntyTurnsLeft", "temperedSteelStacks",
++  // riverWardenMagicBonus moved off this list under Amendment 1 (Phase
++  // 2 step 2c rework) -- see "set:River Warden:6"'s own registry entry.
++  "reinforcedDefStacks", "sovereigntyTurnsLeft", "temperedSteelStacks",
+   "unbrokenLineHitCount", "unwaveringDevotionStacks", "wallsEndureDefStacks",
+   "whiteWatchRiposteDefBonus", "windsOfChangeAtk", "windsOfChangeDef", "windsOfChangeKnowledge",
+   "windsOfChangeMagic", "workRefinesAtkStacks", "workRefinesMagicStacks", "worthyChallengeStacks",
+@@ -167,7 +173,9 @@ const PLAYER_FIELDS = [
+   "atkBuffAmount", "atkBuffTurns", "defBuffAmount", "defBuffTurns",
+   "magicBuffAmount", "magicBuffTurns", "knowledgeBuffAmount", "damageReductionTurns",
+   "playerBuffs", "playerStatuses", "regen", "tempHealth",
+-  "evasionCharges", "evasionTurns", "evasiveGuardBonus", "exposedTarget",
++  // evasiveGuardBonus moved off this list under Amendment 1 (Phase 2
++  // step 2c rework) -- see "effect:evasive_guard"'s own registry entry.
++  "evasionCharges", "evasionTurns", "exposedTarget",
+   "playerLastHitType", "actionCounter", "weaponAttackCounter",
+   "momentumStacks", "momentumUnboundStacks", "siegeCorpsAtkCharge",
+ ];
+@@ -383,7 +391,10 @@ function effectivePlayerDef(state) {
+   const calmWatersDef = combat.player.calmWatersTurns > 0 ? combat.player.calmWatersDefBonus || 0 : 0;
+   // v0.11: flat in-combat stacks scale through flatStat (PLAYER_STAT_SCALE);
+   // `buff` and playerBuffs are already scaled where they're granted.
+-  const flatStacks = (combat.player.evasiveGuardBonus || 0) + (combat.player.forestGuardianBonus || 0) + (combat.player.queenCarapaceBonus || 0) + (combat.player.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.player.livingSteelBonus || 0) + (combat.player.battleTemperedDefStacks || 0) + (combat.player.compassionsGraceDefStacks || 0) * 2 + (combat.player.windsOfChangeDef || 0) + (combat.player.avatarOfChaosDefBonus || 0) + (combat.player.wallsEndureDefStacks || 0) + (combat.player.avatarOfEnduranceDefBonus || 0) + (combat.player.reinforcedDefStacks || 0) + (combat.player.orderedMindDefStacks || 0) + calmWatersDef;
++  // Evasive Guard's stack now lives on its own registry entry's state
++  // (Amendment 1, Phase 2 step 2c rework), not combat.player.evasiveGuardBonus.
++  const evasiveGuardStacks = modifierStateFor(state, "player", "effect:evasive_guard", MODIFIERS["effect:evasive_guard"]).stacks || 0;
++  const flatStacks = evasiveGuardStacks + (combat.player.forestGuardianBonus || 0) + (combat.player.queenCarapaceBonus || 0) + (combat.player.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.player.livingSteelBonus || 0) + (combat.player.battleTemperedDefStacks || 0) + (combat.player.compassionsGraceDefStacks || 0) * 2 + (combat.player.windsOfChangeDef || 0) + (combat.player.avatarOfChaosDefBonus || 0) + (combat.player.wallsEndureDefStacks || 0) + (combat.player.avatarOfEnduranceDefBonus || 0) + (combat.player.reinforcedDefStacks || 0) + (combat.player.orderedMindDefStacks || 0) + calmWatersDef;
+   const base = state.def + buff + flatStat(flatStacks) + playerBuffStatTotal(state, "def");
+   // Enemy Ability Engine (data/enemyabilities.js): a Defense-reducing
+   // status an enemy's active ability just inflicted (Shield Crush, ...),
+@@ -402,10 +413,11 @@ function effectivePlayerDef(state) {
+   // negating it outright, unlike Unbreakable/Corrosionproof below (which
+   // shrink or fully ignore the FIRST reduction at the moment it's applied).
+   const reduced = base + penalty;
+-  // Bedrock's presence check reads the registry now (Phase 2 step 2b,
+-  // js/data/modifiers.js's "effect:bedrock" entry) instead of a raw
+-  // direct lookup; the floor math itself stays here unchanged.
+-  const floored = hasModifier(state, "player", "effect:bedrock") ? Math.max(reduced, Math.round(base * 0.75)) : reduced;
++  // Bedrock's floor is now a registry behavior dispatched via
++  // applyStatDefFloor (Amendment 1, js/data/modifiers.js), for whichever
++  // fighter's Defense is being read -- effectiveAllyDef/stat()'s enemy
++  // "def" case call the same helper.
++  const floored = applyStatDefFloor(state, "player", base, reduced);
+   return Math.round(floored * ratioMult);
+ }
+ 
+@@ -974,8 +986,11 @@ function effectiveMagic(state) {
+   // Calm Waters (Regalia): a temporary Magic bonus granted whenever
+   // Cleansing Current clears a status — see applyStatusCleanseOnHeal.
+   const calmWatersMagic = combat && combat.player.calmWatersTurns > 0 ? combat.player.calmWatersMagicBonus || 0 : 0;
++  // River Warden 6pc's stack now lives on its own registry entry's state
++  // (Amendment 1, Phase 2 step 2c rework), not combat.player.riverWardenMagicBonus.
++  const riverWardenMagic = combat ? (modifierStateFor(state, "player", "set:River Warden:6", MODIFIERS["set:River Warden:6"]).stacks || 0) : 0;
+   // v0.11: flat stacks scale through flatStat; magicBuff is scaled at grant.
+-  const total = state.magic + magicBuff + flatStat(((combat && combat.player.riverWardenMagicBonus) || 0) + ((combat && combat.player.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
++  const total = state.magic + magicBuff + flatStat(riverWardenMagic + ((combat && combat.player.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
+   return Math.round(total * sovereigntyMultiplier(state));
+ }
+ 
+@@ -1703,18 +1718,14 @@ function borrowedSecondsActive(state) {
+ // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
+ // attack every 3 rounds deals 0 damage entirely — a full negation
+ // (unlike Unyielding Wall's damage CAP), on its own 3-round recharge
+-// (unlike Shared Burden's once-per-fight gate). Checked (and, on
+-// success, its own cooldown reset) at the very top of
+-// resolveEnemyAttackOnPlayer, before any of the other evasion/miss checks.
+-function applyTimelessGuard(state) {
+-  // Presence check reads the registry (Phase 2 step 2c); the cooldown
+-  // logic below is unchanged.
+-  if (!hasModifier(state, "player", "effect:timeless_guard") || !state.combat) return false;
+-  const combat = state.combat;
+-  if ((combat.player.timelessGuardCooldown || 0) > 0) return false;
+-  combat.player.timelessGuardCooldown = 3;
+-  return true;
+-}
++// (unlike Shared Burden's once-per-fight gate). Amendment 1 (Phase 2
++// step 2c rework): folded into the registry's "effect:timeless_guard"
++// entry (cooldownGatedBlock behavior), dispatched alongside Guardian
++// Spirit/Guided Footsteps/etc. in pipeline.js's rollToHit instead of
++// being its own standalone function with its own direct hasEffect()
++// call. Its cooldown is still ticked once per round -- see beginTurn's
++// tickModifierCooldown call, in place of the old
++// combat.player.timelessGuardCooldown decrement.
+ 
+ // Blessing of Creation (Regalia of the Eternal Forge 2pc): +25% to the
+ // MAGNITUDE of any temporary (duration-based) stat bonus granted —
+@@ -4057,7 +4068,7 @@ function beginTurn(state) {
+   if (combat.player.avatarOfCreationTurns > 0) combat.player.avatarOfCreationTurns -= 1;
+   if (combat.player.avatarOfRenewalTurns > 0) combat.player.avatarOfRenewalTurns -= 1;
+   if (combat.player.unyieldingWallCooldown > 0) combat.player.unyieldingWallCooldown -= 1;
+-  if (combat.player.timelessGuardCooldown > 0) combat.player.timelessGuardCooldown -= 1;
++  tickModifierCooldown(state, "player", "effect:timeless_guard");
+   // Avatar of Time (Regalia of the Eternal Hour 6pc): "when the effect
+   // ends, all cooldowns resume from whatever value they would have
+   // naturally reached" is simplified here to "cooldowns simply remain at
+@@ -5722,10 +5733,11 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     defBuffAmount: 0, // Stoneskin's defense bonus
+     evasionTurns: 0, // Windcut duration remaining
+     evasionCharges: 0, // Evasive Release's one-shot dodge charges
+-    evasiveGuardBonus: 0, // Evasive Guard's permanent-per-fight def, capped +3
++    // Evasive Guard's/River Warden 6pc's stacks moved to their own
++    // registry entries' state (Amendment 1, Phase 2 step 2c rework) --
++    // see the modifierState block below, not a flat field here.
+     queenCarapaceBonus: 0, // Carapace Adaptation's stacking def, capped +9
+     whiteWatchRiposteDefBonus: 0, // White Watch 6pc — stacking def per Riposte
+-    riverWardenMagicBonus: 0, // River Warden 6pc — stacking magic, capped +8
+     siegeCorpsAtkCharge: 0, // Siege Corps 6pc — one-shot +2 atk after Brace
+     lastElementUsed: null, // for elemental synergy — see data/synergy.js
+     firstPhysicalAttackDone: false, // gates Opening Reach
+@@ -5741,7 +5753,8 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     lastStandUsed: false, // gates Last Stand's (Legendary) 1-HP cheat-death
+     lastStandAtkBonus: 0, // Last Stand's +5 Attack, granted once triggered
+     momentumStacks: 0, // Momentum's (Legendary) stacking damage bonus, capped at 5
+-    guardianSpiritUsed: false, // gates Guardian Spirit's (Mythic) auto-miss on the first enemy attack
++    // Guardian Spirit's one-shot flag moved to its own registry entry's
++    // state (Amendment 1, Phase 2 step 2c rework) -- modifierState below.
+     adaptiveWardElement: null, // Adaptive Ward's (Mythic) locked-in resisted element, once the first elemental hit lands
+     perfectTimingUsed: false, // gates Perfect Timing's (Mythic) free first tactic
+     livingSteelBonus: 0, // Living Steel's (Mythic) stacking atk/def bonus, capped at 5
+@@ -5760,7 +5773,8 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     betweenWorldsUsed: false, // gates Between Worlds' (Divine Regalia) 1-HP cheat-death
+     avatarOfPassingUsed: false, // gates Avatar of Passing's (Regalia of the Final Veil 6pc) below-25%-HP burst
+     avatarOfPassingTurns: 0, // Avatar of Passing's temporary 30%-damage-dealt-as-healing duration remaining
+-    guidedFootstepsUsed: false, // gates Guided Footsteps' (Divine Regalia) 75%-chance first-attack miss
++    // Guided Footsteps' one-shot flag moved to its own registry entry's
++    // state (Amendment 1, Phase 2 step 2c rework) -- modifierState below.
+     everyChoiceAtkStacks: 0, // Every Choice Matters' (Divine Regalia) stacking +2 Attack per dodge/block/negate, capped at 5 (+10)
+     everyChoiceMagicStacks: 0, // Every Choice Matters' stacking +2 Magic, capped at 5 (+10)
+     threadsOfConsequencePending: false, // Threads of Consequence's (Regalia of the Woven Thread 4pc) next-attack +40% bonus
+@@ -5827,7 +5841,8 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     endlessCurrentStacks: 0, // Endless Current's (Regalia of the Endless Tide 4pc) stacking +2/+2/+2 Attack/Defense/Magic per heal, capped at 5 (+10/+10/+10)
+     avatarOfRenewalUsed: false, // gates Avatar of Renewal's (Regalia of the Endless Tide 6pc) below-25%-HP burst
+     avatarOfRenewalTurns: 0, // Avatar of Renewal's temporary per-round-heal/reduced-damage-taken duration remaining
+-    timelessGuardCooldown: 0, // Timeless Guard's (Divine Regalia) once-every-3-rounds recharge, in rounds remaining
++    // Timeless Guard's cooldown moved to its own registry entry's state
++    // (Amendment 1, Phase 2 step 2c rework) -- modifierState below.
+     perfectMemoryKeys: [], // Perfect Memory's (Divine Regalia) list of distinct Tactics/Elemental Abilities already used this fight
+     perfectMemoryKnowledgeBonus: 0, // Perfect Memory's stacking +2 Knowledge per first-use, capped at 16 (8 distinct actions)
+     hourglassReserveReady: hasEffect(state, "hourglass_reserve"), // Hourglass Reserve's (Divine Regalia) once-per-combat free-cooldown charge, available from combat start
+@@ -5875,6 +5890,23 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+   // deleted this commit) only existed to bridge the multi-batch call-
+   // site rewrite; nothing needs it now.
+   state.combat.player = makePlayerCombatStore(state.combat);
++  // Amendment 1 (Phase 2 step 2c rework): the per-fight state for the 7
++  // rollToHit.defender registry entries (Timeless Guard's cooldown,
++  // Guardian Spirit's/Guided Footsteps' one-shot flags, Evasive Guard's/
++  // River Warden 6pc's stacks -- Never Where Expected/Blessing of
++  // Freedom need none) lives here instead of their old flat
++  // combat.player.<field> spellings. modifierStateFor() lazily creates
++  // any of these on first access anyway (entry.state is each one's
++  // initial shape), so this block is just making that explicit/eager,
++  // matching this file's own convention of declaring every fight-start
++  // field rather than relying on lazy undefined-coalescing.
++  state.combat.player.modifierState = {
++    "effect:timeless_guard": { cooldown: 0 },
++    "effect:guardian_spirit": { used: false },
++    "effect:guided_footsteps": { used: false },
++    "effect:evasive_guard": { stacks: 0 },
++    "set:River Warden:6": { stacks: 0 },
++  };
+   // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
+   // creature once actually fought — dynamic creatures (enemy mages) have
+   // no fixed BESTIARY id/species to log, so they're excluded; every real
+diff --git a/js/engine/combatant.js b/js/engine/combatant.js
+index d287ed8..176c684 100644
+--- a/js/engine/combatant.js
++++ b/js/engine/combatant.js
+@@ -198,7 +198,12 @@ function stat(state, combatant, key) {
+       // (step 5), moved there from allyAggressiveActionLegacy's old
+       // pre-damage-calc timing — see pipeline.js's own comment on why
+       // that reorder is safe.
+-      case "def": return creature.def || 0;
++      // Amendment 1 (Phase 2 step 2b rework): dispatched through the same
++      // stat.def registry hook Bedrock/effectiveAllyDef use -- no entry
++      // has holders including "enemy" today, and this accessor has no
++      // reduction concept of its own (base === reduced always, per the
++      // comment above), so this is a true no-op today, wired for R2.
++      case "def": return applyStatDefFloor(creature, "enemy", creature.def || 0, creature.def || 0);
+       default: return notYetMigrated("enemy", key);
+     }
+   }
+diff --git a/js/engine/companion.js b/js/engine/companion.js
+index 1a2a0a3..05f0545 100644
+--- a/js/engine/companion.js
++++ b/js/engine/companion.js
+@@ -256,17 +256,21 @@ function hadrianFlatAtkBonus(ally) {
+ // directly for ANY ally (not just Hadrian) — it's all zeroes for a
+ // non-kit-bearing ally like Kessa, so this is a safe drop-in there too.
+ function effectiveAllyDef(ally) {
+-  return (
+-    (ally.def || 0) +
++  const base = (ally.def || 0) +
+     // v0.11: flat companion bonuses scale with PLAYER_STAT_SCALE, like ally.def itself
+     flatStat((ally.bonusDefAmount || 0) + (ally.reactiveDefBonus || 0) + (ally.ascendedSetDefBonus || 0) + (ally.noNameForgottenDefBonus || 0)) +
+-    allyBuffStatTotal(ally, "def") +
+-    // allyStatusStatTotal (engine/combat.js): a Defense-reducing status an
+-    // enemy ability just inflicted on this ally (Shield Crush-style
+-    // inflict.custom, or a named STATUS_EFFECTS entry like Off Balance) —
+-    // same already-signed-delta convention playerStatusStatTotal uses.
+-    allyStatusStatTotal(ally, "def")
+-  );
++    allyBuffStatTotal(ally, "def");
++  // allyStatusStatTotal (engine/combat.js): a Defense-reducing status an
++  // enemy ability just inflicted on this ally (Shield Crush-style
++  // inflict.custom, or a named STATUS_EFFECTS entry like Off Balance) —
++  // same already-signed-delta convention playerStatusStatTotal uses.
++  const penalty = allyStatusStatTotal(ally, "def");
++  const reduced = base + penalty;
++  // Amendment 1 (Phase 2 step 2b rework): dispatched through the same
++  // stat.def registry hook Bedrock (effectivePlayerDef, combat.js) uses
++  // -- holders is ["player"] only today, so this always falls through to
++  // `reduced` unchanged; wired for R1, not yet live.
++  return penalty >= 0 ? reduced : applyStatDefFloor(ally, "ally", base, reduced);
+ }
+ 
+ // Extracted from resolveEnemyAttackOnAlly's own inline calc (Combat
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 7b8130b..3ed4f0b 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -295,20 +295,21 @@ function rollToHit(actor, target, action, ctx) {
+     // branch's own read.
+     const markedTargetBonusAlly = COMBAT_UNIFY.U3a && combat.player.exposedTarget && combat.player.exposedTarget.by !== creature ? 8 : 0;
+     if (markedTargetBonusAlly) combat.player.exposedTarget = null;
+-    const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
+-    let calculatedAimBonusAlly = 0;
+-    if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
+-      creature.calculatedAimUsed = true;
+-      calculatedAimBonusAlly = 8;
+-    }
++    // Amendment 1 (Phase 2 step 2c follow-up): Duelist's Measure/
++    // Calculated Aim/Concealed Edge/Measured Aim dispatched via the
++    // registry (rollToHit.attacker, holders: ["enemy"]) instead of
++    // inline hasEffect() calls -- the unconditional resets below (the
++    // pending-target clear, the banked-prep zeroing) stay inline exactly
++    // where they were, since today's code runs them regardless of
++    // whether the creature has any of these effects at all.
+     const bankedPrepBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
+     const bankedPrepDmgMultBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
+-    const measuredAimAccBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
++    const attackerBonusAlly = sumNumeric(runHook("rollToHit.attacker", creature, "enemy", { creature, targetName: ally.name }));
+     creature.bankedAttackAccBonus = 0;
+     creature.bankedAttackAccBonusTurnsLeft = 0;
+     creature.bankedAttackDmgMultBonus = 0;
+-    const accBonus = baseAccBonus + markedTargetBonusAlly + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
+     creature.duelistMeasurePendingTarget = null;
++    const accBonus = baseAccBonus + markedTargetBonusAlly + attackerBonusAlly + bankedPrepBonusAlly;
+     if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, stat(state, target, "agi"))) {
+       // Riposte, generalized: a miss on an ally provokes a counter FROM
+       // the ally onto the attacker — the player-targeted path has no
+@@ -316,6 +317,15 @@ function rollToHit(actor, target, action, ctx) {
+       const enemySlot = actor.store;
+       return { hit: false, result: { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`, ...riposteCounterByAllyOnEnemy(state, ally, enemySlot)], damage: null } };
+     }
++    // Amendment 1: the same "miss chain" rollToHit's player branch below
++    // dispatches, now dispatched here too so an ally-held entry (none
++    // today -- holders stays ["player"]) would actually be reachable
++    // once R1 widens it. Byte-identical today: no entry's holders
++    // include "ally", so this always falls through.
++    const allyMissChain = firstStop(runHook("rollToHit.defender", ally, "ally", { phase: "miss", creature }));
++    if (allyMissChain) {
++      return { hit: false, result: { lines: [allyMissChain.miss], damage: 0 } };
++    }
+     return { hit: true, accBonus, bankedPrepDmgMultBonus: bankedPrepDmgMultBonusAlly };
+   }
+ 
+@@ -324,44 +334,32 @@ function rollToHit(actor, target, action, ctx) {
+     markedTargetBonus = 8;
+     combat.player.exposedTarget = null;
+   }
+-  const duelistPending = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === "player";
+-  const duelistBonus = duelistPending ? 10 : 0;
+-  creature.duelistMeasurePendingTarget = null;
+-  let calculatedAimBonus = 0;
+-  if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
+-    creature.calculatedAimUsed = true;
+-    calculatedAimBonus = 8;
+-  }
++  // Amendment 1 (Phase 2 step 2c follow-up): Duelist's Measure/
++  // Calculated Aim/Concealed Edge/Measured Aim dispatched via the
++  // registry (rollToHit.attacker, holders: ["enemy"]) instead of inline
++  // hasEffect() calls -- the unconditional resets below stay inline
++  // exactly where they were (see the ally branch's own comment above).
+   const bankedPrepBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
+   const bankedPrepDmgMultBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
+-  const measuredAimAccBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
++  const attackerBonus = sumNumeric(runHook("rollToHit.attacker", creature, "enemy", { creature, targetName: "player" }));
+   creature.bankedAttackAccBonus = 0;
+   creature.bankedAttackAccBonusTurnsLeft = 0;
+   creature.bankedAttackDmgMultBonus = 0;
+-  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus + measuredAimAccBonus;
++  creature.duelistMeasurePendingTarget = null;
++  const accBonus = baseAccBonus + markedTargetBonus + attackerBonus + bankedPrepBonus;
+ 
+   if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
+     return miss(`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`);
+   }
+-  if (applyTimelessGuard(state)) {
+-    return miss(`Timeless Guard — for a moment, time itself refuses to let the blow land.`);
+-  }
+-  // Presence checks read the registry (Phase 2 step 2c); the per-effect
+-  // logic (cooldown/once-per-fight flags, miss chances) is unchanged.
+-  if (hasModifier(state, "player", "effect:guardian_spirit") && !combat.player.guardianSpiritUsed) {
+-    combat.player.guardianSpiritUsed = true;
+-    return miss(`Guardian Spirit turns the first blow aside completely.`);
+-  }
+-  if (hasModifier(state, "player", "effect:guided_footsteps") && !combat.player.guidedFootstepsUsed) {
+-    combat.player.guidedFootstepsUsed = true;
+-    if (Math.random() < 0.75) return miss(`Guided Footsteps — you're already a step from where it lands.`);
+-  }
+-  if (hasModifier(state, "player", "effect:never_where_expected") && Math.random() < 0.15) {
+-    return miss(`Never Where Expected — it swings, and finds nothing there.`);
+-  }
+-  if (hasModifier(state, "player", "set:Regalia of the Endless Horizon:2") && Math.random() < 0.15) {
+-    return miss(`Blessing of Freedom carries you clear of the blow.`);
+-  }
++  // Amendment 1 (Phase 2 step 2c rework): Timeless Guard/Guardian
++  // Spirit/Guided Footsteps/Never Where Expected/Blessing of Freedom
++  // are now ONE dispatch through the registry (behaviors, not 5
++  // separate hasEffect()/hasModifier() checks) -- in `order`, so the
++  // Math.random() call sequence matches exactly, and the first one that
++  // fires stops the rest from even being evaluated, same as today's
++  // sequential if/return chain.
++  const missChain = firstStop(runHook("rollToHit.defender", state, "player", { phase: "miss", creature }));
++  if (missChain) return miss(missChain.miss);
+   if (combat.player.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
+     return miss(`Avatar of Freedom carries you beyond its reach entirely.`);
+   }
+@@ -373,10 +371,10 @@ function rollToHit(actor, target, action, ctx) {
+     evasionRolled = Math.random() < 0.5;
+   }
+   if (evasionRolled) {
+-    if (hasModifier(state, "player", "effect:evasive_guard")) combat.player.evasiveGuardBonus = Math.min(3, combat.player.evasiveGuardBonus + 1);
+-    if (creature.element && hasModifier(state, "player", "set:River Warden:6")) {
+-      combat.player.riverWardenMagicBonus = Math.min(8, combat.player.riverWardenMagicBonus + 2);
+-    }
++    // Evasive Guard's/River Warden 6pc's stat-stack grants, same
++    // registry dispatch, now reacting to an evasion that already
++    // succeeded rather than deciding it themselves.
++    runHook("rollToHit.defender", state, "player", { phase: "evasion", creature });
+     return miss(`You slip past ${withThe(creature.name, false)}'s counter entirely.`);
+   }
+   return { hit: true, accBonus, bankedPrepDmgMultBonus };
+@@ -778,8 +776,13 @@ function rollToHitAllyActor(actor, target, action, ctx) {
+   // zero effect on any normal ally attack.
+   if (action.toHit === "none") return { hit: true };
+ 
++  // Amendment 1: dispatches rollToHit.attacker for the ally-as-attacker
++  // side too -- no registry entry's holders include "ally" today, so
++  // this is always 0, byte-identical. Same readiness wiring as
++  // rollToHitPlayerActor's own copy, just below.
++  const allyAttackerBonus = sumNumeric(runHook("rollToHit.attacker", ally, "ally", { creature, targetName: "enemy" }));
+   if (action.formula !== "allyPlain") {
+-    if (!attackConnects(ally.accuracy, effectiveEnemyAgility(enemySlot), action.veteranPct)) {
++    if (!attackConnects(ally.accuracy + allyAttackerBonus, effectiveEnemyAgility(enemySlot), action.veteranPct)) {
+       // basicCompanionAttackLegacy's miss line (no ability) vs
+       // useHadrianActive's (a named active) — genuinely different text.
+       // U3g (off by default, handoff §0): with it on, a miss here also
+@@ -795,7 +798,7 @@ function rollToHitAllyActor(actor, target, action, ctx) {
+   }
+ 
+   const allyAcc = stat(state, actor, "acc");
+-  if (!attackConnects(allyAcc, effectiveEnemyAgility(enemySlot))) {
++  if (!attackConnects(allyAcc + allyAttackerBonus, effectiveEnemyAgility(enemySlot))) {
+     return { hit: false, result: { lines: [`${ally.name} lunges at ${withThe(creature.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, enemySlot, ally)], damage: null } };
+   }
+   return { hit: true };
+@@ -1555,7 +1558,14 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
+   const state = ctx.state;
+   const enemySlot = target.store;
+   const creature = enemySlot.creatureObj;
+-  if (!attackConnects(effectivePlayerAccuracy(state), effectiveEnemyAgility(enemySlot))) {
++  // Amendment 1: dispatches rollToHit.attacker for the player-as-attacker
++  // side too -- no registry entry's holders include "player" today, so
++  // this is always 0, byte-identical. Wired so a future entry (or a
++  // test widening an existing one's holders, e.g. Calculated Aim) is
++  // actually reachable here, the same "a rule works for whoever holds
++  // it" promise the enemy-as-attacker branches (rollToHit) already keep.
++  const attackerBonus = sumNumeric(runHook("rollToHit.attacker", state, "player", { creature, targetName: "enemy" }));
++  if (!attackConnects(effectivePlayerAccuracy(state) + attackerBonus, effectiveEnemyAgility(enemySlot))) {
+     const lines = action.missLine(state, creature);
+     return { hit: false, result: { lines, damage: null } };
+   }
