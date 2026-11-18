@@ -23,7 +23,7 @@
 const MOD_HOOKS = [
   "chooseAction", "chooseTargets",
   "rollToHit.attacker", "rollToHit.defender",
-  "calculateDamage.outgoing", "calculateDamage.defenseIgnore", "calculateDamage.incoming",
+  "calculateDamage.outgoing", "calculateDamage.defenseIgnore", "calculateDamage.incoming", "calculateDamage.tags",
   "applyAndReact.onHitDealt", "applyAndReact.onHitTaken", "applyAndReact.onMiss",
   "applyAndReact.onZeroDamage", "applyAndReact.onKill", "applyAndReact.onDowned",
   "applyAndReact.onStatusApplied",
@@ -115,6 +115,17 @@ function sourceActiveOn(holder, source) {
     // the Ferratum, Astra Sa'Lahru's Broken Crest — see the catalogue).
     case "item": return holder.id === source.holderId;
     case "skill": return false; // reserved for Player Skills — nothing authored in Phase 2
+    // A mechanic that is its own composite gate across several pieces of
+    // gear (2d: crit, which blends Regalia of the Woven Thread:2/Endless
+    // Archive:2/Laughing Gale:2's own chances into ONE roll -- splitting
+    // that into 3 separate entries, each with its OWN roll, would change
+    // the odds, not just relocate the check) and has no single
+    // hasEffect/hasSetTier presence of its own to test. The entry's own
+    // behavior/value function does its own, already-correct gating
+    // internally (by delegating to the unchanged original function), so
+    // this is never false -- `holders` is still what scopes it to the
+    // player today.
+    case "always": return true;
     default: return false;
   }
 }
@@ -235,6 +246,42 @@ function sumBucket(entries, bucketName, ctx) {
   return sum;
 }
 
+// NOTE: sumBucket (above) is R3's own future tool -- it applies §4's
+// caps unconditionally, which 2d must NOT do yet (spec step 2d:
+// "combined by the legacy product while R3 is off"). The function below
+// is the one 2d's own call sites actually use.
+//
+// calculateDamage.outgoing (2d): combines every active entry's own
+// resolved number EXACTLY the way today's code does -- a flat product
+// of independent factors, one per entry, in `order`. Buckets are
+// recorded as data (future R3 reads them to sum-then-cap instead), but
+// they don't change the COMBINATION yet. An entry in the "crit" or
+// "variance" bucket contributes its own resolved number AS the factor
+// itself (today's critMult/loadedDiceMult/chaosMult are already raw
+// multipliers -- 1 when inactive); every other bucket contributes
+// (1 + resolved number), matching today's "+20%"-style effects. An
+// entry with `upgrades` set never contributes its own factor (Rule 1 --
+// not used by any 2d entry yet, but kept consistent with the catalogue's
+// own documented mechanism for when one is). Returns both the overall
+// product and a per-key breakdown: a couple of callers (Blessing of
+// Fortune/Avatar of Chaos's own crit-stacks, grown right after the roll)
+// need to know whether THIS ONE entry's factor exceeded 1, not just the
+// total.
+const CRIT_MODIFIER_KEY = "always:crit";
+function calculateOutgoingMultiplier(holder, holderRole, ctx) {
+  const results = runHook("calculateDamage.outgoing", holder, holderRole, ctx);
+  let total = 1;
+  const byKey = {};
+  for (const r of results) {
+    if (r.entry.upgrades) continue;
+    const v = typeof r.result === "number" ? r.result : 0;
+    const factor = r.entry.bucket === "crit" || r.entry.bucket === "variance" ? v : 1 + v;
+    byKey[r.key] = factor;
+    total *= factor;
+  }
+  return { total, byKey };
+}
+
 // Deprecated (Amendment 1): a presence-only check with a hard-coded
 // role, the shape 2b/2c's first pass used before this amendment. Kept
 // defined (nothing calls it as of this rework) but superseded by
@@ -301,6 +348,37 @@ registerBehavior("oncePerFightFlatBonus", (ctx, entry, state) => {
   state.used = true;
   return entry.params.bonus;
 });
+
+// calculateDamage.tags: overrides the tag-driven multiplier dmgTagMultiplierForAttacker
+// (js/data/damagetypes.js) would otherwise read off DAMAGE_TAG_MULTIPLIER,
+// for a known ATTACKER's own hit (Fragmenta 6pc, approved 18 Nov --
+// Phase 2 Bucket Review §4). Outside the damage buckets entirely (Rule
+// 3, same as elemental synergy/damage-type tags generally), so this
+// returns the final multiplier directly rather than contributing to a
+// bucket sum -- no cap applies. ctx = { damageType, tag } (`tag`:
+// already shifted by Avatar of Knowledge, if active, by the caller
+// before this hook runs -- Fragmenta's override reads whatever tag
+// comes out of that shift, exactly per the approved ruling's own
+// worked example). Only `weak`/`resist` have a value to override;
+// `normal`/`immune` fall through to null (the caller's own
+// DAMAGE_TAG_MULTIPLIER fallback already gives the right 1/0).
+// params: { weak, resist, nonPhysicalOnly }.
+registerBehavior("tagValueOverride", (ctx, entry) => {
+  if (entry.params.nonPhysicalOnly && damageFamily(ctx.damageType) === "physical") return null;
+  if (ctx.tag === "weak" && entry.params.weak != null) return entry.params.weak;
+  if (ctx.tag === "resist" && entry.params.resist != null) return entry.params.resist;
+  return null;
+});
+
+// calculateDamage.outgoing (2d): the two outgoing entries that mutate
+// state (critMultiplier/loadedDiceMultiplier both do, pre-existing,
+// unrelated to this migration) delegate to their own unchanged function
+// as a behavior rather than a bare value, since only a behavior is
+// documented as allowed to write. Neither touches `holderState` --
+// they write directly to ctx.state.combat.player, exactly as they
+// always have.
+registerBehavior("criticalHitRoll", (ctx) => critMultiplier(ctx.state, ctx.isSpell));
+registerBehavior("loadedDiceRoll", (ctx) => loadedDiceMultiplier(ctx.state));
 
 // ================= Entries =================
 
@@ -422,4 +500,205 @@ registerModifier("effect:sang_iag_ie003_measured_aim", {
   when: (ctx) => (ctx.creature.bankedAttackAccBonusTurnsLeft || 0) > 0,
   holders: ["enemy"], state: null,
   notes: "Measured Aim. Pure value+when -- the unconditional bankedAttackAccBonus*/TurnsLeft zeroing (a DIFFERENT, unrelated 'prepared state' mechanic) stays inline in rollToHit regardless of whether this fires.",
+});
+
+// ---- Fragmenta 6pc tag override (approved fix, 18 Nov -- separate from
+// step 2d). The original (js/data/matchups.js's elementMultiplier) only
+// ever ran with DAMAGE_TYPES_V2 off, which the switch's own permanent
+// `true` made dead the moment damage types went live (09d4131) -- this
+// replacement is the tag-system equivalent the Bucket Review's §4
+// approved: against the wearer's own non-physical hits, a target's Weak
+// tag counts as 1.75x (was 1.5x) and Resist as 0.75x (was 0.5x). Read
+// via dmgTagMultiplierForAttacker (js/data/damagetypes.js), which runs
+// this hook for the attacker after resolving Avatar of Knowledge's own
+// tag shift -- see that function's own header for the combined order.
+registerModifier("set:Fragmenta:6", {
+  source: { kind: "set", id: "Fragmenta:6", setName: "Fragmenta", tier: 6 },
+  hook: "calculateDamage.tags", order: 10, bucket: null, value: null,
+  behavior: "tagValueOverride", params: { weak: 1.75, resist: 0.75, nonPhysicalOnly: true },
+  when: null, holders: ["player"], state: null,
+  notes: "Fragmenta 6pc. Outside the buckets (Rule 3) -- see this file's own tagValueOverride behavior header. R1 widens holders later, like every other set bonus.",
+});
+
+// ---- 2d, increment 1: calculateDamage.outgoing -- the player's own
+// rollPlayerDamage(combat.js)/rollPlayerDamageCoreForPipeline(pipeline.js)
+// damage roll, the spec's own illustrative ×20.5 example (§1). Every
+// entry below wraps an EXISTING, unchanged multiplier function (named or
+// inline) verbatim -- this round changes WHERE each number comes from
+// (the registry, via calculateOutgoingMultiplier), never HOW it's
+// computed, so it's byte-identical by construction: same functions, same
+// RNG call order (the `order` field matches today's left-to-right
+// multiply chain exactly, both branches -- see that function's own
+// header on why only relative order among entries that actually consume
+// Math.random() matters). `ctx` at both call sites is
+// { state, creature, isSpell, atk, effDef } -- `atk`/`effDef` only
+// populated by the weapon branch, which is fine: every entry that reads
+// them is itself `when`-gated to `!isSpell`, so it's never called
+// without them.
+//
+// Scope: only the entries that were already PURE reads of existing,
+// unchanged functions (or, for the two that aren't -- crit and loaded
+// dice -- wrapped as a `behavior`, since behaviors may mutate state the
+// same way their original functions already did). Set tiers that
+// UPGRADE one of these (Thraekor:6, Vanguard:4/6, Ashforged:6, Kabal:4,
+// Novitiate:4, Pre-Kabal:4, Scout Corps:6, ...) are deliberately NOT
+// touched here -- crushing_impact's own value function below still
+// calls crushingImpactMultiplier(state), which already folds those in
+// via Math.max, so nothing about their behavior changes; they get their
+// OWN registry entries (Rule 1's `upgrades` field) in a later increment,
+// purely so M1 stops warning about them. defenseIgnore and incoming are
+// later increments too.
+registerModifier("effect:crushing_impact", {
+  source: { kind: "effect", id: "crushing_impact" },
+  hook: "calculateDamage.outgoing", order: 5, bucket: "conditional",
+  value: (ctx) => crushingImpactMultiplier(ctx.state) - 1, behavior: null,
+  when: (ctx) => !ctx.isSpell && ctx.effDef > ctx.atk, holders: ["player"], state: null,
+  notes: "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(state) unchanged -- that shared resolver already takes the best of the base 1.2x and Thraekor:6/Vanguard:4/Ashforged:6's own upgrades via Math.max, so those three set tiers don't need their own entries for this to stay correct; they still owe M1 a registry entry of their own, deferred to a later increment.",
+});
+registerModifier("effect:executioner", {
+  source: { kind: "effect", id: "executioner" },
+  hook: "calculateDamage.outgoing", order: 10, bucket: "conditional",
+  value: (ctx) => executionerMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Executioner. Value delegates to executionerMultiplier(state) unchanged, which itself reads executionerThreshold(state) (Drake Hunter:4/Vanguard:6/Contract Hunter:4's own upgrades, already folded in there) -- those three set tiers still owe M1 a registry entry of their own, deferred.",
+});
+registerModifier("set:Drake Hunter:6", {
+  source: { kind: "set", id: "Drake Hunter:6", setName: "Drake Hunter", tier: 6 },
+  hook: "calculateDamage.outgoing", order: 20, bucket: "conditional",
+  value: (ctx) => dragonslayerMultiplier(ctx.state, ctx.creature) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Dragonslayer. Value delegates to dragonslayerMultiplier(state, creature) unchanged.",
+});
+registerModifier("set:Bonecaller:6", {
+  source: { kind: "set", id: "Bonecaller:6", setName: "Bonecaller", tier: 6 },
+  hook: "calculateDamage.outgoing", order: 30, bucket: "conditional",
+  value: (ctx) => bleedExploitationMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Bleed Exploitation. Value delegates to bleedExploitationMultiplier(state) unchanged.",
+});
+registerModifier("effect:kingslayer", {
+  source: { kind: "effect", id: "kingslayer" },
+  hook: "calculateDamage.outgoing", order: 40, bucket: "conditional",
+  value: (ctx) => kingslayerMultiplier(ctx.state, ctx.creature) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Kingslayer. Value delegates to kingslayerMultiplier(state, creature) unchanged (Master of Arms' own doubling stays folded inside it).",
+});
+registerModifier("effect:hunters_instinct", {
+  source: { kind: "effect", id: "hunters_instinct" },
+  hook: "calculateDamage.outgoing", order: 50, bucket: "conditional",
+  value: (ctx) => huntersInstinctMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Hunter's Instinct. Value delegates to huntersInstinctMultiplier(state) unchanged.",
+});
+registerModifier("effect:momentum", {
+  source: { kind: "effect", id: "momentum" },
+  hook: "calculateDamage.outgoing", order: 60, bucket: "stacking",
+  value: (ctx) => momentumMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Momentum. Value delegates to momentumMultiplier(state) unchanged -- a pure read of combat.player.momentumStacks; the stack's own growth stays exactly where it is today (after the roll, in rollPlayerDamage/rollPlayerDamageCoreForPipeline's own tail), not moved into this entry's state yet (2e's job).",
+});
+registerModifier("effect:execution_protocol", {
+  source: { kind: "effect", id: "execution_protocol" },
+  hook: "calculateDamage.outgoing", order: 70, bucket: "burst",
+  value: (ctx) => executionProtocolMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Execution Protocol. Value delegates to executionProtocolMultiplier(state) unchanged.",
+});
+registerModifier("effect:temporal_echo", {
+  source: { kind: "effect", id: "temporal_echo" },
+  hook: "calculateDamage.outgoing", order: 80, bucket: "burst",
+  value: (ctx) => temporalEchoMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Temporal Echo. Value delegates to temporalEchoMultiplier(state) unchanged.",
+});
+registerModifier("effect:echoing_arsenal", {
+  source: { kind: "effect", id: "echoing_arsenal" },
+  hook: "calculateDamage.outgoing", order: 85, bucket: "burst",
+  value: (ctx) => (ctx.state.combat.player.weaponAttackCounter % 5 === 0 ? 2 : 1) - 1, behavior: null,
+  when: (ctx) => !ctx.isSpell, holders: ["player"], state: null,
+  notes: "Echoing Arsenal. Weapon-branch only (when: !isSpell, today's exact gate -- this never applied to spells). Reads weaponAttackCounter, which the caller still increments at the exact same point it does today, right before this hook runs.",
+});
+registerModifier("effect:arcane_overflow", {
+  source: { kind: "effect", id: "arcane_overflow" },
+  hook: "calculateDamage.outgoing", order: 90, bucket: "burst",
+  value: (ctx) => arcaneOverflowMultiplier(ctx.state) - 1, behavior: null,
+  when: (ctx) => !!ctx.isSpell, holders: ["player"], state: null,
+  notes: "Arcane Overflow. Spell-branch only (when: isSpell, today's exact gate -- arcaneOverflowMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own multiply chain).",
+});
+registerModifier("always:crit", {
+  source: { kind: "always" },
+  hook: "calculateDamage.outgoing", order: 100, bucket: "crit",
+  value: null, behavior: "criticalHitRoll",
+  when: null, holders: ["player"], state: null,
+  notes: "The player's crit system (Blessing of Guidance/Blessing of Insight/Blessing of Fortune/Avatar of Fate -- see critMultiplier's own header). A behavior (not a bare value) because critMultiplier itself consumes combat.player.unlikelyOutcomeGuaranteedCrit -- a real pre-existing state write, carried over unchanged rather than restructured this round. One composite entry under an 'always' source (see sourceActiveOn's own note) rather than three, since the three sets' own chances already ADD before a single roll today -- splitting them into three independent rolls would change the odds. CRIT_MODIFIER_KEY names this entry's key for the two post-roll callers (Blessing of Fortune/Avatar of Chaos's own stack growth) that need to know whether THIS hit actually crit, not just the overall outgoing total.",
+});
+registerModifier("set:Regalia of the Woven Thread:4", {
+  source: { kind: "set", id: "Regalia of the Woven Thread:4", setName: "Regalia of the Woven Thread", tier: 4 },
+  hook: "calculateDamage.outgoing", order: 110, bucket: "burst",
+  value: (ctx) => (ctx.state.combat.player.threadsOfConsequencePending ? 1.4 : 1) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Threads of Consequence. Pure read of combat.player.threadsOfConsequencePending (set elsewhere, on an enemy miss) -- the flag's own reset-to-false stays exactly where it is today, in the caller's own tail, not moved into this entry's state yet.",
+});
+registerModifier("effect:worthy_challenge", {
+  source: { kind: "effect", id: "worthy_challenge" },
+  hook: "calculateDamage.outgoing", order: 120, bucket: "stacking",
+  value: (ctx) => worthyChallengeMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Worthy Challenge. Value delegates to worthyChallengeMultiplier(state) unchanged.",
+});
+registerModifier("set:Regalia of the Crimson Vanguard:2", {
+  source: { kind: "set", id: "Regalia of the Crimson Vanguard:2", setName: "Regalia of the Crimson Vanguard", tier: 2 },
+  hook: "calculateDamage.outgoing", order: 130, bucket: "conditional",
+  value: (ctx) => blessingOfValorMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of Valor. Value delegates to blessingOfValorMultiplier(state) unchanged.",
+});
+registerModifier("effect:loaded_dice", {
+  source: { kind: "effect", id: "loaded_dice" },
+  hook: "calculateDamage.outgoing", order: 140, bucket: "variance",
+  value: null, behavior: "loadedDiceRoll",
+  when: null, holders: ["player"], state: null,
+  notes: "Loaded Dice. A behavior (not a bare value) because loadedDiceMultiplier itself calls applyTwistOfFate(state) on its favorable roll -- a real pre-existing state write, carried over unchanged. 'variance' bucket -- its own resolved number IS the raw multiplier (0.5/1/2.0), not an additive delta, matching critMultiplier's own convention and spec §4's 'stays as a product' note.",
+});
+registerModifier("set:Regalia of the Laughing Gale:6", {
+  source: { kind: "set", id: "Regalia of the Laughing Gale:6", setName: "Regalia of the Laughing Gale", tier: 6 },
+  hook: "calculateDamage.outgoing", order: 150, bucket: "variance",
+  value: (ctx) => avatarOfChaosDamageMultiplier(ctx.state), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Chaos's damage randomization. Value delegates to avatarOfChaosDamageMultiplier(state) unchanged -- a pure RNG read (0.75 + Math.random()), no state write. 'variance' bucket, raw multiplier (not a delta) -- see loaded_dice's own note.",
+});
+registerModifier("effect:momentum_unbound", {
+  source: { kind: "effect", id: "momentum_unbound" },
+  hook: "calculateDamage.outgoing", order: 160, bucket: "stacking",
+  value: (ctx) => momentumUnboundMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Momentum Unbound. Value delegates to momentumUnboundMultiplier(state) unchanged.",
+});
+registerModifier("effect:tempered_steel", {
+  source: { kind: "effect", id: "tempered_steel" },
+  hook: "calculateDamage.outgoing", order: 170, bucket: "stacking",
+  value: (ctx) => temperedSteelMultiplier(ctx.state) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Tempered Steel. Value delegates to temperedSteelMultiplier(state) unchanged.",
+});
+registerModifier("effect:master_craftsman", {
+  source: { kind: "effect", id: "master_craftsman" },
+  hook: "calculateDamage.outgoing", order: 175, bucket: "conditional",
+  value: (ctx) => masterCraftsmanMultiplier(ctx.atk, ctx.creature) - 1, behavior: null,
+  when: (ctx) => !ctx.isSpell, holders: ["player"], state: null,
+  notes: "Master Craftsman. Weapon-branch only (when: !isSpell, today's exact gate -- an Attack-vs-Defense comparison has no spell equivalent). Value delegates to masterCraftsmanMultiplier(atk, creature) unchanged.",
+});
+registerModifier("set:Regalia of the Eternal Hour:6", {
+  source: { kind: "set", id: "Regalia of the Eternal Hour:6", setName: "Regalia of the Eternal Hour", tier: 6 },
+  hook: "calculateDamage.outgoing", order: 180, bucket: "burst",
+  value: (ctx) => (ctx.state.combat.player.avatarOfTimeTurns > 0 ? 1.25 : 1) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Time's own +25% damage window. Pure read of combat.player.avatarOfTimeTurns.",
+});
+registerModifier("effect:stones_patience", {
+  source: { kind: "effect", id: "stones_patience" },
+  hook: "calculateDamage.outgoing", order: 190, bucket: "conditional",
+  value: (ctx) => (ctx.state.combat.enemyActedFirstThisRound && hasEffect(ctx.state, "stones_patience") ? 1.3 : 1) - 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Stone's Patience. Pure read of combat.enemyActedFirstThisRound (the flag's own reset-to-false stays exactly where it is today, in the caller's own tail).",
 });

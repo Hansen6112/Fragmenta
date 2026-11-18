@@ -797,7 +797,10 @@ for (const file of M2_SCOPED_FILES) {
 for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
   if (!entry.hook) warn("modifiers", `MODIFIERS["${key}"] has no hook (M3)`);
   if (!Array.isArray(entry.holders) || !entry.holders.length) warn("modifiers", `MODIFIERS["${key}"] has no holders (M3)`);
-  if (entry.hook && entry.hook.startsWith("calculateDamage.") && !entry.bucket) {
+  // calculateDamage.tags is exempt: Bucket Review Rule 3 (18 Nov) puts
+  // tag/synergy mechanics outside the buckets entirely, same as an
+  // action's own dmgMult -- see set:Fragmenta:6's own notes.
+  if (entry.hook && entry.hook.startsWith("calculateDamage.") && entry.hook !== "calculateDamage.tags" && !entry.bucket) {
     warn("modifiers", `MODIFIERS["${key}"] is a damage/defense multiplier with no bucket (M3)`);
   }
   // Amendment 1 (18 Nov): an entry with neither `behavior` nor a non-
