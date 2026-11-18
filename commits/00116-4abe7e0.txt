@@ -1,0 +1,17 @@
+range: d0f689374a3878852127aae2b37c29df68acd888..4abe7e09a94d2252a89c3331c053ed3b200ca7c5
+=== 4abe7e09a94d2252a89c3331c053ed3b200ca7c5 2026-11-18 16:03:11 +0000
+Recommit boss_sweep.js's N=1000 switch-on baseline, now seeded
+Follow-up to d0f6893: that commit's plus3_run.js baseline landed with
+its own two-N=1000-runs-diffed confirmation; boss_sweep.js's own pair
+was still running in the background at commit time. Both have now
+finished and diff byte-identical (seed 777, excluding generatedAt),
+confirming the harness's new seeding is reproducible at full N, not
+just the smaller N used to find and fix the two RNG leaks in the prior
+commit. Recommitted as the new tools/baselines/bs_on_n1000.json.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/baselines/bs_on_n1000.json | 3090 +++++++++++++++++++++-----------------
+ 1 file changed, 1687 insertions(+), 1403 deletions(-)
