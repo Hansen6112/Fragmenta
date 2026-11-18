@@ -1695,8 +1695,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     // tag one step better for the attacker, read here instead of the
     // plain dmgTagMultiplier every other caller uses.
     if (DAMAGE_TYPES_V2) {
-      const avatarOfKnowledgeActive = state.combat && state.combat.player.avatarOfKnowledgeTurns > 0;
-      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(creature, spellDType, avatarOfKnowledgeActive));
+      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(state, "player", creature, spellDType));
     }
     if (state.combat.player.avatarOfCreationTurns > 0) {
       state.combat.player.avatarOfCreationMagicStacks = (state.combat.player.avatarOfCreationMagicStacks || 0) + 2;

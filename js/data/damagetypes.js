@@ -107,11 +107,26 @@ function dmgTagMultiplier(holder, damageType) {
 // (not a flag on it) since this only ever applies to the PLAYER's own
 // attack (Avatar of Knowledge is a player buff) -- every other caller
 // keeps calling the plain version unchanged.
+//
+// Fragmenta 6pc fix (Tyler, 18 Nov, approved -- Phase 2 Bucket Review
+// §4): takes `attacker`/`role` instead of a lone `holder` + externally-
+// computed avatarOfKnowledgeActive flag, so it can run a modifier-
+// registry hook (calculateDamage.tags, js/data/modifiers.js, loaded
+// after this file but only ever CALLED at runtime, well after load) for
+// the attacker's own gear -- Fragmenta 6pc overrides this tag's
+// multiplier on the wearer's non-physical hits, same shift-then-override
+// order the Addendum's own example walks through (an Immune target
+// shifts to Resist, THEN Fragmenta's Resist value applies). `target` is
+// the dmgTags holder (the old `holder` param, renamed since it's no
+// longer the only "whose stuff is this" object this function reads).
 const AVATAR_OF_KNOWLEDGE_SHIFT = { immune: "resist", resist: "normal" };
-function dmgTagMultiplierForAttacker(holder, damageType, avatarOfKnowledgeActive) {
+function dmgTagMultiplierForAttacker(attacker, role, target, damageType) {
   if (damageType === FIRST_RIVER) return 1;
-  let tag = (holder && holder.dmgTags && holder.dmgTags[damageType]) || "normal";
+  let tag = (target && target.dmgTags && target.dmgTags[damageType]) || "normal";
+  const avatarOfKnowledgeActive = role === "player" && !!(attacker && attacker.combat && attacker.combat.player.avatarOfKnowledgeTurns > 0);
   if (avatarOfKnowledgeActive && AVATAR_OF_KNOWLEDGE_SHIFT[tag]) tag = AVATAR_OF_KNOWLEDGE_SHIFT[tag];
+  const results = runHook("calculateDamage.tags", attacker, role, { damageType, tag });
+  for (const r of results) if (typeof r.result === "number") return r.result;
   return DAMAGE_TAG_MULTIPLIER[tag] != null ? DAMAGE_TAG_MULTIPLIER[tag] : 1;
 }
 

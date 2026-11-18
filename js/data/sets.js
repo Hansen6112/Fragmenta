@@ -354,7 +354,7 @@ const SETS = {
     bonuses: {
       2: { bonuses: { magic: 2 }, description: "+2 Magic" },
       4: { special: "fragmenta_surging_twice", description: "Surging Conduit triggers twice each fight" },
-      6: { special: "fragmenta_matchups_150", description: "Elemental matchup strengths become 1.50x and weaknesses improve to 0.90x" },
+      6: { special: "fragmenta_tag_override", description: "Your non-physical hits treat a target's Weakness as ×1.75 and its Resistance as ×0.75" },
     },
   },
 

@@ -2121,8 +2121,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // same as a shield would be, not folded into the multiplier chain.
     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
     if (DAMAGE_TYPES_V2) {
-      const avatarOfKnowledgeActive = state.combat && state.combat.player.avatarOfKnowledgeTurns > 0;
-      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(creature, spellDType, avatarOfKnowledgeActive));
+      dmg = Math.round(dmg * dmgTagMultiplierForAttacker(state, "player", creature, spellDType));
     }
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every spell
     // cast during its 4-round window PERMANENTLY increases Magic by +2 —
