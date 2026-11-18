@@ -1,0 +1,37 @@
+range: 0f922e2b476bfc17e5fbc31c4c4a3185b5d9dc3f..95aae501078f65df4045202057ea12763a703cb5
+=== 95aae501078f65df4045202057ea12763a703cb5 2026-11-18 12:27:25 +0000
+Phase 2: correct an impossible stack claim, widen M1 to all 7 categories
+Tyler caught a slot-count error in the catalogue's §5 incoming-
+mitigation worst case: the ×0.3 three-set stack (Stormwatch 6pc +
+Stonewarden 6pc) needs 12 equipped pieces, and there are only 11 equip
+slots (9 single slots + Trinkets' 2; Pocket of Holding's extra trinket
+slot doesn't add net capacity, since Pocket itself occupies one of the
+slots it unlocks). The real, buildable worst case is a single full
+Stormwatch set alone: Spell Ward (its own pieces, enhanced to x0.8 by
+its 4pc) x Storm Barrier (x0.5, 6pc) = x0.4 exactly -- landing ON the
+proposed 60%-reduction cap, not past it. Corrected tools/
+modifier_catalogue.md §5; neither incoming-mitigation chain (player or
+enemy side) exceeds the cap today. No sign-off needed before 2d on
+this front. Added a process note: future stack claims get checked
+against EQUIP_SLOT_CAPACITY/EQUIP_SLOTS (11 total items) before being
+called "achievable today."
+
+tools/audit.js: M1_COMBAT_EFFECT_CATEGORIES widened from 3 categories
+(combat/defense/magic) to all 7 combat-relevant ones (+ legendary,
+mythic, artifact, regalia), matching the catalogue's own already-wider
+scope. "utility" stays excluded (non-combat, P2-6's "out" list); "set"
+stays excluded (already tracked via the SETS-tier loop, to avoid
+double-warning the same id under two keys). Warnings 395 -> 483 (88
+new, all pre-existing migration gaps that were simply invisible to M1
+before, not new regressions): legendary +9, mythic +11, artifact +12,
+regalia +56. No migration work included -- these are the same
+categories 2c-2g already planned to cover; M1 can now see them
+throughout. Suite 550/550, audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js              | 9 ++++++++-
+ tools/modifier_catalogue.md | 8 ++++----
+ 2 files changed, 12 insertions(+), 5 deletions(-)
