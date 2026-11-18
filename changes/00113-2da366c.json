@@ -1,0 +1,37 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:timeless_guard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guardian_spirit",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guided_footsteps",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:never_where_expected",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:evasive_guard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:River Warden:6",
+  "type": "added"
+ }
+]

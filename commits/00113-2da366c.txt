@@ -1,0 +1,40 @@
+range: 95aae501078f65df4045202057ea12763a703cb5..2da366c72294723d697ea34f91fa8fa1395b6630
+=== 2da366c72294723d697ea34f91fa8fa1395b6630 2026-11-18 12:30:18 +0000
+Phase 2 step 2c: migrate rollToHit (defender side) to the registry
+Audited all 3 rollToHit functions (pipeline.js) for direct hasEffect()/
+hasSetTier() calls. rollToHitPlayerActor and rollToHitAllyActor (the
+ATTACKER side -- player/ally attacking an enemy) have zero: nothing
+modifies the attacker's own accuracy roll via a named effect check,
+confirming rollToHit.attacker needs no migration at this step. The
+enemy-attacking-player/ally branch of rollToHit (the DEFENDER side) had
+all 7 real hits: Timeless Guard (via applyTimelessGuard, combat.js),
+Guardian Spirit, Guided Footsteps, Never Where Expected, Blessing of
+Freedom (Regalia of the Endless Horizon 2pc), Evasive Guard, and River
+Warden 6pc. The enemy-attacking-ally branch (same function) has NONE of
+these -- confirms the asymmetry register's kind-B finding directly:
+allies get no evasion protection from any of them today.
+
+Applied the 2a catalogue's own REVIEW-pass correction: Never Where
+Expected was previously miscatalogued as rollToHit.attacker; it's
+rollToHit.defender, same function as the other six.
+
+js/data/modifiers.js: 7 new presence-only entries (holders: ["player"],
+matching today exactly -- R1 would widen this later, not part of this
+step), reusing the hasModifier() helper 2b introduced. Each entry's
+real logic (cooldown gates, miss chances, the accumulator bumps
+Evasive Guard/River Warden grant on a successful evasion) stays exactly
+where it was -- only the presence check moved.
+
+Suite 550/550, audit 0 errors/476 warnings (-7, the newly-registered
+effects/sets). M2 counts verified against the diff: pipeline.js
+hasEffect -4/hasSetTier -2, combat.js hasEffect -1. Smoke-tested via
+plus3_run.js N=20.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js  | 49 +++++++++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js   |  4 +++-
+ js/engine/pipeline.js | 14 ++++++++------
+ 3 files changed, 60 insertions(+), 7 deletions(-)
