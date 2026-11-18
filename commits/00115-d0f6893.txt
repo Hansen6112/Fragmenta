@@ -1,0 +1,91 @@
+range: 99ab9f0e6f8c551a635772ffef64c1ffec6a4fcb..d0f689374a3878852127aae2b37c29df68acd888
+=== d0f689374a3878852127aae2b37c29df68acd888 2026-11-18 15:54:58 +0000
+Pre-2d: bucket review, seeded harnesses, parity-fixture mapping fix
+Gate for step 2d, per Tyler's instruction, with three parts:
+
+1. Bucket review (tools/modifier_catalogue.md). Applied Rules 1-3 and
+every ruling from the Phase 2 Bucket Review doc. Rule 1 (upgrades):
+Crushing Impact/Elemental Focus/Spell Ward/Ambush/Executioner-threshold/
+Surging-Conduit-charges set tiers are marked `upgrades` of their base
+entry, not separate bucket entries -- today's code already takes the
+best value, and an additive bucket would have double-counted them.
+Rule 2 (burst vs conditional; crit chance isn't a bucket): corrected
+~15 "-- REVIEW" rows to burst or conditional per their real trigger
+shape, and moved the four crit-CHANCE rows (Blessing of Guidance/
+Insight/Fortune, Unlikely Outcome) off the crit damage bucket onto
+stat.critChance / a forced-crit behaviour; Avatar of Fate's crit-DAMAGE
+doubling stays in the crit bucket as an upgrade, its 1 HP save stays
+cheatDeath. Rule 3 (synergy/tags stay outside the buckets): River
+Harmony and Pre-Kabal 6pc marked as synergy-mechanic behaviours, not
+bucket entries. Catalogue corrections: Master Duelist and Ashward were
+miscatalogued outgoing; they're incoming/incomingMitigation (a
+counterattack's own damage, and an incoming Burning tick, landing ON
+the wearer). Fragmenta 6pc is marked DEAD (the matchup cycle it reads
+was retired when damage types went live) -- the proposed tag-based
+replacement is NOT implemented, pending Tyler's separate call.
+
+2. Seeded harnesses (tools/sim/). sim_common.js's sandbox Math used to
+just BE the real global Math object -- seeding it would have corrupted
+the host Node process's own RNG, since every required module shares
+that one reference. It's now a standalone copy. Added a seeded-per-cell
+mulberry32 generator (same algorithm seed_rng.js already uses): one
+master seed per run (--seed, or freshly chosen and always printed/
+recorded), one sub-seed per cell derived from it plus the cell's own
+key, recorded on that cell's own result row. ROOT is now relative to
+__dirname instead of a hardcoded absolute path. Verified byte-identical
+reruns at the same seed for both harnesses -- which caught a second,
+unrelated leak: makePlayer()'s own Mage/Bruise element pick drew from
+the real unseeded Math.random (plain Node code outside the vm sandbox,
+never touched by seedRandom's own mutation), fixed to draw from the
+same seeded source. plus3_run.js's full N=1000 switch-on baseline was
+rerun twice at the same seed, confirmed byte-identical, and recommitted
+(tools/baselines/p3_on_n1000.json). boss_sweep.js's own N=1000 rerun is
+still running in the background as of this commit; its baseline
+(bs_on_n1000.json) follows in a separate commit once both runs land and
+are diffed.
+
+3. Parity-fixture field mapping (tools/tests/phase1_step1{b,c,d,e-i,e-ii,
+e-iii}_*.js). Amendment 1's own fix had these 6 parity fixtures OMIT the
+fields Amendment 1 relocated onto modifierState (guardianSpiritUsed,
+guidedFootstepsUsed, timelessGuardCooldown, evasiveGuardBonus,
+riverWardenMagicBonus, calculatedAimUsed) instead of comparing them --
+which stops checking them at all, and that omit-list only grows with
+every later step. Added mapMovedFieldsBack(), run before stripCreatureObj
+in normalizeSnap: it copies each relocated field's live modifierState
+value back onto its pre-Amendment-1 flat name (a no-op on the frozen
+side, which never has a modifierState key), so the frozen oracle's own
+value at that name is genuinely compared again, not skipped.
+
+That widened comparison immediately caught a real regression:
+P1-SPELLWARD-01 failed on riverWardenMagicBonus. River Warden 6pc grants
+its magic stack on TWO independent triggers -- an elemental evasion
+(which Amendment 1 correctly moved onto the registry's rollToHit.defender
+dispatch) and a Spell-Ward-mitigated elemental hit landing (js/data/
+actions.js, ~line 613). Amendment 1 moved the stack's READ site onto the
+registry but missed this second WRITE site, which was left writing to
+the now-orphaned flat combat.player.riverWardenMagicBonus field --
+silently inert since Amendment 1 landed. Fixed to write through
+modifierStateFor('set:River Warden:6') instead, condition and clamp
+otherwise unchanged. No other stale write sites found for any of the
+six relocated fields.
+
+Full suite: 557/557. audit.js: 0 errors, 472 warnings.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  18 +-
+ tools/baselines/p3_on_n1000.json                   | 377 +++++++++++----------
+ tools/modifier_catalogue.md                        |  97 +++---
+ tools/sim/README.md                                |  25 +-
+ tools/sim/boss_sweep.js                            |  22 +-
+ tools/sim/plus3_run.js                             |  15 +-
+ tools/sim/sim_common.js                            |  51 ++-
+ tools/tests/phase1_step1b_pipeline_parity.js       |  75 +++-
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |  75 +++-
+ .../phase1_step1d_ally_attack_pipeline_parity.js   |  75 +++-
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |  75 +++-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |  75 +++-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |  75 +++-
+ 13 files changed, 723 insertions(+), 332 deletions(-)
