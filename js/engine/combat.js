@@ -2032,9 +2032,14 @@ function rollPlayerDamage(state, creature, activeElement) {
   // branch itself decides whether to consume it, since "magic bypasses"
   // means a magic hit in between shouldn't spend the pending charge.
   const sureFoundationDef = creature.sureFoundationBonusDef || 0;
-  const foreseenDefMult = foreseenStrikeDefMultiplier(state);
   const isSpell = state.flags.isMage && state.primaryElement;
-  const commandingDefMult = commandingPresenceDefMultiplier(state);
+  // 2d, increment 2: calculateDamage.defenseIgnore -- see modifiers.js's
+  // own header on calculateDefenseIgnoreMultiplier for why multiplying
+  // (1 - value) back together reproduces today's exact
+  // foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
+  // product. Armor Crack stays a separate flat subtraction, unchanged
+  // (it was never part of this product).
+  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, creature, isSpell: !!isSpell });
   let dmg;
   // 2d, increment 1: the 19/21-factor independent-multiplier chain below
   // (crushMult..stonesPatienceMult) now comes from the registry's own
@@ -2087,7 +2092,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // calling pickElement there would burn an extra Math.random() draw
     // those fixtures never budgeted for.
     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
-    const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+    const effDef = Math.max(0, creature.def + bankedDefBonus - defPenalty) * defIgnore.total;
     const spellDType = DAMAGE_TYPES_V2 ? elementKeyToDamageType(activeElement || pickElement(state)) : null;
     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
     // v0.11: spell power is mitigated by the target's FULL Defense through
@@ -2119,7 +2124,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     }
   } else {
     const armorCrack = armorCrackAmount(state);
-    const effDef = Math.max(0, creature.def + bankedDefBonus + sureFoundationDef - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
+    const effDef = Math.max(0, creature.def + bankedDefBonus + sureFoundationDef - defPenalty - armorCrack) * defIgnore.total;
     // effectivePlayerAtk (above): the same formula this line used to
     // compute inline, now shared with anything else that needs the
     // player's effective Attack (Dungeon Delve's rationless debuff).

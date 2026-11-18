@@ -1639,9 +1639,14 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
   // (step 5).
   const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
   const sureFoundationDef = creature.sureFoundationBonusDef || 0;
-  const foreseenDefMult = foreseenStrikeDefMultiplier(state);
   const isSpell = !!(state.flags.isMage && state.primaryElement);
-  const commandingDefMult = commandingPresenceDefMultiplier(state);
+  // 2d, increment 2: calculateDamage.defenseIgnore -- see modifiers.js's
+  // own header on calculateDefenseIgnoreMultiplier for why multiplying
+  // (1 - value) back together reproduces today's exact
+  // foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
+  // product. Armor Crack stays a separate flat subtraction, unchanged
+  // (it was never part of this product).
+  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, creature, isSpell });
   let dmg;
   // 2d, increment 1: the 19/21-factor independent-multiplier chain below
   // (crushMult..stonesPatienceMult) now comes from the registry's own
@@ -1664,7 +1669,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     // (matchup forced to 1) -- it's re-targeted at the tag system
     // instead, below, per the Decisions Addendum's A3.
     const matchup = DAMAGE_TYPES_V2 ? 1 : avatarOfKnowledgeMatchupOverride(state, elementMultiplier(state, activeElement, creature.element));
-    const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state);
+    const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus - defPenalty) * defIgnore.total;
     // Damage Types v2 (spec §3 steps 2-3): resist-by-family defense value
     // in place of the flat effDef above, then the enemy's own tag
     // multiplier on the final number below. A spell's own damage type
@@ -1693,7 +1698,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     }
   } else {
     const armorCrack = armorCrackAmount(state);
-    const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus + sureFoundationDef - defPenalty - armorCrack) * foreseenDefMult * commandingDefMult;
+    const effDef = Math.max(0, stat(state, target, "def") + bankedDefBonus + sureFoundationDef - defPenalty - armorCrack) * defIgnore.total;
     // Damage Types v2 (off by default) — see the spell branch's own
     // comment, above, for the full reasoning. A basic/weapon attack's
     // damageType falls back to the player's own mainhand weapon (resolved

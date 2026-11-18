@@ -282,6 +282,30 @@ function calculateOutgoingMultiplier(holder, holderRole, ctx) {
   return { total, byKey };
 }
 
+// calculateDamage.defenseIgnore (2d, increment 2): same flat-product
+// convention as calculateOutgoingMultiplier, but each entry's resolved
+// number is the FRACTION of the target's Defense it ignores (0.5 =
+// ignores half, 1 = ignores all) rather than an additive delta -- so the
+// running total is a product of (1 - value), not (1 + value). An entry
+// declared `flatAmount: true` (Armor Crack: a flat Defense SUBTRACTION,
+// never a percentage multiplier -- it was never part of this product to
+// begin with) is excluded here entirely; its own call site still reads
+// it directly (armorCrackAmount(state), unchanged), same as today --
+// this registry entry exists purely so the catalogue/audit has one.
+function calculateDefenseIgnoreMultiplier(holder, holderRole, ctx) {
+  const results = runHook("calculateDamage.defenseIgnore", holder, holderRole, ctx);
+  let total = 1;
+  const byKey = {};
+  for (const r of results) {
+    if (r.entry.upgrades || r.entry.flatAmount) continue;
+    const v = typeof r.result === "number" ? r.result : 0;
+    const factor = 1 - v;
+    byKey[r.key] = factor;
+    total *= factor;
+  }
+  return { total, byKey };
+}
+
 // Deprecated (Amendment 1): a presence-only check with a hard-coded
 // role, the shape 2b/2c's first pass used before this amendment. Kept
 // defined (nothing calls it as of this rework) but superseded by
@@ -701,4 +725,39 @@ registerModifier("effect:stones_patience", {
   value: (ctx) => (ctx.state.combat.enemyActedFirstThisRound && hasEffect(ctx.state, "stones_patience") ? 1.3 : 1) - 1, behavior: null,
   when: null, holders: ["player"], state: null,
   notes: "Stone's Patience. Pure read of combat.enemyActedFirstThisRound (the flag's own reset-to-false stays exactly where it is today, in the caller's own tail).",
+});
+
+// ---- 2d, increment 2: calculateDamage.defenseIgnore -- the same pair
+// of player functions, their effDef computation. Every entry's value is
+// framed as 1 - <existing multiplier function>(...), so multiplying
+// (1 - value) back together reproduces EXACTLY today's
+// foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
+// product -- see calculateDefenseIgnoreMultiplier's own header.
+registerModifier("effect:foreseen_strike", {
+  source: { kind: "effect", id: "foreseen_strike" },
+  hook: "calculateDamage.defenseIgnore", order: 10, bucket: "defenseIgnore",
+  value: (ctx) => 1 - foreseenStrikeDefMultiplier(ctx.state), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Foreseen Strike. Value delegates to foreseenStrikeDefMultiplier(state) unchanged (every 3rd action, 50% Defense ignore).",
+});
+registerModifier("set:Regalia of the Crimson Vanguard:4", {
+  source: { kind: "set", id: "Regalia of the Crimson Vanguard:4", setName: "Regalia of the Crimson Vanguard", tier: 4 },
+  hook: "calculateDamage.defenseIgnore", order: 20, bucket: "defenseIgnore",
+  value: (ctx) => 1 - commandingPresenceDefMultiplier(ctx.state), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Commanding Presence. Value delegates to commandingPresenceDefMultiplier(state) unchanged (every 3rd attack, full Defense ignore).",
+});
+registerModifier("effect:precision_formula", {
+  source: { kind: "effect", id: "precision_formula" },
+  hook: "calculateDamage.defenseIgnore", order: 30, bucket: "defenseIgnore",
+  value: (ctx) => 1 - precisionFormulaMultiplier(ctx.state), behavior: null,
+  when: (ctx) => !!ctx.isSpell, holders: ["player"], state: null,
+  notes: "Precision Formula. Spell-branch only (when: isSpell, today's exact gate -- precisionFormulaMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own effDef product). Value delegates to precisionFormulaMultiplier(state) unchanged (30% Defense ignore).",
+});
+registerModifier("effect:armor_crack", {
+  source: { kind: "effect", id: "armor_crack" },
+  hook: "calculateDamage.defenseIgnore", order: 40, bucket: "defenseIgnore",
+  value: (ctx) => armorCrackAmount(ctx.state), behavior: null, flatAmount: true,
+  when: (ctx) => !ctx.isSpell, holders: ["player"], state: null,
+  notes: "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade, already folded into armorCrackAmount's own Math.max logic), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Siege Corps 4pc still owes M1 a registry entry of its own (Rule 1's `upgrades`), deferred.",
 });
