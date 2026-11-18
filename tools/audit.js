@@ -697,7 +697,14 @@ for (const [id, c] of Object.entries(BESTIARY)) {
 const MODIFIERS_TABLE = G("MODIFIERS");
 const MOD_BUCKET_CAPS_TABLE = G("MOD_BUCKET_CAPS");
 const MOD_UNCAPPED_BUCKETS_SET = G("MOD_UNCAPPED_BUCKETS");
-const M1_COMBAT_EFFECT_CATEGORIES = new Set(["combat", "defense", "magic"]);
+// Widened 18 Nov (Tyler): all 7 combat-relevant EFFECT_DEFS categories,
+// already in scope under spec §2 P2-6 ("in: gear effects... out: non-
+// combat effects"). "utility" stays excluded (travel/shop/knowledge --
+// P2-6's own "out" list); "set" stays excluded too, not because it's
+// out of scope, but because its ids are already tracked by the SETS-
+// tier loop below via their `effects: [...]` back-reference -- adding
+// "set" here would double-warn the same id under two different keys.
+const M1_COMBAT_EFFECT_CATEGORIES = new Set(["combat", "defense", "magic", "legendary", "mythic", "artifact", "regalia"]);
 function isTextuallyInert(description) { return /currently inert/i.test(description || ""); }
 
 // M1 deferral list (Tyler, 14/16 Nov, Phase 2 step 2a follow-up).
