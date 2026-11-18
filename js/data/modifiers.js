@@ -99,6 +99,55 @@ registerModifier("effect:bedrock", {
   notes: "Bedrock (Regalia). Presence-only -- the 75%-of-base floor on a Defense reduction is bespoke math in effectivePlayerDef, not a generic add/multiply.",
 });
 
+// ---- 2c: rollToHit (defender side) ----
+// All 7 entries below are presence-only, same reasoning as Bedrock: each
+// one's real effect (a flat miss chance, a cooldown-gated full block, a
+// conditional re-roll) is bespoke logic already living inside
+// pipeline.js's `rollToHit`/combat.js's `applyTimelessGuard`, not a
+// generic additive/multiplicative value -- only the hasEffect()/
+// hasSetTier() presence CHECK moves to the registry. `holders: ["player"]`
+// matches today exactly (asymmetry register, kind B: none of these
+// currently protect an ally the same attack is rolled against -- the
+// ally branch of `rollToHit` has no equivalent chain at all). R1 (not
+// this step) is what would widen holders to ["player","ally"].
+registerModifier("effect:timeless_guard", {
+  source: { kind: "effect", id: "timeless_guard" }, hook: "rollToHit.defender", bucket: null, value: null, when: null,
+  holders: ["player"], state: null,
+  notes: "Timeless Guard. Presence-only -- the cooldown-gated full block is applyTimelessGuard's own logic (combat.js).",
+});
+registerModifier("effect:guardian_spirit", {
+  source: { kind: "effect", id: "guardian_spirit" }, hook: "rollToHit.defender", bucket: null, value: null, when: null,
+  holders: ["player"], state: null,
+  notes: "Guardian Spirit. Presence-only -- the once-per-fight full block is pipeline.js rollToHit's own logic.",
+});
+registerModifier("effect:guided_footsteps", {
+  source: { kind: "effect", id: "guided_footsteps" }, hook: "rollToHit.defender", bucket: null, value: null, when: null,
+  holders: ["player"], state: null,
+  notes: "Guided Footsteps. Presence-only -- the once-per-fight 75%-chance block is pipeline.js rollToHit's own logic.",
+});
+registerModifier("effect:never_where_expected", {
+  source: { kind: "effect", id: "never_where_expected" }, hook: "rollToHit.defender", bucket: null, value: null, when: null,
+  holders: ["player"], state: null,
+  notes: "Never Where Expected. Presence-only -- the flat 15% miss chance (every hit, not once-per-fight) is pipeline.js rollToHit's own logic. Corrected in the 2a catalogue's REVIEW pass: previously miscatalogued as rollToHit.attacker.",
+});
+registerModifier("set:Regalia of the Endless Horizon:2", {
+  source: { kind: "set", id: "Regalia of the Endless Horizon:2", setName: "Regalia of the Endless Horizon", tier: 2 },
+  hook: "rollToHit.defender", bucket: null, value: null, when: null,
+  holders: ["player"], state: null,
+  notes: "Blessing of Freedom. Presence-only -- the flat 15% miss chance is pipeline.js rollToHit's own logic.",
+});
+registerModifier("effect:evasive_guard", {
+  source: { kind: "effect", id: "evasive_guard" }, hook: "rollToHit.defender", bucket: null, value: null, when: null,
+  holders: ["player"], state: null,
+  notes: "Evasive Guard (kind B, asymmetry register). Presence-only -- read inside rollToHit's own evasion-triggered branch; the +1 Defense stack it grants (up to +3) is a separate accumulator field (combat.player.evasiveGuardBonus), 2b/2e territory, not touched here.",
+});
+registerModifier("set:River Warden:6", {
+  source: { kind: "set", id: "River Warden:6", setName: "River Warden", tier: 6 },
+  hook: "rollToHit.defender", bucket: null, value: null, when: null,
+  holders: ["player"], state: null,
+  notes: "River Warden 6pc. Presence-only -- read inside rollToHit's own evasion-triggered branch, gated on the incoming hit being magical (creature.element); the +2 Magic stack it grants (up to +8) is a separate accumulator field (combat.player.riverWardenMagicBonus), not touched here.",
+});
+
 // ---- holder lookup ----
 // `holder` is the real storage object hasEffect()/hasSetTier() already
 // read today — `state` for the player, an ally record, or an enemy's

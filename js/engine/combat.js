@@ -1707,7 +1707,9 @@ function borrowedSecondsActive(state) {
 // success, its own cooldown reset) at the very top of
 // resolveEnemyAttackOnPlayer, before any of the other evasion/miss checks.
 function applyTimelessGuard(state) {
-  if (!hasEffect(state, "timeless_guard") || !state.combat) return false;
+  // Presence check reads the registry (Phase 2 step 2c); the cooldown
+  // logic below is unchanged.
+  if (!hasModifier(state, "player", "effect:timeless_guard") || !state.combat) return false;
   const combat = state.combat;
   if ((combat.player.timelessGuardCooldown || 0) > 0) return false;
   combat.player.timelessGuardCooldown = 3;

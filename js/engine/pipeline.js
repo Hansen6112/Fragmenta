@@ -346,18 +346,20 @@ function rollToHit(actor, target, action, ctx) {
   if (applyTimelessGuard(state)) {
     return miss(`Timeless Guard — for a moment, time itself refuses to let the blow land.`);
   }
-  if (hasEffect(state, "guardian_spirit") && !combat.player.guardianSpiritUsed) {
+  // Presence checks read the registry (Phase 2 step 2c); the per-effect
+  // logic (cooldown/once-per-fight flags, miss chances) is unchanged.
+  if (hasModifier(state, "player", "effect:guardian_spirit") && !combat.player.guardianSpiritUsed) {
     combat.player.guardianSpiritUsed = true;
     return miss(`Guardian Spirit turns the first blow aside completely.`);
   }
-  if (hasEffect(state, "guided_footsteps") && !combat.player.guidedFootstepsUsed) {
+  if (hasModifier(state, "player", "effect:guided_footsteps") && !combat.player.guidedFootstepsUsed) {
     combat.player.guidedFootstepsUsed = true;
     if (Math.random() < 0.75) return miss(`Guided Footsteps — you're already a step from where it lands.`);
   }
-  if (hasEffect(state, "never_where_expected") && Math.random() < 0.15) {
+  if (hasModifier(state, "player", "effect:never_where_expected") && Math.random() < 0.15) {
     return miss(`Never Where Expected — it swings, and finds nothing there.`);
   }
-  if (hasSetTier(state, "Regalia of the Endless Horizon", 2) && Math.random() < 0.15) {
+  if (hasModifier(state, "player", "set:Regalia of the Endless Horizon:2") && Math.random() < 0.15) {
     return miss(`Blessing of Freedom carries you clear of the blow.`);
   }
   if (combat.player.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
@@ -371,8 +373,8 @@ function rollToHit(actor, target, action, ctx) {
     evasionRolled = Math.random() < 0.5;
   }
   if (evasionRolled) {
-    if (hasEffect(state, "evasive_guard")) combat.player.evasiveGuardBonus = Math.min(3, combat.player.evasiveGuardBonus + 1);
-    if (creature.element && hasSetTier(state, "River Warden", 6)) {
+    if (hasModifier(state, "player", "effect:evasive_guard")) combat.player.evasiveGuardBonus = Math.min(3, combat.player.evasiveGuardBonus + 1);
+    if (creature.element && hasModifier(state, "player", "set:River Warden:6")) {
       combat.player.riverWardenMagicBonus = Math.min(8, combat.player.riverWardenMagicBonus + 2);
     }
     return miss(`You slip past ${withThe(creature.name, false)}'s counter entirely.`);
