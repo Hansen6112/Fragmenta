@@ -45,11 +45,16 @@ const { seedPageRandom } = require('./seed_rng');
       return s;
     }
 
+    // guardianSpiritUsed/guidedFootstepsUsed/timelessGuardCooldown moved
+    // off this list under Phase 2 Amendment 1 (18 Nov) -- their state now
+    // lives under their own registry entries on combat.player.modifierState,
+    // not as flat combat.player properties. See the dedicated
+    // MODIFIERSTATE tests below instead of this batch's own accessor list.
     const BATCH1_FIELDS = [
-      'betweenWorldsUsed', 'elderBarkSaveUsed', 'firstHitTakenUsed', 'guardianSpiritUsed',
-      'guidedFootstepsUsed', 'lastStandUsed', 'mercyOfTheVeilUsed', 'mirrorSoulUsed',
+      'betweenWorldsUsed', 'elderBarkSaveUsed', 'firstHitTakenUsed',
+      'lastStandUsed', 'mercyOfTheVeilUsed', 'mirrorSoulUsed',
       'naturesPersistenceUsed', 'preparedResponseWitnessed', 'scoutStealthUsed', 'sharedBurdenUsed',
-      'stormBarrierUsed', 'threadsOfConsequencePending', 'timelessGuardCooldown', 'trailblazerUsed',
+      'stormBarrierUsed', 'threadsOfConsequencePending', 'trailblazerUsed',
       'unbreakableUsed', 'unlikelyOutcomeGuaranteedCrit', 'unyieldingWallCooldown',
     ];
 
@@ -65,23 +70,36 @@ const { seedPageRandom } = require('./seed_rng');
 
     record('P1G-III-ROUNDTRIP-01', 'Every batch-1 field still reads back exactly what was written through the alias (boolean flags)', () => {
       const s = makeWarrior();
-      const boolFields = BATCH1_FIELDS.filter((f) => f !== 'timelessGuardCooldown' && f !== 'unyieldingWallCooldown');
+      const boolFields = BATCH1_FIELDS.filter((f) => f !== 'unyieldingWallCooldown');
       for (const f of boolFields) s.combat.player[f] = true;
       const bad = boolFields.filter((f) => s.combat.player[f] !== true);
       return { pass: bad.length === 0, bad };
     });
-    record('P1G-III-ROUNDTRIP-02', 'The two cooldown-counter fields (timelessGuardCooldown/unyieldingWallCooldown) still read back exactly what was written, as numbers', () => {
+    record('P1G-III-ROUNDTRIP-02', 'unyieldingWallCooldown still reads back exactly what was written, as a number', () => {
       const s = makeWarrior();
-      s.combat.player.timelessGuardCooldown = 2;
       s.combat.player.unyieldingWallCooldown = 3;
-      return { pass: s.combat.player.timelessGuardCooldown === 2 && s.combat.player.unyieldingWallCooldown === 3, timelessGuardCooldown: s.combat.player.timelessGuardCooldown, unyieldingWallCooldown: s.combat.player.unyieldingWallCooldown };
+      return { pass: s.combat.player.unyieldingWallCooldown === 3, unyieldingWallCooldown: s.combat.player.unyieldingWallCooldown };
     });
     record('P1G-III-ISOLATION-01', "Each fight's own private store is independent -- a fresh combat doesn't inherit a flag set on a previous one", () => {
       const s = makeWarrior();
       s.combat.player.mirrorSoulUsed = true;
-      s.combat.player.timelessGuardCooldown = 2;
       startCombat(s, 'stoneback_beetle', 25); // a brand new fight, same state object
-      return { pass: s.combat.player.mirrorSoulUsed !== true && s.combat.player.timelessGuardCooldown === 0, mirrorSoulUsed: s.combat.player.mirrorSoulUsed, timelessGuardCooldown: s.combat.player.timelessGuardCooldown };
+      return { pass: s.combat.player.mirrorSoulUsed !== true, mirrorSoulUsed: s.combat.player.mirrorSoulUsed };
+    });
+    // Phase 2 Amendment 1 (18 Nov): timelessGuardCooldown's new home,
+    // combat.player.modifierState["effect:timeless_guard"].cooldown --
+    // same round-trip and isolation guarantees the old flat field had.
+    record('P1G-III-MODIFIERSTATE-ROUNDTRIP-01', "Timeless Guard's cooldown reads back exactly what was written at its registry entry's own state", () => {
+      const s = makeWarrior();
+      const st = modifierStateFor(s, 'player', 'effect:timeless_guard', MODIFIERS['effect:timeless_guard']);
+      st.cooldown = 2;
+      return { pass: s.combat.player.modifierState['effect:timeless_guard'].cooldown === 2, cooldown: s.combat.player.modifierState['effect:timeless_guard'].cooldown };
+    });
+    record('P1G-III-MODIFIERSTATE-ISOLATION-01', "A fresh combat doesn't inherit Timeless Guard's cooldown from a previous one", () => {
+      const s = makeWarrior();
+      modifierStateFor(s, 'player', 'effect:timeless_guard', MODIFIERS['effect:timeless_guard']).cooldown = 2;
+      startCombat(s, 'stoneback_beetle', 25);
+      return { pass: s.combat.player.modifierState['effect:timeless_guard'].cooldown === 0, cooldown: s.combat.player.modifierState['effect:timeless_guard'].cooldown };
     });
 
     // Real mechanics using batch-1 flags: Guardian Spirit's auto-miss and
@@ -89,7 +107,7 @@ const { seedPageRandom } = require('./seed_rng');
     // from deep inside the live pipeline (rollToHit / calculateDamage),
     // not just a direct test-side set/get -- proving the alias survives
     // the real call sites, not only the accessor's own plumbing.
-    record('P1G-III-MECHANIC-GUARDIANSPIRIT-01', 'Guardian Spirit (guardianSpiritUsed) still gates the first enemy attack via the real pipeline rollToHit path', () => {
+    record('P1G-III-MECHANIC-GUARDIANSPIRIT-01', "Guardian Spirit still gates the first enemy attack via the real pipeline rollToHit path, now via its registry entry's own state", () => {
       const s = makeWarrior();
       const creature = s.combat.enemies[0].creatureObj;
       const origHasEffect = window.hasEffect;
@@ -98,7 +116,8 @@ const { seedPageRandom } = require('./seed_rng');
       window.attackConnects = () => true;
       try {
         const result = resolveEnemyAttackOnPlayer(s, creature, 2, 0, null, null);
-        return { pass: s.combat.player.guardianSpiritUsed === true && result.damage === 0, guardianSpiritUsed: s.combat.player.guardianSpiritUsed, damage: result.damage, lines: result.lines };
+        const used = s.combat.player.modifierState['effect:guardian_spirit'].used;
+        return { pass: used === true && result.damage === 0, used, damage: result.damage, lines: result.lines };
       } finally {
         window.hasEffect = origHasEffect;
         window.attackConnects = origConnects;

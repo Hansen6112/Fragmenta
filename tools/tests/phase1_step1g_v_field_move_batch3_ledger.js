@@ -49,7 +49,10 @@ const { seedPageRandom } = require('./seed_rng');
       'everyChoiceAtkStacks', 'everyChoiceMagicStacks', 'forestGuardianBonus',
       'lastStandAtkBonus', 'livingCurrentStacks', 'livingSteelBonus',
       'orderedMindDefStacks', 'perfectMemoryKnowledgeBonus', 'queenCarapaceBonus',
-      'reinforcedDefStacks', 'riverWardenMagicBonus', 'sovereigntyTurnsLeft', 'temperedSteelStacks',
+      // riverWardenMagicBonus moved off this list under Phase 2
+      // Amendment 1 (18 Nov) -- its stack now lives under its own
+      // registry entry's state on combat.player.modifierState.
+      'reinforcedDefStacks', 'sovereigntyTurnsLeft', 'temperedSteelStacks',
       'unbrokenLineHitCount', 'unwaveringDevotionStacks', 'wallsEndureDefStacks',
       'whiteWatchRiposteDefBonus', 'windsOfChangeAtk', 'windsOfChangeDef', 'windsOfChangeKnowledge',
       'windsOfChangeMagic', 'workRefinesAtkStacks', 'workRefinesMagicStacks', 'worthyChallengeStacks',

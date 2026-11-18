@@ -123,11 +123,15 @@ const PLAYER_FIELDS = [
   // Step 1g-iii: batch 1 of the 117-field move -- once-per-fight/cooldown
   // flags (19 fields), moved as-is, no redesign of their own stacking/
   // duration logic.
-  "betweenWorldsUsed", "elderBarkSaveUsed", "firstHitTakenUsed", "guardianSpiritUsed",
-  "guidedFootstepsUsed", "lastStandUsed", "mercyOfTheVeilUsed", "mirrorSoulUsed",
+  "betweenWorldsUsed", "elderBarkSaveUsed", "firstHitTakenUsed",
+  "lastStandUsed", "mercyOfTheVeilUsed", "mirrorSoulUsed",
   "naturesPersistenceUsed", "preparedResponseWitnessed", "scoutStealthUsed", "sharedBurdenUsed",
-  "stormBarrierUsed", "threadsOfConsequencePending", "timelessGuardCooldown", "trailblazerUsed",
+  "stormBarrierUsed", "threadsOfConsequencePending", "trailblazerUsed",
   "unbreakableUsed", "unlikelyOutcomeGuaranteedCrit", "unyieldingWallCooldown",
+  // guardianSpiritUsed/guidedFootstepsUsed/timelessGuardCooldown moved
+  // off this list under Amendment 1 (Phase 2 step 2c rework) -- their
+  // state lives under their own registry entries now, initialized
+  // directly on combat.player.modifierState, never flat on combat.
   // Step 1g-iv: batch 2 of the 117-field move -- every remaining avatarOf*
   // field (the …Used flags moved already, in 1e). One family, read
   // together; no redesign of the stacking/duration logic itself.
@@ -151,7 +155,9 @@ const PLAYER_FIELDS = [
   "everyChoiceAtkStacks", "everyChoiceMagicStacks", "forestGuardianBonus",
   "groundbreakerDebuffs", "lastStandAtkBonus", "livingCurrentStacks", "livingSteelBonus",
   "orderedMindDefStacks", "perfectMemoryKnowledgeBonus", "queenCarapaceBonus",
-  "reinforcedDefStacks", "riverWardenMagicBonus", "sovereigntyTurnsLeft", "temperedSteelStacks",
+  // riverWardenMagicBonus moved off this list under Amendment 1 (Phase
+  // 2 step 2c rework) -- see "set:River Warden:6"'s own registry entry.
+  "reinforcedDefStacks", "sovereigntyTurnsLeft", "temperedSteelStacks",
   "unbrokenLineHitCount", "unwaveringDevotionStacks", "wallsEndureDefStacks",
   "whiteWatchRiposteDefBonus", "windsOfChangeAtk", "windsOfChangeDef", "windsOfChangeKnowledge",
   "windsOfChangeMagic", "workRefinesAtkStacks", "workRefinesMagicStacks", "worthyChallengeStacks",
@@ -167,7 +173,9 @@ const PLAYER_FIELDS = [
   "atkBuffAmount", "atkBuffTurns", "defBuffAmount", "defBuffTurns",
   "magicBuffAmount", "magicBuffTurns", "knowledgeBuffAmount", "damageReductionTurns",
   "playerBuffs", "playerStatuses", "regen", "tempHealth",
-  "evasionCharges", "evasionTurns", "evasiveGuardBonus", "exposedTarget",
+  // evasiveGuardBonus moved off this list under Amendment 1 (Phase 2
+  // step 2c rework) -- see "effect:evasive_guard"'s own registry entry.
+  "evasionCharges", "evasionTurns", "exposedTarget",
   "playerLastHitType", "actionCounter", "weaponAttackCounter",
   "momentumStacks", "momentumUnboundStacks", "siegeCorpsAtkCharge",
 ];
@@ -383,7 +391,10 @@ function effectivePlayerDef(state) {
   const calmWatersDef = combat.player.calmWatersTurns > 0 ? combat.player.calmWatersDefBonus || 0 : 0;
   // v0.11: flat in-combat stacks scale through flatStat (PLAYER_STAT_SCALE);
   // `buff` and playerBuffs are already scaled where they're granted.
-  const flatStacks = (combat.player.evasiveGuardBonus || 0) + (combat.player.forestGuardianBonus || 0) + (combat.player.queenCarapaceBonus || 0) + (combat.player.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.player.livingSteelBonus || 0) + (combat.player.battleTemperedDefStacks || 0) + (combat.player.compassionsGraceDefStacks || 0) * 2 + (combat.player.windsOfChangeDef || 0) + (combat.player.avatarOfChaosDefBonus || 0) + (combat.player.wallsEndureDefStacks || 0) + (combat.player.avatarOfEnduranceDefBonus || 0) + (combat.player.reinforcedDefStacks || 0) + (combat.player.orderedMindDefStacks || 0) + calmWatersDef;
+  // Evasive Guard's stack now lives on its own registry entry's state
+  // (Amendment 1, Phase 2 step 2c rework), not combat.player.evasiveGuardBonus.
+  const evasiveGuardStacks = modifierStateFor(state, "player", "effect:evasive_guard", MODIFIERS["effect:evasive_guard"]).stacks || 0;
+  const flatStacks = evasiveGuardStacks + (combat.player.forestGuardianBonus || 0) + (combat.player.queenCarapaceBonus || 0) + (combat.player.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.player.livingSteelBonus || 0) + (combat.player.battleTemperedDefStacks || 0) + (combat.player.compassionsGraceDefStacks || 0) * 2 + (combat.player.windsOfChangeDef || 0) + (combat.player.avatarOfChaosDefBonus || 0) + (combat.player.wallsEndureDefStacks || 0) + (combat.player.avatarOfEnduranceDefBonus || 0) + (combat.player.reinforcedDefStacks || 0) + (combat.player.orderedMindDefStacks || 0) + calmWatersDef;
   const base = state.def + buff + flatStat(flatStacks) + playerBuffStatTotal(state, "def");
   // Enemy Ability Engine (data/enemyabilities.js): a Defense-reducing
   // status an enemy's active ability just inflicted (Shield Crush, ...),
@@ -402,10 +413,11 @@ function effectivePlayerDef(state) {
   // negating it outright, unlike Unbreakable/Corrosionproof below (which
   // shrink or fully ignore the FIRST reduction at the moment it's applied).
   const reduced = base + penalty;
-  // Bedrock's presence check reads the registry now (Phase 2 step 2b,
-  // js/data/modifiers.js's "effect:bedrock" entry) instead of a raw
-  // direct lookup; the floor math itself stays here unchanged.
-  const floored = hasModifier(state, "player", "effect:bedrock") ? Math.max(reduced, Math.round(base * 0.75)) : reduced;
+  // Bedrock's floor is now a registry behavior dispatched via
+  // applyStatDefFloor (Amendment 1, js/data/modifiers.js), for whichever
+  // fighter's Defense is being read -- effectiveAllyDef/stat()'s enemy
+  // "def" case call the same helper.
+  const floored = applyStatDefFloor(state, "player", base, reduced);
   return Math.round(floored * ratioMult);
 }
 
@@ -974,8 +986,11 @@ function effectiveMagic(state) {
   // Calm Waters (Regalia): a temporary Magic bonus granted whenever
   // Cleansing Current clears a status — see applyStatusCleanseOnHeal.
   const calmWatersMagic = combat && combat.player.calmWatersTurns > 0 ? combat.player.calmWatersMagicBonus || 0 : 0;
+  // River Warden 6pc's stack now lives on its own registry entry's state
+  // (Amendment 1, Phase 2 step 2c rework), not combat.player.riverWardenMagicBonus.
+  const riverWardenMagic = combat ? (modifierStateFor(state, "player", "set:River Warden:6", MODIFIERS["set:River Warden:6"]).stacks || 0) : 0;
   // v0.11: flat stacks scale through flatStat; magicBuff is scaled at grant.
-  const total = state.magic + magicBuff + flatStat(((combat && combat.player.riverWardenMagicBonus) || 0) + ((combat && combat.player.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
+  const total = state.magic + magicBuff + flatStat(riverWardenMagic + ((combat && combat.player.livingCurrentStacks) || 0) * 2 + everyChoiceMagic + endlessStudyMagic + expandingMindMagic + unwaveringDevotionMagic + windsOfChangeMagic + avatarOfChaosMagic + workRefinesMagic + avatarOfCreationMagic + calmWatersMagic);
   return Math.round(total * sovereigntyMultiplier(state));
 }
 
@@ -1703,18 +1718,14 @@ function borrowedSecondsActive(state) {
 // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
 // attack every 3 rounds deals 0 damage entirely — a full negation
 // (unlike Unyielding Wall's damage CAP), on its own 3-round recharge
-// (unlike Shared Burden's once-per-fight gate). Checked (and, on
-// success, its own cooldown reset) at the very top of
-// resolveEnemyAttackOnPlayer, before any of the other evasion/miss checks.
-function applyTimelessGuard(state) {
-  // Presence check reads the registry (Phase 2 step 2c); the cooldown
-  // logic below is unchanged.
-  if (!hasModifier(state, "player", "effect:timeless_guard") || !state.combat) return false;
-  const combat = state.combat;
-  if ((combat.player.timelessGuardCooldown || 0) > 0) return false;
-  combat.player.timelessGuardCooldown = 3;
-  return true;
-}
+// (unlike Shared Burden's once-per-fight gate). Amendment 1 (Phase 2
+// step 2c rework): folded into the registry's "effect:timeless_guard"
+// entry (cooldownGatedBlock behavior), dispatched alongside Guardian
+// Spirit/Guided Footsteps/etc. in pipeline.js's rollToHit instead of
+// being its own standalone function with its own direct hasEffect()
+// call. Its cooldown is still ticked once per round -- see beginTurn's
+// tickModifierCooldown call, in place of the old
+// combat.player.timelessGuardCooldown decrement.
 
 // Blessing of Creation (Regalia of the Eternal Forge 2pc): +25% to the
 // MAGNITUDE of any temporary (duration-based) stat bonus granted —
@@ -4057,7 +4068,7 @@ function beginTurn(state) {
   if (combat.player.avatarOfCreationTurns > 0) combat.player.avatarOfCreationTurns -= 1;
   if (combat.player.avatarOfRenewalTurns > 0) combat.player.avatarOfRenewalTurns -= 1;
   if (combat.player.unyieldingWallCooldown > 0) combat.player.unyieldingWallCooldown -= 1;
-  if (combat.player.timelessGuardCooldown > 0) combat.player.timelessGuardCooldown -= 1;
+  tickModifierCooldown(state, "player", "effect:timeless_guard");
   // Avatar of Time (Regalia of the Eternal Hour 6pc): "when the effect
   // ends, all cooldowns resume from whatever value they would have
   // naturally reached" is simplified here to "cooldowns simply remain at
@@ -5722,10 +5733,11 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     defBuffAmount: 0, // Stoneskin's defense bonus
     evasionTurns: 0, // Windcut duration remaining
     evasionCharges: 0, // Evasive Release's one-shot dodge charges
-    evasiveGuardBonus: 0, // Evasive Guard's permanent-per-fight def, capped +3
+    // Evasive Guard's/River Warden 6pc's stacks moved to their own
+    // registry entries' state (Amendment 1, Phase 2 step 2c rework) --
+    // see the modifierState block below, not a flat field here.
     queenCarapaceBonus: 0, // Carapace Adaptation's stacking def, capped +9
     whiteWatchRiposteDefBonus: 0, // White Watch 6pc — stacking def per Riposte
-    riverWardenMagicBonus: 0, // River Warden 6pc — stacking magic, capped +8
     siegeCorpsAtkCharge: 0, // Siege Corps 6pc — one-shot +2 atk after Brace
     lastElementUsed: null, // for elemental synergy — see data/synergy.js
     firstPhysicalAttackDone: false, // gates Opening Reach
@@ -5741,7 +5753,8 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     lastStandUsed: false, // gates Last Stand's (Legendary) 1-HP cheat-death
     lastStandAtkBonus: 0, // Last Stand's +5 Attack, granted once triggered
     momentumStacks: 0, // Momentum's (Legendary) stacking damage bonus, capped at 5
-    guardianSpiritUsed: false, // gates Guardian Spirit's (Mythic) auto-miss on the first enemy attack
+    // Guardian Spirit's one-shot flag moved to its own registry entry's
+    // state (Amendment 1, Phase 2 step 2c rework) -- modifierState below.
     adaptiveWardElement: null, // Adaptive Ward's (Mythic) locked-in resisted element, once the first elemental hit lands
     perfectTimingUsed: false, // gates Perfect Timing's (Mythic) free first tactic
     livingSteelBonus: 0, // Living Steel's (Mythic) stacking atk/def bonus, capped at 5
@@ -5760,7 +5773,8 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     betweenWorldsUsed: false, // gates Between Worlds' (Divine Regalia) 1-HP cheat-death
     avatarOfPassingUsed: false, // gates Avatar of Passing's (Regalia of the Final Veil 6pc) below-25%-HP burst
     avatarOfPassingTurns: 0, // Avatar of Passing's temporary 30%-damage-dealt-as-healing duration remaining
-    guidedFootstepsUsed: false, // gates Guided Footsteps' (Divine Regalia) 75%-chance first-attack miss
+    // Guided Footsteps' one-shot flag moved to its own registry entry's
+    // state (Amendment 1, Phase 2 step 2c rework) -- modifierState below.
     everyChoiceAtkStacks: 0, // Every Choice Matters' (Divine Regalia) stacking +2 Attack per dodge/block/negate, capped at 5 (+10)
     everyChoiceMagicStacks: 0, // Every Choice Matters' stacking +2 Magic, capped at 5 (+10)
     threadsOfConsequencePending: false, // Threads of Consequence's (Regalia of the Woven Thread 4pc) next-attack +40% bonus
@@ -5827,7 +5841,8 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     endlessCurrentStacks: 0, // Endless Current's (Regalia of the Endless Tide 4pc) stacking +2/+2/+2 Attack/Defense/Magic per heal, capped at 5 (+10/+10/+10)
     avatarOfRenewalUsed: false, // gates Avatar of Renewal's (Regalia of the Endless Tide 6pc) below-25%-HP burst
     avatarOfRenewalTurns: 0, // Avatar of Renewal's temporary per-round-heal/reduced-damage-taken duration remaining
-    timelessGuardCooldown: 0, // Timeless Guard's (Divine Regalia) once-every-3-rounds recharge, in rounds remaining
+    // Timeless Guard's cooldown moved to its own registry entry's state
+    // (Amendment 1, Phase 2 step 2c rework) -- modifierState below.
     perfectMemoryKeys: [], // Perfect Memory's (Divine Regalia) list of distinct Tactics/Elemental Abilities already used this fight
     perfectMemoryKnowledgeBonus: 0, // Perfect Memory's stacking +2 Knowledge per first-use, capped at 16 (8 distinct actions)
     hourglassReserveReady: hasEffect(state, "hourglass_reserve"), // Hourglass Reserve's (Divine Regalia) once-per-combat free-cooldown charge, available from combat start
@@ -5875,6 +5890,23 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // deleted this commit) only existed to bridge the multi-batch call-
   // site rewrite; nothing needs it now.
   state.combat.player = makePlayerCombatStore(state.combat);
+  // Amendment 1 (Phase 2 step 2c rework): the per-fight state for the 7
+  // rollToHit.defender registry entries (Timeless Guard's cooldown,
+  // Guardian Spirit's/Guided Footsteps' one-shot flags, Evasive Guard's/
+  // River Warden 6pc's stacks -- Never Where Expected/Blessing of
+  // Freedom need none) lives here instead of their old flat
+  // combat.player.<field> spellings. modifierStateFor() lazily creates
+  // any of these on first access anyway (entry.state is each one's
+  // initial shape), so this block is just making that explicit/eager,
+  // matching this file's own convention of declaring every fight-start
+  // field rather than relying on lazy undefined-coalescing.
+  state.combat.player.modifierState = {
+    "effect:timeless_guard": { cooldown: 0 },
+    "effect:guardian_spirit": { used: false },
+    "effect:guided_footsteps": { used: false },
+    "effect:evasive_guard": { stacks: 0 },
+    "set:River Warden:6": { stacks: 0 },
+  };
   // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
   // creature once actually fought — dynamic creatures (enemy mages) have
   // no fixed BESTIARY id/species to log, so they're excluded; every real

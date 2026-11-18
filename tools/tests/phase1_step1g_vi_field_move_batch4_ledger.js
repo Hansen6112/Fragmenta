@@ -46,7 +46,10 @@ const { seedPageRandom } = require('./seed_rng');
       'atkBuffAmount', 'atkBuffTurns', 'defBuffAmount', 'defBuffTurns',
       'magicBuffAmount', 'magicBuffTurns', 'knowledgeBuffAmount', 'damageReductionTurns',
       'playerBuffs', 'playerStatuses', 'regen', 'tempHealth',
-      'evasionCharges', 'evasionTurns', 'evasiveGuardBonus', 'exposedTarget',
+      // evasiveGuardBonus moved off this list under Phase 2 Amendment 1
+      // (18 Nov) -- its stack now lives under its own registry entry's
+      // state on combat.player.modifierState.
+      'evasionCharges', 'evasionTurns', 'exposedTarget',
       'playerLastHitType', 'actionCounter', 'weaponAttackCounter',
       'momentumStacks', 'momentumUnboundStacks', 'siegeCorpsAtkCharge',
     ];

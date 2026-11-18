@@ -295,26 +295,36 @@ function rollToHit(actor, target, action, ctx) {
     // branch's own read.
     const markedTargetBonusAlly = COMBAT_UNIFY.U3a && combat.player.exposedTarget && combat.player.exposedTarget.by !== creature ? 8 : 0;
     if (markedTargetBonusAlly) combat.player.exposedTarget = null;
-    const duelistPendingAlly = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === ally.name;
-    let calculatedAimBonusAlly = 0;
-    if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
-      creature.calculatedAimUsed = true;
-      calculatedAimBonusAlly = 8;
-    }
+    // Amendment 1 (Phase 2 step 2c follow-up): Duelist's Measure/
+    // Calculated Aim/Concealed Edge/Measured Aim dispatched via the
+    // registry (rollToHit.attacker, holders: ["enemy"]) instead of
+    // inline hasEffect() calls -- the unconditional resets below (the
+    // pending-target clear, the banked-prep zeroing) stay inline exactly
+    // where they were, since today's code runs them regardless of
+    // whether the creature has any of these effects at all.
     const bankedPrepBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
     const bankedPrepDmgMultBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
-    const measuredAimAccBonusAlly = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
+    const attackerBonusAlly = sumNumeric(runHook("rollToHit.attacker", creature, "enemy", { creature, targetName: ally.name }));
     creature.bankedAttackAccBonus = 0;
     creature.bankedAttackAccBonusTurnsLeft = 0;
     creature.bankedAttackDmgMultBonus = 0;
-    const accBonus = baseAccBonus + markedTargetBonusAlly + (duelistPendingAlly ? 10 : 0) + calculatedAimBonusAlly + bankedPrepBonusAlly + measuredAimAccBonusAlly;
     creature.duelistMeasurePendingTarget = null;
+    const accBonus = baseAccBonus + markedTargetBonusAlly + attackerBonusAlly + bankedPrepBonusAlly;
     if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, stat(state, target, "agi"))) {
       // Riposte, generalized: a miss on an ally provokes a counter FROM
       // the ally onto the attacker — the player-targeted path has no
       // equivalent (a miss there is just a miss). See this file's header.
       const enemySlot = actor.store;
       return { hit: false, result: { lines: [`${withThe(creature.name, true)} lunges at ${ally.name} and misses.`, ...riposteCounterByAllyOnEnemy(state, ally, enemySlot)], damage: null } };
+    }
+    // Amendment 1: the same "miss chain" rollToHit's player branch below
+    // dispatches, now dispatched here too so an ally-held entry (none
+    // today -- holders stays ["player"]) would actually be reachable
+    // once R1 widens it. Byte-identical today: no entry's holders
+    // include "ally", so this always falls through.
+    const allyMissChain = firstStop(runHook("rollToHit.defender", ally, "ally", { phase: "miss", creature }));
+    if (allyMissChain) {
+      return { hit: false, result: { lines: [allyMissChain.miss], damage: 0 } };
     }
     return { hit: true, accBonus, bankedPrepDmgMultBonus: bankedPrepDmgMultBonusAlly };
   }
@@ -324,44 +334,32 @@ function rollToHit(actor, target, action, ctx) {
     markedTargetBonus = 8;
     combat.player.exposedTarget = null;
   }
-  const duelistPending = hasEffect(creature, "sang_cu_ie007_duelists_measure") && creature.duelistMeasurePendingTarget === "player";
-  const duelistBonus = duelistPending ? 10 : 0;
-  creature.duelistMeasurePendingTarget = null;
-  let calculatedAimBonus = 0;
-  if (!creature.calculatedAimUsed && (hasEffect(creature, "sang_mil_ie003_calculated_aim") || hasEffect(creature, "sang_iag_ie007_concealed_edge"))) {
-    creature.calculatedAimUsed = true;
-    calculatedAimBonus = 8;
-  }
+  // Amendment 1 (Phase 2 step 2c follow-up): Duelist's Measure/
+  // Calculated Aim/Concealed Edge/Measured Aim dispatched via the
+  // registry (rollToHit.attacker, holders: ["enemy"]) instead of inline
+  // hasEffect() calls -- the unconditional resets below stay inline
+  // exactly where they were (see the ally branch's own comment above).
   const bankedPrepBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
   const bankedPrepDmgMultBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
-  const measuredAimAccBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 && hasEffect(creature, "sang_iag_ie003_measured_aim") ? 8 : 0;
+  const attackerBonus = sumNumeric(runHook("rollToHit.attacker", creature, "enemy", { creature, targetName: "player" }));
   creature.bankedAttackAccBonus = 0;
   creature.bankedAttackAccBonusTurnsLeft = 0;
   creature.bankedAttackDmgMultBonus = 0;
-  const accBonus = baseAccBonus + markedTargetBonus + duelistBonus + calculatedAimBonus + bankedPrepBonus + measuredAimAccBonus;
+  creature.duelistMeasurePendingTarget = null;
+  const accBonus = baseAccBonus + markedTargetBonus + attackerBonus + bankedPrepBonus;
 
   if (!attackConnects(effectiveEnemyAccuracy(actor.ref) + accBonus, effectivePlayerAgility(state) + scoutStealthOpeningBonus(state, combat))) {
     return miss(`${withThe(creature.name, true)} attacks, but you're not where it expected you to be.`);
   }
-  if (applyTimelessGuard(state)) {
-    return miss(`Timeless Guard — for a moment, time itself refuses to let the blow land.`);
-  }
-  // Presence checks read the registry (Phase 2 step 2c); the per-effect
-  // logic (cooldown/once-per-fight flags, miss chances) is unchanged.
-  if (hasModifier(state, "player", "effect:guardian_spirit") && !combat.player.guardianSpiritUsed) {
-    combat.player.guardianSpiritUsed = true;
-    return miss(`Guardian Spirit turns the first blow aside completely.`);
-  }
-  if (hasModifier(state, "player", "effect:guided_footsteps") && !combat.player.guidedFootstepsUsed) {
-    combat.player.guidedFootstepsUsed = true;
-    if (Math.random() < 0.75) return miss(`Guided Footsteps — you're already a step from where it lands.`);
-  }
-  if (hasModifier(state, "player", "effect:never_where_expected") && Math.random() < 0.15) {
-    return miss(`Never Where Expected — it swings, and finds nothing there.`);
-  }
-  if (hasModifier(state, "player", "set:Regalia of the Endless Horizon:2") && Math.random() < 0.15) {
-    return miss(`Blessing of Freedom carries you clear of the blow.`);
-  }
+  // Amendment 1 (Phase 2 step 2c rework): Timeless Guard/Guardian
+  // Spirit/Guided Footsteps/Never Where Expected/Blessing of Freedom
+  // are now ONE dispatch through the registry (behaviors, not 5
+  // separate hasEffect()/hasModifier() checks) -- in `order`, so the
+  // Math.random() call sequence matches exactly, and the first one that
+  // fires stops the rest from even being evaluated, same as today's
+  // sequential if/return chain.
+  const missChain = firstStop(runHook("rollToHit.defender", state, "player", { phase: "miss", creature }));
+  if (missChain) return miss(missChain.miss);
   if (combat.player.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
     return miss(`Avatar of Freedom carries you beyond its reach entirely.`);
   }
@@ -373,10 +371,10 @@ function rollToHit(actor, target, action, ctx) {
     evasionRolled = Math.random() < 0.5;
   }
   if (evasionRolled) {
-    if (hasModifier(state, "player", "effect:evasive_guard")) combat.player.evasiveGuardBonus = Math.min(3, combat.player.evasiveGuardBonus + 1);
-    if (creature.element && hasModifier(state, "player", "set:River Warden:6")) {
-      combat.player.riverWardenMagicBonus = Math.min(8, combat.player.riverWardenMagicBonus + 2);
-    }
+    // Evasive Guard's/River Warden 6pc's stat-stack grants, same
+    // registry dispatch, now reacting to an evasion that already
+    // succeeded rather than deciding it themselves.
+    runHook("rollToHit.defender", state, "player", { phase: "evasion", creature });
     return miss(`You slip past ${withThe(creature.name, false)}'s counter entirely.`);
   }
   return { hit: true, accBonus, bankedPrepDmgMultBonus };
@@ -778,8 +776,13 @@ function rollToHitAllyActor(actor, target, action, ctx) {
   // zero effect on any normal ally attack.
   if (action.toHit === "none") return { hit: true };
 
+  // Amendment 1: dispatches rollToHit.attacker for the ally-as-attacker
+  // side too -- no registry entry's holders include "ally" today, so
+  // this is always 0, byte-identical. Same readiness wiring as
+  // rollToHitPlayerActor's own copy, just below.
+  const allyAttackerBonus = sumNumeric(runHook("rollToHit.attacker", ally, "ally", { creature, targetName: "enemy" }));
   if (action.formula !== "allyPlain") {
-    if (!attackConnects(ally.accuracy, effectiveEnemyAgility(enemySlot), action.veteranPct)) {
+    if (!attackConnects(ally.accuracy + allyAttackerBonus, effectiveEnemyAgility(enemySlot), action.veteranPct)) {
       // basicCompanionAttackLegacy's miss line (no ability) vs
       // useHadrianActive's (a named active) — genuinely different text.
       // U3g (off by default, handoff §0): with it on, a miss here also
@@ -795,7 +798,7 @@ function rollToHitAllyActor(actor, target, action, ctx) {
   }
 
   const allyAcc = stat(state, actor, "acc");
-  if (!attackConnects(allyAcc, effectiveEnemyAgility(enemySlot))) {
+  if (!attackConnects(allyAcc + allyAttackerBonus, effectiveEnemyAgility(enemySlot))) {
     return { hit: false, result: { lines: [`${ally.name} lunges at ${withThe(creature.name, false)} and misses.`, ...riposteCounterByEnemyOnAlly(state, enemySlot, ally)], damage: null } };
   }
   return { hit: true };
@@ -1555,7 +1558,14 @@ function rollToHitPlayerActor(actor, target, action, ctx) {
   const state = ctx.state;
   const enemySlot = target.store;
   const creature = enemySlot.creatureObj;
-  if (!attackConnects(effectivePlayerAccuracy(state), effectiveEnemyAgility(enemySlot))) {
+  // Amendment 1: dispatches rollToHit.attacker for the player-as-attacker
+  // side too -- no registry entry's holders include "player" today, so
+  // this is always 0, byte-identical. Wired so a future entry (or a
+  // test widening an existing one's holders, e.g. Calculated Aim) is
+  // actually reachable here, the same "a rule works for whoever holds
+  // it" promise the enemy-as-attacker branches (rollToHit) already keep.
+  const attackerBonus = sumNumeric(runHook("rollToHit.attacker", state, "player", { creature, targetName: "enemy" }));
+  if (!attackConnects(effectivePlayerAccuracy(state) + attackerBonus, effectiveEnemyAgility(enemySlot))) {
     const lines = action.missLine(state, creature);
     return { hit: false, result: { lines, damage: null } };
   }

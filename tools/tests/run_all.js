@@ -66,6 +66,7 @@ const LEDGERS = [
   "phase1_step1g_v_field_move_batch3_ledger.js",
   "phase1_step1g_vi_field_move_batch4_ledger.js",
   "phase1_step1g_vii_field_move_batch5_ledger.js",
+  "phase2_amendment1_test_strike_proof_ledger.js",
   "appendix_a_groundbreaker_accuracy_ledger.js",
   "test_enemy_strike_proof_ledger.js",
   "damage_types_a1_injury_v2_ledger.js",

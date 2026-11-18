@@ -100,7 +100,24 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // that content load existed) can never have picked up on its own
     // subject creature, and which the functions under test only ever
     // read, never mutate, so they carry no signal about pipeline parity.
-    const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune'];
+    // 'modifierState'/'calculatedAimUsed' added (Phase 2 Amendment 1, 18
+    // Nov): Duelist's Measure/Calculated Aim/Concealed Edge/Measured Aim
+    // moved onto the registry -- live code now lazily creates
+    // creature.modifierState (the frozen oracle can't), and conversely
+    // never sets the old creature.calculatedAimUsed flag at all anymore
+    // (the frozen oracle still has it at its old frozen value). Both
+    // directions get the same treatment as the three content-load fields
+    // above.
+    const CONTENT_ONLY_CREATURE_FIELDS = ['attackType', 'dmgTags', 'statusImmune', 'modifierState', 'calculatedAimUsed'];
+    // Phase 2 Amendment 1 (18 Nov): combat.player.modifierState is new
+    // infrastructure the frozen pre-Phase-2 oracle has no way to produce,
+    // and conversely guardianSpiritUsed/guidedFootstepsUsed/
+    // timelessGuardCooldown/evasiveGuardBonus/riverWardenMagicBonus moved
+    // OFF combat.player onto their own registry entries' state, so the
+    // frozen fixture still has them (at their old frozen values) while live
+    // code never sets them at all anymore -- both directions get the same
+    // "omitted, not nulled" treatment `chill` already had.
+    const PHASE2_AMENDMENT1_OMIT_KEYS = ['chill', 'modifierState', 'guardianSpiritUsed', 'guidedFootstepsUsed', 'timelessGuardCooldown', 'evasiveGuardBonus', 'riverWardenMagicBonus'];
     function stripCreatureObj(x) {
       if (Array.isArray(x)) return x.map(stripCreatureObj);
       if (x === null || typeof x !== 'object') return x;
@@ -113,7 +130,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       }
       const out = {};
       for (const k of Object.keys(x)) {
-        if (k === 'chill') continue;
+        if (PHASE2_AMENDMENT1_OMIT_KEYS.includes(k)) continue; // omitted, not nulled -- same treatment chill always got: a key only one side of the frozen-fixture comparison can ever have
         out[k] = stripCreatureObj(x[k]);
       }
       return out;

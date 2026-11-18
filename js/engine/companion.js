@@ -256,17 +256,21 @@ function hadrianFlatAtkBonus(ally) {
 // directly for ANY ally (not just Hadrian) — it's all zeroes for a
 // non-kit-bearing ally like Kessa, so this is a safe drop-in there too.
 function effectiveAllyDef(ally) {
-  return (
-    (ally.def || 0) +
+  const base = (ally.def || 0) +
     // v0.11: flat companion bonuses scale with PLAYER_STAT_SCALE, like ally.def itself
     flatStat((ally.bonusDefAmount || 0) + (ally.reactiveDefBonus || 0) + (ally.ascendedSetDefBonus || 0) + (ally.noNameForgottenDefBonus || 0)) +
-    allyBuffStatTotal(ally, "def") +
-    // allyStatusStatTotal (engine/combat.js): a Defense-reducing status an
-    // enemy ability just inflicted on this ally (Shield Crush-style
-    // inflict.custom, or a named STATUS_EFFECTS entry like Off Balance) —
-    // same already-signed-delta convention playerStatusStatTotal uses.
-    allyStatusStatTotal(ally, "def")
-  );
+    allyBuffStatTotal(ally, "def");
+  // allyStatusStatTotal (engine/combat.js): a Defense-reducing status an
+  // enemy ability just inflicted on this ally (Shield Crush-style
+  // inflict.custom, or a named STATUS_EFFECTS entry like Off Balance) —
+  // same already-signed-delta convention playerStatusStatTotal uses.
+  const penalty = allyStatusStatTotal(ally, "def");
+  const reduced = base + penalty;
+  // Amendment 1 (Phase 2 step 2b rework): dispatched through the same
+  // stat.def registry hook Bedrock (effectivePlayerDef, combat.js) uses
+  // -- holders is ["player"] only today, so this always falls through to
+  // `reduced` unchanged; wired for R1, not yet live.
+  return penalty >= 0 ? reduced : applyStatDefFloor(ally, "ally", base, reduced);
 }
 
 // Extracted from resolveEnemyAttackOnAlly's own inline calc (Combat

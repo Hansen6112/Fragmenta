@@ -800,6 +800,15 @@ for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
   if (entry.hook && entry.hook.startsWith("calculateDamage.") && !entry.bucket) {
     warn("modifiers", `MODIFIERS["${key}"] is a damage/defense multiplier with no bucket (M3)`);
   }
+  // Amendment 1 (18 Nov): an entry with neither `behavior` nor a non-
+  // null `value` is presence-only -- it moved a hasEffect()/hasSetTier()
+  // CHECK into the registry without moving what that presence actually
+  // DOES, so widening its holders (R1/R2) would reach nothing. That was
+  // 2b/2c's first-pass mistake before this amendment; flagged here so
+  // it can't silently recur.
+  if (entry.behavior == null && entry.value == null) {
+    warn("modifiers", `MODIFIERS["${key}"] is presence-only (no behavior, no value) -- widening its holders would do nothing (M3, Amendment 1)`);
+  }
 }
 
 // M4: every bucket any entry actually uses has a cap (MOD_BUCKET_CAPS)

@@ -198,7 +198,12 @@ function stat(state, combatant, key) {
       // (step 5), moved there from allyAggressiveActionLegacy's old
       // pre-damage-calc timing — see pipeline.js's own comment on why
       // that reorder is safe.
-      case "def": return creature.def || 0;
+      // Amendment 1 (Phase 2 step 2b rework): dispatched through the same
+      // stat.def registry hook Bedrock/effectiveAllyDef use -- no entry
+      // has holders including "enemy" today, and this accessor has no
+      // reduction concept of its own (base === reduced always, per the
+      // comment above), so this is a true no-op today, wired for R2.
+      case "def": return applyStatDefFloor(creature, "enemy", creature.def || 0, creature.def || 0);
       default: return notYetMigrated("enemy", key);
     }
   }
