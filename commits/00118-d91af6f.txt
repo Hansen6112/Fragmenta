@@ -1,0 +1,43 @@
+range: 5445cbe4976484bed42da39312583babfe1d3eb3..d91af6fd0259d69be11ff5ee56eed643cf92336a
+=== d91af6fd0259d69be11ff5ee56eed643cf92336a 2026-11-18 23:19:59 +0000
+Phase 2 step 2d, increment 2: calculateDamage.defenseIgnore for the player roll
+Bucketed registry entries for effDef's own multiplier chain in the same
+pair of functions increment 1 touched. calculateDefenseIgnoreMultiplier
+(modifiers.js) multiplies (1 - value) for every active entry -- since
+1 - (1 - m) === m, this reproduces today's exact
+foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
+product, entry by entry, each still delegating to its existing
+unchanged multiplier function.
+
+3 percentage entries: foreseen_strike, commanding_presence (Regalia of
+the Crimson Vanguard:4), precision_formula (spell-branch only, when:
+isSpell -- matches today's exact structural gate, since the weapon
+branch's own effDef chain never included it). A 4th, armor_crack, is
+registered too (flatAmount: true) purely so the audit has an entry for
+it -- it's a flat Defense subtraction, never a percentage, so it's
+excluded from the product entirely and the call site still subtracts
+armorCrackAmount(state) directly, unchanged, before the percentage
+chain applies, exactly today's order.
+
+Deliberately not migrated yet: Siege Corps 4pc's own doubling of Armor
+Crack's flat amount (same Rule-1 `upgrades` deferral as increment 1's
+set tiers). `calculateDamage.incoming` is a separate, later increment --
+its own function (mitigateAndApplyHitOnPlayer) rounds at EACH step
+rather than once at the end of a flat product, so it needs its own
+combinator design, not this one reused.
+
+Suite 589/589, audit 0 errors/445 warnings (down from 449). plus3_run.js
+re-confirmed byte-identical at N=1000; boss_sweep.js's full re-check is
+still running in the background as this commit lands.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                              |  59 +++++++++
+ js/engine/combat.js                               |  13 +-
+ js/engine/pipeline.js                             |  13 +-
+ tools/modifier_catalogue.md                       |   2 +
+ tools/tests/phase2_step2d_defenseignore_ledger.js | 146 ++++++++++++++++++++++
+ tools/tests/run_all.js                            |   1 +
+ 6 files changed, 226 insertions(+), 8 deletions(-)

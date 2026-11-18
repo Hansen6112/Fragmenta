@@ -1,5 +1,5 @@
 
-WARNINGS (449)
+WARNINGS (445)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -74,7 +74,6 @@ WARNINGS (449)
   [ability] passive arcane_reflection (trigger "firstMagicalHitPerRoundReduction") is on 1 creature(s) but no engine code handles that trigger — inert
   [modifiers] EFFECT_DEFS.opening_reach (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.patient_aim (combat) has no registry entry yet (M1)
-  [modifiers] EFFECT_DEFS.armor_crack (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.feinting_edge (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.guarded_strike (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.riposte (combat) has no registry entry yet (M1)
@@ -122,7 +121,6 @@ WARNINGS (449)
   [modifiers] EFFECT_DEFS.between_worlds (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.passing_whisper (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.soul_ledger (regalia) has no registry entry yet (M1)
-  [modifiers] EFFECT_DEFS.foreseen_strike (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.every_choice_matters (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.weavers_insight (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.unbroken_line (regalia) has no registry entry yet (M1)
@@ -134,7 +132,6 @@ WARNINGS (449)
   [modifiers] EFFECT_DEFS.prepared_response (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.expanding_mind (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.eureka (regalia) has no registry entry yet (M1)
-  [modifiers] EFFECT_DEFS.precision_formula (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.archive_eternal (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.compassions_grace (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.shared_burden (regalia) has no registry entry yet (M1)
@@ -244,7 +241,6 @@ WARNINGS (449)
   [modifiers] SETS.Regalia of the Final Veil tier 6 ("avatar_of_passing") has no registry entry yet (M1)
   [modifiers] SETS.Regalia of the Woven Thread tier 2 ("blessing_of_guidance") has no registry entry yet (M1)
   [modifiers] SETS.Regalia of the Woven Thread tier 6 ("avatar_of_fate") has no registry entry yet (M1)
-  [modifiers] SETS.Regalia of the Crimson Vanguard tier 4 ("commanding_presence") has no registry entry yet (M1)
   [modifiers] SETS.Regalia of the Crimson Vanguard tier 6 ("avatar_of_war") has no registry entry yet (M1)
   [modifiers] SETS.Regalia of the Endless Archive tier 2 ("blessing_of_insight") has no registry entry yet (M1)
   [modifiers] SETS.Regalia of the Endless Archive tier 4 ("universal_understanding") has no registry entry yet (M1)
@@ -455,4 +451,4 @@ WARNINGS (449)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 449 warning(s) across 53 scripts.
+0 error(s), 445 warning(s) across 53 scripts.

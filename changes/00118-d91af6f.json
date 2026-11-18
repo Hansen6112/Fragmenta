@@ -1,0 +1,22 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:foreseen_strike",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:precision_formula",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:armor_crack",
+  "type": "added"
+ }
+]
