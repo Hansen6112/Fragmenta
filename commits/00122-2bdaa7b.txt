@@ -1,0 +1,38 @@
+range: 83a08a5a77b5f34a3c7ea0d6c516e97ade4904f0..2bdaa7b1e1198d9ef8b80989a81904ff1fd3326e
+=== 2bdaa7b1e1198d9ef8b80989a81904ff1fd3326e 2026-11-19 13:35:31 +0000
+Phase 2 step 2d, increment 3c: calculateDamage.incoming, ability-phase
+Migrates Spell Ward/Storm Barrier/Stonewarden 6pc -- these live inside
+enemyCore (actions.js), a genuinely earlier dispatch point than
+mitigateAndApplyHitOnPlayer's own chain, since enemyCore's return value
+IS that function's edmg argument at its call sites. Shares the
+calculateDamage.incoming hook with increments 3/3b via a second
+combinator (calculateAbilityIncomingMultiplier) filtered by a new
+abilityPhase marker, so the two dispatch points don't double-fire each
+other's entries; both now share an extracted threadIncomingEntries
+helper for the sequential-rounding walk itself.
+
+Dispatched at three points: the ally-target magic branch (off-switch-
+gated), the player-target magic branch, and the player-target physical
+branch (Stonewarden only, matching today's exact scope).
+
+Fixed one real bug found during development: Storm Barrier/Stonewarden
+were first registered with a `set`-sourced gate, which skips the entry
+(and its one-shot flag write) entirely for a wearer without the set --
+but today's code consumes that flag on any qualifying hit regardless,
+gating only the ratio. Switched both to `always`-sourced, matching
+Spell Ward's own correct pattern. Caught immediately by the existing
+parity suites (566/620 on the first attempt).
+
+Suite 631/631, audit 0 errors/419 warnings. plus3_run confirmation in
+progress; full boss_sweep confirmation for 3b+3c together in progress.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  79 +++++-----
+ js/data/modifiers.js                               |  93 +++++++++++-
+ tools/modifier_catalogue.md                        |   6 +-
+ .../tests/phase2_step2d_ability_incoming_ledger.js | 166 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 298 insertions(+), 47 deletions(-)

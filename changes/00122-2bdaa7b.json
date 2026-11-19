@@ -1,0 +1,32 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "stormBarrierRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "firstHitTakenRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "spellWardRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:spell_ward",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:storm_barrier",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:stonewarden_first_hit",
+  "type": "added"
+ }
+]
