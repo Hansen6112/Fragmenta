@@ -1,0 +1,32 @@
+range: cd121adf20cd5b34d21b47d216ebc7044b430e78..fbd03ba5086d55cc47ae109a8755d7aac91e6081
+=== fbd03ba5086d55cc47ae109a8755d7aac91e6081 2026-11-19 23:17:24 +0000
+Phase 2 step 2e, §3: assign hooks for the 40 lifecycle REVIEW rows
+Catalogue-only pass, no registry entries or dispatch code, per the
+handoff's own "before any code" instruction. Read every one of the 40
+"state-only / lifecycle -- REVIEW" rows' cited code location(s) and
+corrected kind/hook/notes in place.
+
+- 5 were stale, not real decisions: prepared_response, adaptive_tide,
+  Norrvael:6, Legion:4, River Warden:6 were already registered in 2d
+  increment 3 or this session's increment 4; the row just never synced.
+- 2 landed on fight.start, 3 on turn.start (not round.start -- traced
+  the enclosing function, not the flavor text), 1 on round.start with
+  a caveat (reorders initiative, doesn't grant anything), 7 on
+  onStatusApplied.
+- 9 redirect to 2d (calculateDamage.outgoing/.incoming), 3 to 2b
+  (stat.*), 8 to the existing onKill/onHitDealt/onHitTaken reaction
+  categories (also: the handoff's own "3 onHitDealt rows" count is off
+  by one -- hamstring is a 4th), 1 to chooseAction, 1 two-sided
+  (Sure Foundation: bank is onHitTaken, consumption is 2d).
+- 5 flagged genuinely ambiguous for Tyler/Systems to rule on rather
+  than forced: dual_focus, master_of_arms, conduit_ascendant,
+  seedbearer, Siege Corps:6.
+
+Suite/audit unaffected (637/637, 0 errors) -- no code touched.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/modifier_catalogue.md | 104 +++++++++++++++++++++++++++-----------------
+ 1 file changed, 64 insertions(+), 40 deletions(-)
