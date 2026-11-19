@@ -795,7 +795,13 @@ const PIPELINE_FORMULAS = {
   // value, to match exactly).
   tickBurnEnemy(actor, target, action, ctx, hitInfo) {
     const creature = target.ref.creatureObj;
-    let edmg = hasEffect(creature, "dra_e08_ashward") ? Math.round(action.rawDmg * 0.75) : action.rawDmg;
+    // 2d, increment 3d (19 Nov): dispatched via the registry's new
+    // statusTick.incoming hook (calculateStatusTickMultiplier,
+    // js/data/modifiers.js) -- same single enemy-holder entry, same
+    // conditional rounding (only rounds when the multiplier actually
+    // reduced something, matching today's exact ternary).
+    const ashMult = calculateStatusTickMultiplier(creature, "enemy", { holder: creature, role: "enemy" });
+    let edmg = ashMult < 1 ? Math.round(action.rawDmg * ashMult) : action.rawDmg;
     // Damage Types v2 (off by default): a DOT tick's own damage type
     // (here, always Fire) against the target's own tag — no resisting-
     // stat step, same as every other tick (ticks were never mitigated by

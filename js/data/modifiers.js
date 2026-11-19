@@ -402,6 +402,27 @@ function applyDamageCap(holder, holderRole, ctx) {
   return ctx.edmg;
 }
 
+// statusTick.incoming (2d increment 3d, Tyler 19 Nov, Bucket Review §3):
+// a DoT-tick damage reduction, read when a status tick resolves -- no
+// attacker, no to-hit roll, so it's its own hook rather than reusing
+// calculateDamage.incoming. Flat product (today's only member,
+// Ashward, has no rounding of its own to preserve -- the one call site
+// still does its own single Math.round, exactly as before). `holders`
+// stays exactly what today's single call site already is -- per
+// Tyler's own 19 Nov note, any WIDENING of who a migrated entry works
+// for goes behind its own switch (R1/R2) and gets measured, never
+// folded into a "pure move" migration; this one entry doesn't widen
+// anything, so no switch is needed here.
+function calculateStatusTickMultiplier(holder, holderRole, ctx) {
+  const results = runHook("statusTick.incoming", holder, holderRole, ctx);
+  let total = 1;
+  for (const r of results) {
+    if (r.entry.upgrades) continue;
+    total *= typeof r.result === "number" ? r.result : 1;
+  }
+  return total;
+}
+
 // calculateDamage.incoming, ENEMY-as-defender variant (2d increment 3b,
 // Tyler 19 Nov: "Sanguivorum -> the same calculateDamage.incoming hook,
 // dispatched for any defender (player, ally, enemy), holders: ['enemy']").
@@ -1297,4 +1318,19 @@ registerModifier("always:stonewarden_first_hit", {
   value: null, behavior: "firstHitTakenRatio", params: null,
   when: (ctx) => ctx.role === "player" || ctx.kind === "magic", holders: ["player", "ally"], state: null,
   notes: "Stonewarden 6pc. `always`-sourced for the same reason as Storm Barrier above -- the firstHitTakenUsed flag is consumed on any qualifying hit whether or not Stonewarden is worn; only the ratio itself is set-gated, inside firstHitTakenRatio. Unlike Spell Ward/Storm Barrier, this one already applies to BOTH the player's magic AND physical branches today (one shared combat.player.firstHitTakenUsed flag across both) -- `when` reflects that asymmetry exactly: always eligible for the player, magic-only for an ally (the ally's own flat/physical branch has no Stonewarden check at all -- a known, separate gap the asymmetry register already flags as needs-Tyler, left untouched here).",
+});
+
+// ---- 2d, increment 3d (19 Nov): statusTick.incoming (Ashward). The
+// only member of this hook -- holders stays ["enemy"], matching
+// tickBurnEnemy's own single existing call site exactly (hasEffect(creature,
+// "dra_e08_ashward"), creature being the enemy wearer). No widening: this
+// is a pure "move the number into the registry" migration, same
+// discipline as every other 2d entry, not an R1/R2 question (per
+// Tyler's own 19 Nov note on increment 3b -- a widening would need its
+// own switch and measurement, but this entry doesn't widen anything).
+registerModifier("effect:dra_e08_ashward", {
+  source: { kind: "effect", id: "dra_e08_ashward" },
+  hook: "statusTick.incoming", order: 10, bucket: null, value: 0.75, behavior: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Ashward (First Sword's Regalia, Mantle of the Tower -- DRA-I08). Incoming Burning DoT ticks deal 0.75x. Plain numeric value (0.75), no behavior -- a pure hasEffect read, no state.",
 });

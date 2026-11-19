@@ -81,6 +81,7 @@ const LEDGERS = [
   "phase2_step2d_incoming_ledger.js",
   "phase2_step2d_sanguivorum_ledger.js",
   "phase2_step2d_ability_incoming_ledger.js",
+  "phase2_step2d_ashward_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {
