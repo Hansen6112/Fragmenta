@@ -1,0 +1,287 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "calculateDamage.cap",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "statusTick.incoming",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "shieldWallApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "masterDuelistApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unbrokenLineApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "preparedResponseRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "sharedBurdenRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unyieldingWallCap",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "perfectFleshcraftCap",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:crushing_impact",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(state) unchanged -- that shared resolver already takes the best of the base 1.2x and Thraekor:6/Vanguard:4/Ashforged:6's own upgrades via Math.max, so those three set tiers don't need their own entries for this to stay correct; they still owe M1 a registry entry of their own, deferred to a later increment.",
+    "new": "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(holder, role) -- Amendment 1 gap close (19 Nov): reads ctx.holder/ctx.role, not ctx.state, so a future widening of `holders` resolves correctly for whichever holder actually wears the gear; for today's player-only holders this is ctx.state under a different name, byte-identical. Thraekor:6/Vanguard:4/Ashforged:6's own upgrades are now registered entries (Rule 1, tag effect:crushing_impact, below) instead of an inline Math.max -- M1 no longer warns about them."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:executioner",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally",
+     "enemy"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Executioner. Value delegates to executionerMultiplier(state) unchanged, which itself reads executionerThreshold(state) (Drake Hunter:4/Vanguard:6/Contract Hunter:4's own upgrades, already folded in there) -- those three set tiers still owe M1 a registry entry of their own, deferred.",
+    "new": "Executioner. Amendment 1 gap close (19 Nov): unifies the player-only executionerMultiplier(state) (combat.js) and the already-generalized-but-separate executionerMultiplierFor(attacker, defenderHp, defenderMaxHp) (the same file -- used by the ally/enemy attack-roll formulas in actions.js, flat 30% threshold, no set-widening) into ONE entry, dispatched by calculateOutgoingMultiplier for every attacker role. `holders` widens to ally/enemy here specifically (not R1 -- this is correcting the entry to match what the code already did via that second function, not a new behavior) because executionerMultiplierFor already granted this to any attacker wearing the effect; executionerThreshold(holder, role)'s own upgrade entries (Drake Hunter:4/Vanguard:6/Contract Hunter:4) stay holders: ['player'], so an ally/enemy attacker still gets exactly the old flat 30% -- byte-identical in both directions. ctx.defenderHp/defenderMaxHp are populated generically by every call site (today: activeEnemySlot(combat) for the player, the explicit hp/maxHp or health/maxHealth args the old executionerMultiplierFor took, for ally/enemy)."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Drake Hunter:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Dragonslayer. Value delegates to dragonslayerMultiplier(state, creature) unchanged.",
+    "new": "Dragonslayer. Value delegates to dragonslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close); byte-identical for today's player-only holders."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:kingslayer",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Kingslayer. Value delegates to kingslayerMultiplier(state, creature) unchanged (Master of Arms' own doubling stays folded inside it).",
+    "new": "Kingslayer. Value delegates to kingslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close; Master of Arms' own doubling stays folded inside it, also holder-generic). Byte-identical for today's player-only holders."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:arcane_overflow",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Arcane Overflow. Spell-branch only (when: isSpell, today's exact gate -- arcaneOverflowMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own multiply chain).",
+    "new": "Arcane Overflow. Spell-branch only (when: isSpell, today's exact gate -- arcaneOverflowMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own multiply chain). Reads ctx.holder, not ctx.state (Amendment 1 gap close) -- byte-identical for today's player-only holders."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:precision_formula",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Precision Formula. Spell-branch only (when: isSpell, today's exact gate -- precisionFormulaMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own effDef product). Value delegates to precisionFormulaMultiplier(state) unchanged (30% Defense ignore).",
+    "new": "Precision Formula. Spell-branch only (when: isSpell, today's exact gate -- precisionFormulaMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own effDef product). Value delegates to precisionFormulaMultiplier(holder) -- reads ctx.holder, not ctx.state (Amendment 1 gap close), 30% Defense ignore, byte-identical for today's player-only holders."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:armor_crack",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade, already folded into armorCrackAmount's own Math.max logic), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Siege Corps 4pc still owes M1 a registry entry of its own (Rule 1's `upgrades`), deferred.",
+    "new": "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade, already folded into armorCrackAmount's own Math.max logic), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Reads ctx.holder, not ctx.state (Amendment 1 gap close). Siege Corps 4pc still owes M1 a registry entry of its own (Rule 1's `upgrades`), deferred -- not in Tyler's 19 Nov list."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Thraekor:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:4:crushing_impact",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Ashforged:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Drake Hunter:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Contract Hunter:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Scout Corps:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Conduit Master:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Fragmenta:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Novitiate:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Kabal:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Pre-Kabal:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Examiner:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:River Warden:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Stormwatch:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Legion:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:master_duelist",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:unbroken_line",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:prepared_response",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:calming_presence",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Heart:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Bastion:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Bastion:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Tide:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:adaptive_tide.physical",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:adaptive_tide.magic",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:shared_burden",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:unyielding_wall",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:perfect_fleshcraft",
+  "type": "added"
+ }
+]

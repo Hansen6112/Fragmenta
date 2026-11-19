@@ -1,0 +1,70 @@
+range: d91af6fd0259d69be11ff5ee56eed643cf92336a..18718743d36e4ea8b9973c11a8eff858f6b95ff5
+=== 18718743d36e4ea8b9973c11a8eff858f6b95ff5 2026-11-19 03:58:21 +0000
+Phase 2 step 2d, increment 3: calculateDamage.incoming (player) + calculateDamage.cap
+Migrates the player's own defender-side mitigation chain
+(mitigateAndApplyHitOnPlayer) to the registry, via a new sequential,
+per-step-rounding combinator (calculateIncomingDamage) rather than
+outgoing/defenseIgnore's flat end-of-chain product -- ordered entries
+with rounding after each step, per Tyler's own ruling for the legacy
+mode (R3 later replaces this with sum/cap/round-once). Twelve entries,
+each wrapping an existing unchanged function/value verbatim, bucket
+incomingMitigation (reserved since 2a, unused until now).
+
+Adds the calculateDamage.cap hook (Rule 3: a damage-value cap, outside
+the buckets, applied last) for Unyielding Wall (player) and Perfect
+Fleshcraft (enemy, extracted verbatim from applyEnemyFlatDamageReduction's
+former inline loop).
+
+Fixed one real bug found during development: the new combinator wasn't
+skipping `upgrades`-tagged entries, so Spell Ward's own upgrade tiers
+(added in the prior commit) were briefly leaking into this chain as
+phantom multipliers -- caught by the existing step-1b parity suite,
+fixed, and guarded by this increment's own regression test.
+
+Suite 609/609, audit 0 errors/419 warnings (down from 431). plus3_run
+re-confirmed byte-identical at N=1000; full boss_sweep confirmation to
+follow.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                         | 215 ++++++++++++++++++++++++++-
+ js/engine/combat.js                          |  48 ++++--
+ tools/audit.js                               |  15 +-
+ tools/modifier_catalogue.md                  |   8 +
+ tools/tests/phase2_step2d_incoming_ledger.js | 193 ++++++++++++++++++++++++
+ tools/tests/run_all.js                       |   1 +
+ 6 files changed, 457 insertions(+), 23 deletions(-)
+=== eb008a310ee93acee5e51c1cb6a91bb3f118640b 2026-11-19 03:57:06 +0000
+Phase 2 step 2d: close the Amendment 1 gap before increment 3
+calculateOutgoingMultiplier/calculateDefenseIgnoreMultiplier now dispatch
+for the ally attack-roll formula and both enemy attack-roll branches, not
+just the player's. Unifies effect:executioner's two previously-separate
+code paths (player-only executionerMultiplier, and the generalized-but-
+disconnected executionerMultiplierFor) into one registry entry every
+attacker role dispatches through, byte-identical in both directions.
+Implements Rule 1's `upgrades` mechanism for real (resolveUpgradedValue)
+and wires it into six shared resolvers in sets.js, replacing their inline
+Math.max/OR chains with registry data (15 new entries).
+
+Suite 596/596, audit 0 errors/431 warnings (down from 445). Both
+simulation harnesses (plus3_run, boss_sweep) re-confirmed byte-identical
+at N=1000 against the existing baselines.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  45 ++++--
+ js/data/modifiers.js                               | 179 +++++++++++++++++++--
+ js/data/sets.js                                    |  71 ++++----
+ js/engine/combat.js                                |  37 ++---
+ js/engine/pipeline.js                              |   6 +-
+ tools/audit.js                                     |   9 +-
+ tools/modifier_catalogue.md                        |   2 +
+ .../phase2_step2d_amendment1_gap_close_ledger.js   | 164 +++++++++++++++++++
+ tools/tests/phase2_step2d_defenseignore_ledger.js  |  12 +-
+ tools/tests/phase2_step2d_outgoing_ledger.js       |  11 +-
+ tools/tests/run_all.js                             |   1 +
+ 11 files changed, 446 insertions(+), 91 deletions(-)

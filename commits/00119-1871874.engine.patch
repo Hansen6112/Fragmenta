@@ -1,0 +1,162 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 345fe55..3184a4c 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -1407,26 +1407,17 @@ function applyShieldWall(state, dmg) {
+   return Math.round(dmg * 0.9);
+ }
+ 
+-// Executioner (finisher damage vs. a badly wounded target) is checked
+-// once here since it applies uniformly to physical and magic damage
+-// alike — everything else in rollPlayerDamage is physical-only.
+-// executionerThreshold (data/sets.js) resolves which sets widen it.
+-function executionerMultiplier(state) {
+-  if (!hasEffect(state, "executioner")) return 1;
+-  const combat = state.combat;
+-  return activeEnemySlot(combat).hp <= activeEnemySlot(combat).maxHp * executionerThreshold(state) ? 1.2 : 1;
+-}
+-
+-// Generalized Executioner, for an enemy or ally attacker: any ATTACKER
+-// wearing it gets 1.2x vs a DEFENDER at or below 30% of its own max
+-// Health. A non-player attacker has no equivalent to the player's own
+-// set-tier threshold-widening (Drake Hunter 6pc etc. — a player-only
+-// Regalia system, out of scope here), so this always uses the flat 30%
+-// base rather than reading executionerThreshold.
+-function executionerMultiplierFor(attacker, defenderHp, defenderMaxHp) {
+-  if (!hasEffect(attacker, "executioner")) return 1;
+-  return defenderHp <= defenderMaxHp * 0.3 ? 1.2 : 1;
+-}
++// Executioner (finisher damage vs. a badly wounded target) used to be
++// two separate functions here -- executionerMultiplier(state) (player
++// only, threshold-widening sets folded in) and the generalized
++// executionerMultiplierFor(attacker, defenderHp, defenderMaxHp) (any
++// attacker, flat 30%, no widening -- actions.js's ally/enemy damage
++// formulas). Amendment 1 gap close (19 Nov) unified both into the
++// registry's own "effect:executioner" entry (modifiers.js), dispatched
++// by calculateOutgoingMultiplier for every attacker role -- see that
++// entry's own notes for why the unification is byte-identical in both
++// directions. executionerThreshold (data/sets.js) still resolves which
++// sets widen the threshold, for the player role only.
+ 
+ // Dragonslayer (Drake Hunter 6pc): a final multiplier against creatures
+ // tagged draven (Drake, Dragon), "applied after all other damage
+@@ -2039,7 +2030,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+   // foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
+   // product. Armor Crack stays a separate flat subtraction, unchanged
+   // (it was never part of this product).
+-  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, creature, isSpell: !!isSpell });
++  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: !!isSpell });
+   let dmg;
+   // 2d, increment 1: the 19/21-factor independent-multiplier chain below
+   // (crushMult..stonesPatienceMult) now comes from the registry's own
+@@ -2102,7 +2093,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // now the spell-side armor-penetration tool rather than a rounding
+     // error.
+     const spellPower = base * multiplier;
+-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: true });
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: true, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
+     const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * outgoing.total);
+     // dmgReduction (Enemy Ability Engine — Guarded Stance/
+     // Protective Cover/Last Stand, Gate 5B.8 skills codex): a flat final
+@@ -2142,7 +2133,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+     state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
+     // dmgReduction: see the magic branch above for why this is
+     // the last step, after every other multiplier.
+-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: false, atk, effDef });
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: false, atk, effDef, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
+     dmg = Math.max(1, Math.round(base * outgoing.total * (1 - (creature.dmgReduction || 0)) * sangMit));
+     // Sure Foundation (DRA-E05): this physical hit just landed (dmg is
+     // always >= 1 by this point — a miss never reaches rollPlayerDamage
+@@ -2239,10 +2230,25 @@ function applyEnemyFlatDamageReduction(dmg, creature) {
+     if (ability && ability.trigger === "flatDamageReduction") mult *= (1 - ability.pct);
+   }
+   let result = mult === 1 ? dmg : Math.max(0, Math.round(dmg * mult));
+-  // Perfect Fleshcraft (Grand Voran-Daun): no single hit can exceed a
+-  // fixed fraction of this creature's own max Health, regardless of how
+-  // hard it landed. `creature.hp` is the species template's max — the
+-  // live remaining Health lives on the per-fight enemy record instead.
++  // Perfect Fleshcraft (2d increment 3, Tyler 19 Nov): dispatched through
++  // the registry's calculateDamage.cap hook now (modifiers.js's
++  // applyDamageCap), same hook Unyielding Wall uses -- "a damage-value
++  // cap, not a percentage, applied after the reductions and the tags,
++  // outside the buckets." enemyDamageCapPctMaxHp (below) is the unchanged
++  // math, extracted so the registry's own behavior can wrap it verbatim.
++  result = applyDamageCap(creature, "enemy", { holder: creature, role: "enemy", edmg: result });
++  return result;
++}
++
++// Perfect Fleshcraft (Grand Voran-Daun): no single hit can exceed a
++// fixed fraction of this creature's own max Health, regardless of how
++// hard it landed. `creature.hp` is the species template's max — the
++// live remaining Health lives on the per-fight enemy record instead.
++// Extracted verbatim from applyEnemyFlatDamageReduction's own former
++// inline loop (2d increment 3) so modifiers.js's "perfectFleshcraftCap"
++// behavior can wrap it, same as every other migrated entry.
++function enemyDamageCapPctMaxHp(creature, dmg) {
++  let result = dmg;
+   for (const id of creature.passives) {
+     const ability = getEnemyAbility(id);
+     if (ability && ability.trigger === "damageCapPctMaxHp") {
+@@ -6091,18 +6097,19 @@ function lowHealthTriggerChecks(state) {
+ // mitigation, absorbLines from applyPlayerDamage's Temporary Health.
+ function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
+   const combat = state.combat;
+-  edmg = applyShieldWall(state, edmg);
+-  edmg = applyMasterDuelist(state, edmg);
+-  edmg = applyUnbrokenLine(state, edmg);
+-  edmg = Math.round(edmg * preparedResponseMultiplier(state));
+-  edmg = Math.round(edmg * calmingPresenceMultiplier(state));
+-  edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
+-  edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
+-  edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
+-  edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
+-  edmg = Math.round(edmg * (kind === "magic" ? adaptiveTideMagicMultiplier(state) : adaptiveTidePhysicalMultiplier(state)));
+-  edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
+-  edmg = applyUnyieldingWall(state, edmg);
++  // 2d, increment 3 (19 Nov): the twelve-step chain below (Shield
++  // Wall..Shared Burden) now comes from the registry's own
++  // calculateDamage.incoming entries, via calculateIncomingDamage's
++  // sequential-rounding combinator (js/data/modifiers.js's own header on
++  // why this hook can't reuse the flat-product shape outgoing/
++  // defenseIgnore use) -- each entry wraps an existing unchanged
++  // function/value, same order, same per-step rounding, byte-identical.
++  // Unyielding Wall moves to its own calculateDamage.cap hook (Rule 3:
++  // a damage-value cap, outside the buckets, applied after this chain
++  // and after the damage-type tag system) -- applyDamageCap is called
++  // separately, right where applyUnyieldingWall used to sit.
++  edmg = calculateIncomingDamage(state, "player", { state, holder: state, role: "player", kind, edmg }).edmg;
++  edmg = applyDamageCap(state, "player", { state, holder: state, role: "player", edmg });
+   const absorbLines = applyPlayerDamage(state, edmg);
+   if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
+     const key = kind === "magic" ? "adaptiveTideMagicStacks" : "adaptiveTidePhysicalStacks";
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 62ace02..8833f68 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1646,7 +1646,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+   // foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
+   // product. Armor Crack stays a separate flat subtraction, unchanged
+   // (it was never part of this product).
+-  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, creature, isSpell });
++  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell });
+   let dmg;
+   // 2d, increment 1: the 19/21-factor independent-multiplier chain below
+   // (crushMult..stonesPatienceMult) now comes from the registry's own
+@@ -1684,7 +1684,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+     const spellDType = DAMAGE_TYPES_V2 ? (action && action.damageType && action.damageType !== "inherit" ? action.damageType : elementKeyToDamageType(activeElement)) : null;
+     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
+     const spellPower = base * multiplier;
+-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: true });
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: true, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
+     const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * outgoing.total);
+     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
+     // A3 (off by default): Avatar of Knowledge shifts the TARGET's own
+@@ -1711,7 +1711,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+     const atk = stat(state, actor, "atk");
+     const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), weaponMitigateDef);
+     state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
+-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: false, atk, effDef });
++    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: false, atk, effDef, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
+     dmg = Math.max(1, Math.round(base * outgoing.total * (1 - (creature.dmgReduction || 0)) * sangMit));
+     if (DAMAGE_TYPES_V2) dmg = Math.round(dmg * dmgTagMultiplier(creature, weaponDType));
+     if (state.combat.player.avatarOfCreationTurns > 0) {
