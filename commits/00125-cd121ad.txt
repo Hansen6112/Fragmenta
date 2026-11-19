@@ -1,0 +1,50 @@
+range: 1855c7412d4d882b573b1df769ed195471c8092b..cd121adf20cd5b34d21b47d216ebc7044b430e78
+=== cd121adf20cd5b34d21b47d216ebc7044b430e78 2026-11-19 23:04:57 +0000
+Phase 2 step 2d, increment 4: close out 2d (remaining outgoing multipliers + M1 cleanup)
+Migrates the seven named mechanics dispatched outside rollPlayerDamage/
+rollPlayerDamageCoreForPipeline (Elemental Focus, Surging Conduit, Twin
+Rivers, Clash of Steel, Opening Reach, the dra_e0X cluster, Tyrant's
+Edge), each in its own lateOutgoingPhase/elementCastPhase group,
+dispatched for whatever attacker role already reaches that code path
+today -- holders unchanged, no widening.
+
+Two bugs surfaced by the regression suite during development, both
+fixed: calculateOutgoingMultiplier (and the new calculateElementCastMultiplier)
+invoked every matching entry's behavior via runHook before filtering
+out late-phase/element-cast ones, so Opening Reach's one-shot flag was
+firing on every hit instead of just its own call site; and
+openingReachRatio read/wrote the wrong holder field for the player role
+(fixed with the existing abilityFlagHost split).
+
+Closing M1 against its real bar ("no unregistered damage multipliers,"
+not just the named seven) surfaced further gaps: ambush_mastery/
+borrowed_seconds were genuinely unmigrated outgoing multipliers (now
+real entries); Vanguard:4/6 were never registered despite a stale
+comment claiming otherwise; Siege Corps:4's Armor Crack upgrade was
+deferred since increment 2. spell_ward is renamed from always:spell_ward
+to effect:spell_ward (M1 needs the exact key regardless of source.kind,
+same exception opening_reach uses). Four placeholders (Stormwatch:6,
+Stonewarden:6, Leviathan:4, Regalia of the Woven Thread:6) satisfy M1's
+separate set-tier check for mechanisms already live under a different
+key; audit.js gained two exemption sets (M1_GROUP_COVERED_EFFECT_IDS,
+M1_BUCKET_EXEMPT_EFFECT_IDS) for the 11 sang_* ids and river_harmony.
+
+Suite 637/637, audit 0 errors/384 warnings (down from 418). Both
+seeded harnesses (boss_sweep --rows all, plus3_run) re-confirmed
+byte-identical at n=1000/seed 777 against the committed baselines.
+
+2d is done: M1 shows no unregistered calculateDamage.* entries.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  81 +++--
+ js/data/modifiers.js                               | 402 ++++++++++++++++++++-
+ js/data/tactics.js                                 |   2 +-
+ js/engine/combat.js                                |  32 +-
+ js/engine/pipeline.js                              |  56 ++-
+ tools/audit.js                                     |  41 ++-
+ tools/modifier_catalogue.md                        |   6 +
+ .../tests/phase2_step2d_ability_incoming_ledger.js |   2 +-
+ 8 files changed, 543 insertions(+), 79 deletions(-)

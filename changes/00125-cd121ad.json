@@ -1,0 +1,232 @@
+[
+ {
+  "reg": "TACTICS",
+  "id": "ambush",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "excludesTargetFromRound": true,
+     "damageType": "inherit",
+     "missLine": "[fn]",
+     "extraDamageMultiplierFn": "[fn]",
+     "borrowedSecondsBonusInDamage": true,
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "evasiveReleaseCheck": true,
+     "runsLowHealthChecks": true,
+     "followupForm": "unconditional"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "excludesTargetFromRound": true,
+     "damageType": "inherit",
+     "missLine": "[fn]",
+     "lateOutgoingGroup": "ambush",
+     "borrowedSecondsBonusInDamage": true,
+     "reportPhysical": "always",
+     "flavorLine": "[fn]",
+     "onHitEffectsForm": "unconditional",
+     "evasiveReleaseCheck": true,
+     "runsLowHealthChecks": true,
+     "followupForm": "unconditional"
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "openingReachRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unbrokenGripRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "tyrantsEdgeRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unquenchedFocusRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "surgingConduitRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:crushing_impact",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(holder, role) -- Amendment 1 gap close (19 Nov): reads ctx.holder/ctx.role, not ctx.state, so a future widening of `holders` resolves correctly for whichever holder actually wears the gear; for today's player-only holders this is ctx.state under a different name, byte-identical. Thraekor:6/Vanguard:4/Ashforged:6's own upgrades are now registered entries (Rule 1, tag effect:crushing_impact, below) instead of an inline Math.max -- M1 no longer warns about them.",
+    "new": "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(holder, role) -- Amendment 1 gap close (19 Nov): reads ctx.holder/ctx.role, not ctx.state, so a future widening of `holders` resolves correctly for whichever holder actually wears the gear; for today's player-only holders this is ctx.state under a different name, byte-identical. Thraekor:6/Regalia of the Crimson Vanguard:4/Ashforged:6's own upgrades are registered entries (Rule 1, tag effect:crushing_impact, below) instead of an inline Math.max; plain Vanguard:4 was missed until the 2d close-out M1 sweep (its own entry is below too) -- M1 no longer warns about any of them."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:armor_crack",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade, already folded into armorCrackAmount's own Math.max logic), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Reads ctx.holder, not ctx.state (Amendment 1 gap close). Siege Corps 4pc still owes M1 a registry entry of its own (Rule 1's `upgrades`), deferred -- not in Tyler's 19 Nov list.",
+    "new": "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Reads ctx.holder, not ctx.state (Amendment 1 gap close)."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Scout Corps:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Ambush upgrade: wins outright over both the 1.4x base and the 1.55x ambush_mastery tier (still true taking Math.max, since 1.7 beats both). Ambush itself (js/data/tactics.js's extraDamageMultiplierFn) isn't dispatched through calculateDamage.outgoing yet -- order is a placeholder until it is.",
+    "new": "Ambush upgrade: wins outright over both the 1.4x base and the 1.55x ambush_mastery tier (still true taking Math.max, since 1.7 beats both). Ambush itself is now dispatched through calculateDamage.outgoing (2d close-out: see 'effect:ambush_mastery' below, lateOutgoingPhase 'ambush') -- order 999 is still just a placeholder since resolveUpgradedValue's own Math.max resolution doesn't read it."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:spell_ward",
+  "type": "removed"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Woven Thread:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Siege Corps:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Vanguard:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Vanguard:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:spell_ward",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Stormwatch:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Stonewarden:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Leviathan:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:opening_reach",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Norrvael:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:clash_of_steel",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:dra_e01_ice_forged_edge",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:dra_e04_unbroken_grip",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:dra_e06_executioners_seal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:dra_e09_black_ice_reserve",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_cu_ie012_tyrants_edge",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:dra_e07_unquenched_focus",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:elemental_focus",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:surging_conduit",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:twin_rivers",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:ambush_mastery",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:borrowed_seconds",
+  "type": "added"
+ }
+]
