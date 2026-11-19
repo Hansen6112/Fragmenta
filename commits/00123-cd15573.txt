@@ -1,0 +1,21 @@
+range: 2bdaa7b1e1198d9ef8b80989a81904ff1fd3326e..cd15573c0acd305ddec1d840b2a57080c24eec73
+=== cd15573c0acd305ddec1d840b2a57080c24eec73 2026-11-19 14:24:58 +0000
+Update boss_sweep baseline for increment 3b's intentional Sanguivorum widening
+boss_sweep --switch on --n 1000 --seed 777 confirms the only movement
+from the 3b/3c commits is exactly what increment 3b's own widening
+predicts: 24 of 285 cells changed, all of them watch_captain/
+free_company_captain/ovum_champion (the three Sanguivorum-faction
+bosses in the roster) across every class/gear-tier combo -- an ally's
+own hit against these now gets the same four mitigation mechanisms the
+player's hit already did, per Tyler's explicit instruction. The other
+261 cells, and plus3_run's own roster, are untouched.
+
+This is an intentional baseline update, not a regression fix.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/baselines/bs_on_n1000.json | 302 +++++++++++++++++++--------------------
+ tools/modifier_catalogue.md      |   2 +-
+ 2 files changed, 152 insertions(+), 152 deletions(-)
