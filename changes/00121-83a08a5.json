@@ -1,0 +1,42 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "sangCuDefenderMitigationRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "enemyOneHitMitigationRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "enemyRepeatableMitigationRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "enemyAllyProtectionRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:sang_cu_defender_mitigation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:sang_one_hit_mitigation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:sang_repeatable_mitigation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:sang_ally_protection",
+  "type": "added"
+ }
+]

@@ -1,0 +1,36 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 3184a4c..df82619 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -2008,7 +2008,12 @@ function rollPlayerDamage(state, creature, activeElement) {
+   // Imperial Military, above) — all consumed once here regardless of
+   // which branch (spell or physical) below ends up computing this hit's
+   // damage.
+-  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
++  // 2d, increment 3b (19 Nov): dispatched via the registry's own
++  // calculateDamage.incoming entries for the enemy holder, instead of
++  // the four hand-written calls -- see calculateEnemyIncomingMultiplier's
++  // own header (js/data/modifiers.js) for why this hook needs a flat,
++  // unrounded product here, unlike the player's own sequential chain.
++  const sangMit = calculateEnemyIncomingMultiplier(creature, "enemy", { state, holder: creature, role: "enemy" });
+   // Brace/Guarded Strike, generalized: this creature may have banked a
+   // Defense bonus against its next incoming hit (resolveEnemyAction's own
+   // non-damaging-action branch, or its own landed basic attack — see
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 8833f68..20c659a 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1633,7 +1633,12 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+   const creature = enemySlot.creatureObj;
+ 
+   const defPenalty = (state.combat && activeEnemySlot(state.combat).enemyDefPenalty) || 0;
+-  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
++  // 2d, increment 3b (19 Nov): dispatched via the registry's own
++  // calculateDamage.incoming entries for the enemy holder, instead of
++  // the four hand-written calls -- see calculateEnemyIncomingMultiplier's
++  // own header (js/data/modifiers.js) for why this hook needs a flat,
++  // unrounded product here, unlike the player's own sequential chain.
++  const sangMit = calculateEnemyIncomingMultiplier(creature, "enemy", { state, holder: creature, role: "enemy" });
+   // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
+   // this section's header. Consumption moves to applyAndReactPlayerActor
+   // (step 5).

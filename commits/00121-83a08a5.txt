@@ -1,0 +1,37 @@
+range: 244ce82bbb5e989772af581c096bd097861639c3..83a08a5a77b5f34a3c7ea0d6c516e97ade4904f0
+=== 83a08a5a77b5f34a3c7ea0d6c516e97ade4904f0 2026-11-19 04:38:03 +0000
+Phase 2 step 2d, increment 3b: calculateDamage.incoming, enemy-holder (Sanguivorum)
+Migrates the enemy's own defender-side mitigation (sangMit) to the
+registry via a new flat-product combinator (calculateEnemyIncomingMultiplier)
+-- same hook as increment 3's player-side chain, but today's sangMit
+never rounds between its own factors, only once at the end, unlike the
+player's sequential per-step-rounding shape. Four entries cover all 11
+Sanguivorum catalogue rows across their 4 shared mechanisms (Smuggler's
+Guard/Commander's Poise, the 4-id one-hit mitigation mechanism, the 2-id
+repeatable mitigation mechanism, and the cross-creature ally-protection
+mechanism).
+
+Dispatched now at every attacker's own damage formula, not just the
+player's, per Tyler's explicit instruction ("dispatched for any
+defender"). This is a real, intentional behavior change -- an ally
+attacking a Sanguivorum-geared enemy now gets all four mitigation
+mechanisms instead of just the two sangCuDefenderMitigation already
+covered. Not byte-identical by construction, unlike every other
+increment so far; verified no diff on the fast harness (its roster
+doesn't happen to exercise this combination), full boss_sweep
+confirmation in progress.
+
+Suite 620/620, audit 0 errors/419 warnings (unchanged).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                              |  16 ++-
+ js/data/modifiers.js                            |  90 +++++++++++++
+ js/engine/combat.js                             |   7 +-
+ js/engine/pipeline.js                           |   7 +-
+ tools/modifier_catalogue.md                     |   4 +-
+ tools/tests/phase2_step2d_sanguivorum_ledger.js | 162 ++++++++++++++++++++++++
+ tools/tests/run_all.js                          |   1 +
+ 7 files changed, 281 insertions(+), 6 deletions(-)
