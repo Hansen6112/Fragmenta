@@ -1633,7 +1633,12 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
   const creature = enemySlot.creatureObj;
 
   const defPenalty = (state.combat && activeEnemySlot(state.combat).enemyDefPenalty) || 0;
-  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
+  // 2d, increment 3b (19 Nov): dispatched via the registry's own
+  // calculateDamage.incoming entries for the enemy holder, instead of
+  // the four hand-written calls -- see calculateEnemyIncomingMultiplier's
+  // own header (js/data/modifiers.js) for why this hook needs a flat,
+  // unrounded product here, unlike the player's own sequential chain.
+  const sangMit = calculateEnemyIncomingMultiplier(creature, "enemy", { state, holder: creature, role: "enemy" });
   // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
   // this section's header. Consumption moves to applyAndReactPlayerActor
   // (step 5).

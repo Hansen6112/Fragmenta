@@ -316,7 +316,17 @@ const PIPELINE_FORMULAS = {
     // include "ally" today, so .total is always 1, a no-op multiply.
     const allyDefIgnore = calculateDefenseIgnoreMultiplier(ally, "ally", { holder: ally, role: "ally", creature, isSpell: false }).total;
     const effectiveDef = (stat(state, target, "def") + bankedDef) * allyDefIgnore;
-    const sangMit = sangCuDefenderMitigation(creature);
+    // 2d, increment 3b (19 Nov): dispatched via the registry's full
+    // calculateDamage.incoming (enemy-holder) entries, not just
+    // sangCuDefenderMitigation alone -- Tyler's own instruction widens
+    // Sanguivorum's other three mechanisms (one-hit/repeatable/ally-
+    // protection mitigation) to an ally's own hit too, matching the
+    // player's own rollPlayerDamage*/rollPlayerDamageCoreForPipeline
+    // coverage exactly (previously only Smuggler's Guard/Commander's
+    // Poise applied here) -- a real, intentional behavior change for an
+    // ally attacking a Sanguivorum-geared enemy that also carries one of
+    // the other three; see calculateEnemyIncomingMultiplier's own header.
+    const sangMit = calculateEnemyIncomingMultiplier(creature, "enemy", { state, holder: creature, role: "enemy" });
     // Damage Types v2 (off by default) — same mechanism as enemyCore's
     // own branches: resist-by-family defense value, then the enemy
     // target's own tag multiplier.
@@ -349,7 +359,7 @@ const PIPELINE_FORMULAS = {
     const bankedDefKit = COMBAT_UNIFY.U3e
       ? (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0)
       : 0;
-    const sangMitKit = COMBAT_UNIFY.U3f ? sangCuDefenderMitigation(creature) : 1;
+    const sangMitKit = COMBAT_UNIFY.U3f ? calculateEnemyIncomingMultiplier(creature, "enemy", { state, holder: creature, role: "enemy" }) : 1;
     const atkBonusHook = action.hooks && action.hooks.atkBonus;
     const atkBonus = atkBonusHook ? PIPELINE_HOOKS[atkBonusHook]({ state, actor, target, ally, creature, action }) : 0;
     const atk = ally.atk + atkBonus;
@@ -376,7 +386,7 @@ const PIPELINE_FORMULAS = {
     const bankedDefKit = COMBAT_UNIFY.U3e
       ? (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0)
       : 0;
-    const sangMitKit = COMBAT_UNIFY.U3f ? sangCuDefenderMitigation(creature) : 1;
+    const sangMitKit = COMBAT_UNIFY.U3f ? calculateEnemyIncomingMultiplier(creature, "enemy", { state, holder: creature, role: "enemy" }) : 1;
     const ability = action.ability;
     const atkBonusHook = action.hooks && action.hooks.atkBonus;
     const atkBonus = atkBonusHook ? PIPELINE_HOOKS[atkBonusHook]({ state, actor, target, ally, creature, action }) : 0;

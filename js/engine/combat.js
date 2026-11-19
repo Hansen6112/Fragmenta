@@ -2008,7 +2008,12 @@ function rollPlayerDamage(state, creature, activeElement) {
   // Imperial Military, above) — all consumed once here regardless of
   // which branch (spell or physical) below ends up computing this hit's
   // damage.
-  const sangMit = sangCuDefenderMitigation(creature) * enemyOneHitMitigationMultiplier(creature) * enemyRepeatableMitigationMultiplier(creature) * enemyAllyProtectionMultiplier(state, creature);
+  // 2d, increment 3b (19 Nov): dispatched via the registry's own
+  // calculateDamage.incoming entries for the enemy holder, instead of
+  // the four hand-written calls -- see calculateEnemyIncomingMultiplier's
+  // own header (js/data/modifiers.js) for why this hook needs a flat,
+  // unrounded product here, unlike the player's own sequential chain.
+  const sangMit = calculateEnemyIncomingMultiplier(creature, "enemy", { state, holder: creature, role: "enemy" });
   // Brace/Guarded Strike, generalized: this creature may have banked a
   // Defense bonus against its next incoming hit (resolveEnemyAction's own
   // non-damaging-action branch, or its own landed basic attack — see

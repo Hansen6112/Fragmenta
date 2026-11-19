@@ -79,6 +79,7 @@ const LEDGERS = [
   "phase2_step2d_defenseignore_ledger.js",
   "phase2_step2d_amendment1_gap_close_ledger.js",
   "phase2_step2d_incoming_ledger.js",
+  "phase2_step2d_sanguivorum_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {

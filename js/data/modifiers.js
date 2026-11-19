@@ -374,6 +374,28 @@ function applyDamageCap(holder, holderRole, ctx) {
   return ctx.edmg;
 }
 
+// calculateDamage.incoming, ENEMY-as-defender variant (2d increment 3b,
+// Tyler 19 Nov: "Sanguivorum -> the same calculateDamage.incoming hook,
+// dispatched for any defender (player, ally, enemy), holders: ['enemy']").
+// Same HOOK as the player's own chain, but a DIFFERENT combinator -- the
+// legacy Sanguivorum mitigation (sangMit) is a flat, unrounded product of
+// independent multipliers (today's code never rounds between them, only
+// once, later, when sangMit is folded into the overall damage formula),
+// not a sequential per-step-rounding chain -- same reasoning
+// outgoing/defenseIgnore needed their own shape distinct from this
+// hook's player-side combinator (calculateIncomingDamage). Returns the
+// product directly (not {total, byKey}) since nothing downstream needs
+// a per-key breakdown here, matching sangMit's own original shape.
+function calculateEnemyIncomingMultiplier(holder, holderRole, ctx) {
+  const results = runHook("calculateDamage.incoming", holder, holderRole, ctx);
+  let total = 1;
+  for (const r of results) {
+    if (r.entry.upgrades) continue;
+    total *= typeof r.result === "number" ? r.result : 1;
+  }
+  return total;
+}
+
 // ---- Rule 1 as data (Amendment 1 gap close, 19 Nov) ----
 // A set tier that only RAISES another entry's own number (never adds a
 // second, independent bonus) is an `upgrades` entry: its `upgrades`
@@ -527,6 +549,21 @@ registerBehavior("sharedBurdenRatio", (ctx) => sharedBurdenMultiplier(ctx.holder
 // creature.passives read both stay exactly where they are.
 registerBehavior("unyieldingWallCap", (ctx) => applyUnyieldingWall(ctx.holder, ctx.edmg));
 registerBehavior("perfectFleshcraftCap", (ctx) => enemyDamageCapPctMaxHp(ctx.holder, ctx.edmg));
+
+// calculateDamage.incoming, enemy-holder (2d increment 3b): each wraps
+// its own existing unchanged function verbatim. `source: {kind:"always"}`
+// (same composite-gate precedent as always:crit) because each one is
+// already a shared mechanism across several item ids with no single
+// hasEffect check of its own -- the behavior's own hasEffect/hasOneHit.../
+// hasRepeatable... calls (inside the wrapped function) do the real
+// gating. enemyAllyProtectionRatio is the one genuinely cross-creature
+// member (a DIFFERENT enemy's own gear protects this one) -- it could
+// never be expressed as "check source.id on the holder" at all, so
+// `always` is the only fit, not just the simplest one.
+registerBehavior("sangCuDefenderMitigationRatio", (ctx) => sangCuDefenderMitigation(ctx.holder));
+registerBehavior("enemyOneHitMitigationRatio", (ctx) => enemyOneHitMitigationMultiplier(ctx.holder));
+registerBehavior("enemyRepeatableMitigationRatio", (ctx) => enemyRepeatableMitigationMultiplier(ctx.holder));
+registerBehavior("enemyAllyProtectionRatio", (ctx) => enemyAllyProtectionMultiplier(ctx.state, ctx.holder));
 
 // ================= Entries =================
 
@@ -1122,4 +1159,57 @@ registerModifier("passive:perfect_fleshcraft", {
   behavior: "perfectFleshcraftCap", params: null,
   when: null, holders: ["enemy"], state: null,
   notes: "Perfect Fleshcraft (Grand Voran-Daun). Wraps enemyDamageCapPctMaxHp(holder, edmg) unchanged (extracted verbatim from applyEnemyFlatDamageReduction's own former inline loop). source.kind 'passive' reads creature.passives, exactly like today's getEnemyAbility(id).trigger==='damageCapPctMaxHp' scan.",
+});
+
+// ---- 2d, increment 3b (19 Nov): calculateDamage.incoming, enemy-holder
+// (Sanguivorum). Dispatched by calculateEnemyIncomingMultiplier (see its
+// own header on the flat-product combinator this hook needs for an
+// enemy defender, unlike the player's own sequential chain). `holders:
+// ["enemy"]` -- the wearer is always the CREATURE taking the hit, never
+// the player/ally dealing it. Covers all 11 catalogue rows across 4
+// shared mechanisms: Smuggler's Guard/Commander's Poise (Sanguivorum
+// Criminal Underworld), the 4-id "one hit mitigation" mechanism
+// (Hardened Formation/Officer's Bearing/Watchman's Resilience/
+// Contractor's Endurance), the 2-id "repeatable mitigation" mechanism
+// (Duelist's Bulwark/Champion's Poise), and the 3-id "ally protection"
+// mechanism (Gatekeeper's Stand/Protective Intercession/Officer's
+// Intercession -- a DIFFERENT enemy's own gear, not this one's).
+//
+// Dispatched now for every attacker (player, ally, kit-ally), not just
+// the player -- previously only Smuggler's Guard/Commander's Poise
+// applied to an ally's own hit (allyPlain's unconditional sangMit),
+// while the other three mechanisms were player-only (rollPlayerDamage/
+// rollPlayerDamageCoreForPipeline's own 4-factor sangMit). Tyler's own
+// instruction ("dispatched for any defender") unifies this -- a real
+// behavior change for an ally hitting a Sanguivorum-geared enemy that
+// also carries one of the other three mechanisms (none did before);
+// verified against both harnesses, see the catalogue's own note on
+// which cells moved and why.
+registerModifier("always:sang_cu_defender_mitigation", {
+  source: { kind: "always" },
+  hook: "calculateDamage.incoming", order: 10, bucket: "incomingMitigation",
+  value: null, behavior: "sangCuDefenderMitigationRatio", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Smuggler's Guard (sang_cu_ie006, CD4) / Commander's Poise (sang_cu_ie011, once/combat), Sanguivorum Criminal Underworld. Wraps sangCuDefenderMitigation(holder) unchanged -- both ids' own independent 0.9x branches already live inside that one function.",
+});
+registerModifier("always:sang_one_hit_mitigation", {
+  source: { kind: "always" },
+  hook: "calculateDamage.incoming", order: 20, bucket: "incomingMitigation",
+  value: null, behavior: "enemyOneHitMitigationRatio", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Hardened Formation (sang_mil_ie001) / Officer's Bearing (sang_mil_ie007) / Watchman's Resilience (sang_sec_ie004) / Contractor's Endurance (sang_iag_ie002) -- one shared once-per-combat 0.9x mechanism across four ids (ONE_HIT_MITIGATION_EFFECT_IDS, combat.js). Wraps enemyOneHitMitigationMultiplier(holder) unchanged.",
+});
+registerModifier("always:sang_repeatable_mitigation", {
+  source: { kind: "always" },
+  hook: "calculateDamage.incoming", order: 30, bucket: "incomingMitigation",
+  value: null, behavior: "enemyRepeatableMitigationRatio", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Duelist's Bulwark (sang_sec_ie007) / Champion's Poise (sang_iag_ie006) -- one shared CD4/max-2-uses 0.9x mechanism across two ids (REPEATABLE_MITIGATION_EFFECT_IDS, combat.js). Wraps enemyRepeatableMitigationMultiplier(holder) unchanged.",
+});
+registerModifier("always:sang_ally_protection", {
+  source: { kind: "always" },
+  hook: "calculateDamage.incoming", order: 40, bucket: "incomingMitigation",
+  value: null, behavior: "enemyAllyProtectionRatio", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Gatekeeper's Stand (sang_sec_ie005) / Protective Intercession (sang_sec_ie010) / Officer's Intercession (sang_cu_ie010) -- one shared CD5/max-2-uses 0.9x mechanism (ALLY_PROTECTION_EFFECT_IDS, combat.js), checked on a DIFFERENT living enemy than the one taking this hit, which is why `always` is the only fit (not just the simplest one) -- there's no single hasEffect(holder, id) that could gate it. Wraps enemyAllyProtectionMultiplier(state, holder) unchanged.",
 });
