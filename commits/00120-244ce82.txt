@@ -1,0 +1,13 @@
+range: 18718743d36e4ea8b9973c11a8eff858f6b95ff5..244ce82bbb5e989772af581c096bd097861639c3
+=== 244ce82bbb5e989772af581c096bd097861639c3 2026-11-19 04:27:17 +0000
+Catalogue: confirm increment 3's boss_sweep result landed
+boss_sweep --switch on --n 1000 --seed 777 matches the baseline, same as
+plus3_run already did -- both harnesses now confirmed for the previous
+commit, not just one.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/modifier_catalogue.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
