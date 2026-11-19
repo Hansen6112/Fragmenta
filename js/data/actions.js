@@ -47,7 +47,13 @@
  *   openingReach            "none" -- "physicalGated" (basic_attack) |
  *                             "unconditional" (Decoy/Disarm) | "none"
  *   extraDamageMultiplierFn (state) => number, default () => 1 --
- *                             Ambush: ambushMultiplier; Disarm: () => 0.7
+ *                             Disarm: () => 0.7 (Ambush's own multiplier
+ *                             moved to lateOutgoingGroup below, 2d close-out)
+ *   lateOutgoingGroup       undefined -- "ambush" (Ambush only): dispatches
+ *                             calculateLateOutgoingMultiplier for the named
+ *                             group at this same slot, in place of
+ *                             extraDamageMultiplierFn, so the multiplier is
+ *                             registry-driven ("effect:ambush_mastery")
  *   usesOrchestratorDmgMult false -- true for every pipelined element
  *                             (dmgMult is computed once by the orchestrator
  *                             from synergy/Focus/Surge and carried on the
@@ -333,7 +339,7 @@ const PIPELINE_FORMULAS = {
     const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(ally), ally.attackType) : null;
     const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, effectiveDef, creature.magic) : effectiveDef;
     let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), mitigateDef) * reduction * sangMit));
-    edmg = applyOpeningReachForActor(ally, edmg);
+    edmg = applyOpeningReachForActor(ally, edmg, "ally");
     // Amendment 1 gap close (19 Nov): the ally's own outgoing bucket,
     // dispatched exactly like the player's (calculateOutgoingMultiplier,
     // js/data/modifiers.js) -- today only effect:executioner's own
@@ -520,10 +526,11 @@ const PIPELINE_FORMULAS = {
         const enemyOutgoingMagic = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: ally, defenderHp: ally.health, defenderMaxHp: ally.maxHealth, isSpell: true });
         let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * enemyOutgoingMagic.total));
         if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
-        if (COMBAT_UNIFY.U2 && edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
-          creature.unquenchedFocusUsed = true;
-          edmg = Math.round(edmg * 1.10);
-        }
+        // 2d close-out (19 Nov): dispatched via the registry's own
+        // effect:dra_e07_unquenched_focus entry, which reproduces
+        // today's exact COMBAT_UNIFY.U2 asymmetry (unconditional for the
+        // player-target branch, U2-gated here) inside its own `when`.
+        edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "ally", kind: "magic", edmg }, "enemyWearerMagic").edmg;
         if (hasEffect(ally, "adaptive_ward")) {
           if (!ally.adaptiveWardElement) {
             ally.adaptiveWardElement = creature.element;
@@ -552,25 +559,21 @@ const PIPELINE_FORMULAS = {
       let edmg = abilityCtx
         ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
         : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), flatMitigateDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
-      if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+      if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg, "enemy");
       const enemyOutgoingFlat = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: ally, defenderHp: ally.health, defenderMaxHp: ally.maxHealth, isSpell: false });
       edmg = Math.round(edmg * enemyOutgoingFlat.total);
       if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, flatDType));
       if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
-      if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
-      if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
-        creature.unbrokenGripUsed = true;
-        edmg = Math.round(edmg * 1.10);
-      }
+      // 2d close-out (19 Nov): dra_e01/dra_e04, dispatched via the
+      // registry (group "enemyWearer1") -- see calculateLateOutgoingMultiplier's
+      // own header on why the chain splits into two groups.
+      edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", kind: "flat", edmg }, "enemyWearer1").edmg;
       // Executioner's Seal/Tyrant's Edge: checked against the ALLY's own
       // HP% here (the actual target of this hit), not the player's.
-      if (hasEffect(creature, "dra_e06_executioners_seal") && ally.health <= ally.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
-      if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10);
-      if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && ally.health <= ally.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
-        creature.tyrantsEdgeCooldown = 3;
-        creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
-        edmg = Math.round(edmg * 1.10);
-      }
+      // dra_e06/dra_e09/Tyrant's Edge, dispatched via the registry
+      // (group "enemyWearer2") -- defenderHp/defenderMaxHp carry the
+      // ally's own HP%, matching the comment above exactly.
+      edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", kind: "flat", edmg, defenderHp: ally.health, defenderMaxHp: ally.maxHealth }, "enemyWearer2").edmg;
       // U3b (off by default): Flowing Discipline's banked +10% on an
       // ally target too, same bank/consume shape as the player branch's
       // own.
@@ -628,10 +631,11 @@ const PIPELINE_FORMULAS = {
       const enemyOutgoingMagicVsPlayer = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: state, defenderHp: state.health, defenderMaxHp: state.maxHealth, isSpell: true });
       let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * enemyOutgoingMagicVsPlayer.total));
       if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
-      if (edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
-        creature.unquenchedFocusUsed = true;
-        edmg = Math.round(edmg * 1.10);
-      }
+      // 2d close-out (19 Nov): dispatched via the registry's own
+      // effect:dra_e07_unquenched_focus entry (group "enemyWearerMagic")
+      // -- unconditional for this player-target branch, matching its
+      // own `when` exactly (role === "player").
+      edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "player", kind: "magic", edmg }, "enemyWearerMagic").edmg;
       if (hasEffect(state, "adaptive_ward")) {
         if (!combat.player.adaptiveWardElement) {
           combat.player.adaptiveWardElement = creature.element;
@@ -681,27 +685,24 @@ const PIPELINE_FORMULAS = {
     let edmg = abilityCtx
       ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
       : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), flatMitigateDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
-    if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
+    if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg, "enemy");
     const enemyOutgoingFlatVsPlayer = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: state, defenderHp: state.health, defenderMaxHp: state.maxHealth, isSpell: false });
     edmg = Math.round(edmg * enemyOutgoingFlatVsPlayer.total);
     if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, flatDType));
     if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
-    if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
-    if (edmg > 0 && hasEffect(creature, "dra_e04_unbroken_grip") && !creature.unbrokenGripUsed) {
-      creature.unbrokenGripUsed = true;
-      edmg = Math.round(edmg * 1.10);
-    }
+    // 2d close-out (19 Nov): dra_e01/dra_e04 (group "enemyWearer1"),
+    // dispatched via the registry BEFORE Decisive Impact (still inline,
+    // untouched, unrelated to this migration) -- see
+    // calculateLateOutgoingMultiplier's own header on why the chain
+    // splits into two groups around it.
+    edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", kind: "flat", edmg }, "enemyWearer1").edmg;
     if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
       creature.decisiveImpactUsed = true;
       edmg = Math.round(edmg * 1.08);
     }
-    if (hasEffect(creature, "dra_e06_executioners_seal") && state.health <= state.maxHealth * 0.3) edmg = Math.round(edmg * 1.20);
-    if (edmg > 0 && hasEffect(creature, "dra_e09_black_ice_reserve") && creature.blackIceReservePending) edmg = Math.round(edmg * 1.10);
-    if (edmg > 0 && hasEffect(creature, "sang_cu_ie012_tyrants_edge") && state.health <= state.maxHealth * 0.35 && !(creature.tyrantsEdgeCooldown > 0) && (creature.tyrantsEdgeUses || 0) < 2) {
-      creature.tyrantsEdgeCooldown = 3;
-      creature.tyrantsEdgeUses = (creature.tyrantsEdgeUses || 0) + 1;
-      edmg = Math.round(edmg * 1.10);
-    }
+    // dra_e06/dra_e09/Tyrant's Edge (group "enemyWearer2"), dispatched
+    // via the registry AFTER Decisive Impact, same reasoning.
+    edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", kind: "flat", edmg, defenderHp: state.health, defenderMaxHp: state.maxHealth }, "enemyWearer2").edmg;
     if (edmg > 0 && hasSetTier(creature, "First Sword's Regalia", 6) && creature.flowingDisciplinePending) {
       creature.flowingDisciplinePending = false;
       creature.flowingDisciplineTurnsLeft = 0;
@@ -871,8 +872,12 @@ const PIPELINE_FORMULAS = {
   riposteCounterPlayer(actor, target, action, ctx, hitInfo) {
     const state = ctx.state;
     const creature = target.ref.creatureObj;
-    const clashMult = hasEffect(state, "clash_of_steel") ? 1.5 : 1;
-    let edmg = Math.round(rollPlayerDamage(state, creature) * riposteMultiplier(state) * clashMult);
+    // 2d close-out (19 Nov): dispatched via the registry's own
+    // effect:clash_of_steel entry, seeded with the UNROUNDED
+    // rollPlayerDamage*riposteMultiplier product so the single combined
+    // Math.round below stays exactly where it is -- see
+    // calculateLateOutgoingMultiplier's own header.
+    let edmg = calculateLateOutgoingMultiplier(state, "player", { holder: state, role: "player", edmg: rollPlayerDamage(state, creature) * riposteMultiplier(state) }, "clashOfSteel").edmg;
     // Damage Types v2 (off by default): rollPlayerDamage's own internal
     // mitigation is untouched (it's always a flat physical counter, out
     // of this migration's scope per this formula's own header) -- only

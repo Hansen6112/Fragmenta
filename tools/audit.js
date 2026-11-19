@@ -723,6 +723,45 @@ function isTextuallyInert(description) { return /currently inert/i.test(descript
 const M1_DEFERRED_EFFECT_IDS = new Set(["dra_e03_flowing_guard"]);
 const M1_DEFERRED_SET_TIERS = new Set(["Mugamiir Safor:4", "Tide Merchant:4", "Master Appraiser:4"]);
 
+// M1 group-covered exemption (2d close-out, Tyler's "no unregistered
+// damage multipliers" bar): these 11 EFFECT_DEFS ids are LIVE and
+// already dispatched through calculateDamage.incoming -- but each one
+// shares ONE registry entry with 1-3 sibling ids (a single once-per-
+// combat/cooldown mitigation roll reused across all of them,
+// js/engine/combat.js), keyed "always:<group>" since there's no single
+// hasEffect(holder, id) that fits a shared check. M1's own lookup is a
+// 1:1 `effect:${id}` exact match, which a many-ids-to-one-entry group
+// can never satisfy for more than one of its members at once -- not a
+// migration gap, just this check's own blind spot for that shape.
+// Mapped to the group registry entry that actually covers each one, so
+// this list can be checked against js/data/modifiers.js by hand:
+//   sang_cu_ie006_smugglers_guard, sang_cu_ie011_commanders_poise
+//     -> "always:sang_cu_defender_mitigation"
+//   sang_mil_ie001_hardened_formation, sang_mil_ie007_officers_bearing,
+//   sang_sec_ie004_watchmans_resilience, sang_iag_ie002_contractors_endurance
+//     -> "always:sang_one_hit_mitigation"
+//   sang_sec_ie007_duelists_bulwark, sang_iag_ie006_champions_poise
+//     -> "always:sang_repeatable_mitigation"
+//   sang_sec_ie005_gatekeepers_stand, sang_sec_ie010_protective_intercession,
+//   sang_cu_ie010_officers_intercession
+//     -> "always:sang_ally_protection"
+const M1_GROUP_COVERED_EFFECT_IDS = new Set([
+  "sang_cu_ie006_smugglers_guard", "sang_cu_ie011_commanders_poise",
+  "sang_mil_ie001_hardened_formation", "sang_mil_ie007_officers_bearing",
+  "sang_sec_ie004_watchmans_resilience", "sang_iag_ie002_contractors_endurance",
+  "sang_sec_ie007_duelists_bulwark", "sang_iag_ie006_champions_poise",
+  "sang_sec_ie005_gatekeepers_stand", "sang_sec_ie010_protective_intercession",
+  "sang_cu_ie010_officers_intercession",
+]);
+
+// M1 bucket-exempt (2d close-out): river_harmony is live
+// (js/data/synergy.js's getSynergy) but, per the Bucket Review (18 Nov,
+// Rule 3), is a selection rule on which elemental synergy bonus applies
+// -- not itself a multiplier value -- so it stays outside the
+// calculateDamage buckets entirely, same as an action's own dmgMult,
+// and will never get a "effect:river_harmony" registry entry.
+const M1_BUCKET_EXEMPT_EFFECT_IDS = new Set(["river_harmony"]);
+
 // M1 out-of-combat exemption (16 Nov): these 10 SETS tiers ARE live --
 // shop discount (merchantsEyeRate), travel-encounter chance
 // (trailwiseMultiplier), or job/contract gold (jobGoldMultiplier) -- but
@@ -747,7 +786,7 @@ const M1_OUT_OF_COMBAT_SET_TIERS = new Set([
 for (const [id, def] of Object.entries(EFFECT_DEFS)) {
   if (!M1_COMBAT_EFFECT_CATEGORIES.has(def.category)) continue;
   if (isTextuallyInert(def.description)) continue;
-  if (M1_DEFERRED_EFFECT_IDS.has(id)) continue;
+  if (M1_DEFERRED_EFFECT_IDS.has(id) || M1_GROUP_COVERED_EFFECT_IDS.has(id) || M1_BUCKET_EXEMPT_EFFECT_IDS.has(id)) continue;
   if (!MODIFIERS_TABLE[`effect:${id}`]) warn("modifiers", `EFFECT_DEFS.${id} (${def.category}) has no registry entry yet (M1)`);
 }
 for (const [setName, set] of Object.entries(SETS)) {

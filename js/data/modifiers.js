@@ -275,15 +275,103 @@ function sumBucket(entries, bucketName, ctx) {
 // total.
 const CRIT_MODIFIER_KEY = "always:crit";
 function calculateOutgoingMultiplier(holder, holderRole, ctx) {
-  const results = runHook("calculateDamage.outgoing", holder, holderRole, ctx);
+  // Filters BEFORE invoking any value/behavior, not after (unlike this
+  // function's own pre-2d-close-out shape, which called runHook and
+  // only skipped `lateOutgoingPhase`/`elementCastPhase` entries once
+  // aggregating the total -- too late, since runHook had ALREADY run
+  // every matching entry's behavior by then. A late-phase behavior like
+  // Opening Reach's own one-shot flag consumption would otherwise fire
+  // on EVERY player hit this function is dispatched for, not just the
+  // one call site that's actually supposed to trigger it -- caught by
+  // the regression suite (snapshot mismatches on plain hits with no
+  // gear at all) during this migration's own development.
+  const entries = modifiersForHook(holder, holderRole, "calculateDamage.outgoing", ctx)
+    .filter((e) => !e.upgrades && !e.lateOutgoingPhase && !e.elementCastPhase);
   let total = 1;
   const byKey = {};
-  for (const r of results) {
-    if (r.entry.upgrades) continue;
-    const v = typeof r.result === "number" ? r.result : 0;
-    const factor = r.entry.bucket === "crit" || r.entry.bucket === "variance" ? v : 1 + v;
-    byKey[r.key] = factor;
+  for (const entry of entries) {
+    const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    let result;
+    if (entry.behavior) {
+      const holderState = modifierStateFor(holder, holderRole, key, entry);
+      result = MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState);
+    } else if (entry.value != null) {
+      result = typeof entry.value === "function" ? entry.value(ctx) : entry.value;
+    }
+    const v = typeof result === "number" ? result : 0;
+    const factor = entry.bucket === "crit" || entry.bucket === "variance" ? v : 1 + v;
+    byKey[key] = factor;
     total *= factor;
+  }
+  return { total, byKey };
+}
+
+// calculateDamage.outgoing, LATE phase (2d close-out, 19 Nov): some
+// outgoing-bucket members are read AFTER the main damage roll already
+// produced a number -- Opening Reach (a final multiplier tacked onto
+// whatever dmg resulted, player/ally/enemy alike), Clash of Steel
+// (folded into Riposte's own single combined Math.round, so this is
+// seeded with the UNROUNDED pre-product rather than an already-rounded
+// edmg), and the enemy's own ice_forged_edge/unbroken_grip/
+// executioners_seal/black_ice_reserve/unquenched_focus/Tyrant's Edge
+// chain inside enemyCore (dispatched once per branch, same sequential
+// per-step-rounding shape calculateIncomingDamage already uses -- not
+// this hook's own early flat product). Reuses threadIncomingEntries
+// (originally built for calculateDamage.incoming) since the walk itself
+// is identical; only the hook name and the `lateOutgoingPhase` filter
+// differ.
+// `group` lets several call sites share this hook's late phase without
+// double-firing each other -- Opening Reach/Clash of Steel/the enemy's
+// own wearer chain each dispatch only their own group. The enemy chain
+// itself needs TWO groups, not one: in enemyCore's player-target flat
+// branch, Decisive Impact (untouched, still inline, not part of this
+// migration) sits BETWEEN unbroken_grip and executioners_seal today --
+// splitting the five dra_e0X/Tyrant's Edge entries into "enemyWearer1"
+// (ice_forged_edge, unbroken_grip) and "enemyWearer2" (executioners_seal,
+// black_ice_reserve, Tyrant's Edge) lets Decisive Impact's own untouched
+// position stay exactly where it is, between the two dispatch calls,
+// rather than forcing it to move.
+function calculateLateOutgoingMultiplier(holder, holderRole, ctx, group) {
+  const entries = modifiersForHook(holder, holderRole, "calculateDamage.outgoing", ctx).filter((e) => e.lateOutgoingPhase === group);
+  return threadIncomingEntries(entries, ctx, holder, holderRole, ctx.edmg);
+}
+
+// calculateDamage.outgoing, ELEMENT-CAST phase (2d close-out, 19 Nov):
+// Elemental Focus/Surging Conduit/Twin Rivers fold into the element
+// ability's own `dmgMult` BEFORE the five-step pipeline even runs
+// (useElementAbilityLegacy, pipeline.js) -- a flat, UNROUNDED product
+// (today's `elementalDmgMult *= X`, never rounded until deep inside the
+// pipeline's own final damage roll), same shape as this hook's early
+// dispatch, just at an earlier, separate call site. Twin Rivers
+// specifically MUST stay dispatched exactly here: it reads
+// combat.player.lastElementUsed BEFORE this same function overwrites it
+// for the current cast, so it cannot be folded into
+// calculateOutgoingMultiplier's own later dispatch (inside
+// rollPlayerDamageCoreForPipeline) without reading the wrong value.
+function calculateElementCastMultiplier(holder, holderRole, ctx) {
+  // Filters BEFORE invoking any value/behavior, not after -- same
+  // runHook-invokes-everything bug calculateOutgoingMultiplier had: a
+  // runHook call here would also invoke every OTHER calculateDamage.outgoing
+  // entry at this holder/role (early dispatch, lateOutgoingPhase) with
+  // this call site's minimal ctx, firing side effects (e.g. Opening
+  // Reach's one-shot flag) on every element-ability cast, not just real
+  // physical/late dispatch -- caught by the regression suite the same way.
+  const entries = modifiersForHook(holder, holderRole, "calculateDamage.outgoing", ctx)
+    .filter((e) => e.elementCastPhase);
+  let total = 1;
+  const byKey = {};
+  for (const entry of entries) {
+    const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    let result;
+    if (entry.behavior) {
+      const holderState = modifierStateFor(holder, holderRole, key, entry);
+      result = MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState);
+    } else if (entry.value != null) {
+      result = typeof entry.value === "function" ? entry.value(ctx) : entry.value;
+    }
+    const v = typeof result === "number" ? result : 1;
+    byKey[key] = v;
+    total *= v;
   }
   return { total, byKey };
 }
@@ -640,6 +728,62 @@ registerBehavior("firstHitTakenRatio", (ctx) => {
 });
 registerBehavior("spellWardRatio", (ctx) => spellWardMultiplier(ctx.holder, ctx.role));
 
+// calculateDamage.outgoing, late phase (2d close-out): Opening Reach
+// consumes a real one-shot per-fight flag (firstPhysicalAttackDone)
+// regardless of whether the effect is equipped -- "a fact about the
+// fight, not the gear," per applyOpeningReach's own original comment --
+// so this is a behavior, not a bare value. `ctx.holder` is `state` for
+// the player (whose own firstPhysicalAttackDone lives nested under
+// state.combat.player, not on state itself) or the ally/enemy record
+// directly for the generalized actor case -- same abilityFlagHost split
+// stormBarrierRatio/firstHitTakenRatio already use, so no modifierStateFor
+// is needed.
+registerBehavior("openingReachRatio", (ctx) => {
+  const host = abilityFlagHost(ctx);
+  if (host.firstPhysicalAttackDone) return 1;
+  host.firstPhysicalAttackDone = true;
+  if (!hasEffect(ctx.holder, "opening_reach")) return 1;
+  return ctx.role === "player" ? resolveUpgradedValue("effect:opening_reach", 1.15, ctx.holder, ctx.role, "max") : 1.15;
+});
+// calculateDamage.outgoing, late phase, enemy-holder (2d close-out): the
+// dra_e0X/Tyrant's Edge chain inside enemyCore. Each wraps today's exact
+// condition verbatim -- the state-mutating ones (unbroken_grip, Tyrant's
+// Edge, unquenched_focus) consume their own one-shot/cooldown flags
+// directly on `ctx.holder` (the enemy creature), exactly where they live
+// today; none of this moves to modifierStateFor, since the field names
+// (unbrokenGripUsed, tyrantsEdgeCooldown, ...) are read by other code
+// too (tickEnemyPassives' own per-round cooldown decrement) and renaming
+// them is out of scope for a "move the number" migration.
+registerBehavior("unbrokenGripRatio", (ctx) => {
+  if (ctx.edmg <= 0 || ctx.holder.unbrokenGripUsed) return 1;
+  ctx.holder.unbrokenGripUsed = true;
+  return 1.10;
+});
+registerBehavior("tyrantsEdgeRatio", (ctx) => {
+  if (ctx.edmg <= 0) return 1;
+  if (ctx.defenderHp > ctx.defenderMaxHp * 0.35) return 1;
+  if (ctx.holder.tyrantsEdgeCooldown > 0 || (ctx.holder.tyrantsEdgeUses || 0) >= 2) return 1;
+  ctx.holder.tyrantsEdgeCooldown = 3;
+  ctx.holder.tyrantsEdgeUses = (ctx.holder.tyrantsEdgeUses || 0) + 1;
+  return 1.10;
+});
+registerBehavior("unquenchedFocusRatio", (ctx) => {
+  if (ctx.edmg <= 0 || ctx.holder.unquenchedFocusUsed) return 1;
+  ctx.holder.unquenchedFocusUsed = true;
+  return 1.10;
+});
+// calculateDamage.outgoing, element-cast phase (2d close-out): Surging
+// Conduit consumes a per-fight charge count (combat.player.
+// surgingConduitUsesLeft, initialized elsewhere at fight start -- out of
+// this migration's scope) regardless of whether this specific cast
+// would otherwise qualify; a behavior for the same reason as Opening
+// Reach above.
+registerBehavior("surgingConduitRatio", (ctx) => {
+  if (!hasEffect(ctx.holder, "surging_conduit") || !(ctx.state.combat.player.surgingConduitUsesLeft > 0)) return 1;
+  ctx.state.combat.player.surgingConduitUsesLeft -= 1;
+  return 1.2;
+});
+
 // ================= Entries =================
 
 // ---- 2b: stat() internals ----
@@ -813,7 +957,7 @@ registerModifier("effect:crushing_impact", {
   hook: "calculateDamage.outgoing", order: 5, bucket: "conditional",
   value: (ctx) => crushingImpactMultiplier(ctx.holder, ctx.role) - 1, behavior: null,
   when: (ctx) => !ctx.isSpell && ctx.effDef > ctx.atk, holders: ["player"], state: null,
-  notes: "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(holder, role) -- Amendment 1 gap close (19 Nov): reads ctx.holder/ctx.role, not ctx.state, so a future widening of `holders` resolves correctly for whichever holder actually wears the gear; for today's player-only holders this is ctx.state under a different name, byte-identical. Thraekor:6/Vanguard:4/Ashforged:6's own upgrades are now registered entries (Rule 1, tag effect:crushing_impact, below) instead of an inline Math.max -- M1 no longer warns about them.",
+  notes: "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(holder, role) -- Amendment 1 gap close (19 Nov): reads ctx.holder/ctx.role, not ctx.state, so a future widening of `holders` resolves correctly for whichever holder actually wears the gear; for today's player-only holders this is ctx.state under a different name, byte-identical. Thraekor:6/Regalia of the Crimson Vanguard:4/Ashforged:6's own upgrades are registered entries (Rule 1, tag effect:crushing_impact, below) instead of an inline Math.max; plain Vanguard:4 was missed until the 2d close-out M1 sweep (its own entry is below too) -- M1 no longer warns about any of them.",
 });
 registerModifier("effect:executioner", {
   source: { kind: "effect", id: "executioner" },
@@ -895,6 +1039,28 @@ registerModifier("always:crit", {
   value: null, behavior: "criticalHitRoll",
   when: null, holders: ["player"], state: null,
   notes: "The player's crit system (Blessing of Guidance/Blessing of Insight/Blessing of Fortune/Avatar of Fate -- see critMultiplier's own header). A behavior (not a bare value) because critMultiplier itself consumes combat.player.unlikelyOutcomeGuaranteedCrit -- a real pre-existing state write, carried over unchanged rather than restructured this round. One composite entry under an 'always' source (see sourceActiveOn's own note) rather than three, since the three sets' own chances already ADD before a single roll today -- splitting them into three independent rolls would change the odds. CRIT_MODIFIER_KEY names this entry's key for the two post-roll callers (Blessing of Fortune/Avatar of Chaos's own stack growth) that need to know whether THIS hit actually crit, not just the overall outgoing total.",
+});
+// Regalia of the Woven Thread:6 (Avatar of Fate) has two unrelated
+// halves per the Bucket Review (18 Nov): the crit-damage double
+// (1.5x -> 2.0x while avatarOfFateTurns > 0) is this bucket's concern;
+// the separate once-during-the-window 1 HP save is cheatDeath, 2e-5
+// territory, untouched here. The crit-damage half is already live
+// inside critMultiplier's own `combat.player.avatarOfFateTurns > 0 ?
+// 2.0 : 1.5` ternary above (not a resolveUpgradedValue chain -- a data-
+// only M1 cleanup pass isn't the place to restructure that), and
+// avatarOfFateTurns itself is set by a lowHealth reaction trigger
+// (checkAvatarOfFate) that's 2e-4 lifecycle territory, not yet
+// migrated. Placeholder only (see the matching set:Stormwatch:6/
+// set:Stonewarden:6/set:Leviathan:4 entries below for the same shape).
+// `when: () => false` keeps it out of every real dispatch path --
+// bucket/value are set only to satisfy M3's own "no bucket"/"presence-
+// only" heuristics, which can't see that `when` already makes this
+// entry inert; the number itself is never read.
+registerModifier("set:Regalia of the Woven Thread:6", {
+  source: { kind: "set", id: "Regalia of the Woven Thread:6", setName: "Regalia of the Woven Thread", tier: 6 },
+  hook: "calculateDamage.outgoing", order: 999, bucket: "crit", value: 1, behavior: null,
+  when: () => false, holders: ["player"], state: null,
+  notes: "M1 placeholder only -- the crit-damage double is already live inside critMultiplier's own ternary (always:crit above); the 1 HP save half is cheatDeath, 2e-5.",
 });
 registerModifier("set:Regalia of the Woven Thread:4", {
   source: { kind: "set", id: "Regalia of the Woven Thread:4", setName: "Regalia of the Woven Thread", tier: 4 },
@@ -999,7 +1165,20 @@ registerModifier("effect:armor_crack", {
   hook: "calculateDamage.defenseIgnore", order: 40, bucket: "defenseIgnore",
   value: (ctx) => armorCrackAmount(ctx.holder), behavior: null, flatAmount: true,
   when: (ctx) => !ctx.isSpell, holders: ["player"], state: null,
-  notes: "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade, already folded into armorCrackAmount's own Math.max logic), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Reads ctx.holder, not ctx.state (Amendment 1 gap close). Siege Corps 4pc still owes M1 a registry entry of its own (Rule 1's `upgrades`), deferred -- not in Tyler's 19 Nov list.",
+  notes: "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Reads ctx.holder, not ctx.state (Amendment 1 gap close).",
+});
+// Siege Corps 4pc (2d close-out, M1 cleanup, Rule 1): pure documentation
+// data -- armorCrackAmount(state) still does its own plain `hasSetTier(state,
+// "Siege Corps", 4) ? 4 : 2` ternary, unchanged, not resolveUpgradedValue;
+// this entry exists only so M1 stops warning about the set tier, same as
+// any other `upgrades` entry whose base hasn't moved onto the shared
+// resolver mechanism yet.
+registerModifier("set:Siege Corps:4", {
+  source: { kind: "set", id: "Siege Corps:4", setName: "Siege Corps", tier: 4 },
+  upgrades: "effect:armor_crack",
+  hook: "calculateDamage.defenseIgnore", order: 40, bucket: null, value: 4, behavior: null, flatAmount: true,
+  when: null, holders: ["player"], state: null,
+  notes: "Armor Crack upgrade: flat Defense ignore 2 -> 4 (siegecorps_armorcrack_4).",
 });
 
 // ---- Amendment 1 gap close (19 Nov): Rule 1 upgrade entries ----
@@ -1035,6 +1214,20 @@ registerModifier("set:Ashforged:6", {
   when: null, holders: ["player"], state: null,
   notes: "Crushing Impact upgrade: 1.2x -> 1.4x, the strongest of the three.",
 });
+// 2d close-out, M1 cleanup: plain "Vanguard" (sets.js:126) is a distinct
+// set from "Regalia of the Crimson Vanguard" (sets.js:389) -- the
+// header comment above crushingImpactMultiplier/executionerThreshold
+// (naming "Thraekor:6/Vanguard:4/Ashforged:6") was wrong to claim this
+// one was already covered; only Thraekor:6/Ashforged:6/the Crimson
+// Vanguard tiers were ever actually registered. Genuinely missing, not
+// a key-naming gap like opening_reach/spell_ward above.
+registerModifier("set:Vanguard:4", {
+  source: { kind: "set", id: "Vanguard:4", setName: "Vanguard", tier: 4 },
+  upgrades: "effect:crushing_impact",
+  hook: "calculateDamage.outgoing", order: 5, bucket: null, value: 1.35, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Crushing Impact upgrade: 1.2x -> 1.35x (vanguard_crushing_135).",
+});
 registerModifier("set:Drake Hunter:4", {
   source: { kind: "set", id: "Drake Hunter:4", setName: "Drake Hunter", tier: 4 },
   upgrades: "effect:executioner.threshold",
@@ -1056,12 +1249,19 @@ registerModifier("set:Contract Hunter:4", {
   when: null, holders: ["player"], state: null,
   notes: "Executioner threshold upgrade: 30% -> 40% HP.",
 });
+registerModifier("set:Vanguard:6", {
+  source: { kind: "set", id: "Vanguard:6", setName: "Vanguard", tier: 6 },
+  upgrades: "effect:executioner.threshold",
+  hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP (vanguard_executioner_40). Genuinely missing before 2d close-out, same as set:Vanguard:4 above -- see that entry's note.",
+});
 registerModifier("set:Scout Corps:6", {
   source: { kind: "set", id: "Scout Corps:6", setName: "Scout Corps", tier: 6 },
   upgrades: "effect:ambush",
   hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 1.7, behavior: null,
   when: null, holders: ["player"], state: null,
-  notes: "Ambush upgrade: wins outright over both the 1.4x base and the 1.55x ambush_mastery tier (still true taking Math.max, since 1.7 beats both). Ambush itself (js/data/tactics.js's extraDamageMultiplierFn) isn't dispatched through calculateDamage.outgoing yet -- order is a placeholder until it is.",
+  notes: "Ambush upgrade: wins outright over both the 1.4x base and the 1.55x ambush_mastery tier (still true taking Math.max, since 1.7 beats both). Ambush itself is now dispatched through calculateDamage.outgoing (2d close-out: see 'effect:ambush_mastery' below, lateOutgoingPhase 'ambush') -- order 999 is still just a placeholder since resolveUpgradedValue's own Math.max resolution doesn't read it.",
 });
 registerModifier("set:Conduit Master:6", {
   source: { kind: "set", id: "Conduit Master:6", setName: "Conduit Master", tier: 6 },
@@ -1298,12 +1498,18 @@ registerModifier("always:sang_ally_protection", {
 // at its call sites. `abilityPhase: true` is what keeps the two
 // dispatch points (sharing one hook) from double-firing each other's
 // entries -- see calculateAbilityIncomingMultiplier's own header.
-registerModifier("always:spell_ward", {
+// Keyed "effect:spell_ward" (2d close-out, M1 cleanup) even though
+// source.kind stays "always" -- same exception opening_reach uses:
+// Leviathan:4 also grants Spell Ward outright (see spellWardMultiplier's
+// own hasBase gate), so no single hasEffect/hasSetTier check covers both
+// grant paths at once, but EFFECT_DEFS.spell_ward still needs this exact
+// key to satisfy M1's per-id lookup.
+registerModifier("effect:spell_ward", {
   source: { kind: "always" },
   hook: "calculateDamage.incoming", order: 5, bucket: "incomingMitigation", abilityPhase: true,
   value: null, behavior: "spellWardRatio", params: null,
   when: (ctx) => ctx.kind === "magic", holders: ["player", "ally"], state: null,
-  notes: "Spell Ward (also granted outright by Leviathan:4 -- see spellWardMultiplier's own hasBase gate, which is why this is 'always'-sourced rather than effect:spell_ward -- no single hasEffect/hasSetTier check covers both grant paths at once). Magic-only (today's own code only ever reads it inside the creature.element/U1-gated branches). Upgrade entries (Examiner:4/River Warden:4/Stormwatch:4) already staged, Amendment 1 gap close.",
+  notes: "Spell Ward (also granted outright by Leviathan:4). Magic-only (today's own code only ever reads it inside the creature.element/U1-gated branches). Upgrade entries (Examiner:4/River Warden:4/Stormwatch:4) already staged, Amendment 1 gap close.",
 });
 registerModifier("always:storm_barrier", {
   source: { kind: "always" },
@@ -1319,6 +1525,46 @@ registerModifier("always:stonewarden_first_hit", {
   when: (ctx) => ctx.role === "player" || ctx.kind === "magic", holders: ["player", "ally"], state: null,
   notes: "Stonewarden 6pc. `always`-sourced for the same reason as Storm Barrier above -- the firstHitTakenUsed flag is consumed on any qualifying hit whether or not Stonewarden is worn; only the ratio itself is set-gated, inside firstHitTakenRatio. Unlike Spell Ward/Storm Barrier, this one already applies to BOTH the player's magic AND physical branches today (one shared combat.player.firstHitTakenUsed flag across both) -- `when` reflects that asymmetry exactly: always eligible for the player, magic-only for an ally (the ally's own flat/physical branch has no Stonewarden check at all -- a known, separate gap the asymmetry register already flags as needs-Tyler, left untouched here).",
 });
+// M1's SET TIER check (`set:${setName}:${tier}`) is separate from its
+// EFFECT_DEFS check and doesn't know "always:storm_barrier"/
+// "always:stonewarden_first_hit" above already cover Stormwatch 6pc/
+// Stonewarden 6pc (neither is gated on a hasSetTier at the FLAG level,
+// per those entries' own notes, which is exactly why they're keyed
+// `always:` and not `set:...` to begin with). These three are
+// placeholders ONLY, to satisfy that separate check. `when: () => false`
+// (not `upgrades`) keeps them out of every real dispatch path: modifiersForHook
+// itself drops a `when`-false entry before any hook-level filter even
+// runs, so there's no risk of colliding with resolveUpgradedValue the
+// way an `upgrades`-tagged placeholder with a null value would (caught
+// by the regression suite -- P2-2D-ABL-SPELLWARD-LEVIATHAN-GRANT-01
+// regressed to edmg 0 during this entry's own development, Math.min(0.9,
+// null) coercing null to 0). bucket/value are set only to satisfy M3's
+// own "no bucket"/"presence-only" heuristics (which can't see that
+// `when` already makes the entry inert) -- the number is never read.
+registerModifier("set:Stormwatch:6", {
+  source: { kind: "set", id: "Stormwatch:6", setName: "Stormwatch", tier: 6 },
+  hook: "calculateDamage.incoming", order: 999, bucket: "incomingMitigation", value: 1, behavior: null,
+  when: () => false, holders: ["player", "ally"], state: null,
+  notes: "M1 placeholder only -- Storm Barrier's real entry is 'always:storm_barrier' above (see that entry's own note for why it can't be keyed 'set:Stormwatch:6' directly: the flag consumes regardless of whether the set is worn).",
+});
+registerModifier("set:Stonewarden:6", {
+  source: { kind: "set", id: "Stonewarden:6", setName: "Stonewarden", tier: 6 },
+  hook: "calculateDamage.incoming", order: 999, bucket: "incomingMitigation", value: 1, behavior: null,
+  when: () => false, holders: ["player", "ally"], state: null,
+  notes: "M1 placeholder only -- Stonewarden 6pc's real entry is 'always:stonewarden_first_hit' above, for the same reason as set:Stormwatch:6 above.",
+});
+// Leviathan:4 grants Spell Ward's BASE outright (spellWardMultiplier's
+// own hasBase gate, already handled -- see 'effect:spell_ward' above)
+// and Coldproof's BASE outright (hasColdproof, js/data/sets.js) -- the
+// Coldproof half is a flat stat.def grant, never a bucket entry at all
+// (Bucket Review, 18 Nov), so this placeholder covers the Spell Ward
+// half only, same shape as the two above.
+registerModifier("set:Leviathan:4", {
+  source: { kind: "set", id: "Leviathan:4", setName: "Leviathan", tier: 4 },
+  hook: "calculateDamage.incoming", order: 999, bucket: "incomingMitigation", value: 1, behavior: null,
+  when: () => false, holders: ["player"], state: null,
+  notes: "M1 placeholder only -- grants Spell Ward's base outright (spellWardMultiplier's own hasBase check already covers this); the Coldproof half of this tier is an unrelated flat stat.def grant, outside calculateDamage entirely.",
+});
 
 // ---- 2d, increment 3d (19 Nov): statusTick.incoming (Ashward). The
 // only member of this hook -- holders stays ["enemy"], matching
@@ -1333,4 +1579,138 @@ registerModifier("effect:dra_e08_ashward", {
   hook: "statusTick.incoming", order: 10, bucket: null, value: 0.75, behavior: null,
   when: null, holders: ["enemy"], state: null,
   notes: "Ashward (First Sword's Regalia, Mantle of the Tower -- DRA-I08). Incoming Burning DoT ticks deal 0.75x. Plain numeric value (0.75), no behavior -- a pure hasEffect read, no state.",
+});
+
+// ---- 2d close-out (19 Nov, Tyler): the outgoing multipliers dispatched
+// outside the two core player functions. Each wraps today's exact
+// condition verbatim, in a real bucket (R3 needs every damage
+// multiplier in one, per the 2e handoff's own line). `holders` stays
+// exactly what today's own call sites already are -- NO widening here
+// (per cd15573's own rule): Opening Reach unifies two pre-existing code
+// paths (applyOpeningReach + applyOpeningReachForActor) that ALREADY
+// covered player/ally/enemy between them, same precedent as
+// Executioner's own Amendment 1 gap close; nothing else below reaches
+// any holder it didn't already reach today.
+registerModifier("effect:opening_reach", {
+  source: { kind: "always" },
+  hook: "calculateDamage.outgoing", order: 200, bucket: "conditional", lateOutgoingPhase: "openingReach",
+  value: null, behavior: "openingReachRatio", params: null,
+  when: null, holders: ["player", "ally", "enemy"], state: null,
+  notes: "Opening Reach. Keyed effect:opening_reach (M1 matches EFFECT_DEFS ids by this exact key) even though `source.kind` is 'always', not 'effect' -- firstPhysicalAttackDone is consumed on the first qualifying hit regardless of gear, same reasoning as Storm Barrier/Stonewarden (increment 3c), so the SOURCE can't be a plain hasEffect gate; the key still names which EFFECT_DEFS id this is. Norrvael 6pc's upgrade (1.15x -> 1.3x) applies to the player only, via resolveUpgradedValue; ally/enemy stay flat 1.15x, matching applyOpeningReachForActor's own comment ('no Norrvael 6pc widening, that's a player-only set') exactly.",
+});
+registerModifier("set:Norrvael:6", {
+  source: { kind: "set", id: "Norrvael:6", setName: "Norrvael", tier: 6 },
+  upgrades: "effect:opening_reach",
+  hook: "calculateDamage.outgoing", order: 200, bucket: null, value: 1.3, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Opening Reach upgrade: 1.15x -> 1.3x, player only.",
+});
+registerModifier("effect:clash_of_steel", {
+  source: { kind: "effect", id: "clash_of_steel" },
+  hook: "calculateDamage.outgoing", order: 210, bucket: "conditional", lateOutgoingPhase: "clashOfSteel",
+  value: (ctx) => hasEffect(ctx.holder, "clash_of_steel") ? 1.5 : 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Clash of Steel: Riposte's counter-damage gets 50% additional. Riposte itself is player-only today and widening it to ally is explicitly P2-5/2e's own job (see the 2e handoff) -- this entry's holders stay player-only to match, not because of any new decision here.",
+});
+registerModifier("effect:dra_e01_ice_forged_edge", {
+  source: { kind: "effect", id: "dra_e01_ice_forged_edge" },
+  hook: "calculateDamage.outgoing", order: 220, bucket: "conditional", lateOutgoingPhase: "enemyWearer1",
+  value: (ctx) => hasEffect(ctx.holder, "dra_e01_ice_forged_edge") ? 1.10 : 1, behavior: null,
+  when: (ctx) => ctx.kind === "flat", holders: ["enemy"], state: null,
+  notes: "Ice Forged Edge (DRA-E01). Flat/physical branches only -- today's own code never checks it in either magic branch. No edmg>0 gate, matching today's exact condition.",
+});
+registerModifier("effect:dra_e04_unbroken_grip", {
+  source: { kind: "effect", id: "dra_e04_unbroken_grip" },
+  hook: "calculateDamage.outgoing", order: 221, bucket: "conditional", lateOutgoingPhase: "enemyWearer1",
+  value: null, behavior: "unbrokenGripRatio", params: null,
+  when: (ctx) => ctx.kind === "flat", holders: ["enemy"], state: null,
+  notes: "Unbroken Grip (DRA-E04). A behavior -- consumes creature.unbrokenGripUsed, a real once-per-fight flag. Unlike Opening Reach/Storm Barrier, this flag is only ever touched when the effect is actually present -- matching today's own `hasEffect(...) && !creature.unbrokenGripUsed` condition, both checked together, not split.",
+});
+registerModifier("effect:dra_e06_executioners_seal", {
+  source: { kind: "effect", id: "dra_e06_executioners_seal" },
+  hook: "calculateDamage.outgoing", order: 222, bucket: "conditional", lateOutgoingPhase: "enemyWearer2",
+  value: (ctx) => hasEffect(ctx.holder, "dra_e06_executioners_seal") && ctx.defenderHp <= ctx.defenderMaxHp * 0.3 ? 1.20 : 1, behavior: null,
+  when: (ctx) => ctx.kind === "flat", holders: ["enemy"], state: null,
+  notes: "Executioner's Seal (DRA-E06). Reads the DEFENDER's own HP% (ctx.defenderHp/defenderMaxHp, already populated at every enemyCore dispatch point) -- the ally or the player, whichever this creature is actually attacking, not the enemy's own HP.",
+});
+registerModifier("effect:dra_e09_black_ice_reserve", {
+  source: { kind: "effect", id: "dra_e09_black_ice_reserve" },
+  hook: "calculateDamage.outgoing", order: 223, bucket: "conditional", lateOutgoingPhase: "enemyWearer2",
+  value: (ctx) => ctx.edmg > 0 && hasEffect(ctx.holder, "dra_e09_black_ice_reserve") && ctx.holder.blackIceReservePending ? 1.10 : 1, behavior: null,
+  when: (ctx) => ctx.kind === "flat", holders: ["enemy"], state: null,
+  notes: "Black Ice Reserve (DRA-E09). A pure read of creature.blackIceReservePending -- whatever sets/clears that flag is a different mechanic, out of this migration's scope; this entry only moves the READ, unchanged.",
+});
+registerModifier("effect:sang_cu_ie012_tyrants_edge", {
+  source: { kind: "effect", id: "sang_cu_ie012_tyrants_edge" },
+  hook: "calculateDamage.outgoing", order: 224, bucket: "conditional", lateOutgoingPhase: "enemyWearer2",
+  value: null, behavior: "tyrantsEdgeRatio", params: null,
+  when: (ctx) => ctx.kind === "flat", holders: ["enemy"], state: null,
+  notes: "Tyrant's Edge (Sanguivorum Criminal Underworld). A behavior -- cooldown (3 rounds) + a 2-uses-per-combat cap, both real state on creature. Reads the defender's own HP% (<=35%), same ctx fields as Executioner's Seal.",
+});
+registerModifier("effect:dra_e07_unquenched_focus", {
+  source: { kind: "effect", id: "dra_e07_unquenched_focus" },
+  hook: "calculateDamage.outgoing", order: 225, bucket: "conditional", lateOutgoingPhase: "enemyWearerMagic",
+  value: null, behavior: "unquenchedFocusRatio", params: null,
+  when: (ctx) => ctx.kind === "magic" && (ctx.targetRole === "player" || COMBAT_UNIFY.U2), holders: ["enemy"], state: null,
+  notes: "Unquenched Focus (DRA-E07). Magic branches only. Unconditional for the player-target branch; gated by COMBAT_UNIFY.U2 (off by default) for the ally-target branch, matching today's exact asymmetry -- see enemyCore's own U2 comment. `ctx.targetRole` (the DEFENDER's role -- 'player' or 'ally') is distinct from `ctx.role`, which is always 'enemy' here (the dispatch HOLDER's own role).",
+});
+registerModifier("effect:elemental_focus", {
+  source: { kind: "effect", id: "elemental_focus" },
+  hook: "calculateDamage.outgoing", order: 230, bucket: "conditional", elementCastPhase: true,
+  value: (ctx) => hasEffect(ctx.holder, "elemental_focus") ? elementalFocusMultiplier(ctx.holder, ctx.role) : 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Elemental Focus. elementalFocusMultiplier(holder, role) itself is unconditional (always >=1.08) -- the hasEffect gate lives at this call site, exactly matching today's separate `focusActive` check. Novitiate:4/Kabal:4/Pre-Kabal:4 upgrades already staged, Amendment 1 gap close.",
+});
+registerModifier("effect:surging_conduit", {
+  source: { kind: "effect", id: "surging_conduit" },
+  hook: "calculateDamage.outgoing", order: 231, bucket: "burst", elementCastPhase: true,
+  value: null, behavior: "surgingConduitRatio", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Surging Conduit. Burst bucket (primed/limited-use, matching Bucket Review Rule 2 exactly -- a per-fight charge count). A behavior -- consumes combat.player.surgingConduitUsesLeft, initialized elsewhere at fight start (out of this migration's scope).",
+});
+registerModifier("effect:twin_rivers", {
+  source: { kind: "effect", id: "twin_rivers" },
+  hook: "calculateDamage.outgoing", order: 232, bucket: "conditional", elementCastPhase: true,
+  value: (ctx) => hasEffect(ctx.holder, "twin_rivers") && ctx.state.combat.player.lastElementUsed ? 1.4 : 1, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Twin Rivers: 1.4x when this isn't the fight's first elemental cast. MUST be dispatched exactly where it is today (calculateElementCastMultiplier, called before lastElementUsed is overwritten for the current cast) -- see that function's own header.",
+});
+// calculateDamage.outgoing, late phase (2d close-out, M1 cleanup):
+// Ambush's own multiplier. `source: {kind: "always"}` -- the base 1.4x
+// applies to every Ambush regardless of gear; EFFECT_DEFS.ambush_mastery
+// only conditionally RAISES it (1.4x -> 1.55x), so gating the whole
+// entry on `hasEffect(holder, "ambush_mastery")` would wrongly drop the
+// base multiplier for a player without the item. Keyed "effect:ambush_mastery"
+// to satisfy M1's exact per-id lookup anyway, same exception opening_reach
+// already uses. `ambushMultiplier(holder, role)` is reused unchanged --
+// it still does its own hasEffect check for the 1.55x bump and its own
+// resolveUpgradedValue("effect:ambush", ...) call for Scout Corps:6's
+// 1.7x override (already staged, set:Scout Corps:6 above) -- only the
+// DISPATCH POINT (tactics.js's own extraDamageMultiplierFn call) moves,
+// not the value logic itself.
+registerModifier("effect:ambush_mastery", {
+  source: { kind: "always" },
+  hook: "calculateDamage.outgoing", order: 240, bucket: "conditional", lateOutgoingPhase: "ambush",
+  value: (ctx) => ambushMultiplier(ctx.holder, ctx.role), behavior: null, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Ambush's own damage multiplier (base 1.4x; 1.55x with ambush_mastery; 1.7x with Scout Corps:6, via the existing resolveUpgradedValue chain on 'effect:ambush'). Dispatched only when the Ambush action itself runs (tactics.js's lateOutgoingGroup field) -- Ambush is a chosen tactic, not a passive, so there's no per-hit `when` gate beyond that.",
+});
+// calculateDamage.outgoing, late phase (2d close-out, M1 cleanup):
+// Borrowed Seconds's damage-bonus branch only (the cooldown-refund
+// branches -- Decoy/Disarm/elemental casts -- are reaction-cooldown,
+// 2e-3 territory, untouched). `source: {kind: "effect"}` here (unlike
+// Ambush above) because the ENTIRE +15% bonus, not just a bump on top
+// of some baseline, requires the item: without it, sourceActiveOn
+// filters this entry out of modifiersForHook entirely and the dispatch
+// below is a true no-op (edmg unchanged), matching today's
+// `action.borrowedSecondsBonusInDamage && borrowedSecondsActive(state)`
+// gate exactly. borrowedSecondsActive(holder) is reused unchanged --
+// a pure read (actionCounter % 4), no state mutation, so no behavior
+// is needed.
+registerModifier("effect:borrowed_seconds", {
+  source: { kind: "effect", id: "borrowed_seconds" },
+  hook: "calculateDamage.outgoing", order: 241, bucket: "burst", lateOutgoingPhase: "borrowedSeconds",
+  value: (ctx) => borrowedSecondsActive(ctx.holder) ? 1.15 : 1, behavior: null, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Borrowed Seconds's damage-bonus branch (basic_attack/ambush only, per action.borrowedSecondsBonusInDamage -- every cooldown-bearing action gets the refund branch instead, untouched/2e-3). Burst bucket: every-4th-action is a primed/limited-use trigger, Bucket Review Rule 2.",
 });

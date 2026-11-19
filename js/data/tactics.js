@@ -57,7 +57,7 @@ const TACTICS = {
       targeting: "singleEnemy", toHit: "roll", formula: "playerCore", excludesTargetFromRound: true,
       damageType: "inherit", // D1 hardening (Step 4 follow-up): same physical-weapon inheritance as basic_attack
       missLine: (state, creature) => [`You strike first, but ${withThe(creature.name, false)} isn't where you aimed. No counter, but no damage either.`],
-      extraDamageMultiplierFn: (state) => ambushMultiplier(state), borrowedSecondsBonusInDamage: true,
+      lateOutgoingGroup: "ambush", borrowedSecondsBonusInDamage: true,
       reportPhysical: "always",
       flavorLine: (state, creature, edmg) => [`You strike first — ${withThe(creature.name, false)} never saw it coming. ${edmg} damage, no counter.`],
       onHitEffectsForm: "unconditional", evasiveReleaseCheck: true, runsLowHealthChecks: true, followupForm: "unconditional",

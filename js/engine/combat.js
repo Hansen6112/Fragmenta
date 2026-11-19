@@ -2322,25 +2322,21 @@ function pickElement(state) {
 // of whether the effect is equipped (it's a fact about the fight, not the
 // gear) — Ambush/Blink/elemental abilities never call this, so an opening
 // Ambush doesn't burn the bonus before a later normal attack gets it.
+// 2d close-out (19 Nov): both this function and applyOpeningReachForActor
+// below now delegate to the registry's own always:opening_reach entry
+// (calculateLateOutgoingMultiplier, js/data/modifiers.js) -- one entry,
+// unifying what used to be two separate implementations here, same
+// precedent as Executioner's own Amendment 1 gap close. `holders`
+// already covers player/ally/enemy (exactly what these two functions'
+// own callers already reached), so this is not a widening.
 function applyOpeningReach(state, dmg) {
-  if (state.combat.player.firstPhysicalAttackDone) return dmg;
-  state.combat.player.firstPhysicalAttackDone = true;
-  if (!hasEffect(state, "opening_reach")) return dmg;
-  const mult = hasSetTier(state, "Norrvael", 6) ? 1.3 : 1.15;
-  return Math.round(dmg * mult);
+  return calculateLateOutgoingMultiplier(state, "player", { holder: state, role: "player", edmg: dmg }, "openingReach").edmg;
 }
 
-// Generalized Opening Reach, for an enemy or ally attacker: the same
-// "first ordinary physical attack this fight deals 1.15x" rule as
-// applyOpeningReach above, tracked per-combatant instead of on the
-// player's own state.combat flag. Only ever called from a plain
-// basic-attack branch (never an Active cast), mirroring applyOpeningReach's
-// own scope exactly — no Norrvael 6pc widening, that's a player-only set.
-function applyOpeningReachForActor(actor, dmg) {
-  if (actor.firstPhysicalAttackDone) return dmg;
-  actor.firstPhysicalAttackDone = true;
-  if (!hasEffect(actor, "opening_reach")) return dmg;
-  return Math.round(dmg * 1.15);
+// Generalized Opening Reach, for an enemy or ally attacker -- see
+// applyOpeningReach's own note above.
+function applyOpeningReachForActor(actor, dmg, role) {
+  return calculateLateOutgoingMultiplier(actor, role, { holder: actor, role, edmg: dmg }, "openingReach").edmg;
 }
 
 // Deep Cut (Bleed) and Hamstring both roll off any successful physical

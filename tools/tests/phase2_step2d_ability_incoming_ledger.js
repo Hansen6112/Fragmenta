@@ -87,7 +87,7 @@ function makeAlly() { return {}; }
 record("P2-2D-ABL-REGISTRY-SHAPE-01", "All 3 ability-phase entries exist, abilityPhase: true, source always (not set) for the two flag-consuming ones", () => {
   const sw = MODIFIERS["always:storm_barrier"];
   const sd = MODIFIERS["always:stonewarden_first_hit"];
-  const spw = MODIFIERS["always:spell_ward"];
+  const spw = MODIFIERS["effect:spell_ward"];
   const bad = [];
   if (!sw || !sw.abilityPhase || sw.source.kind !== "always") bad.push("storm_barrier");
   if (!sd || !sd.abilityPhase || sd.source.kind !== "always") bad.push("stonewarden_first_hit");

@@ -1793,6 +1793,15 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
   // runs first, matching Disarm's original, for every action.
   dmg = Math.round(dmg * (action.extraDamageMultiplierFn ? action.extraDamageMultiplierFn(state) : 1));
 
+  // Ambush (2d close-out): same slot extraDamageMultiplierFn used to
+  // occupy for this action -- ambushMultiplier(state) is now dispatched
+  // through the registry's own "effect:ambush_mastery" entry (lateOutgoingPhase
+  // "ambush") instead of being called directly from tactics.js, so it's
+  // in a bucket like every other damage multiplier (R3). Single
+  // Math.round, same as the inline call it replaces; action.lateOutgoingGroup
+  // is unset (and this a no-op) for every action except ambush.
+  if (action.lateOutgoingGroup) dmg = calculateLateOutgoingMultiplier(state, "player", { holder: state, role: "player", edmg: dmg }, action.lateOutgoingGroup).edmg;
+
   const openingReach = action.openingReach || "none";
   if (openingReach === "physicalGated" ? physicalBranch : openingReach === "unconditional") {
     dmg = applyOpeningReach(state, dmg);
@@ -1807,7 +1816,13 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
   // lightningOnHit's own comment in js/data/actions.js.
   if (action.usesOrchestratorDmgMult) dmg = Math.round(dmg * (action.extraElementMultiplier || 1) * action.dmgMult);
 
-  if (action.borrowedSecondsBonusInDamage && borrowedSecondsActive(state)) dmg = Math.round(dmg * 1.15);
+  // Borrowed Seconds (2d close-out): dispatched through the registry's
+  // "effect:borrowed_seconds" entry (lateOutgoingPhase "borrowedSeconds")
+  // instead of the inline hasEffect+modulus check -- the entry's own
+  // value function still reads borrowedSecondsActive(ctx.holder)
+  // unchanged, so it's a no-op (factor 1, edmg unchanged) exactly when
+  // the old inline condition was false, same single Math.round either way.
+  if (action.borrowedSecondsBonusInDamage) dmg = calculateLateOutgoingMultiplier(state, "player", { holder: state, role: "player", edmg: dmg }, "borrowedSeconds").edmg;
 
   let feintBonusApplied = false;
   if (action.consumesFeintBonus && state.combat.player.nextAttackBonus) {
@@ -2380,16 +2395,39 @@ function useElementAbility(state, elementKey) {
 
   const synergy = getSynergy(state, elementKey);
   let dmgMult = synergy ? synergy.dmgMultiplier : 1;
-  if (hasEffect(state, "twin_rivers") && state.combat.player.lastElementUsed) dmgMult *= 1.4;
+  // 2d close-out (19 Nov): Elemental Focus/Surging Conduit/Twin Rivers,
+  // dispatched via the registry (calculateElementCastMultiplier) --
+  // MUST stay dispatched exactly here: Twin Rivers reads
+  // lastElementUsed before it's overwritten below for the current cast
+  // (see that function's own header), and Surging Conduit's charge
+  // consumption is a real one-shot-per-attempt side effect that must
+  // happen exactly once, at this exact point, every time. Read back by
+  // key (not just .total) and applied in today's own exact left-to-right
+  // order (synergy*twin_rivers, then *focus, then *surge) rather than
+  // the registry's own internal order, so this stays floating-point
+  // identical, not just mathematically equal.
+  // Each of the three entries is `source: {kind:"effect"}` -- filtered
+  // out of `byKey` entirely (not just given a value of 1) when the
+  // wearer doesn't have that effect, same as any other effect-sourced
+  // entry's result only existing when sourceActiveOn is true. `|| 1`
+  // recovers today's exact "not equipped -> no-op factor" default.
+  const elementCast = calculateElementCastMultiplier(state, "player", { state, holder: state, role: "player" });
+  const twinRiversFactor = elementCast.byKey["effect:twin_rivers"] || 1;
+  const focusFactor = elementCast.byKey["effect:elemental_focus"] || 1;
+  const surgeFactor = elementCast.byKey["effect:surging_conduit"] || 1;
+  dmgMult *= twinRiversFactor;
   state.combat.player.lastElementUsed = elementKey;
 
-  const focusActive = hasEffect(state, "elemental_focus");
-  const focusMult = elementalFocusMultiplier(state);
-  const surgeActive = hasEffect(state, "surging_conduit") && state.combat.player.surgingConduitUsesLeft > 0;
-  if (surgeActive) state.combat.player.surgingConduitUsesLeft -= 1;
-  let elementalDmgMult = dmgMult;
-  if (focusActive) elementalDmgMult *= focusMult;
-  if (surgeActive) elementalDmgMult *= 1.2;
+  // focusActive/surgeActive: the Earth (Stoneskin) branch below still
+  // needs these as plain booleans for its own flat Defense-bonus
+  // addition, a different use from the damage multiplier above -- the
+  // registry's own factor is exactly 1 when inactive and always >1
+  // when active (elementalFocusMultiplier never returns <=1; Surging
+  // Conduit's own factor is exactly 1.2), so recovering the boolean
+  // from the already-dispatched factor is exact, not an approximation.
+  const focusActive = focusFactor !== 1;
+  const surgeActive = surgeFactor !== 1;
+  let elementalDmgMult = dmgMult * focusFactor * surgeFactor;
 
   // useElementAbilityLegacy's own `state.combat.lastDamageType =
   // elementKey;` -- set UNCONDITIONALLY here, before spellHits is even
