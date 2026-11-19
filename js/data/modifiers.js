@@ -23,12 +23,18 @@
 const MOD_HOOKS = [
   "chooseAction", "chooseTargets",
   "rollToHit.attacker", "rollToHit.defender",
-  "calculateDamage.outgoing", "calculateDamage.defenseIgnore", "calculateDamage.incoming", "calculateDamage.tags",
+  "calculateDamage.outgoing", "calculateDamage.defenseIgnore", "calculateDamage.incoming",
+  "calculateDamage.tags", "calculateDamage.cap",
   "applyAndReact.onHitDealt", "applyAndReact.onHitTaken", "applyAndReact.onMiss",
   "applyAndReact.onZeroDamage", "applyAndReact.onKill", "applyAndReact.onDowned",
   "applyAndReact.onStatusApplied",
   "fight.start", "round.start", "turn.start", "fight.end",
   "cheatDeath",
+  // statusTick.incoming (2d increment 3, Tyler 19 Nov, Bucket Review §3):
+  // Ashward's own home -- a DoT-style status reduction read when a status
+  // ticks, not a damage-roll multiplier, so it's its own hook rather than
+  // calculateDamage.incoming. Reserved here; not dispatched yet.
+  "statusTick.incoming",
 ];
 function statHook(key) { return `stat.${key}`; }
 function isKnownHook(hook) { return MOD_HOOKS.includes(hook) || /^stat\.\w+$/.test(hook); }
@@ -306,6 +312,68 @@ function calculateDefenseIgnoreMultiplier(holder, holderRole, ctx) {
   return { total, byKey };
 }
 
+// calculateDamage.incoming (2d increment 3, Tyler 19 Nov): unlike
+// outgoing/defenseIgnore (a single flat product, rounded once at the
+// end), today's mitigateAndApplyHitOnPlayer rounds edmg after EVERY
+// step -- Tyler's own ruling: "Ordered entries, rounding after each, are
+// fine for the legacy mode. R3 replaces that with sum, cap, round once."
+// So this threads edmg through each active entry in `order`, one at a
+// time, re-reading ctx.edmg as the RUNNING total (not the original hit)
+// before calling each entry's own value/behavior -- Shared Burden's own
+// magnitude gate (dmg > 30% max Health) genuinely depends on this, not
+// just today's incidental rounding.
+//
+// Most entries resolve a plain RATIO, same convention as the other two
+// combinators (the caller does Math.round(edmg * ratio)). A few wrap an
+// existing "apply(state, dmg) -> dmg" function verbatim (Shield Wall/
+// Master Duelist/Unbroken Line already do their own Math.round
+// internally) rather than having this combinator re-derive their ratio
+// inline -- `directApply: true` on those entries means the behavior's
+// own return IS the new edmg, not a ratio to multiply by.
+function calculateIncomingDamage(holder, holderRole, ctx) {
+  const entries = modifiersForHook(holder, holderRole, "calculateDamage.incoming", ctx);
+  let edmg = ctx.edmg;
+  const byKey = {};
+  for (const entry of entries) {
+    if (entry.upgrades) continue; // Rule 1 (same skip as the other two combinators) -- e.g. Spell Ward's own upgrade entries share this hook but aren't dispatched yet (spell_ward isn't wired to this hook as a real chain member).
+    const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    ctx.edmg = edmg;
+    let result;
+    if (entry.behavior) {
+      const holderState = modifierStateFor(holder, holderRole, key, entry);
+      result = MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState);
+    } else if (entry.value != null) {
+      result = typeof entry.value === "function" ? entry.value(ctx) : entry.value;
+    }
+    if (entry.directApply) {
+      edmg = typeof result === "number" ? result : edmg;
+    } else {
+      const v = typeof result === "number" ? result : 1;
+      edmg = Math.round(edmg * v);
+    }
+    byKey[key] = edmg;
+  }
+  return { edmg, byKey };
+}
+
+// calculateDamage.cap (2d increment 3, Tyler 19 Nov): a damage-VALUE
+// cap, not a percentage multiplier -- applied after every reduction AND
+// the tag system (Rule 3: synergy/tags/caps sit outside the damage
+// buckets, and are never themselves capped). "The first entry that
+// actually caps wins" -- same first-stop shape as rollToHit.defender's
+// miss chain -- since Unyielding Wall (player) and Perfect Fleshcraft
+// (enemy) can never both be relevant to the same hit (different holder
+// roles), but the shape generalizes if that ever changes. Every member
+// is a `behavior` (not a bare value): both existing cap functions have a
+// real state write (Unyielding Wall's cooldown) or read per-fight gear
+// data (Perfect Fleshcraft's creature.passives), so there's no pure-math
+// case for a plain value here yet.
+function applyDamageCap(holder, holderRole, ctx) {
+  const results = runHook("calculateDamage.cap", holder, holderRole, ctx);
+  for (const r of results) if (typeof r.result === "number") return r.result;
+  return ctx.edmg;
+}
+
 // ---- Rule 1 as data (Amendment 1 gap close, 19 Nov) ----
 // A set tier that only RAISES another entry's own number (never adds a
 // second, independent bonus) is an `upgrades` entry: its `upgrades`
@@ -430,6 +498,35 @@ registerBehavior("tagValueOverride", (ctx, entry) => {
 // always have.
 registerBehavior("criticalHitRoll", (ctx) => critMultiplier(ctx.state, ctx.isSpell));
 registerBehavior("loadedDiceRoll", (ctx) => loadedDiceMultiplier(ctx.state));
+
+// calculateDamage.incoming (2d increment 3): Shield Wall/Master Duelist/
+// Unbroken Line wrap their own existing "apply(holder, edmg) -> edmg"
+// functions verbatim (directApply: true on their own entries -- see
+// calculateIncomingDamage's own header) rather than having this
+// combinator re-derive their ratio from scratch. Unbroken Line is the
+// one with a real state write (hit counter / damage-reduction window
+// grant); Shield Wall/Master Duelist reuse the same shape purely for
+// consistency (their own math is a bare ratio, but wrapping the
+// existing function is the same "move first" discipline every other
+// entry in this file follows).
+registerBehavior("shieldWallApply", (ctx) => applyShieldWall(ctx.holder, ctx.edmg));
+registerBehavior("masterDuelistApply", (ctx) => applyMasterDuelist(ctx.holder, ctx.edmg));
+registerBehavior("unbrokenLineApply", (ctx) => applyUnbrokenLine(ctx.holder, ctx.edmg));
+// Prepared Response and Shared Burden both consume a one-shot per-fight
+// flag (real, pre-existing state writes -- Shared Burden's is also
+// gated on ctx.edmg, the RUNNING total at this point in the chain, not
+// the original hit, which is exactly why calculateIncomingDamage
+// re-reads ctx.edmg before calling each entry). Delegates to their own
+// unchanged functions verbatim, same precedent as crit/loaded_dice.
+registerBehavior("preparedResponseRatio", (ctx) => preparedResponseMultiplier(ctx.holder));
+registerBehavior("sharedBurdenRatio", (ctx) => sharedBurdenMultiplier(ctx.holder, ctx.edmg));
+
+// calculateDamage.cap: both members wrap their own existing unchanged
+// cap function verbatim, same discipline as everything else in this
+// file. Unyielding Wall's cooldown write and Perfect Fleshcraft's
+// creature.passives read both stay exactly where they are.
+registerBehavior("unyieldingWallCap", (ctx) => applyUnyieldingWall(ctx.holder, ctx.edmg));
+registerBehavior("perfectFleshcraftCap", (ctx) => enemyDamageCapPctMaxHp(ctx.holder, ctx.edmg));
 
 // ================= Entries =================
 
@@ -909,4 +1006,120 @@ registerModifier("set:Stormwatch:4", {
   hook: "calculateDamage.incoming", order: 999, bucket: null, value: 0.8, behavior: null,
   when: null, holders: ["player"], state: null,
   notes: "Spell Ward upgrade: 0.9x -> 0.8x.",
+});
+
+// ---- 2d, increment 3 (19 Nov): calculateDamage.incoming -- the
+// player's own defender-side mitigation chain (mitigateAndApplyHitOnPlayer,
+// combat.js), dispatched by calculateIncomingDamage (see that function's
+// own header on the sequential-rounding combinator shape this hook needs,
+// unlike outgoing/defenseIgnore's single end-of-chain product). Every
+// entry wraps an existing, unchanged function verbatim, same discipline
+// as every earlier increment. `order` matches today's exact chain
+// position; `ctx` is { state, holder, role: "player", kind, edmg } where
+// `edmg` is overwritten by calculateIncomingDamage before every entry so
+// each one reads the RUNNING total, not the original hit.
+registerModifier("set:Legion:4", {
+  source: { kind: "set", id: "Legion:4", setName: "Legion", tier: 4 },
+  hook: "calculateDamage.incoming", order: 10, bucket: "incomingMitigation", value: null,
+  behavior: "shieldWallApply", directApply: true, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Shield Wall. directApply -- wraps applyShieldWall(holder, edmg) unchanged, which already does its own Math.round(dmg * 0.9).",
+});
+registerModifier("effect:master_duelist", {
+  source: { kind: "effect", id: "master_duelist" },
+  hook: "calculateDamage.incoming", order: 20, bucket: "incomingMitigation", value: null,
+  behavior: "masterDuelistApply", directApply: true, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Master Duelist. directApply -- wraps applyMasterDuelist(holder, edmg) unchanged.",
+});
+registerModifier("effect:unbroken_line", {
+  source: { kind: "effect", id: "unbroken_line" },
+  hook: "calculateDamage.incoming", order: 30, bucket: "incomingMitigation", value: null,
+  behavior: "unbrokenLineApply", directApply: true, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Unbroken Line. directApply -- wraps applyUnbrokenLine(holder, edmg) unchanged, including its hit-counter/damage-reduction-window state writes.",
+});
+registerModifier("effect:prepared_response", {
+  source: { kind: "effect", id: "prepared_response" },
+  hook: "calculateDamage.incoming", order: 40, bucket: "incomingMitigation", value: null,
+  behavior: "preparedResponseRatio", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Prepared Response. A behavior (not a bare value) -- preparedResponseMultiplier itself consumes combat.player.preparedResponseWitnessed, a real pre-existing state write, carried over unchanged (same precedent as crit/loaded_dice in increment 1).",
+});
+registerModifier("effect:calming_presence", {
+  source: { kind: "effect", id: "calming_presence" },
+  hook: "calculateDamage.incoming", order: 50, bucket: "incomingMitigation",
+  value: (ctx) => calmingPresenceMultiplier(ctx.holder), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Calming Presence. Pure read -- value delegates to calmingPresenceMultiplier(holder) unchanged.",
+});
+registerModifier("set:Regalia of the Eternal Heart:6", {
+  source: { kind: "set", id: "Regalia of the Eternal Heart:6", setName: "Regalia of the Eternal Heart", tier: 6 },
+  hook: "calculateDamage.incoming", order: 60, bucket: "incomingMitigation",
+  value: (ctx) => avatarOfDevotionDamageMultiplier(ctx.holder), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Devotion. Pure read of combat.player.avatarOfDevotionTurns.",
+});
+registerModifier("set:Regalia of the Eternal Bastion:2", {
+  source: { kind: "set", id: "Regalia of the Eternal Bastion:2", setName: "Regalia of the Eternal Bastion", tier: 2 },
+  hook: "calculateDamage.incoming", order: 70, bucket: "incomingMitigation",
+  value: (ctx) => blessingOfStoneMultiplier(ctx.holder), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of Stone. Pure read of current Health vs. 50% max -- live, not a once-per-fight gate.",
+});
+registerModifier("set:Regalia of the Eternal Bastion:6", {
+  source: { kind: "set", id: "Regalia of the Eternal Bastion:6", setName: "Regalia of the Eternal Bastion", tier: 6 },
+  hook: "calculateDamage.incoming", order: 80, bucket: "incomingMitigation",
+  value: (ctx) => avatarOfEnduranceDamageMultiplier(ctx.holder), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Endurance. Pure read of combat.player.avatarOfEnduranceTurns.",
+});
+registerModifier("set:Regalia of the Endless Tide:6", {
+  source: { kind: "set", id: "Regalia of the Endless Tide:6", setName: "Regalia of the Endless Tide", tier: 6 },
+  hook: "calculateDamage.incoming", order: 90, bucket: "incomingMitigation",
+  value: (ctx) => avatarOfRenewalDamageMultiplier(ctx.holder), behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Renewal. Pure read of combat.player.avatarOfRenewalTurns.",
+});
+registerModifier("effect:adaptive_tide.physical", {
+  source: { kind: "effect", id: "adaptive_tide" },
+  hook: "calculateDamage.incoming", order: 100, bucket: "incomingMitigation",
+  value: (ctx) => adaptiveTidePhysicalMultiplier(ctx.holder), behavior: null,
+  when: (ctx) => ctx.kind !== "magic", holders: ["player"], state: null,
+  notes: "Adaptive Tide, physical side. Keyed distinctly from the magic side below (same source.id -- two entries for one effect, kind-gated exactly like today's ternary) -- MODIFIERS needs two keys since both would otherwise collide. Pure read of combat.player.adaptiveTidePhysicalStacks; the stack's own growth stays exactly where it is today, in mitigateAndApplyHitOnPlayer's own tail, not moved into this entry's state yet.",
+});
+registerModifier("effect:adaptive_tide.magic", {
+  source: { kind: "effect", id: "adaptive_tide" },
+  hook: "calculateDamage.incoming", order: 100, bucket: "incomingMitigation",
+  value: (ctx) => adaptiveTideMagicMultiplier(ctx.holder), behavior: null,
+  when: (ctx) => ctx.kind === "magic", holders: ["player"], state: null,
+  notes: "Adaptive Tide, magic side. See the physical side's own notes.",
+});
+registerModifier("effect:shared_burden", {
+  source: { kind: "effect", id: "shared_burden" },
+  hook: "calculateDamage.incoming", order: 110, bucket: "incomingMitigation", value: null,
+  behavior: "sharedBurdenRatio", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Shared Burden. A behavior -- sharedBurdenMultiplier(holder, edmg) consumes combat.player.sharedBurdenUsed (a real state write) AND reads the RUNNING edmg for its magnitude gate (dmg > 30% max Health), which is exactly why calculateIncomingDamage re-reads ctx.edmg before every entry rather than passing the original hit throughout.",
+});
+
+// ---- 2d, increment 3: calculateDamage.cap -- a damage-VALUE cap,
+// dispatched by applyDamageCap AFTER calculateIncomingDamage returns
+// (Rule 3: outside the buckets, never itself capped). Unyielding Wall
+// (player) and Perfect Fleshcraft (enemy) are the only two members --
+// see applyDamageCap's own header on the "first one that caps wins"
+// shape.
+registerModifier("effect:unyielding_wall", {
+  source: { kind: "effect", id: "unyielding_wall" },
+  hook: "calculateDamage.cap", order: 10, bucket: null, value: null,
+  behavior: "unyieldingWallCap", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Unyielding Wall. Wraps applyUnyieldingWall(holder, edmg) unchanged, including its own 3-round cooldown state write.",
+});
+registerModifier("passive:perfect_fleshcraft", {
+  source: { kind: "passive", id: "perfect_fleshcraft" },
+  hook: "calculateDamage.cap", order: 10, bucket: null, value: null,
+  behavior: "perfectFleshcraftCap", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Perfect Fleshcraft (Grand Voran-Daun). Wraps enemyDamageCapPctMaxHp(holder, edmg) unchanged (extracted verbatim from applyEnemyFlatDamageReduction's own former inline loop). source.kind 'passive' reads creature.passives, exactly like today's getEnemyAbility(id).trigger==='damageCapPctMaxHp' scan.",
 });

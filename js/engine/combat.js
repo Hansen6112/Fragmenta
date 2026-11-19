@@ -2230,10 +2230,25 @@ function applyEnemyFlatDamageReduction(dmg, creature) {
     if (ability && ability.trigger === "flatDamageReduction") mult *= (1 - ability.pct);
   }
   let result = mult === 1 ? dmg : Math.max(0, Math.round(dmg * mult));
-  // Perfect Fleshcraft (Grand Voran-Daun): no single hit can exceed a
-  // fixed fraction of this creature's own max Health, regardless of how
-  // hard it landed. `creature.hp` is the species template's max — the
-  // live remaining Health lives on the per-fight enemy record instead.
+  // Perfect Fleshcraft (2d increment 3, Tyler 19 Nov): dispatched through
+  // the registry's calculateDamage.cap hook now (modifiers.js's
+  // applyDamageCap), same hook Unyielding Wall uses -- "a damage-value
+  // cap, not a percentage, applied after the reductions and the tags,
+  // outside the buckets." enemyDamageCapPctMaxHp (below) is the unchanged
+  // math, extracted so the registry's own behavior can wrap it verbatim.
+  result = applyDamageCap(creature, "enemy", { holder: creature, role: "enemy", edmg: result });
+  return result;
+}
+
+// Perfect Fleshcraft (Grand Voran-Daun): no single hit can exceed a
+// fixed fraction of this creature's own max Health, regardless of how
+// hard it landed. `creature.hp` is the species template's max — the
+// live remaining Health lives on the per-fight enemy record instead.
+// Extracted verbatim from applyEnemyFlatDamageReduction's own former
+// inline loop (2d increment 3) so modifiers.js's "perfectFleshcraftCap"
+// behavior can wrap it, same as every other migrated entry.
+function enemyDamageCapPctMaxHp(creature, dmg) {
+  let result = dmg;
   for (const id of creature.passives) {
     const ability = getEnemyAbility(id);
     if (ability && ability.trigger === "damageCapPctMaxHp") {
@@ -6082,18 +6097,19 @@ function lowHealthTriggerChecks(state) {
 // mitigation, absorbLines from applyPlayerDamage's Temporary Health.
 function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
   const combat = state.combat;
-  edmg = applyShieldWall(state, edmg);
-  edmg = applyMasterDuelist(state, edmg);
-  edmg = applyUnbrokenLine(state, edmg);
-  edmg = Math.round(edmg * preparedResponseMultiplier(state));
-  edmg = Math.round(edmg * calmingPresenceMultiplier(state));
-  edmg = Math.round(edmg * avatarOfDevotionDamageMultiplier(state));
-  edmg = Math.round(edmg * blessingOfStoneMultiplier(state));
-  edmg = Math.round(edmg * avatarOfEnduranceDamageMultiplier(state));
-  edmg = Math.round(edmg * avatarOfRenewalDamageMultiplier(state));
-  edmg = Math.round(edmg * (kind === "magic" ? adaptiveTideMagicMultiplier(state) : adaptiveTidePhysicalMultiplier(state)));
-  edmg = Math.round(edmg * sharedBurdenMultiplier(state, edmg));
-  edmg = applyUnyieldingWall(state, edmg);
+  // 2d, increment 3 (19 Nov): the twelve-step chain below (Shield
+  // Wall..Shared Burden) now comes from the registry's own
+  // calculateDamage.incoming entries, via calculateIncomingDamage's
+  // sequential-rounding combinator (js/data/modifiers.js's own header on
+  // why this hook can't reuse the flat-product shape outgoing/
+  // defenseIgnore use) -- each entry wraps an existing unchanged
+  // function/value, same order, same per-step rounding, byte-identical.
+  // Unyielding Wall moves to its own calculateDamage.cap hook (Rule 3:
+  // a damage-value cap, outside the buckets, applied after this chain
+  // and after the damage-type tag system) -- applyDamageCap is called
+  // separately, right where applyUnyieldingWall used to sit.
+  edmg = calculateIncomingDamage(state, "player", { state, holder: state, role: "player", kind, edmg }).edmg;
+  edmg = applyDamageCap(state, "player", { state, holder: state, role: "player", edmg });
   const absorbLines = applyPlayerDamage(state, edmg);
   if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
     const key = kind === "magic" ? "adaptiveTideMagicStacks" : "adaptiveTidePhysicalStacks";
