@@ -330,12 +330,13 @@ function calculateDefenseIgnoreMultiplier(holder, holderRole, ctx) {
 // internally) rather than having this combinator re-derive their ratio
 // inline -- `directApply: true` on those entries means the behavior's
 // own return IS the new edmg, not a ratio to multiply by.
-function calculateIncomingDamage(holder, holderRole, ctx) {
-  const entries = modifiersForHook(holder, holderRole, "calculateDamage.incoming", ctx);
-  let edmg = ctx.edmg;
+// Shared sequential-threading loop behind both calculateIncomingDamage
+// and calculateAbilityIncomingMultiplier (2d increment 3c) -- `entries`
+// is already filtered/sorted by the caller (modifiersForHook), this just
+// walks it, threading `edmg` through one entry at a time.
+function threadIncomingEntries(entries, ctx, holder, holderRole, edmg) {
   const byKey = {};
   for (const entry of entries) {
-    if (entry.upgrades) continue; // Rule 1 (same skip as the other two combinators) -- e.g. Spell Ward's own upgrade entries share this hook but aren't dispatched yet (spell_ward isn't wired to this hook as a real chain member).
     const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
     ctx.edmg = edmg;
     let result;
@@ -354,6 +355,33 @@ function calculateIncomingDamage(holder, holderRole, ctx) {
     byKey[key] = edmg;
   }
   return { edmg, byKey };
+}
+function calculateIncomingDamage(holder, holderRole, ctx) {
+  const entries = modifiersForHook(holder, holderRole, "calculateDamage.incoming", ctx)
+    .filter((e) => !e.upgrades && !e.abilityPhase); // Rule 1 skip (Spell Ward's own upgrade entries share this hook); abilityPhase entries (2d increment 3c -- Spell Ward/Storm Barrier/Stonewarden 6pc) are dispatched separately, earlier in the pipeline, by calculateAbilityIncomingMultiplier -- see that function's own header on why one hook needs two dispatch points.
+  return threadIncomingEntries(entries, ctx, holder, holderRole, ctx.edmg);
+}
+
+// calculateDamage.incoming, ABILITY-PHASE variant (2d increment 3c,
+// Tyler 19 Nov: "The ally-defender path dispatches too (Stonewarden 6pc
+// and the other kind B effects)"). Spell Ward/Storm Barrier/Stonewarden
+// 6pc live inside enemyCore itself (actions.js), computed BEFORE
+// mitigateAndApplyHitOnPlayer's own chain ever runs on the resulting
+// edmg (enemyCore's return value IS mitigateAndApplyHitOnPlayer's own
+// `edmg` argument at its call sites) -- genuinely a separate, earlier
+// dispatch point from calculateIncomingDamage's, not a different
+// combinator shape (same sequential per-step rounding). `abilityPhase:
+// true` on these three entries (and excluding them from
+// calculateIncomingDamage, above) is what keeps the two dispatch points
+// from double-firing each other's entries despite sharing one hook.
+// `holders` includes BOTH "player" and "ally" -- enemyCore computes
+// damage for either target with near-identical code, and Spell Ward/
+// Storm Barrier/Stonewarden 6pc already applied to both before this
+// migration (the ally-target branch is COMBAT_UNIFY.U1-gated, off by
+// default, but the mechanism itself was never player-only).
+function calculateAbilityIncomingMultiplier(holder, holderRole, ctx) {
+  const entries = modifiersForHook(holder, holderRole, "calculateDamage.incoming", ctx).filter((e) => e.abilityPhase);
+  return threadIncomingEntries(entries, ctx, holder, holderRole, ctx.edmg);
 }
 
 // calculateDamage.cap (2d increment 3, Tyler 19 Nov): a damage-VALUE
@@ -564,6 +592,32 @@ registerBehavior("sangCuDefenderMitigationRatio", (ctx) => sangCuDefenderMitigat
 registerBehavior("enemyOneHitMitigationRatio", (ctx) => enemyOneHitMitigationMultiplier(ctx.holder));
 registerBehavior("enemyRepeatableMitigationRatio", (ctx) => enemyRepeatableMitigationMultiplier(ctx.holder));
 registerBehavior("enemyAllyProtectionRatio", (ctx) => enemyAllyProtectionMultiplier(ctx.state, ctx.holder));
+
+// calculateDamage.incoming, ability-phase (2d increment 3c): Storm
+// Barrier/Stonewarden 6pc each consume a real one-shot per-fight flag
+// that lives directly on the DEFENDER's own record today -- combat.player
+// for the player, the ally record itself for an ally (never the
+// registry's own modifierStateFor store, which isn't where these fields
+// have ever lived) -- so each behavior resolves the right host by role
+// rather than being handed it. `ctx.edmg <= 0` short-circuits WITHOUT
+// consuming the flag, exactly matching today's `if (edmg > 0 && !...)`
+// gate -- a zero-damage hit never spends the one-shot.
+function abilityFlagHost(ctx) {
+  return ctx.role === "player" ? ctx.holder.combat.player : ctx.holder;
+}
+registerBehavior("stormBarrierRatio", (ctx) => {
+  const host = abilityFlagHost(ctx);
+  if (ctx.edmg <= 0 || host.stormBarrierUsed) return 1;
+  host.stormBarrierUsed = true;
+  return hasSetTier(ctx.holder, "Stormwatch", 6) ? 0.5 : 1;
+});
+registerBehavior("firstHitTakenRatio", (ctx) => {
+  const host = abilityFlagHost(ctx);
+  if (ctx.edmg <= 0 || host.firstHitTakenUsed) return 1;
+  host.firstHitTakenUsed = true;
+  return hasSetTier(ctx.holder, "Stonewarden", 6) ? 0.75 : 1;
+});
+registerBehavior("spellWardRatio", (ctx) => spellWardMultiplier(ctx.holder, ctx.role));
 
 // ================= Entries =================
 
@@ -1212,4 +1266,35 @@ registerModifier("always:sang_ally_protection", {
   value: null, behavior: "enemyAllyProtectionRatio", params: null,
   when: null, holders: ["enemy"], state: null,
   notes: "Gatekeeper's Stand (sang_sec_ie005) / Protective Intercession (sang_sec_ie010) / Officer's Intercession (sang_cu_ie010) -- one shared CD5/max-2-uses 0.9x mechanism (ALLY_PROTECTION_EFFECT_IDS, combat.js), checked on a DIFFERENT living enemy than the one taking this hit, which is why `always` is the only fit (not just the simplest one) -- there's no single hasEffect(holder, id) that could gate it. Wraps enemyAllyProtectionMultiplier(state, holder) unchanged.",
+});
+
+// ---- 2d, increment 3c (19 Nov): calculateDamage.incoming, ability-
+// phase (Spell Ward/Storm Barrier/Stonewarden 6pc). Dispatched by
+// calculateAbilityIncomingMultiplier, inside enemyCore (actions.js)
+// itself -- a genuinely earlier point in the pipeline than
+// calculateIncomingDamage's own dispatch (mitigateAndApplyHitOnPlayer),
+// since enemyCore's own return value IS that function's `edmg` argument
+// at its call sites. `abilityPhase: true` is what keeps the two
+// dispatch points (sharing one hook) from double-firing each other's
+// entries -- see calculateAbilityIncomingMultiplier's own header.
+registerModifier("always:spell_ward", {
+  source: { kind: "always" },
+  hook: "calculateDamage.incoming", order: 5, bucket: "incomingMitigation", abilityPhase: true,
+  value: null, behavior: "spellWardRatio", params: null,
+  when: (ctx) => ctx.kind === "magic", holders: ["player", "ally"], state: null,
+  notes: "Spell Ward (also granted outright by Leviathan:4 -- see spellWardMultiplier's own hasBase gate, which is why this is 'always'-sourced rather than effect:spell_ward -- no single hasEffect/hasSetTier check covers both grant paths at once). Magic-only (today's own code only ever reads it inside the creature.element/U1-gated branches). Upgrade entries (Examiner:4/River Warden:4/Stormwatch:4) already staged, Amendment 1 gap close.",
+});
+registerModifier("always:storm_barrier", {
+  source: { kind: "always" },
+  hook: "calculateDamage.incoming", order: 6, bucket: "incomingMitigation", abilityPhase: true,
+  value: null, behavior: "stormBarrierRatio", params: null,
+  when: (ctx) => ctx.kind === "magic", holders: ["player", "ally"], state: null,
+  notes: "Storm Barrier (Stormwatch 6pc). `always`-sourced, not `set:Stormwatch:6` -- the flag (stormBarrierUsed, living on combat.player for the player or the ally record itself) is consumed on ANY qualifying hit regardless of whether Stormwatch is actually equipped (today's own `if (edmg > 0 && !...Used)` gate has no hasSetTier in it at all -- only the DAMAGE RATIO inside is set-gated). A `source: {kind:'set'}` entry would only fire -- and only consume the flag -- when the set is worn, which is wrong; caught the same way the Amendment 1 gap close's own bugs were, by the parity suite (phase1_step1b/1e-i/1e-iii all regressed on this exact mistake during development). Magic-only, same gate as Spell Ward above.",
+});
+registerModifier("always:stonewarden_first_hit", {
+  source: { kind: "always" },
+  hook: "calculateDamage.incoming", order: 7, bucket: "incomingMitigation", abilityPhase: true,
+  value: null, behavior: "firstHitTakenRatio", params: null,
+  when: (ctx) => ctx.role === "player" || ctx.kind === "magic", holders: ["player", "ally"], state: null,
+  notes: "Stonewarden 6pc. `always`-sourced for the same reason as Storm Barrier above -- the firstHitTakenUsed flag is consumed on any qualifying hit whether or not Stonewarden is worn; only the ratio itself is set-gated, inside firstHitTakenRatio. Unlike Spell Ward/Storm Barrier, this one already applies to BOTH the player's magic AND physical branches today (one shared combat.player.firstHitTakenUsed flag across both) -- `when` reflects that asymmetry exactly: always eligible for the player, magic-only for an ally (the ally's own flat/physical branch has no Stonewarden check at all -- a known, separate gap the asymmetry register already flags as needs-Tyler, left untouched here).",
 });

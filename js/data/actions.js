@@ -531,16 +531,13 @@ const PIPELINE_FORMULAS = {
             edmg = Math.round(edmg * 0.5);
           }
         }
-        const swMult = spellWardMultiplier(ally);
-        if (swMult < 1) edmg = Math.round(edmg * swMult);
-        if (edmg > 0 && !ally.stormBarrierUsed) {
-          ally.stormBarrierUsed = true;
-          if (hasSetTier(ally, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
-        }
-        if (edmg > 0 && !ally.firstHitTakenUsed) {
-          ally.firstHitTakenUsed = true;
-          if (hasSetTier(ally, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
-        }
+        // 2d, increment 3c (19 Nov): Spell Ward/Storm Barrier/Stonewarden
+        // 6pc, dispatched via the registry's ability-phase entries
+        // (calculateAbilityIncomingMultiplier, js/data/modifiers.js) --
+        // same three effects, same order, byte-identical (this whole
+        // branch is COMBAT_UNIFY.U1-gated, off by default, so unexercised
+        // by the baseline either way).
+        edmg = calculateAbilityIncomingMultiplier(ally, "ally", { state, holder: ally, role: "ally", kind: "magic", edmg }).edmg;
         return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
       }
 
@@ -642,34 +639,31 @@ const PIPELINE_FORMULAS = {
           edmg = Math.round(edmg * 0.5);
         }
       }
-      const swMult = spellWardMultiplier(state);
-      if (swMult < 1) {
-        edmg = Math.round(edmg * swMult);
-        // Phase 2 Amendment 1 regression fix (18 Nov, caught by widening
-        // the parity-fixture comparison instead of omitting these fields):
-        // this write used to target the old flat combat.player.
-        // riverWardenMagicBonus field. Amendment 1 moved that field's
-        // READ site (combat.js's magic-total calc) onto the registry's
-        // modifierStateFor('set:River Warden:6').stacks, but missed this
-        // SECOND grant site -- River Warden 6pc stacks on EITHER an
-        // elemental evasion (rollToHit's own dispatch) OR a Spell-Ward-
-        // mitigated elemental hit landing (here), two independent
-        // triggers for the same stack, confirmed present in the pre-
-        // Amendment-1 code. Left writing to the orphaned flat field, this
-        // branch silently did nothing from Amendment 1 onward. Condition
-        // and clamp are unchanged -- only the write target is corrected.
-        if (hasSetTier(state, "River Warden", 6)) {
-          const st = modifierStateFor(state, "player", "set:River Warden:6", MODIFIERS["set:River Warden:6"]);
-          st.stacks = Math.min(8, st.stacks + 2);
-        }
-      }
-      if (edmg > 0 && !combat.player.stormBarrierUsed) {
-        combat.player.stormBarrierUsed = true;
-        if (hasSetTier(state, "Stormwatch", 6)) edmg = Math.round(edmg * 0.5);
-      }
-      if (edmg > 0 && !combat.player.firstHitTakenUsed) {
-        combat.player.firstHitTakenUsed = true;
-        if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
+      // 2d, increment 3c (19 Nov): Spell Ward/Storm Barrier/Stonewarden
+      // 6pc, dispatched via the registry's ability-phase entries
+      // (calculateAbilityIncomingMultiplier, js/data/modifiers.js) --
+      // same three effects, same order, byte-identical.
+      const swMult = spellWardMultiplier(state, "player");
+      edmg = calculateAbilityIncomingMultiplier(state, "player", { state, holder: state, role: "player", kind: "magic", edmg }).edmg;
+      // Phase 2 Amendment 1 regression fix (18 Nov, caught by widening
+      // the parity-fixture comparison instead of omitting these fields):
+      // this write used to target the old flat combat.player.
+      // riverWardenMagicBonus field. Amendment 1 moved that field's
+      // READ site (combat.js's magic-total calc) onto the registry's
+      // modifierStateFor('set:River Warden:6').stacks, but missed this
+      // SECOND grant site -- River Warden 6pc stacks on EITHER an
+      // elemental evasion (rollToHit's own dispatch) OR a Spell-Ward-
+      // mitigated elemental hit landing (here), two independent
+      // triggers for the same stack, confirmed present in the pre-
+      // Amendment-1 code. Kept as its own inline check (not folded into
+      // spellWardRatio's own behavior, 2d increment 3c) since it's a
+      // side effect the ratio-returning registry entry doesn't carry --
+      // same condition and clamp as always, swMult read BEFORE the
+      // dispatch above so it reflects whether Spell Ward was actually
+      // active on this hit, not anything the dispatch itself changed.
+      if (swMult < 1 && hasSetTier(state, "River Warden", 6)) {
+        const st = modifierStateFor(state, "player", "set:River Warden:6", MODIFIERS["set:River Warden:6"]);
+        st.stacks = Math.min(8, st.stacks + 2);
       }
       return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
     }
@@ -720,10 +714,11 @@ const PIPELINE_FORMULAS = {
       creature.wintersVerdictUsed = true;
       edmg = Math.round(edmg * 1.15);
     }
-    if (edmg > 0 && !combat.player.firstHitTakenUsed) {
-      combat.player.firstHitTakenUsed = true;
-      if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
-    }
+    // 2d, increment 3c (19 Nov): Stonewarden 6pc only -- Spell Ward/Storm
+    // Barrier's own `when: ctx.kind === "magic"` gate means they never
+    // fire here (kind: "physical"), matching today's exact scope (this
+    // branch never had them).
+    edmg = calculateAbilityIncomingMultiplier(state, "player", { state, holder: state, role: "player", kind: "physical", edmg }).edmg;
     if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.player.playerStatuses && combat.player.playerStatuses["sang_iag_poison"]) {
       creature.toxicPreparationUsed = true;
       edmg += Math.max(1, Math.floor(edmg * 0.05));
