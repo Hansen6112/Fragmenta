@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-18T16:02:40.024Z",
+  "generatedAt": "2026-11-19T14:23:20.278Z",
   "switch": "on",
   "n": 1000,
   "rows": "all",
@@ -1593,15 +1593,15 @@
     },
     "boss:watch_captain:asSpawned:warrior": {
       "n": 1000,
-      "winRate": 0.051,
-      "allyDeathsPerFight": 2.901,
+      "winRate": 0.052,
+      "allyDeathsPerFight": 2.9,
       "injuryTotals": {
-        "laceration": 31,
+        "laceration": 32,
         "puncture": 2
       },
-      "meanRounds": 11.184,
-      "meanPlayerHpPct": 1.6523076923076931,
-      "meanAllyHpPct": 1.2083088935796609,
+      "meanRounds": 11.249,
+      "meanPlayerHpPct": 1.6776923076923085,
+      "meanAllyHpPct": 1.208799089658092,
       "seed": 2996887108,
       "L": 27
     },
@@ -1620,15 +1620,15 @@
     },
     "boss:watch_captain:asSpawned:scout": {
       "n": 1000,
-      "winRate": 0.059,
-      "allyDeathsPerFight": 2.899,
+      "winRate": 0.058,
+      "allyDeathsPerFight": 2.897,
       "injuryTotals": {
-        "laceration": 36,
+        "laceration": 33,
         "puncture": 5
       },
-      "meanRounds": 11.448,
-      "meanPlayerHpPct": 1.817979797979797,
-      "meanAllyHpPct": 1.2362729531317131,
+      "meanRounds": 11.466,
+      "meanPlayerHpPct": 1.8922222222222205,
+      "meanAllyHpPct": 1.2631759849065065,
       "seed": 2398237627,
       "L": 27
     },
@@ -1647,15 +1647,15 @@
     },
     "boss:watch_captain:asSpawned:apothecary": {
       "n": 1000,
-      "winRate": 0.063,
-      "allyDeathsPerFight": 2.868,
+      "winRate": 0.062,
+      "allyDeathsPerFight": 2.873,
       "injuryTotals": {
-        "laceration": 41,
+        "laceration": 42,
         "puncture": 2
       },
-      "meanRounds": 11.517,
-      "meanPlayerHpPct": 1.9309681697612726,
-      "meanAllyHpPct": 1.7817095685527302,
+      "meanRounds": 11.512,
+      "meanPlayerHpPct": 1.8668766578249334,
+      "meanAllyHpPct": 1.731885316845061,
       "seed": 1701551801,
       "L": 27
     },
@@ -1674,15 +1674,15 @@
     },
     "boss:watch_captain:asSpawned:mage": {
       "n": 1000,
-      "winRate": 0.057,
-      "allyDeathsPerFight": 2.885,
+      "winRate": 0.056,
+      "allyDeathsPerFight": 2.888,
       "injuryTotals": {
-        "laceration": 37,
+        "laceration": 36,
         "puncture": 2
       },
-      "meanRounds": 10.795,
-      "meanPlayerHpPct": 1.622098129056893,
-      "meanAllyHpPct": 1.57818362816705,
+      "meanRounds": 10.76,
+      "meanPlayerHpPct": 1.5952462772050406,
+      "meanAllyHpPct": 1.5748914221134631,
       "seed": 2320908234,
       "L": 27
     },
@@ -1715,271 +1715,271 @@
     },
     "boss:free_company_captain:alone:warrior": {
       "n": 1000,
-      "winRate": 0.98,
-      "allyDeathsPerFight": 0.386,
+      "winRate": 0.978,
+      "allyDeathsPerFight": 0.401,
       "injuryTotals": {
-        "laceration": 258,
-        "puncture": 44
+        "laceration": 273,
+        "puncture": 51
       },
-      "meanRounds": 15.18,
-      "meanPlayerHpPct": 48.82352156201719,
-      "meanAllyHpPct": 54.973109825593724,
+      "meanRounds": 15.373,
+      "meanPlayerHpPct": 48.112157606405454,
+      "meanAllyHpPct": 54.48391738231552,
       "seed": 2490506457,
       "L": 25
     },
     "boss:free_company_captain:asSpawned:warrior": {
       "n": 1000,
-      "winRate": 0.881,
-      "allyDeathsPerFight": 0.821,
+      "winRate": 0.879,
+      "allyDeathsPerFight": 0.865,
       "injuryTotals": {
-        "laceration": 320,
-        "puncture": 31
+        "laceration": 366,
+        "puncture": 25
       },
-      "meanRounds": 16.75,
-      "meanPlayerHpPct": 35.18777215901112,
-      "meanAllyHpPct": 37.90566983849311,
+      "meanRounds": 17.134,
+      "meanPlayerHpPct": 34.65432645034418,
+      "meanAllyHpPct": 36.75101655269303,
       "seed": 4207876232,
       "L": 25
     },
     "boss:free_company_captain:alone:scout": {
       "n": 1000,
-      "winRate": 0.949,
-      "allyDeathsPerFight": 0.532,
+      "winRate": 0.952,
+      "allyDeathsPerFight": 0.494,
       "injuryTotals": {
-        "laceration": 362,
-        "puncture": 64
+        "laceration": 377,
+        "puncture": 65
       },
-      "meanRounds": 16.618,
-      "meanPlayerHpPct": 43.75747765640497,
-      "meanAllyHpPct": 48.84067631025584,
+      "meanRounds": 16.415,
+      "meanPlayerHpPct": 42.453455809334486,
+      "meanAllyHpPct": 50.109199423063245,
       "seed": 1698662442,
       "L": 25
     },
     "boss:free_company_captain:asSpawned:scout": {
       "n": 1000,
-      "winRate": 0.82,
-      "allyDeathsPerFight": 1.03,
+      "winRate": 0.823,
+      "allyDeathsPerFight": 1.047,
       "injuryTotals": {
-        "laceration": 433,
-        "puncture": 35
+        "laceration": 448,
+        "puncture": 29
       },
-      "meanRounds": 18.348,
-      "meanPlayerHpPct": 30.4434756703079,
-      "meanAllyHpPct": 33.4743102823721,
+      "meanRounds": 18.44,
+      "meanPlayerHpPct": 31.14723932472691,
+      "meanAllyHpPct": 32.453500141362724,
       "seed": 3351995633,
       "L": 25
     },
     "boss:free_company_captain:alone:apothecary": {
       "n": 1000,
-      "winRate": 0.969,
-      "allyDeathsPerFight": 0.451,
+      "winRate": 0.964,
+      "allyDeathsPerFight": 0.472,
       "injuryTotals": {
-        "laceration": 349,
-        "puncture": 50
+        "laceration": 357,
+        "puncture": 37
       },
-      "meanRounds": 16.336,
-      "meanPlayerHpPct": 44.91310679611628,
-      "meanAllyHpPct": 50.86925497420125,
+      "meanRounds": 16.517,
+      "meanPlayerHpPct": 44.244941236586364,
+      "meanAllyHpPct": 50.15826932251903,
       "seed": 528686965,
       "L": 25
     },
     "boss:free_company_captain:asSpawned:apothecary": {
       "n": 1000,
-      "winRate": 0.844,
-      "allyDeathsPerFight": 1.006,
+      "winRate": 0.847,
+      "allyDeathsPerFight": 1.008,
       "injuryTotals": {
-        "laceration": 425,
-        "puncture": 38
+        "laceration": 430,
+        "puncture": 33
       },
-      "meanRounds": 18.475,
-      "meanPlayerHpPct": 30.835837165729664,
-      "meanAllyHpPct": 32.13641921561349,
+      "meanRounds": 18.532,
+      "meanPlayerHpPct": 30.967245784363627,
+      "meanAllyHpPct": 31.864273969819074,
       "seed": 2090772189,
       "L": 25
     },
     "boss:free_company_captain:alone:mage": {
       "n": 1000,
-      "winRate": 0.976,
-      "allyDeathsPerFight": 0.343,
+      "winRate": 0.975,
+      "allyDeathsPerFight": 0.345,
       "injuryTotals": {
-        "laceration": 308,
+        "laceration": 316,
         "puncture": 51
       },
-      "meanRounds": 13.519,
-      "meanPlayerHpPct": 51.553989361702094,
-      "meanAllyHpPct": 57.960355262227836,
+      "meanRounds": 13.557,
+      "meanPlayerHpPct": 51.43164893617015,
+      "meanAllyHpPct": 57.76568459322866,
       "seed": 1958870623,
       "L": 25
     },
     "boss:free_company_captain:asSpawned:mage": {
       "n": 1000,
-      "winRate": 0.858,
-      "allyDeathsPerFight": 0.871,
+      "winRate": 0.87,
+      "allyDeathsPerFight": 0.853,
       "injuryTotals": {
-        "laceration": 397,
-        "puncture": 32
+        "laceration": 395,
+        "puncture": 40
       },
-      "meanRounds": 16.094,
-      "meanPlayerHpPct": 33.20595335515548,
-      "meanAllyHpPct": 38.369799242825835,
+      "meanRounds": 16.128,
+      "meanPlayerHpPct": 33.66755319148935,
+      "meanAllyHpPct": 38.69618446511876,
       "seed": 1344939331,
       "L": 25
     },
     "boss:free_company_captain:alone:bruise": {
       "n": 1000,
-      "winRate": 0.951,
-      "allyDeathsPerFight": 0.407,
+      "winRate": 0.954,
+      "allyDeathsPerFight": 0.392,
       "injuryTotals": {
-        "laceration": 336,
-        "puncture": 44
+        "laceration": 352,
+        "puncture": 45
       },
-      "meanRounds": 14.497,
-      "meanPlayerHpPct": 48.07344416027281,
-      "meanAllyHpPct": 54.54465909492507,
+      "meanRounds": 14.388,
+      "meanPlayerHpPct": 46.623401534526884,
+      "meanAllyHpPct": 54.91425364892562,
       "seed": 4241736658,
       "L": 25
     },
     "boss:free_company_captain:asSpawned:bruise": {
       "n": 1000,
-      "winRate": 0.861,
-      "allyDeathsPerFight": 0.886,
+      "winRate": 0.857,
+      "allyDeathsPerFight": 0.888,
       "injuryTotals": {
-        "laceration": 445,
-        "puncture": 28
+        "laceration": 442,
+        "puncture": 27
       },
-      "meanRounds": 16.531,
-      "meanPlayerHpPct": 32.994458653026435,
-      "meanAllyHpPct": 36.95123341196642,
+      "meanRounds": 16.613,
+      "meanPlayerHpPct": 32.11406649616369,
+      "meanAllyHpPct": 36.69823002809585,
       "seed": 1327542311,
       "L": 25
     },
     "boss:ovum_champion:alone:warrior": {
       "n": 1000,
-      "winRate": 0.009,
-      "allyDeathsPerFight": 2.988,
+      "winRate": 0.012,
+      "allyDeathsPerFight": 2.984,
       "injuryTotals": {
         "laceration": 6
       },
-      "meanRounds": 14.511,
-      "meanPlayerHpPct": 0.342278278031331,
-      "meanAllyHpPct": 0.1558037693932445,
+      "meanRounds": 14.534,
+      "meanPlayerHpPct": 0.41239669421487596,
+      "meanAllyHpPct": 0.2277725447379323,
       "seed": 2963637188,
       "L": 28
     },
     "boss:ovum_champion:asSpawned:warrior": {
       "n": 1000,
-      "winRate": 0.024,
-      "allyDeathsPerFight": 2.958,
+      "winRate": 0.019,
+      "allyDeathsPerFight": 2.969,
       "injuryTotals": {
-        "laceration": 11
+        "laceration": 10
       },
-      "meanRounds": 14.471,
-      "meanPlayerHpPct": 0.8178796102133958,
-      "meanAllyHpPct": 0.5205120392736905,
+      "meanRounds": 14.583,
+      "meanPlayerHpPct": 0.6353028247193784,
+      "meanAllyHpPct": 0.37276591135850445,
       "seed": 565169989,
       "L": 28
     },
     "boss:ovum_champion:alone:scout": {
       "n": 1000,
-      "winRate": 0.014,
-      "allyDeathsPerFight": 2.977,
+      "winRate": 0.016,
+      "allyDeathsPerFight": 2.972,
       "injuryTotals": {
-        "laceration": 12
+        "laceration": 11
       },
-      "meanRounds": 14.264,
-      "meanPlayerHpPct": 0.4153553748231967,
-      "meanAllyHpPct": 0.2647743848716647,
+      "meanRounds": 14.255,
+      "meanPlayerHpPct": 0.4608910891089108,
+      "meanAllyHpPct": 0.34522837934032335,
       "seed": 2851181566,
       "L": 28
     },
     "boss:ovum_champion:asSpawned:scout": {
       "n": 1000,
-      "winRate": 0.018,
-      "allyDeathsPerFight": 2.974,
+      "winRate": 0.021,
+      "allyDeathsPerFight": 2.969,
       "injuryTotals": {
-        "laceration": 11
+        "laceration": 14
       },
-      "meanRounds": 14.221,
-      "meanPlayerHpPct": 0.7045526874115984,
-      "meanAllyHpPct": 0.4023889009230571,
+      "meanRounds": 14.202,
+      "meanPlayerHpPct": 0.5867839462517681,
+      "meanAllyHpPct": 0.3898022093274286,
       "seed": 2984434436,
       "L": 28
     },
     "boss:ovum_champion:alone:apothecary": {
       "n": 1000,
-      "winRate": 0.015,
-      "allyDeathsPerFight": 2.973,
+      "winRate": 0.017,
+      "allyDeathsPerFight": 2.97,
       "injuryTotals": {
-        "laceration": 9
+        "laceration": 12
       },
-      "meanRounds": 14.339,
-      "meanPlayerHpPct": 0.5328749600255837,
-      "meanAllyHpPct": 0.36612829262137736,
+      "meanRounds": 14.278,
+      "meanPlayerHpPct": 0.5535497281739685,
+      "meanAllyHpPct": 0.29724057432885803,
       "seed": 2412682328,
       "L": 28
     },
     "boss:ovum_champion:asSpawned:apothecary": {
       "n": 1000,
-      "winRate": 0.019,
-      "allyDeathsPerFight": 2.974,
+      "winRate": 0.017,
+      "allyDeathsPerFight": 2.98,
       "injuryTotals": {
-        "laceration": 12
+        "laceration": 11
       },
-      "meanRounds": 14.313,
-      "meanPlayerHpPct": 0.7162615925807483,
-      "meanAllyHpPct": 0.40164885427424496,
+      "meanRounds": 14.367,
+      "meanPlayerHpPct": 0.5454109370003198,
+      "meanAllyHpPct": 0.3589631488240065,
       "seed": 4148147322,
       "L": 28
     },
     "boss:ovum_champion:alone:mage": {
       "n": 1000,
       "winRate": 0.031,
-      "allyDeathsPerFight": 2.946,
+      "allyDeathsPerFight": 2.953,
       "injuryTotals": {
-        "laceration": 19
+        "laceration": 21
       },
-      "meanRounds": 14.164,
-      "meanPlayerHpPct": 0.9976804123711346,
-      "meanAllyHpPct": 0.6358204585966262,
+      "meanRounds": 14.185,
+      "meanPlayerHpPct": 0.8090206185567008,
+      "meanAllyHpPct": 0.5864102969449257,
       "seed": 274456448,
       "L": 28
     },
     "boss:ovum_champion:asSpawned:mage": {
       "n": 1000,
-      "winRate": 0.035,
-      "allyDeathsPerFight": 2.942,
+      "winRate": 0.036,
+      "allyDeathsPerFight": 2.948,
       "injuryTotals": {
         "laceration": 21
       },
-      "meanRounds": 14.249,
-      "meanPlayerHpPct": 0.9698453608247426,
-      "meanAllyHpPct": 0.8058136337645214,
+      "meanRounds": 14.25,
+      "meanPlayerHpPct": 1.0502863688430701,
+      "meanAllyHpPct": 0.7633242128924597,
       "seed": 2331710726,
       "L": 28
     },
     "boss:ovum_champion:alone:bruise": {
       "n": 1000,
-      "winRate": 0.037,
-      "allyDeathsPerFight": 2.949,
+      "winRate": 0.036,
+      "allyDeathsPerFight": 2.946,
       "injuryTotals": {
-        "laceration": 27
+        "laceration": 24
       },
-      "meanRounds": 14.104,
-      "meanPlayerHpPct": 1.1965839126117177,
-      "meanAllyHpPct": 0.6105665285290017,
+      "meanRounds": 14.134,
+      "meanPlayerHpPct": 1.220168818272095,
+      "meanAllyHpPct": 0.630582997105965,
       "seed": 3158193790,
       "L": 28
     },
     "boss:ovum_champion:asSpawned:bruise": {
       "n": 1000,
       "winRate": 0.026,
-      "allyDeathsPerFight": 2.964,
+      "allyDeathsPerFight": 2.96,
       "injuryTotals": {
-        "laceration": 19
+        "laceration": 21
       },
-      "meanRounds": 14.098,
-      "meanPlayerHpPct": 0.8988282025819263,
-      "meanAllyHpPct": 0.5211276325654806,
+      "meanRounds": 14.12,
+      "meanPlayerHpPct": 0.7996524329692152,
+      "meanAllyHpPct": 0.5749993071236441,
       "seed": 2655234530,
       "L": 28
     },
