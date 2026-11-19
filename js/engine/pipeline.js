@@ -1646,7 +1646,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
   // foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
   // product. Armor Crack stays a separate flat subtraction, unchanged
   // (it was never part of this product).
-  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, creature, isSpell });
+  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell });
   let dmg;
   // 2d, increment 1: the 19/21-factor independent-multiplier chain below
   // (crushMult..stonesPatienceMult) now comes from the registry's own
@@ -1684,7 +1684,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     const spellDType = DAMAGE_TYPES_V2 ? (action && action.damageType && action.damageType !== "inherit" ? action.damageType : elementKeyToDamageType(activeElement)) : null;
     const spellMitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(spellDType, effDef, creature.magic) : effDef;
     const spellPower = base * multiplier;
-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: true });
+    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: true, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
     const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * outgoing.total);
     dmg = Math.max(1, Math.round(preMitigation * (1 - (creature.dmgReduction || 0)) * sangMit));
     // A3 (off by default): Avatar of Knowledge shifts the TARGET's own
@@ -1711,7 +1711,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
     const atk = stat(state, actor, "atk");
     const base = mitigate(randInt(Math.max(1, atk - 2), atk + 2), weaponMitigateDef);
     state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: false, atk, effDef });
+    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: false, atk, effDef, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
     dmg = Math.max(1, Math.round(base * outgoing.total * (1 - (creature.dmgReduction || 0)) * sangMit));
     if (DAMAGE_TYPES_V2) dmg = Math.round(dmg * dmgTagMultiplier(creature, weaponDType));
     if (state.combat.player.avatarOfCreationTurns > 0) {

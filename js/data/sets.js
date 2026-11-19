@@ -585,19 +585,26 @@ function describeSetProgress(state) {
 
 // Crushing Impact's damage multiplier: base 1.2x; Thraekor 6pc, Vanguard
 // 4pc, and Ashforged 6pc each push it higher — take the strongest active.
-function crushingImpactMultiplier(state) {
-  let m = 1.2;
-  if (hasSetTier(state, "Thraekor", 6)) m = Math.max(m, 1.35);
-  if (hasSetTier(state, "Vanguard", 4)) m = Math.max(m, 1.35);
-  if (hasSetTier(state, "Ashforged", 6)) m = Math.max(m, 1.4);
-  return m;
+// Amendment 1 gap close (19 Nov, Rule 1 as data): the Math.max chain now
+// lives as registered upgrade entries (modifiers.js, tag
+// "effect:crushing_impact") read via resolveUpgradedValue -- same numbers,
+// same "best active wins" semantics, just sourced from the registry so
+// M1 stops warning about the three set tiers. `holderRole` defaults to
+// "player" so every pre-existing call site (none pass it explicitly
+// today) is unchanged; the registry's own generalized dispatch (2d
+// Amendment 1 gap close) is the only caller that passes "ally"/"enemy".
+function crushingImpactMultiplier(state, holderRole) {
+  return resolveUpgradedValue("effect:crushing_impact", 1.2, state, holderRole || "player", "max");
 }
 
 // Executioner's HP threshold: base 30%; Drake Hunter 4pc, Vanguard 6pc,
-// and Contract Hunter 4pc all widen it to 40% — same value, just OR'd.
-function executionerThreshold(state) {
-  if (hasSetTier(state, "Drake Hunter", 4) || hasSetTier(state, "Vanguard", 6) || hasSetTier(state, "Contract Hunter", 4)) return 0.4;
-  return 0.3;
+// and Contract Hunter 4pc all widen it to 40% -- same mechanism as
+// crushingImpactMultiplier above, tag "effect:executioner.threshold" (a
+// virtual sub-value of effect:executioner -- it's the HP% gate, not the
+// 1.2x damage number itself, so it's kept as its own tag rather than
+// reusing effect:executioner's own key).
+function executionerThreshold(state, holderRole) {
+  return resolveUpgradedValue("effect:executioner.threshold", 0.3, state, holderRole || "player", "max");
 }
 
 // Trailwise's travel-encounter multiplier. Sandstrider 4pc grants the
@@ -614,12 +621,16 @@ function trailwiseMultiplier(state) {
 
 // Spell Ward's incoming-elemental-damage multiplier. Leviathan 4pc grants
 // the base effect outright; Examiner/River Warden/Stormwatch 4pc push it
-// from 0.9 to 0.8.
-function spellWardMultiplier(state) {
+// from 0.9 to 0.8 -- lower is stronger (more of the hit mitigated), so
+// the upgrade resolution direction is "min", not "max" (see
+// crushingImpactMultiplier's own note on the mechanism; tag
+// "effect:spell_ward"). This is calculateDamage.incoming's own future
+// home (2d increment 3) -- staged as registry data now per Rule 1, ahead
+// of that hook's own combinator existing.
+function spellWardMultiplier(state, holderRole) {
   const hasBase = hasEffect(state, "spell_ward") || hasSetTier(state, "Leviathan", 4);
   if (!hasBase) return 1;
-  if (hasSetTier(state, "Examiner", 4) || hasSetTier(state, "River Warden", 4) || hasSetTier(state, "Stormwatch", 4)) return 0.8;
-  return 0.9;
+  return resolveUpgradedValue("effect:spell_ward", 0.9, state, holderRole || "player", "min");
 }
 
 // Tactical Memory's proc chance: base 20% (only relevant if the item
@@ -637,26 +648,32 @@ function conduitEaseChance(state) {
 }
 
 // Elemental Focus's damage multiplier: base 1.08x; Novitiate/Kabal/
-// Pre-Kabal 4pc each push it higher — take the strongest active.
-function elementalFocusMultiplier(state) {
-  let m = 1.08;
-  if (hasSetTier(state, "Novitiate", 4)) m = Math.max(m, 1.12);
-  if (hasSetTier(state, "Kabal", 4)) m = Math.max(m, 1.15);
-  if (hasSetTier(state, "Pre-Kabal", 4)) m = Math.max(m, 1.2);
-  return m;
+// Pre-Kabal 4pc each push it higher — take the strongest active. Same
+// registry-backed mechanism as crushingImpactMultiplier (tag
+// "effect:elemental_focus") -- elemental_focus itself has no base
+// MODIFIERS entry yet (it's dispatched directly by its own call site,
+// pipeline.js, not through calculateDamage.outgoing -- the element-
+// ability path's own migration is still pending), but its three
+// upgrades are staged as data now per Rule 1.
+function elementalFocusMultiplier(state, holderRole) {
+  return resolveUpgradedValue("effect:elemental_focus", 1.08, state, holderRole || "player", "max");
 }
 
 // Surging Conduit's per-fight charge count: base 1; Conduit Master 6pc
 // and Fragmenta 4pc both raise it to 2 (not 3, if somehow both active).
-function surgingConduitCharges(state) {
-  return (hasSetTier(state, "Conduit Master", 6) || hasSetTier(state, "Fragmenta", 4)) ? 2 : 1;
+// Tag "effect:surging_conduit_charges" -- a charge COUNT, not a
+// multiplier, but the same "best active upgrade wins" semantics apply.
+function surgingConduitCharges(state, holderRole) {
+  return resolveUpgradedValue("effect:surging_conduit_charges", 1, state, holderRole || "player", "max");
 }
 
 // Ambush's damage multiplier: base 1.4x, 1.55x with the ambush_mastery
-// item effect, 1.70x with Scout Corps 6pc (which wins outright).
-function ambushMultiplier(state) {
-  if (hasSetTier(state, "Scout Corps", 6)) return 1.7;
-  return hasEffect(state, "ambush_mastery") ? 1.55 : 1.4;
+// item effect, 1.70x with Scout Corps 6pc (which wins outright -- still
+// true under Math.max since 1.7 beats both 1.4 and 1.55). Tag
+// "effect:ambush".
+function ambushMultiplier(state, holderRole) {
+  const base = hasEffect(state, "ambush_mastery") ? 1.55 : 1.4;
+  return resolveUpgradedValue("effect:ambush", base, state, holderRole || "player", "max");
 }
 
 // Armor Crack's flat Defense ignored: base 2 (only relevant with the item

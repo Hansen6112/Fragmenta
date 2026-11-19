@@ -77,6 +77,7 @@ const LEDGERS = [
   "fragmenta_6pc_tag_override_ledger.js",
   "phase2_step2d_outgoing_ledger.js",
   "phase2_step2d_defenseignore_ledger.js",
+  "phase2_step2d_amendment1_gap_close_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {

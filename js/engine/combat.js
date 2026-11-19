@@ -1407,26 +1407,17 @@ function applyShieldWall(state, dmg) {
   return Math.round(dmg * 0.9);
 }
 
-// Executioner (finisher damage vs. a badly wounded target) is checked
-// once here since it applies uniformly to physical and magic damage
-// alike — everything else in rollPlayerDamage is physical-only.
-// executionerThreshold (data/sets.js) resolves which sets widen it.
-function executionerMultiplier(state) {
-  if (!hasEffect(state, "executioner")) return 1;
-  const combat = state.combat;
-  return activeEnemySlot(combat).hp <= activeEnemySlot(combat).maxHp * executionerThreshold(state) ? 1.2 : 1;
-}
-
-// Generalized Executioner, for an enemy or ally attacker: any ATTACKER
-// wearing it gets 1.2x vs a DEFENDER at or below 30% of its own max
-// Health. A non-player attacker has no equivalent to the player's own
-// set-tier threshold-widening (Drake Hunter 6pc etc. — a player-only
-// Regalia system, out of scope here), so this always uses the flat 30%
-// base rather than reading executionerThreshold.
-function executionerMultiplierFor(attacker, defenderHp, defenderMaxHp) {
-  if (!hasEffect(attacker, "executioner")) return 1;
-  return defenderHp <= defenderMaxHp * 0.3 ? 1.2 : 1;
-}
+// Executioner (finisher damage vs. a badly wounded target) used to be
+// two separate functions here -- executionerMultiplier(state) (player
+// only, threshold-widening sets folded in) and the generalized
+// executionerMultiplierFor(attacker, defenderHp, defenderMaxHp) (any
+// attacker, flat 30%, no widening -- actions.js's ally/enemy damage
+// formulas). Amendment 1 gap close (19 Nov) unified both into the
+// registry's own "effect:executioner" entry (modifiers.js), dispatched
+// by calculateOutgoingMultiplier for every attacker role -- see that
+// entry's own notes for why the unification is byte-identical in both
+// directions. executionerThreshold (data/sets.js) still resolves which
+// sets widen the threshold, for the player role only.
 
 // Dragonslayer (Drake Hunter 6pc): a final multiplier against creatures
 // tagged draven (Drake, Dragon), "applied after all other damage
@@ -2039,7 +2030,7 @@ function rollPlayerDamage(state, creature, activeElement) {
   // foreseenDefMult * commandingDefMult * precisionFormulaMultiplier(state)
   // product. Armor Crack stays a separate flat subtraction, unchanged
   // (it was never part of this product).
-  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, creature, isSpell: !!isSpell });
+  const defIgnore = calculateDefenseIgnoreMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: !!isSpell });
   let dmg;
   // 2d, increment 1: the 19/21-factor independent-multiplier chain below
   // (crushMult..stonesPatienceMult) now comes from the registry's own
@@ -2102,7 +2093,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     // now the spell-side armor-penetration tool rather than a rounding
     // error.
     const spellPower = base * multiplier;
-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: true });
+    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: true, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
     const preMitigation = Math.round(mitigate(spellPower, spellMitigateDef) * matchup * outgoing.total);
     // dmgReduction (Enemy Ability Engine — Guarded Stance/
     // Protective Cover/Last Stand, Gate 5B.8 skills codex): a flat final
@@ -2142,7 +2133,7 @@ function rollPlayerDamage(state, creature, activeElement) {
     state.combat.player.weaponAttackCounter = (state.combat.player.weaponAttackCounter || 0) + 1;
     // dmgReduction: see the magic branch above for why this is
     // the last step, after every other multiplier.
-    outgoing = calculateOutgoingMultiplier(state, "player", { state, creature, isSpell: false, atk, effDef });
+    outgoing = calculateOutgoingMultiplier(state, "player", { state, holder: state, role: "player", creature, isSpell: false, atk, effDef, defenderHp: activeEnemySlot(state.combat).hp, defenderMaxHp: activeEnemySlot(state.combat).maxHp });
     dmg = Math.max(1, Math.round(base * outgoing.total * (1 - (creature.dmgReduction || 0)) * sangMit));
     // Sure Foundation (DRA-E05): this physical hit just landed (dmg is
     // always >= 1 by this point — a miss never reaches rollPlayerDamage

@@ -112,9 +112,8 @@ record("P2-2D-COMBINATOR-DELTA-01", "A conditional/stacking/burst entry's resolv
   ctx.window.hasEffect = (holder, id) => (id === "executioner" ? true : origHasEffect(holder, id));
   const entry = MODIFIERS["effect:executioner"];
   const creature = fakeCreature();
-  s.combat.enemies = [{ hp: 1, maxHp: 100 }]; // 1% HP, inside the 30% default threshold
   let v;
-  try { v = entry.value({ state: s, creature }); }
+  try { v = entry.value({ state: s, holder: s, role: "player", creature, defenderHp: 1, defenderMaxHp: 100 }); } // 1% HP, inside the 30% default threshold
   finally { ctx.window.hasEffect = origHasEffect; }
   return { pass: Math.abs(v - 0.2) < 1e-9, v };
 });
@@ -130,7 +129,7 @@ record("P2-2D-COMBINATOR-TOTAL-01", "calculateOutgoingMultiplier with nothing ac
   const creature = fakeCreature();
   creature.hp = 100; creature.maxHp = 100;
   s.combat.enemies = [{ hp: 100, maxHp: 100 }];
-  const out = calculateOutgoingMultiplier(s, "player", { state: s, creature, isSpell: false, atk: 10, effDef: 5 });
+  const out = calculateOutgoingMultiplier(s, "player", { state: s, holder: s, role: "player", creature, isSpell: false, atk: 10, effDef: 5 });
   const onlyCrit = Object.keys(out.byKey).length === 1 && out.byKey[CRIT_MODIFIER_KEY] === 1;
   return { pass: out.total === 1 && onlyCrit, out };
 });
@@ -140,7 +139,7 @@ record("P2-2D-WEAPON-ONLY-GATING-01", "crushing_impact/echoing_arsenal/master_cr
   const s = makeWarrior();
   const creature = fakeCreature();
   s.combat.enemies = [{ hp: 100, maxHp: 100 }];
-  const out = calculateOutgoingMultiplier(s, "player", { state: s, creature, isSpell: true, atk: 10, effDef: 999 });
+  const out = calculateOutgoingMultiplier(s, "player", { state: s, holder: s, role: "player", creature, isSpell: true, atk: 10, effDef: 999 });
   const leaked = ["effect:crushing_impact", "effect:echoing_arsenal", "effect:master_craftsman"].filter((k) => k in out.byKey);
   return { pass: leaked.length === 0, leaked, byKey: out.byKey };
 });
@@ -154,7 +153,7 @@ record("P2-2D-SPELL-ONLY-GATING-01", "arcane_overflow never fires when isSpell i
   const origHasEffect = ctx.window.hasEffect;
   ctx.window.hasEffect = (holder, id) => (id === "arcane_overflow" ? true : origHasEffect(holder, id));
   let out;
-  try { out = calculateOutgoingMultiplier(s, "player", { state: s, creature, isSpell: false, atk: 10, effDef: 5 }); }
+  try { out = calculateOutgoingMultiplier(s, "player", { state: s, holder: s, role: "player", creature, isSpell: false, atk: 10, effDef: 5 }); }
   finally { ctx.window.hasEffect = origHasEffect; }
   return { pass: !("effect:arcane_overflow" in out.byKey), byKey: out.byKey };
 });
@@ -165,7 +164,7 @@ record("P2-2D-CRIT-KEY-BREAKDOWN-01", "A guaranteed crit (unlikelyOutcomeGuarant
   s.combat.player.unlikelyOutcomeGuaranteedCrit = true;
   const creature = fakeCreature();
   s.combat.enemies = [{ hp: 100, maxHp: 100 }];
-  const out = calculateOutgoingMultiplier(s, "player", { state: s, creature, isSpell: false, atk: 10, effDef: 5 });
+  const out = calculateOutgoingMultiplier(s, "player", { state: s, holder: s, role: "player", creature, isSpell: false, atk: 10, effDef: 5 });
   return {
     pass: out.byKey[CRIT_MODIFIER_KEY] === 1.5 && s.combat.player.unlikelyOutcomeGuaranteedCrit === false,
     byKey: out.byKey, consumedFlag: s.combat.player.unlikelyOutcomeGuaranteedCrit,

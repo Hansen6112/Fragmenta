@@ -85,21 +85,21 @@ record("P2-2D-DI-REGISTRY-SHAPE-01", "All 4 increment-2 entries exist, on calcul
 
 record("P2-2D-DI-NOTHING-ACTIVE-01", "Nothing active: total is 1", () => {
   const s = makeWarrior();
-  const out = calculateDefenseIgnoreMultiplier(s, "player", { state: s, creature: s.combat.enemies[0], isSpell: false });
+  const out = calculateDefenseIgnoreMultiplier(s, "player", { state: s, holder: s, role: "player", creature: s.combat.enemies[0], isSpell: false });
   return { pass: out.total === 1, out };
 });
 
 record("P2-2D-DI-FORESEEN-STRIKE-01", "Foreseen Strike active on the 3rd action: factor 0.5, both branches", () => {
   const s = makeWarrior();
   s.combat.player.actionCounter = 3;
-  const out = withHasEffect(["foreseen_strike"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, creature: s.combat.enemies[0], isSpell: false }));
+  const out = withHasEffect(["foreseen_strike"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, holder: s, role: "player", creature: s.combat.enemies[0], isSpell: false }));
   return { pass: Math.abs(out.total - 0.5) < 1e-9, out };
 });
 
 record("P2-2D-DI-PRECISION-FORMULA-SPELL-ONLY-01", "Precision Formula only applies when isSpell: true (0.7 factor); never when isSpell: false", () => {
   const s = makeWarrior();
-  const spellOut = withHasEffect(["precision_formula"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, creature: s.combat.enemies[0], isSpell: true }));
-  const weaponOut = withHasEffect(["precision_formula"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, creature: s.combat.enemies[0], isSpell: false }));
+  const spellOut = withHasEffect(["precision_formula"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, holder: s, role: "player", creature: s.combat.enemies[0], isSpell: true }));
+  const weaponOut = withHasEffect(["precision_formula"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, holder: s, role: "player", creature: s.combat.enemies[0], isSpell: false }));
   return {
     pass: Math.abs(spellOut.total - 0.7) < 1e-9 && weaponOut.total === 1,
     spellOut, weaponOut,
@@ -108,7 +108,7 @@ record("P2-2D-DI-PRECISION-FORMULA-SPELL-ONLY-01", "Precision Formula only appli
 
 record("P2-2D-DI-ARMOR-CRACK-EXCLUDED-01", "Armor Crack (flatAmount) never contributes to the product, even when active", () => {
   const s = makeWarrior();
-  const out = withHasEffect(["armor_crack"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, creature: s.combat.enemies[0], isSpell: false }));
+  const out = withHasEffect(["armor_crack"], () => calculateDefenseIgnoreMultiplier(s, "player", { state: s, holder: s, role: "player", creature: s.combat.enemies[0], isSpell: false }));
   return { pass: out.total === 1 && !("effect:armor_crack" in out.byKey), out };
 });
 
@@ -118,7 +118,7 @@ record("P2-2D-DI-COMMANDING-PRESENCE-STACKS-01", "Commanding Presence on the 3rd
   const orig = ctx.window.hasSetTier;
   ctx.window.hasSetTier = (holder, setName, tier) => (setName === "Regalia of the Crimson Vanguard" && tier === 4 ? true : orig(holder, setName, tier));
   let out;
-  try { out = calculateDefenseIgnoreMultiplier(s, "player", { state: s, creature: s.combat.enemies[0], isSpell: false }); }
+  try { out = calculateDefenseIgnoreMultiplier(s, "player", { state: s, holder: s, role: "player", creature: s.combat.enemies[0], isSpell: false }); }
   finally { ctx.window.hasSetTier = orig; }
   return { pass: out.total === 0, out };
 });

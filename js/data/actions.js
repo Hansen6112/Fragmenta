@@ -311,7 +311,11 @@ const PIPELINE_FORMULAS = {
     // pipeline.js's own step 1d header. The actual zero + Sure Foundation
     // re-grant happens in applyAndReactAllyActor (step 5).
     const bankedDef = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0) + (creature.sureFoundationBonusDef || 0);
-    const effectiveDef = stat(state, target, "def") + bankedDef;
+    // Amendment 1 gap close (19 Nov): dispatched for the ally the same
+    // way the player's own effDef computation is -- no entry's holders
+    // include "ally" today, so .total is always 1, a no-op multiply.
+    const allyDefIgnore = calculateDefenseIgnoreMultiplier(ally, "ally", { holder: ally, role: "ally", creature, isSpell: false }).total;
+    const effectiveDef = (stat(state, target, "def") + bankedDef) * allyDefIgnore;
     const sangMit = sangCuDefenderMitigation(creature);
     // Damage Types v2 (off by default) — same mechanism as enemyCore's
     // own branches: resist-by-family defense value, then the enemy
@@ -320,7 +324,13 @@ const PIPELINE_FORMULAS = {
     const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, effectiveDef, creature.magic) : effectiveDef;
     let edmg = Math.max(1, Math.round(mitigate(randInt(Math.round(allyAtk * 0.85), Math.round(allyAtk * 1.15)), mitigateDef) * reduction * sangMit));
     edmg = applyOpeningReachForActor(ally, edmg);
-    edmg = Math.round(edmg * executionerMultiplierFor(ally, enemySlot.hp, enemySlot.maxHp));
+    // Amendment 1 gap close (19 Nov): the ally's own outgoing bucket,
+    // dispatched exactly like the player's (calculateOutgoingMultiplier,
+    // js/data/modifiers.js) -- today only effect:executioner's own
+    // holders include "ally", so .total is 1 or 1.2 here, byte-identical
+    // to the old executionerMultiplierFor(ally, ...) call it replaces.
+    const allyOutgoing = calculateOutgoingMultiplier(ally, "ally", { holder: ally, role: "ally", creature, defenderHp: enemySlot.hp, defenderMaxHp: enemySlot.maxHp, isSpell: false });
+    edmg = Math.round(edmg * allyOutgoing.total);
     if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(creature, dType));
     return { edmg, extra: {} };
   },
@@ -473,7 +483,12 @@ const PIPELINE_FORMULAS = {
       const bankedDef = (ally.braceBonusDef || 0) + (ally.guardedStrikeBonusDef || 0);
       ally.braceBonusDef = 0;
       ally.guardedStrikeBonusDef = 0;
-      const effectiveDef = stat(state, target, "def") + bankedDef;
+      // Amendment 1 gap close (19 Nov): the attacking enemy's own
+      // defenseIgnore bucket, dispatched the same way the player's own
+      // effDef computation is. No entry's holders include "enemy" today,
+      // so .total is always 1, a no-op multiply.
+      const enemyDefIgnore = calculateDefenseIgnoreMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: ally, isSpell: false }).total;
+      const effectiveDef = (stat(state, target, "def") + bankedDef) * enemyDefIgnore;
 
       // U1 (off by default): an enemy mage's hit on an ally uses the
       // same element/magic formula the player branch below does,
@@ -492,7 +507,8 @@ const PIPELINE_FORMULAS = {
         // mitigateDef === def -- no behavior change.
         const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
         const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, ally.magic) : def;
-        let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, ally.health, ally.maxHealth)));
+        const enemyOutgoingMagic = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: ally, defenderHp: ally.health, defenderMaxHp: ally.maxHealth, isSpell: true });
+        let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * enemyOutgoingMagic.total));
         if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, dType));
         if (COMBAT_UNIFY.U2 && edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
           creature.unquenchedFocusUsed = true;
@@ -530,7 +546,8 @@ const PIPELINE_FORMULAS = {
         ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(rawAtk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
         : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, rawAtk - 1), rawAtk + 1), flatMitigateDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
       if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
-      edmg = Math.round(edmg * executionerMultiplierFor(creature, ally.health, ally.maxHealth));
+      const enemyOutgoingFlat = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: ally, defenderHp: ally.health, defenderMaxHp: ally.maxHealth, isSpell: false });
+      edmg = Math.round(edmg * enemyOutgoingFlat.total);
       if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(ally, flatDType));
       if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
       if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);
@@ -592,12 +609,17 @@ const PIPELINE_FORMULAS = {
       const matchup = DAMAGE_TYPES_V2 ? 1 : elementMultiplier(null, creature.element, state.flags.isMage ? state.primaryElement : null);
       const base = randInt(creature.magic - 2, creature.magic + 2);
       const coldBonus = creature.element === "water" && hasColdproof(state) ? 2 : 0;
-      const def = effectivePlayerDef(state) + bonusDef + coldBonus;
+      // Amendment 1 gap close (19 Nov): the attacking enemy's own
+      // defenseIgnore bucket (no-op today, same reasoning as the
+      // ally-target branch above).
+      const enemyDefIgnoreMagic = calculateDefenseIgnoreMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: state, isSpell: true }).total;
+      const def = (effectivePlayerDef(state) + bonusDef + coldBonus) * enemyDefIgnoreMagic;
       // Damage Types v2 (off by default) — see the ally-target magic
       // branch's own comment, above, for the full reasoning.
       const dType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
       const mitigateDef = DAMAGE_TYPES_V2 ? resistingDefenseValue(dType, def, state.magic) : def;
-      let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * executionerMultiplierFor(creature, state.health, state.maxHealth)));
+      const enemyOutgoingMagicVsPlayer = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: state, defenderHp: state.health, defenderMaxHp: state.maxHealth, isSpell: true });
+      let edmg = Math.max(1, Math.round(mitigate(Math.max(1, base), mitigateDef) * matchup * enemyOutgoingMagicVsPlayer.total));
       if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, dType));
       if (edmg > 0 && hasEffect(creature, "dra_e07_unquenched_focus") && !creature.unquenchedFocusUsed) {
         creature.unquenchedFocusUsed = true;
@@ -643,7 +665,11 @@ const PIPELINE_FORMULAS = {
     }
 
     const atk = effectiveEnemyAtk(state, creature);
-    const playerDef = effectivePlayerDef(state) + bonusDef;
+    // Amendment 1 gap close (19 Nov): the attacking enemy's own
+    // defenseIgnore bucket (no-op today, same reasoning as the
+    // ally-target branch above).
+    const enemyDefIgnoreFlat = calculateDefenseIgnoreMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: state, isSpell: false }).total;
+    const playerDef = (effectivePlayerDef(state) + bonusDef) * enemyDefIgnoreFlat;
     // Damage Types v2 (off by default) — see the ally-target flat
     // branch's own comment, above, for the full reasoning.
     const flatDType = DAMAGE_TYPES_V2 ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType) : null;
@@ -652,7 +678,8 @@ const PIPELINE_FORMULAS = {
       ? (abilityCtx.dmgMult > 0 ? Math.max(1, Math.round(mitigate(abilityPower(atk, abilityCtx.dmgMult), flatMitigateDef))) : 0)
       : (creature.atk !== 0 ? Math.max(1, Math.round(mitigate(randInt(Math.max(1, atk - 1), atk + (atkSpread || 2)), flatMitigateDef) * (basicFirstBonus ? basicFirstBonus.dmgMultBonus : 1))) : 0);
     if (!abilityCtx) edmg = applyOpeningReachForActor(creature, edmg);
-    edmg = Math.round(edmg * executionerMultiplierFor(creature, state.health, state.maxHealth));
+    const enemyOutgoingFlatVsPlayer = calculateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", creature: state, defenderHp: state.health, defenderMaxHp: state.maxHealth, isSpell: false });
+    edmg = Math.round(edmg * enemyOutgoingFlatVsPlayer.total);
     if (DAMAGE_TYPES_V2) edmg = Math.round(edmg * dmgTagMultiplier(state, flatDType));
     if (hitInfo.bankedPrepDmgMultBonus > 0) edmg = Math.round(edmg * hitInfo.bankedPrepDmgMultBonus);
     if (hasEffect(creature, "dra_e01_ice_forged_edge")) edmg = Math.round(edmg * 1.10);

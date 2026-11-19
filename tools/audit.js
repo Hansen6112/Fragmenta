@@ -799,8 +799,13 @@ for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
   if (!Array.isArray(entry.holders) || !entry.holders.length) warn("modifiers", `MODIFIERS["${key}"] has no holders (M3)`);
   // calculateDamage.tags is exempt: Bucket Review Rule 3 (18 Nov) puts
   // tag/synergy mechanics outside the buckets entirely, same as an
-  // action's own dmgMult -- see set:Fragmenta:6's own notes.
-  if (entry.hook && entry.hook.startsWith("calculateDamage.") && entry.hook !== "calculateDamage.tags" && !entry.bucket) {
+  // action's own dmgMult -- see set:Fragmenta:6's own notes. An `upgrades`
+  // entry (Rule 1, Amendment 1 gap close, 19 Nov) is exempt too -- it
+  // never contributes its own factor to a bucket sum (both
+  // calculateOutgoingMultiplier and calculateDefenseIgnoreMultiplier
+  // already skip it; resolveUpgradedValue is what actually reads it), so
+  // `bucket: null` on one of these is correct, not an oversight.
+  if (entry.hook && entry.hook.startsWith("calculateDamage.") && entry.hook !== "calculateDamage.tags" && !entry.bucket && !entry.upgrades) {
     warn("modifiers", `MODIFIERS["${key}"] is a damage/defense multiplier with no bucket (M3)`);
   }
   // Amendment 1 (18 Nov): an entry with neither `behavior` nor a non-

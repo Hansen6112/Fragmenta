@@ -306,6 +306,33 @@ function calculateDefenseIgnoreMultiplier(holder, holderRole, ctx) {
   return { total, byKey };
 }
 
+// ---- Rule 1 as data (Amendment 1 gap close, 19 Nov) ----
+// A set tier that only RAISES another entry's own number (never adds a
+// second, independent bonus) is an `upgrades` entry: its `upgrades`
+// field names the tag it upgrades (by convention the base entry's own
+// MODIFIERS key, e.g. "effect:crushing_impact" -- or, for a value that
+// isn't itself a bucket-contributing number, like Executioner's HP%
+// threshold, a virtual dotted tag with no entry of its own,
+// "effect:executioner.threshold"). resolveUpgradedValue is the one place
+// that folds every active upgrade for a tag into `base` -- Math.max for
+// a multiplier/charge-count (bigger is stronger), Math.min for spell_ward
+// (smaller is stronger: it's how much of the hit gets THROUGH). Never
+// additive -- that's the whole point of Rule 1. `holders` on an upgrade
+// entry is real and checked here (not a leftover) -- a set tier that's
+// still player-only today (every one registered so far) simply won't
+// match for an "ally"/"enemy" holderRole, same as any other entry.
+function resolveUpgradedValue(tag, base, holder, holderRole, direction) {
+  let best = base;
+  for (const entry of Object.values(MODIFIERS)) {
+    if (entry.upgrades !== tag) continue;
+    if (!entry.holders.includes(holderRole) && !(holder && entry.holders.includes(holder.id))) continue;
+    if (!sourceActiveOn(holder, entry.source)) continue;
+    const v = typeof entry.value === "function" ? entry.value({ holder, role: holderRole }) : entry.value;
+    best = direction === "min" ? Math.min(best, v) : Math.max(best, v);
+  }
+  return best;
+}
+
 // Deprecated (Amendment 1): a presence-only check with a hard-coded
 // role, the shape 2b/2c's first pass used before this amendment. Kept
 // defined (nothing calls it as of this rework) but superseded by
@@ -575,23 +602,27 @@ registerModifier("set:Fragmenta:6", {
 registerModifier("effect:crushing_impact", {
   source: { kind: "effect", id: "crushing_impact" },
   hook: "calculateDamage.outgoing", order: 5, bucket: "conditional",
-  value: (ctx) => crushingImpactMultiplier(ctx.state) - 1, behavior: null,
+  value: (ctx) => crushingImpactMultiplier(ctx.holder, ctx.role) - 1, behavior: null,
   when: (ctx) => !ctx.isSpell && ctx.effDef > ctx.atk, holders: ["player"], state: null,
-  notes: "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(state) unchanged -- that shared resolver already takes the best of the base 1.2x and Thraekor:6/Vanguard:4/Ashforged:6's own upgrades via Math.max, so those three set tiers don't need their own entries for this to stay correct; they still owe M1 a registry entry of their own, deferred to a later increment.",
+  notes: "Crushing Impact. Weapon-branch only (when: !isSpell && effDef > atk, today's exact gate). Value delegates to crushingImpactMultiplier(holder, role) -- Amendment 1 gap close (19 Nov): reads ctx.holder/ctx.role, not ctx.state, so a future widening of `holders` resolves correctly for whichever holder actually wears the gear; for today's player-only holders this is ctx.state under a different name, byte-identical. Thraekor:6/Vanguard:4/Ashforged:6's own upgrades are now registered entries (Rule 1, tag effect:crushing_impact, below) instead of an inline Math.max -- M1 no longer warns about them.",
 });
 registerModifier("effect:executioner", {
   source: { kind: "effect", id: "executioner" },
   hook: "calculateDamage.outgoing", order: 10, bucket: "conditional",
-  value: (ctx) => executionerMultiplier(ctx.state) - 1, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Executioner. Value delegates to executionerMultiplier(state) unchanged, which itself reads executionerThreshold(state) (Drake Hunter:4/Vanguard:6/Contract Hunter:4's own upgrades, already folded in there) -- those three set tiers still owe M1 a registry entry of their own, deferred.",
+  value: (ctx) => {
+    if (!hasEffect(ctx.holder, "executioner")) return 0;
+    const threshold = executionerThreshold(ctx.holder, ctx.role);
+    return ctx.defenderHp <= ctx.defenderMaxHp * threshold ? 0.2 : 0;
+  },
+  behavior: null, when: null, holders: ["player", "ally", "enemy"], state: null,
+  notes: "Executioner. Amendment 1 gap close (19 Nov): unifies the player-only executionerMultiplier(state) (combat.js) and the already-generalized-but-separate executionerMultiplierFor(attacker, defenderHp, defenderMaxHp) (the same file -- used by the ally/enemy attack-roll formulas in actions.js, flat 30% threshold, no set-widening) into ONE entry, dispatched by calculateOutgoingMultiplier for every attacker role. `holders` widens to ally/enemy here specifically (not R1 -- this is correcting the entry to match what the code already did via that second function, not a new behavior) because executionerMultiplierFor already granted this to any attacker wearing the effect; executionerThreshold(holder, role)'s own upgrade entries (Drake Hunter:4/Vanguard:6/Contract Hunter:4) stay holders: ['player'], so an ally/enemy attacker still gets exactly the old flat 30% -- byte-identical in both directions. ctx.defenderHp/defenderMaxHp are populated generically by every call site (today: activeEnemySlot(combat) for the player, the explicit hp/maxHp or health/maxHealth args the old executionerMultiplierFor took, for ally/enemy).",
 });
 registerModifier("set:Drake Hunter:6", {
   source: { kind: "set", id: "Drake Hunter:6", setName: "Drake Hunter", tier: 6 },
   hook: "calculateDamage.outgoing", order: 20, bucket: "conditional",
-  value: (ctx) => dragonslayerMultiplier(ctx.state, ctx.creature) - 1, behavior: null,
+  value: (ctx) => dragonslayerMultiplier(ctx.holder, ctx.creature) - 1, behavior: null,
   when: null, holders: ["player"], state: null,
-  notes: "Dragonslayer. Value delegates to dragonslayerMultiplier(state, creature) unchanged.",
+  notes: "Dragonslayer. Value delegates to dragonslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close); byte-identical for today's player-only holders.",
 });
 registerModifier("set:Bonecaller:6", {
   source: { kind: "set", id: "Bonecaller:6", setName: "Bonecaller", tier: 6 },
@@ -603,9 +634,9 @@ registerModifier("set:Bonecaller:6", {
 registerModifier("effect:kingslayer", {
   source: { kind: "effect", id: "kingslayer" },
   hook: "calculateDamage.outgoing", order: 40, bucket: "conditional",
-  value: (ctx) => kingslayerMultiplier(ctx.state, ctx.creature) - 1, behavior: null,
+  value: (ctx) => kingslayerMultiplier(ctx.holder, ctx.creature) - 1, behavior: null,
   when: null, holders: ["player"], state: null,
-  notes: "Kingslayer. Value delegates to kingslayerMultiplier(state, creature) unchanged (Master of Arms' own doubling stays folded inside it).",
+  notes: "Kingslayer. Value delegates to kingslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close; Master of Arms' own doubling stays folded inside it, also holder-generic). Byte-identical for today's player-only holders.",
 });
 registerModifier("effect:hunters_instinct", {
   source: { kind: "effect", id: "hunters_instinct" },
@@ -645,9 +676,9 @@ registerModifier("effect:echoing_arsenal", {
 registerModifier("effect:arcane_overflow", {
   source: { kind: "effect", id: "arcane_overflow" },
   hook: "calculateDamage.outgoing", order: 90, bucket: "burst",
-  value: (ctx) => arcaneOverflowMultiplier(ctx.state) - 1, behavior: null,
+  value: (ctx) => arcaneOverflowMultiplier(ctx.holder) - 1, behavior: null,
   when: (ctx) => !!ctx.isSpell, holders: ["player"], state: null,
-  notes: "Arcane Overflow. Spell-branch only (when: isSpell, today's exact gate -- arcaneOverflowMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own multiply chain).",
+  notes: "Arcane Overflow. Spell-branch only (when: isSpell, today's exact gate -- arcaneOverflowMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own multiply chain). Reads ctx.holder, not ctx.state (Amendment 1 gap close) -- byte-identical for today's player-only holders.",
 });
 registerModifier("always:crit", {
   source: { kind: "always" },
@@ -750,14 +781,132 @@ registerModifier("set:Regalia of the Crimson Vanguard:4", {
 registerModifier("effect:precision_formula", {
   source: { kind: "effect", id: "precision_formula" },
   hook: "calculateDamage.defenseIgnore", order: 30, bucket: "defenseIgnore",
-  value: (ctx) => 1 - precisionFormulaMultiplier(ctx.state), behavior: null,
+  value: (ctx) => 1 - precisionFormulaMultiplier(ctx.holder), behavior: null,
   when: (ctx) => !!ctx.isSpell, holders: ["player"], state: null,
-  notes: "Precision Formula. Spell-branch only (when: isSpell, today's exact gate -- precisionFormulaMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own effDef product). Value delegates to precisionFormulaMultiplier(state) unchanged (30% Defense ignore).",
+  notes: "Precision Formula. Spell-branch only (when: isSpell, today's exact gate -- precisionFormulaMultiplier itself has no isSpell check; today's code reproduces this by simply never including it in the weapon branch's own effDef product). Value delegates to precisionFormulaMultiplier(holder) -- reads ctx.holder, not ctx.state (Amendment 1 gap close), 30% Defense ignore, byte-identical for today's player-only holders.",
 });
 registerModifier("effect:armor_crack", {
   source: { kind: "effect", id: "armor_crack" },
   hook: "calculateDamage.defenseIgnore", order: 40, bucket: "defenseIgnore",
-  value: (ctx) => armorCrackAmount(ctx.state), behavior: null, flatAmount: true,
+  value: (ctx) => armorCrackAmount(ctx.holder), behavior: null, flatAmount: true,
   when: (ctx) => !ctx.isSpell, holders: ["player"], state: null,
-  notes: "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade, already folded into armorCrackAmount's own Math.max logic), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Siege Corps 4pc still owes M1 a registry entry of its own (Rule 1's `upgrades`), deferred.",
+  notes: "Armor Crack. flatAmount: true -- this is a flat Defense SUBTRACTION (2, or 4 with Siege Corps 4pc's own upgrade, already folded into armorCrackAmount's own Math.max logic), never a percentage, so it's excluded from calculateDefenseIgnoreMultiplier's product entirely; the call site still subtracts armorCrackAmount(state) directly, unchanged, before any percentage multiplier applies -- exactly today's order. Weapon-branch only (when: !isSpell, today's exact gate). Reads ctx.holder, not ctx.state (Amendment 1 gap close). Siege Corps 4pc still owes M1 a registry entry of its own (Rule 1's `upgrades`), deferred -- not in Tyler's 19 Nov list.",
+});
+
+// ---- Amendment 1 gap close (19 Nov): Rule 1 upgrade entries ----
+// Every entry below has `upgrades` set, so it never contributes its own
+// factor to a bucket sum (calculateOutgoingMultiplier/
+// calculateDefenseIgnoreMultiplier both already special-case this -- see
+// their own headers); it exists purely so resolveUpgradedValue (above)
+// can find it and so M1 stops warning that this set tier's own number
+// has no registry entry. `holders: ["player"]` on every one of these,
+// matching today exactly -- none of these six set tiers' upgrades have
+// ever applied to an ally or enemy attacker, so nothing widens here; the
+// base entries they upgrade (effect:crushing_impact, effect:executioner)
+// are the ones whose OWN holders reflect what already generalizes today
+// (executioner only, per that entry's own note).
+registerModifier("set:Thraekor:6", {
+  source: { kind: "set", id: "Thraekor:6", setName: "Thraekor", tier: 6 },
+  upgrades: "effect:crushing_impact",
+  hook: "calculateDamage.outgoing", order: 5, bucket: null, value: 1.35, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Crushing Impact upgrade: 1.2x -> 1.35x. Read by crushingImpactMultiplier via resolveUpgradedValue, not dispatched for its own sake.",
+});
+registerModifier("set:Regalia of the Crimson Vanguard:4:crushing_impact", {
+  source: { kind: "set", id: "Regalia of the Crimson Vanguard:4", setName: "Regalia of the Crimson Vanguard", tier: 4 },
+  upgrades: "effect:crushing_impact",
+  hook: "calculateDamage.outgoing", order: 5, bucket: null, value: 1.35, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Crushing Impact upgrade: 1.2x -> 1.35x. Keyed distinctly from set:Regalia of the Crimson Vanguard:4 (the Commanding Presence defenseIgnore entry) -- same set tier, two unrelated bonuses, so MODIFIERS needs two keys for it.",
+});
+registerModifier("set:Ashforged:6", {
+  source: { kind: "set", id: "Ashforged:6", setName: "Ashforged", tier: 6 },
+  upgrades: "effect:crushing_impact",
+  hook: "calculateDamage.outgoing", order: 5, bucket: null, value: 1.4, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Crushing Impact upgrade: 1.2x -> 1.4x, the strongest of the three.",
+});
+registerModifier("set:Drake Hunter:4", {
+  source: { kind: "set", id: "Drake Hunter:4", setName: "Drake Hunter", tier: 4 },
+  upgrades: "effect:executioner.threshold",
+  hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP. Virtual tag (not effect:executioner itself -- that entry's own value is the 1.2x damage number; this is the HP% gate read by executionerThreshold via resolveUpgradedValue).",
+});
+registerModifier("set:Regalia of the Crimson Vanguard:6", {
+  source: { kind: "set", id: "Regalia of the Crimson Vanguard:6", setName: "Regalia of the Crimson Vanguard", tier: 6 },
+  upgrades: "effect:executioner.threshold",
+  hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP.",
+});
+registerModifier("set:Contract Hunter:4", {
+  source: { kind: "set", id: "Contract Hunter:4", setName: "Contract Hunter", tier: 4 },
+  upgrades: "effect:executioner.threshold",
+  hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP.",
+});
+registerModifier("set:Scout Corps:6", {
+  source: { kind: "set", id: "Scout Corps:6", setName: "Scout Corps", tier: 6 },
+  upgrades: "effect:ambush",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 1.7, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Ambush upgrade: wins outright over both the 1.4x base and the 1.55x ambush_mastery tier (still true taking Math.max, since 1.7 beats both). Ambush itself (js/data/tactics.js's extraDamageMultiplierFn) isn't dispatched through calculateDamage.outgoing yet -- order is a placeholder until it is.",
+});
+registerModifier("set:Conduit Master:6", {
+  source: { kind: "set", id: "Conduit Master:6", setName: "Conduit Master", tier: 6 },
+  upgrades: "effect:surging_conduit_charges",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 2, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Surging Conduit charge-count upgrade: 1 -> 2 per fight. A charge COUNT, not a multiplier -- surgingConduitCharges itself isn't dispatched through any hook yet (Surging Conduit's own damage bonus is still unmigrated), so this is pure Rule 1 data ahead of that.",
+});
+registerModifier("set:Fragmenta:4", {
+  source: { kind: "set", id: "Fragmenta:4", setName: "Fragmenta", tier: 4 },
+  upgrades: "effect:surging_conduit_charges",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 2, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Surging Conduit charge-count upgrade: 1 -> 2 per fight (not 3, if somehow both this and Conduit Master:6 are active -- resolveUpgradedValue's Math.max already gives that, same as the old inline OR).",
+});
+registerModifier("set:Novitiate:4", {
+  source: { kind: "set", id: "Novitiate:4", setName: "Novitiate", tier: 4 },
+  upgrades: "effect:elemental_focus",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 1.12, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Elemental Focus upgrade: 1.08x -> 1.12x. elemental_focus itself isn't dispatched through calculateDamage.outgoing yet (the element-ability path's own migration is pending) -- pure Rule 1 data ahead of that.",
+});
+registerModifier("set:Kabal:4", {
+  source: { kind: "set", id: "Kabal:4", setName: "Kabal", tier: 4 },
+  upgrades: "effect:elemental_focus",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 1.15, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Elemental Focus upgrade: 1.08x -> 1.15x.",
+});
+registerModifier("set:Pre-Kabal:4", {
+  source: { kind: "set", id: "Pre-Kabal:4", setName: "Pre-Kabal", tier: 4 },
+  upgrades: "effect:elemental_focus",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 1.2, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Elemental Focus upgrade: 1.08x -> 1.2x, the strongest of the three.",
+});
+registerModifier("set:Examiner:4", {
+  source: { kind: "set", id: "Examiner:4", setName: "Examiner", tier: 4 },
+  upgrades: "effect:spell_ward",
+  hook: "calculateDamage.incoming", order: 999, bucket: null, value: 0.8, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Spell Ward upgrade: 0.9x -> 0.8x (lower is stronger -- resolveUpgradedValue uses direction 'min' here, see spellWardMultiplier). calculateDamage.incoming is this entry's eventual real home (2d increment 3) -- staged as Rule 1 data now, ahead of that hook's own combinator.",
+});
+registerModifier("set:River Warden:4", {
+  source: { kind: "set", id: "River Warden:4", setName: "River Warden", tier: 4 },
+  upgrades: "effect:spell_ward",
+  hook: "calculateDamage.incoming", order: 999, bucket: null, value: 0.8, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Spell Ward upgrade: 0.9x -> 0.8x.",
+});
+registerModifier("set:Stormwatch:4", {
+  source: { kind: "set", id: "Stormwatch:4", setName: "Stormwatch", tier: 4 },
+  upgrades: "effect:spell_ward",
+  hook: "calculateDamage.incoming", order: 999, bucket: null, value: 0.8, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Spell Ward upgrade: 0.9x -> 0.8x.",
 });
