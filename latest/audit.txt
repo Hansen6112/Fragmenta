@@ -1,5 +1,5 @@
 
-WARNINGS (419)
+WARNINGS (418)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -158,7 +158,6 @@ WARNINGS (419)
   [modifiers] EFFECT_DEFS.dra_e05_sure_foundation (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.dra_e06_executioners_seal (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.dra_e07_unquenched_focus (combat) has no registry entry yet (M1)
-  [modifiers] EFFECT_DEFS.dra_e08_ashward (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.dra_e09_black_ice_reserve (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.sang_sec_ie005_gatekeepers_stand (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.sang_sec_ie010_protective_intercession (combat) has no registry entry yet (M1)
@@ -425,4 +424,4 @@ WARNINGS (419)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 419 warning(s) across 53 scripts.
+0 error(s), 418 warning(s) across 53 scripts.

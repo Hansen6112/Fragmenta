@@ -1,0 +1,29 @@
+range: cd15573c0acd305ddec1d840b2a57080c24eec73..1855c7412d4d882b573b1df769ed195471c8092b
+=== 1855c7412d4d882b573b1df769ed195471c8092b 2026-11-19 15:43:25 +0000
+Phase 2 step 2d, increment 3d: statusTick.incoming (Ashward)
+Ashward (First Sword's Regalia, Mantle of the Tower) reduces incoming
+Burning DoT ticks to 0.75x -- a status-tick reduction, not a damage-roll
+multiplier, so it gets its own hook (statusTick.incoming, reserved since
+increment 3's own design pass) rather than calculateDamage.incoming.
+Dispatched by a new flat-product combinator, calculateStatusTickMultiplier.
+
+One entry, holders: ["enemy"], matching tickBurnEnemy's own single
+existing call site exactly -- a pure "move the number into the
+registry" migration that doesn't change who Ashward works for, so per
+Tyler's note on increment 3b it needed no switch. The conditional-
+rounding ternary (never rounds when inactive) is preserved exactly at
+the call site.
+
+Suite 637/637, audit 0 errors/418 warnings. Both harness confirmations
+in progress (expected byte-identical: no widening, nothing to measure).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                          |   8 +-
+ js/data/modifiers.js                        |  36 +++++++++
+ tools/modifier_catalogue.md                 |   4 +
+ tools/tests/phase2_step2d_ashward_ledger.js | 110 ++++++++++++++++++++++++++++
+ tools/tests/run_all.js                      |   1 +
+ 5 files changed, 158 insertions(+), 1 deletion(-)
