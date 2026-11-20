@@ -28,6 +28,16 @@ const MOD_HOOKS = [
   "applyAndReact.onHitDealt", "applyAndReact.onHitTaken", "applyAndReact.onMiss",
   "applyAndReact.onZeroDamage", "applyAndReact.onKill", "applyAndReact.onDowned",
   "applyAndReact.onStatusApplied", "applyAndReact.onActionUsed",
+  // applyAndReact.onLowHealth (2e-1 close-out, 20 Nov, Tyler): LOW_HEALTH_REACTIONS'
+  // own trigger (combat.js) -- a threshold crossing, checked once per
+  // round alongside every other lowHealth reaction.
+  "applyAndReact.onLowHealth",
+  // applyAndReact.onFavorableRoll (2e-1 close-out, 20 Nov, Tyler): fires
+  // whenever Regalia of the Laughing Gale's own randomness favors the
+  // player (Loaded Dice's double-damage roll, Winds of Change's
+  // per-round reroll, a miss triggering Unlikely Outcome) -- Twist of
+  // Fate's own home.
+  "applyAndReact.onFavorableRoll",
   // heal.incoming / heal.overflow (2e-1, 20 Nov): healFighter's own two
   // dispatch points -- see that function's header (combat.js) for the
   // full "one way in" shape (heal.incoming, applyHealing, heal.overflow).
@@ -1199,7 +1209,7 @@ registerModifier("effect:loaded_dice", {
   hook: "calculateDamage.outgoing", order: 140, bucket: "variance",
   value: null, behavior: "loadedDiceRoll",
   when: null, holders: ["player"], state: null,
-  notes: "Loaded Dice. A behavior (not a bare value) because loadedDiceMultiplier itself calls applyTwistOfFate(state) on its favorable roll -- a real pre-existing state write, carried over unchanged. 'variance' bucket -- its own resolved number IS the raw multiplier (0.5/1/2.0), not an additive delta, matching critMultiplier's own convention and spec §4's 'stays as a product' note.",
+  notes: "Loaded Dice. A behavior (not a bare value) because loadedDiceMultiplier itself dispatches applyAndReact.onFavorableRoll (Twist of Fate) on its favorable roll -- a real pre-existing state write, carried over unchanged. 'variance' bucket -- its own resolved number IS the raw multiplier (0.5/1/2.0), not an additive delta, matching critMultiplier's own convention and spec §4's 'stays as a product' note.",
 });
 registerModifier("set:Regalia of the Laughing Gale:6", {
   source: { kind: "set", id: "Regalia of the Laughing Gale:6", setName: "Regalia of the Laughing Gale", tier: 6 },
@@ -2428,4 +2438,197 @@ registerModifier("always:avatar_of_renewal_heal", {
   },
   when: (ctx) => ctx.holder.combat.player.avatarOfRenewalTurns > 0, holders: ["player"], state: null,
   notes: "Avatar of Renewal (Regalia of the Endless Tide 6pc): restore 10% max Health at the end of every round during its 4-round window. source:'always' -- no hasSetTier re-check at this read site, same precedent as Avatar of Devotion/Endurance's own heal.incoming entries (the window itself could only ever be granted by that set bonus elsewhere). Found during 2e-1's own re-verification: this is a REAL, direct heal, not buff-grant-only like its sibling Avatars -- the initial research pass miscatalogued it; confirmed directly against beginTurn's own code before writing this entry.",
+});
+
+// ================= 2e-1 close-out: applyAndReact.onLowHealth =================
+// LOW_HEALTH_REACTIONS (combat.js) moved onto this hook wholesale -- all
+// 16 members, not just the 2 heal rows. 14 of them are buff-window-grant
+// triggers only (no direct heal), each wrapped VERBATIM via the shared
+// lowHealthReactionWrap behavior below (params.checkFn is the exact,
+// unchanged existing function -- own hasEffect/hasSetTier presence
+// check, own health-threshold check, own once-per-fight flag, own buff
+// grant, all untouched); `source: {kind:"always"}` on every wrapped
+// entry since each checkX function already does its own presence test
+// internally (same precedent as Siege Corps/Seedbearer's own
+// applyAndReact.onActionUsed entries, which also re-check their own
+// gate inside the behavior rather than relying on sourceActiveOn).
+// `order` matches each one's position in the original array exactly,
+// so lowHealthTriggerChecks's own line-order (and therefore which
+// once-per-fight flags can observe which other flags already being set,
+// though none of these 16 ever read another's flag) is unchanged.
+// Love Endures and Avatar of Bloom (the 2 real heals) get their OWN
+// dedicated behaviors instead, routing their heal through healFighter
+// (the same heal.incoming/applyHealing/heal.overflow chain every other
+// 2e-1 heal goes through) -- everything else in each (the once-per-fight
+// flag, the buff grant) stays exactly as today, inline.
+registerBehavior("lowHealthReactionWrap", (ctx, entry) => {
+  const lines = entry.params.checkFn(ctx.holder);
+  return lines && lines.length ? lines : undefined;
+});
+registerBehavior("loveEnduresHeal", (ctx) => {
+  const state = ctx.holder;
+  state.combat.player.loveEnduresUsed = true;
+  const { healed, lines } = healFighter(state, ctx.role, Math.ceil(state.maxHealth * 0.15), "loveEnduresHeal", ctx);
+  if (healed <= 0) return undefined;
+  return [`Love Endures — even now, it holds you up; mended for ${healed} health.`, ...lines];
+});
+registerBehavior("avatarOfBloomHeal", (ctx) => {
+  const state = ctx.holder;
+  const combat = state.combat;
+  combat.player.avatarOfBloomUsed = true;
+  const { healed, lines } = healFighter(state, ctx.role, Math.ceil(state.maxHealth * 0.5), "avatarOfBloomHeal", ctx);
+  const dur = applyBeneficialEffectBonuses(state, 3);
+  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.25)));
+  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.25)));
+  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
+  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, Math.round(state.def * 0.25)));
+  return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
+});
+registerModifier("set:Legion:8", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 10, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkHoldTheLine(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Hold the Line: buff-only (checkHoldTheLine grants +6 Defense for 2 turns below 30% HP, no heal) -- 2e-2 territory for any further generalization; this entry only relocates its dispatch.",
+});
+registerModifier("effect:rooted_resolve", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 20, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkRootedResolve(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Rooted Resolve: buff-only (checkRootedResolve grants +8 Defense for 3 turns below 50% HP, no heal, combat.js:6141) -- 2e-2 territory.",
+});
+registerModifier("set:Regalia of the First Bloom:6", {
+  source: { kind: "set", id: "Regalia of the First Bloom:6", setName: "Regalia of the First Bloom", tier: 6 },
+  hook: "applyAndReact.onLowHealth", order: 30, bucket: null, value: null, behavior: "avatarOfBloomHeal",
+  params: null,
+  when: (ctx) => ctx.holder.combat && !ctx.holder.combat.player.avatarOfBloomUsed && ctx.holder.health > 0 && ctx.holder.health < ctx.holder.maxHealth * 0.25,
+  holders: ["player"], state: null,
+  notes: "Avatar of Bloom: once per fight, the first time Health drops below 25%, a 50% max Health heal plus +25% Attack/Magic/Defense for 3 turns -- the heal now routes through healFighter; avatarOfBloomUsed stays the existing flat combat.player field.",
+});
+registerModifier("set:Regalia of the Final Veil:6", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 40, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfPassing(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Passing's own window-GRANT trigger: buff-only (grants avatarOfPassingTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). This entry only relocates the grant's dispatch.",
+});
+registerModifier("set:Regalia of the Woven Thread:6:avatar_of_fate_trigger", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 50, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfFate(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Fate: buff-only (crit doubling + a cheatDeath save, no heal, combat.js:6239) -- 2e-2/2e-5 territory. Keyed distinctly from set:Regalia of the Woven Thread:6 (the M1 crit-damage placeholder) -- same set tier, unrelated mechanic, same precedent as Crushing Impact's own disambiguated key.",
+});
+registerModifier("set:Regalia of the Crimson Vanguard:6:avatar_of_war_trigger", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 70, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfWar(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of War's own window-GRANT trigger: buff-only (grants avatarOfWarTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). Keyed distinctly from set:Regalia of the Crimson Vanguard:6 (the Executioner-threshold upgrade entry) -- same set tier, unrelated mechanic.",
+});
+registerModifier("set:Regalia of the Endless Archive:6", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 80, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfKnowledge(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Knowledge: buff-only (Magic/Knowledge buffs, free spell casts, matchup overrides, no heal, combat.js:6282) -- 2e-2 territory.",
+});
+registerModifier("effect:love_endures", {
+  source: { kind: "effect", id: "love_endures" },
+  hook: "applyAndReact.onLowHealth", order: 90, bucket: null, value: null, behavior: "loveEnduresHeal",
+  params: null,
+  when: (ctx) => ctx.holder.combat && !ctx.holder.combat.player.loveEnduresUsed && ctx.holder.health > 0 && ctx.holder.health < ctx.holder.maxHealth * 0.2,
+  holders: ["player"], state: null,
+  notes: "Love Endures: the first time Health would fall below 20% each fight, restore 15% max Health -- now routes through healFighter; loveEnduresUsed stays the existing flat combat.player field.",
+});
+registerModifier("set:Regalia of the Eternal Heart:6:avatar_of_devotion_trigger", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 100, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfDevotion(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Devotion's own window-GRANT trigger: buff-only (grants avatarOfDevotionTurns, no heal of its own -- its real effect is doubled healing RECEIVED, already a heal.incoming entry above). Keyed distinctly from set:Regalia of the Eternal Heart:6 (the calculateDamage.incoming doubler) -- same set tier, unrelated dispatch point.",
+});
+registerModifier("set:Regalia of the Laughing Gale:6:avatar_of_chaos_trigger", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 110, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfChaos(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Chaos: buff-only (damage swing + doubled crit chance + per-crit stat grants, no heal, combat.js:6327) -- 2e-2 territory. Keyed distinctly from set:Regalia of the Laughing Gale:6 (the calculateDamage.outgoing variance entry) -- same set tier, unrelated mechanic.",
+});
+registerModifier("set:Regalia of the Eternal Bastion:6:avatar_of_endurance_trigger", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 120, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfEndurance(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Endurance's own window-GRANT trigger: buff-only (grants avatarOfEnduranceTurns, no heal of its own -- its real effect is +50% healing RECEIVED, already a heal.incoming entry above). Keyed distinctly from set:Regalia of the Eternal Bastion:6 (the calculateDamage.incoming doubler) -- same set tier, unrelated dispatch point.",
+});
+registerModifier("set:Regalia of the Endless Horizon:6", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 130, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfFreedom(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Freedom: buff-only (faster cooldowns, bypassed restrictions, its own evasion roll, no heal, combat.js:6368) -- 2e-2 territory.",
+});
+registerModifier("set:Regalia of the Eternal Forge:6", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 140, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfCreation(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Creation: buff-only (Attack/Magic buffs, faster cooldowns, permanent per-hit growth, no heal, combat.js:6390) -- 2e-2 territory.",
+});
+registerModifier("set:Regalia of the Endless Tide:6:avatar_of_renewal_trigger", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 150, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfRenewal(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Renewal's own window-GRANT trigger: buff-only (grants avatarOfRenewalTurns, no heal of its own -- its real per-round heal is already a turn.start entry above, and its incoming-damage cut is already a calculateDamage.incoming entry). Keyed distinctly from set:Regalia of the Endless Tide:6 -- same set tier, unrelated dispatch point.",
+});
+registerModifier("effect:rally_the_line", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 60, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkRallyTheLine(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Rally the Line: buff-only (+10 Attack/+10 Defense for 4 rounds below 50% HP, no heal, combat.js:6174) -- 2e-2 territory.",
+});
+registerModifier("set:Regalia of the Eternal Hour:6:avatar_of_time_trigger", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onLowHealth", order: 160, bucket: null, value: null, behavior: "lowHealthReactionWrap",
+  params: { checkFn: (state) => checkAvatarOfTime(state) },
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Time: buff-only (zeroes cooldowns, +25% damage window, frozen buff durations, no heal, combat.js:6442) -- 2e-2 territory. Keyed distinctly from set:Regalia of the Eternal Hour:6 (the calculateDamage.outgoing burst entry) -- same set tier, unrelated mechanic.",
+});
+
+// ================= 2e-1 close-out: applyAndReact.onFavorableRoll =================
+// Twist of Fate (Regalia of the Laughing Gale 4pc): fires whenever this
+// god's own randomness favors the player -- Loaded Dice's double-damage
+// roll, Winds of Change's per-round reroll, or a miss triggering Unlikely
+// Outcome. Both halves (the heal AND the cooldown ease) migrate together:
+// the cooldown ease isn't entangled with anything unmigrated -- a plain
+// inline mutation reading combat.cooldowns directly, no registry
+// dependency -- so there's no reason to split it into a later increment.
+registerBehavior("twistOfFateReaction", (ctx) => {
+  const state = ctx.holder;
+  const combat = state.combat;
+  const lines = [];
+  const heal = Math.ceil(state.maxHealth * 0.05);
+  if (heal > 0) {
+    const { healed, lines: healLines } = healFighter(state, ctx.role, heal, "twistOfFateReaction", ctx);
+    if (healed > 0) lines.push(`Twist of Fate mends you for ${healed} health.`, ...healLines);
+  }
+  const cooling = Object.keys(combat.cooldowns).filter((k) => combat.cooldowns[k] > 0);
+  if (cooling.length) {
+    const key = cooling[Math.floor(Math.random() * cooling.length)];
+    combat.cooldowns[key] = Math.max(0, combat.cooldowns[key] - 1);
+    lines.push(`Twist of Fate eases ${cooldownDisplayName(key)}'s recovery by a turn.`);
+  }
+  return lines.length ? lines : undefined;
+});
+registerModifier("set:Regalia of the Laughing Gale:4", {
+  source: { kind: "set", id: "Regalia of the Laughing Gale:4", setName: "Regalia of the Laughing Gale", tier: 4 },
+  hook: "applyAndReact.onFavorableRoll", order: 10, bucket: null, value: null, behavior: "twistOfFateReaction",
+  params: null, when: (ctx) => !!ctx.holder.combat, holders: ["player"], state: null,
+  notes: "Twist of Fate: restores 5% max Health and eases a random cooling-down ability by a turn, whenever Loaded Dice/Winds of Change/Unlikely Outcome's own randomness favors the player.",
 });
