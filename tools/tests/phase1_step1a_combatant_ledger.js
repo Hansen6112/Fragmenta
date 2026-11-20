@@ -142,13 +142,17 @@ const { seedPageRandom } = require('./seed_rng');
     record('PARITY-PLAYER-07', 'stat(atk) peeks the Siege Corps one-shot charge without consuming it -- two reads see the same boosted value, and the charge survives both; effectivePlayerAtk (the legacy, still-consuming formula) produces the IDENTICAL number on its own first call, then actually spends it', () => {
       const s = makeState(25);
       startCombat(s, 'stoneback_beetle', 20);
-      s.combat.player.siegeCorpsAtkCharge = 2;
+      // 2e §3 follow-up (20 Nov): the charge lives in the registry's own
+      // entry state ("set:Siege Corps:6") now, not a flat combat.player
+      // field -- poke/read it there instead.
+      const siegeCorpsState = modifierStateFor(s, 'player', 'set:Siege Corps:6', MODIFIERS['set:Siege Corps:6']);
+      siegeCorpsState.charge = 2;
       const c = makePlayerCombatant(s);
       const first = stat(s, c, 'atk');
       const second = stat(s, c, 'atk');
-      const chargeSurvivedBothReads = s.combat.player.siegeCorpsAtkCharge === 2;
+      const chargeSurvivedBothReads = siegeCorpsState.charge === 2;
       const consumed = effectivePlayerAtk(s);
-      const chargeGoneAfterConsume = s.combat.player.siegeCorpsAtkCharge === 0;
+      const chargeGoneAfterConsume = siegeCorpsState.charge === 0;
       return {
         pass: first === second && chargeSurvivedBothReads && consumed === first && chargeGoneAfterConsume,
         first, second, chargeSurvivedBothReads, consumed, chargeGoneAfterConsume,

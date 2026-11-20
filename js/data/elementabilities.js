@@ -31,6 +31,12 @@ function pipelinedElementAction(missLine, elementOnHit, extra, damageType) {
     targeting: "singleEnemy", toHit: "roll", formula: "playerCore", usesOrchestratorDmgMult: true, reportPhysical: "always",
     missLine: (state, creature) => [missLine(creature)],
     elementOnHit, damageType,
+    // "elementAbility" (2e §3 follow-up, 20 Nov): every element cast
+    // shares this tag -- Seedbearer's own applyAndReact.onActionUsed
+    // entry matches on it, dispatched from useElementAbility for all 9
+    // elements uniformly (including earth, which has its own non-
+    // pipelined action block below and declares the tag separately).
+    tags: ["elementAbility"],
   }, extra || {});
 }
 
@@ -56,8 +62,12 @@ const ELEMENT_ABILITIES = {
     description: "Harden your body against all harm, magical or physical, for several turns.",
     // No-target, no-damage self-buff -- see useElementAbility's own
     // header. Handled by the "toHit: none" buff-shaped resolver branch,
-    // not the pipelinedElementAction shape above.
-    action: { actorKinds: ["player"], actionType: "elemental", targeting: "self", usesPerfectMemory: true, consumesTrailblazer: true, toHit: "none", damage: null },
+    // not the pipelinedElementAction shape above. tags: both
+    // "elementAbility" (Seedbearer, same as every other element) and
+    // "appliesBraceDefense" (Siege Corps:6 -- Earth's own retaliation-
+    // defense branch is where hasEffect(state,"brace") is checked today,
+    // same as Feint's).
+    action: { actorKinds: ["player"], actionType: "elemental", targeting: "self", usesPerfectMemory: true, consumesTrailblazer: true, toHit: "none", damage: null, tags: ["elementAbility", "appliesBraceDefense"] },
   },
   lightning: {
     name: "Flurry",

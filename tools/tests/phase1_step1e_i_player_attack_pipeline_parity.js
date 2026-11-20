@@ -139,6 +139,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       ['effect:timeless_guard', 'cooldown', 'timelessGuardCooldown'],
       ['effect:evasive_guard', 'stacks', 'evasiveGuardBonus'],
       ['set:River Warden:6', 'stacks', 'riverWardenMagicBonus'],
+      ['set:Siege Corps:6', 'charge', 'siegeCorpsAtkCharge'],
     ];
     function mapMovedFieldsBack(x) {
       if (Array.isArray(x)) return x.map(mapMovedFieldsBack);
@@ -297,7 +298,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
     // ============ Siege Corps one-shot Attack charge (step 1e handoff §3.2 purity fix) ============
     checkParity('P1E-I-SIEGECORPS-01', 'Siege Corps\' one-shot +2 Attack charge is peeked in step 4 (stat()) and consumed exactly once in step 5 -- produces the identical roll as the legacy eager-consume formula', playerAttack, {
       seq: LOW,
-      mutate: (s) => { s.combat.player.siegeCorpsAtkCharge = 2; },
+      mutate: (s) => { modifierStateFor(s, 'player', 'set:Siege Corps:6', MODIFIERS['set:Siege Corps:6']).charge = 2; },
     });
 
     // ============ Opening Reach / Borrowed Seconds / Feint ============

@@ -517,11 +517,13 @@ class GameState {
     this.agility = BASE_AGILITY + (race.agilityMod || 0) + (pb.agility || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.agility * om("agility") * n) + (this.scoutDeepenBonus || 0) + equipmentBonus(this, "agility") + setStatBonus(this, "agility");
     // The Empty Hand (Artifact): fighting with no Off-Hand equipped is a
     // flat +50%/+25% multiplier, applied last on top of every other atk/
-    // def source above (growth, gear, sets).
-    if (hasEffect(this, "empty_hand") && !this.equipment.offhand) {
-      this.atk = Math.round(this.atk * 1.5);
-      this.def = Math.round(this.def * 1.25);
-    }
+    // def source above (growth, gear, sets). Dispatched via the
+    // registry (2e §3 follow-up, 20 Nov) -- "effect:empty_hand"'s own
+    // `when` carries the !equipment.offhand gate, so this is a no-op
+    // (statMultiplier entries filtered out, value unchanged) exactly
+    // when the old inline condition was false.
+    this.atk = calculateStatMultiplier(this, "player", "atk", { holder: this, role: "player" }, this.atk);
+    this.def = calculateStatMultiplier(this, "player", "def", { holder: this, role: "player" }, this.def);
     // Fatigue: going too long without a full sleep saps every combat/
     // utility stat (not max Health — this shouldn't put you at death's
     // door on its own, just make you worse at everything). Cleared by

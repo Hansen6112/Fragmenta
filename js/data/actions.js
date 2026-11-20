@@ -531,20 +531,16 @@ const PIPELINE_FORMULAS = {
         // today's exact COMBAT_UNIFY.U2 asymmetry (unconditional for the
         // player-target branch, U2-gated here) inside its own `when`.
         edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "ally", kind: "magic", edmg }, "enemyWearerMagic").edmg;
-        if (hasEffect(ally, "adaptive_ward")) {
-          if (!ally.adaptiveWardElement) {
-            ally.adaptiveWardElement = creature.element;
-          } else if (creature.element === ally.adaptiveWardElement) {
-            edmg = Math.round(edmg * 0.5);
-          }
-        }
         // 2d, increment 3c (19 Nov): Spell Ward/Storm Barrier/Stonewarden
         // 6pc, dispatched via the registry's ability-phase entries
         // (calculateAbilityIncomingMultiplier, js/data/modifiers.js) --
         // same three effects, same order, byte-identical (this whole
         // branch is COMBAT_UNIFY.U1-gated, off by default, so unexercised
-        // by the baseline either way).
-        edmg = calculateAbilityIncomingMultiplier(ally, "ally", { state, holder: ally, role: "ally", kind: "magic", edmg }).edmg;
+        // by the baseline either way). Adaptive Ward (2e §3 follow-up,
+        // 20 Nov) shares this same dispatch now too (order 1, before
+        // Spell Ward's 5) -- `creature` is passed so its own behavior
+        // can read the attacking enemy's element.
+        edmg = calculateAbilityIncomingMultiplier(ally, "ally", { state, holder: ally, role: "ally", kind: "magic", edmg, creature }).edmg;
         return { shortCircuit: false, edmg, kind: "magic", elName: ELEMENTS[creature.element].name.toLowerCase() };
       }
 
@@ -592,17 +588,20 @@ const PIPELINE_FORMULAS = {
         creature.wintersVerdictUsed = true;
         edmg = Math.round(edmg * 1.15);
       }
-      if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
-        creature.decisiveImpactUsed = true;
-        edmg = Math.round(edmg * 1.08);
-      }
+      // 2e §3 follow-up (20 Nov): Decisive Impact, dispatched via the
+      // registry (group "decisiveImpact") -- AFTER enemyWearer1/
+      // enemyWearer2/Flowing Discipline/Winter's Verdict in this branch,
+      // not interleaved with enemyWearer1/enemyWearer2 the way it is in
+      // the player-target branch below. targetRole: "ally" since this
+      // IS the ally-target branch.
+      edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "ally", edmg }, "decisiveImpact").edmg;
+      // Toxic Preparation, dispatched via the registry (group
+      // "toxicPreparation") -- U3d's own gate (off by default) now
+      // lives in the entry's own `when`, reading `ctx.targetRole`.
       // U3d (off by default): Toxic Preparation reads the ALLY's own
       // Sanguivorum-poison status (ally.statuses["sang_iag_poison"])
       // rather than the player's combat.player.playerStatuses["sang_iag_poison"].
-      if (COMBAT_UNIFY.U3d && edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && ally.statuses && ally.statuses["sang_iag_poison"]) {
-        creature.toxicPreparationUsed = true;
-        edmg += Math.max(1, Math.floor(edmg * 0.05));
-      }
+      edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "ally", edmg, targetPoisoned: !!(ally.statuses && ally.statuses["sang_iag_poison"]) }, "toxicPreparation").edmg;
       // Stonewarden 6pc's first-hit-taken reduction has no switch yet --
       // tools/combat_asymmetry_register.md flags it needs-Tyler (is it
       // kind A or kind B?) rather than guessing a U3 slot for it here.
@@ -636,19 +635,15 @@ const PIPELINE_FORMULAS = {
       // -- unconditional for this player-target branch, matching its
       // own `when` exactly (role === "player").
       edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "player", kind: "magic", edmg }, "enemyWearerMagic").edmg;
-      if (hasEffect(state, "adaptive_ward")) {
-        if (!combat.player.adaptiveWardElement) {
-          combat.player.adaptiveWardElement = creature.element;
-        } else if (creature.element === combat.player.adaptiveWardElement) {
-          edmg = Math.round(edmg * 0.5);
-        }
-      }
       // 2d, increment 3c (19 Nov): Spell Ward/Storm Barrier/Stonewarden
       // 6pc, dispatched via the registry's ability-phase entries
       // (calculateAbilityIncomingMultiplier, js/data/modifiers.js) --
-      // same three effects, same order, byte-identical.
+      // same three effects, same order, byte-identical. Adaptive Ward
+      // (2e §3 follow-up, 20 Nov) shares this same dispatch now too
+      // (order 1, before Spell Ward's 5) -- `creature` is passed so its
+      // own behavior can read the attacking enemy's element.
       const swMult = spellWardMultiplier(state, "player");
-      edmg = calculateAbilityIncomingMultiplier(state, "player", { state, holder: state, role: "player", kind: "magic", edmg }).edmg;
+      edmg = calculateAbilityIncomingMultiplier(state, "player", { state, holder: state, role: "player", kind: "magic", edmg, creature }).edmg;
       // Phase 2 Amendment 1 regression fix (18 Nov, caught by widening
       // the parity-fixture comparison instead of omitting these fields):
       // this write used to target the old flat combat.player.
@@ -696,10 +691,12 @@ const PIPELINE_FORMULAS = {
     // calculateLateOutgoingMultiplier's own header on why the chain
     // splits into two groups around it.
     edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", kind: "flat", edmg }, "enemyWearer1").edmg;
-    if (edmg > 0 && hasEffect(creature, "sang_mil_ie005_decisive_impact") && !creature.decisiveImpactUsed) {
-      creature.decisiveImpactUsed = true;
-      edmg = Math.round(edmg * 1.08);
-    }
+    // 2e §3 follow-up (20 Nov): Decisive Impact, dispatched via the
+    // registry (group "decisiveImpact") -- interleaved here, between
+    // enemyWearer1 and enemyWearer2, exactly where the inline check
+    // used to sit. targetRole: "player" since this IS the player-
+    // target branch.
+    edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "player", edmg }, "decisiveImpact").edmg;
     // dra_e06/dra_e09/Tyrant's Edge (group "enemyWearer2"), dispatched
     // via the registry AFTER Decisive Impact, same reasoning.
     edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", kind: "flat", edmg, defenderHp: state.health, defenderMaxHp: state.maxHealth }, "enemyWearer2").edmg;
@@ -720,10 +717,11 @@ const PIPELINE_FORMULAS = {
     // fire here (kind: "physical"), matching today's exact scope (this
     // branch never had them).
     edmg = calculateAbilityIncomingMultiplier(state, "player", { state, holder: state, role: "player", kind: "physical", edmg }).edmg;
-    if (edmg > 0 && hasEffect(creature, "sang_iag_ie008_toxic_preparation") && !creature.toxicPreparationUsed && combat.player.playerStatuses && combat.player.playerStatuses["sang_iag_poison"]) {
-      creature.toxicPreparationUsed = true;
-      edmg += Math.max(1, Math.floor(edmg * 0.05));
-    }
+    // Toxic Preparation, dispatched via the registry (group
+    // "toxicPreparation") -- unconditional here (ctx.targetRole ===
+    // "player"), matching today's exact lack of a COMBAT_UNIFY gate in
+    // this branch.
+    edmg = calculateLateOutgoingMultiplier(creature, "enemy", { holder: creature, role: "enemy", targetRole: "player", edmg, targetPoisoned: !!(combat.player.playerStatuses && combat.player.playerStatuses["sang_iag_poison"]) }, "toxicPreparation").edmg;
     return { shortCircuit: false, edmg, kind: "physical" };
   },
 

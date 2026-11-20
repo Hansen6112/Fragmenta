@@ -51,7 +51,10 @@ const { seedPageRandom } = require('./seed_rng');
       // state on combat.player.modifierState.
       'evasionCharges', 'evasionTurns', 'exposedTarget',
       'playerLastHitType', 'actionCounter', 'weaponAttackCounter',
-      'momentumStacks', 'momentumUnboundStacks', 'siegeCorpsAtkCharge',
+      // siegeCorpsAtkCharge moved off this list under the 2e §3
+      // follow-up (20 Nov) -- it now lives under its own registry
+      // entry's state on combat.player.modifierState.
+      'momentumStacks', 'momentumUnboundStacks',
     ];
 
     record('P1G-VI-ACCESSOR-01', 'All 22 batch-4 fields live as plain data properties on combat.player and nowhere on combat itself -- step 1h-iii deleted the accessor alias once every call site moved onto combat.player', () => {

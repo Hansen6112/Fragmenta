@@ -24,10 +24,10 @@ const MOD_HOOKS = [
   "chooseAction", "chooseTargets",
   "rollToHit.attacker", "rollToHit.defender",
   "calculateDamage.outgoing", "calculateDamage.defenseIgnore", "calculateDamage.incoming",
-  "calculateDamage.tags", "calculateDamage.cap",
+  "calculateDamage.tags", "calculateDamage.cap", "calculateDamage.baseRoll",
   "applyAndReact.onHitDealt", "applyAndReact.onHitTaken", "applyAndReact.onMiss",
   "applyAndReact.onZeroDamage", "applyAndReact.onKill", "applyAndReact.onDowned",
-  "applyAndReact.onStatusApplied",
+  "applyAndReact.onStatusApplied", "applyAndReact.onActionUsed",
   "fight.start", "round.start", "turn.start", "fight.end",
   "cheatDeath",
   // statusTick.incoming (2d increment 3, Tyler 19 Nov, Bucket Review §3):
@@ -286,7 +286,7 @@ function calculateOutgoingMultiplier(holder, holderRole, ctx) {
   // the regression suite (snapshot mismatches on plain hits with no
   // gear at all) during this migration's own development.
   const entries = modifiersForHook(holder, holderRole, "calculateDamage.outgoing", ctx)
-    .filter((e) => !e.upgrades && !e.lateOutgoingPhase && !e.elementCastPhase);
+    .filter((e) => !e.upgrades && !e.lateOutgoingPhase && !e.elementCastPhase && !e.amplifies);
   let total = 1;
   const byKey = {};
   for (const entry of entries) {
@@ -374,6 +374,30 @@ function calculateElementCastMultiplier(holder, holderRole, ctx) {
     total *= v;
   }
   return { total, byKey };
+}
+
+// calculateDamage.baseRoll (2e §3 follow-up, 20 Nov, Tyler's own
+// ruling): a base-roll BEHAVIOUR, not a multiplier -- it runs BEFORE
+// any calculateDamage.outgoing bucket even exists (Bucket Review Rule
+// 3: class mechanics, same family as synergy/tags, stay outside the
+// buckets). Returns the (possibly rerolled) base value directly, not a
+// factor -- every entry here is `directApply`-shaped by construction
+// (there is no "ratio" reading for "reroll and keep the higher of two
+// rolls"), so this combinator takes the seed base from `ctx.base` and
+// threads it through each matching entry's own replacement value, same
+// one-behavior-today shape as the other single-member combinators
+// (calculateStatusTickMultiplier, calculateEnemyIncomingMultiplier).
+function calculateBaseRollAdvantage(holder, holderRole, ctx) {
+  const entries = modifiersForHook(holder, holderRole, "calculateDamage.baseRoll", ctx);
+  let base = ctx.base;
+  for (const entry of entries) {
+    const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    const holderState = modifierStateFor(holder, holderRole, key, entry);
+    ctx.base = base;
+    const result = entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+    if (typeof result === "number") base = result;
+  }
+  return base;
 }
 
 // calculateDamage.defenseIgnore (2d, increment 2): same flat-product
@@ -808,10 +832,57 @@ registerModifier("effect:bedrock", {
 // runs the hook for whichever holder/role is reading Defense, and
 // returns either the first behavior's floored value or the unfloored
 // `reduced` unchanged if nothing matched (today's exact fallback).
+// Excludes `statBonus`/`statMultiplier` entries (2e §3 follow-up, 20
+// Nov) -- those share this same hook name but are dispatched by
+// calculateStatBonus/calculateStatMultiplier below instead; this
+// function is specifically for the "override/floor a reduction" shape
+// Bedrock uses, not an additive term or a finishing multiplier.
 function applyStatDefFloor(holder, holderRole, base, reduced) {
   const results = runHook(statHook("def"), holder, holderRole, { base, reduced });
-  for (const r of results) if (typeof r.result === "number") return r.result;
+  for (const r of results) if (!r.entry.statBonus && !r.entry.statMultiplier && typeof r.result === "number") return r.result;
   return reduced;
+}
+
+// calculateStatBonus (2e §3 follow-up, 20 Nov): a flat ADDITIVE term
+// fed into a stat total -- Perfect Balance (+2 atk/def when they're
+// within 2 of each other) and Expanding Mind (+1 Magic per 5 Knowledge
+// above 50) are both "a live formula off other stats," not a stacking/
+// triggered counter, so a plain `value` function (no behavior/state)
+// suffices for both. `statBonus: true` on every entry here keeps
+// applyStatDefFloor's own runHook dispatch (same "stat.def" hook name)
+// from ever treating one of these as its own floor-override result.
+function calculateStatBonus(holder, holderRole, key, ctx) {
+  const entries = modifiersForHook(holder, holderRole, statHook(key), ctx).filter((e) => e.statBonus);
+  let total = 0;
+  for (const entry of entries) {
+    const keyName = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    const holderState = modifierStateFor(holder, holderRole, keyName, entry);
+    const result = entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+    if (typeof result === "number") total += result;
+  }
+  return total;
+}
+
+// calculateStatMultiplier (2e §3 follow-up, 20 Nov): a finishing
+// multiplier applied LAST, on top of a stat's already-fully-assembled
+// value -- The Empty Hand (1.5x Attack/1.25x Defense with no Off-Hand
+// equipped) is the only member today. Sequential rounding (matching
+// Math.round(this.atk * 1.5) exactly for the one-entry case; threads
+// through any future second entry the same way calculateOutgoingMultiplier's
+// own product does, just rounded once per step instead of at the end,
+// since recomputeStats's own call site only ever rounds once per stat
+// today). `statMultiplier: true` keeps this out of applyStatDefFloor's
+// own dispatch, same reasoning as `statBonus` above.
+function calculateStatMultiplier(holder, holderRole, key, ctx, base) {
+  const entries = modifiersForHook(holder, holderRole, statHook(key), ctx).filter((e) => e.statMultiplier);
+  let value = base;
+  for (const entry of entries) {
+    const keyName = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    const holderState = modifierStateFor(holder, holderRole, keyName, entry);
+    const result = entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+    if (typeof result === "number") value = Math.round(value * result);
+  }
+  return value;
 }
 
 // ---- 2c: rollToHit (defender side), reworked under Amendment 1 ----
@@ -1713,4 +1784,264 @@ registerModifier("effect:borrowed_seconds", {
   value: (ctx) => borrowedSecondsActive(ctx.holder) ? 1.15 : 1, behavior: null, params: null,
   when: null, holders: ["player"], state: null,
   notes: "Borrowed Seconds's damage-bonus branch (basic_attack/ambush only, per action.borrowedSecondsBonusInDamage -- every cooldown-bearing action gets the refund branch instead, untouched/2e-3). Burst bucket: every-4th-action is a primed/limited-use trigger, Bucket Review Rule 2.",
+});
+
+// ---- 2e §3 follow-up (20 Nov, Tyler's rulings on the redirected rows) ----
+// calculateDamage.baseRoll: Arcane Convergence (Artifact). Rolls the
+// base spell damage twice and keeps the higher result -- an "advantage"
+// reroll, not a flat multiplier, so it respects the natural
+// magic-2..magic+2 spread rather than compressing it. `rerollAdvantage:
+// true` is this entry's Phase-4 tag (Tyler's own ruling): a reroll
+// changes the roll's EV in a way Phase 4's pricing pass needs to know
+// about by name, the same reason a heal entry will declare `heal: true`
+// -- Phase 2 only tags it, Phase 4 prices it. `ctx.base`/`ctx.magic` are
+// populated by this entry's two call sites (rollPlayerDamage, combat.js;
+// rollPlayerDamageCoreForPipeline, pipeline.js -- Riposte's own spell
+// branch is still the one live caller of the former) with the exact
+// values the inline code already computed (the first roll, and the
+// magic stat it was rolled from) -- reads
+// `ctx.holder`/`ctx.role`, not `ctx.state`, consistent with every other
+// entry migrated this engagement.
+registerModifier("effect:arcane_convergence", {
+  source: { kind: "effect", id: "arcane_convergence" },
+  hook: "calculateDamage.baseRoll", order: 10, bucket: null, value: (ctx) => Math.max(ctx.base, randInt(ctx.magic - 2, ctx.magic + 2)), behavior: null, params: null,
+  when: null, holders: ["player"], state: null, rerollAdvantage: true,
+  notes: "Arcane Convergence: rolls magic-2..magic+2 a second time and keeps the higher of the two, exactly matching today's `base = Math.max(base, randInt(magic - 2, magic + 2))`. Isolated to the player (today's own scope -- enemy elemental attacks use a different, non-quadratic formula; companions have their own separate damage path).",
+});
+// Patient Aim: a Rule 1 upgrade of Feint's own bonus (1.6x -> 1.75x),
+// per Tyler's own ruling -- "also outside the buckets" like Arcane
+// Convergence above, since Feint's bonus itself is Rule-3 territory
+// (an action's own bonus multiplier, never dispatched through
+// calculateDamage.outgoing). `upgrades: "effect:feint"` is a pure
+// virtual tag (no base "effect:feint" registry entry exists, same as
+// "effect:ambush"/"effect:executioner.threshold" before them) -- only
+// feintMultiplier's own resolveUpgradedValue call ever reads it. `hook`/
+// `bucket: null` are required fields on every entry but never consulted
+// for an `upgrades` entry (M3 exempts them, same as every other Rule 1
+// entry); `calculateDamage.outgoing` here is nominal, matching the
+// family this upgrade conceptually belongs to.
+registerModifier("effect:patient_aim", {
+  source: { kind: "effect", id: "patient_aim" },
+  upgrades: "effect:feint",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 1.75, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Feint bonus upgrade: 1.6x -> 1.75x.",
+});
+// Decisive Impact (sang_mil_ie005): once-per-fight +8%, enemy-holder,
+// a real calculateDamage.outgoing bucket entry per Tyler's own ruling
+// (Bucket Review Rule 2 -- a once-per-fight flag is "burst": primed/
+// limited-use). Its OWN lateOutgoingPhase group (not folded into
+// enemyWearer1/enemyWearer2) because its position relative to those two
+// groups differs by branch: interleaved BETWEEN them in the player-
+// target flat branch, but AFTER both of them (and after Flowing
+// Discipline/Winter's Verdict) in the ally-target flat branch -- each
+// branch's own call site dispatches this group exactly where the inline
+// check used to sit, so the relative order is preserved exactly either
+// way.
+registerBehavior("decisiveImpactRatio", (ctx) => {
+  if (ctx.edmg <= 0 || ctx.holder.decisiveImpactUsed) return 1;
+  ctx.holder.decisiveImpactUsed = true;
+  return 1.08;
+});
+registerModifier("effect:sang_mil_ie005_decisive_impact", {
+  source: { kind: "effect", id: "sang_mil_ie005_decisive_impact" },
+  hook: "calculateDamage.outgoing", order: 226, bucket: "burst", lateOutgoingPhase: "decisiveImpact",
+  value: null, behavior: "decisiveImpactRatio", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Decisive Impact. Unconditional on a landed hit (edmg > 0), regardless of defender role -- today's own exact gate has no targetRole/COMBAT_UNIFY check at all, unlike Toxic Preparation below.",
+});
+// Toxic Preparation (sang_iag_ie008): once-per-fight, poison-gated, and
+// ADDITIVE rather than multiplicative (`edmg += Math.max(1, Math.floor(
+// edmg * 0.05))`) -- a real bucket entry (Rule 2, burst) but
+// `directApply: true` since there's no ratio reading for "add a flat
+// 5%-of-current-damage bonus, floored, minimum 1". `ctx.targetRole`
+// carries the SAME asymmetry Unquenched Focus (dra_e07) already uses:
+// unconditional for the player-target branch, gated behind
+// COMBAT_UNIFY.U3d (off by default) for the ally-target branch, exactly
+// matching today's own asymmetry (the ally branch reads the ally's own
+// poison status and is U3d-gated; the player branch reads the player's
+// own poison status and always fires). `ctx.targetPoisoned` is computed
+// at each call site from the actual defender's own statuses, since
+// "poisoned" means a different object's `.statuses`/`.playerStatuses`
+// depending which branch dispatches this.
+registerBehavior("toxicPreparationDirectApply", (ctx) => {
+  if (ctx.edmg <= 0 || ctx.holder.toxicPreparationUsed || !ctx.targetPoisoned) return ctx.edmg;
+  ctx.holder.toxicPreparationUsed = true;
+  return ctx.edmg + Math.max(1, Math.floor(ctx.edmg * 0.05));
+});
+registerModifier("effect:sang_iag_ie008_toxic_preparation", {
+  source: { kind: "effect", id: "sang_iag_ie008_toxic_preparation" },
+  hook: "calculateDamage.outgoing", order: 227, bucket: "burst", lateOutgoingPhase: "toxicPreparation", directApply: true,
+  value: null, behavior: "toxicPreparationDirectApply", params: null,
+  when: (ctx) => ctx.targetRole === "player" || COMBAT_UNIFY.U3d, holders: ["enemy"], state: null,
+  notes: "Toxic Preparation. Additive, not multiplicative -- directApply. Unconditional for the player-target branch; gated by COMBAT_UNIFY.U3d (off by default) for the ally-target branch, matching today's exact asymmetry.",
+});
+// Adaptive Ward (Mythic): calculateDamage.incoming, defender-side
+// (confirmed distinct from adaptive_tide -- a different mechanic, own
+// state fields, already its own registered entry above). Locks in the
+// FIRST elemental damage type to land on the wearer this fight; a
+// repeat hit of that SAME element takes 0.5x. `abilityPhase: true`,
+// same reason Spell Ward/Storm Barrier/Stonewarden 6pc needed it (2d
+// increment 3c): this check lives inside enemyCore itself, an earlier
+// dispatch point than calculateIncomingDamage's own mitigateAndApplyHitOnPlayer
+// call. `order: 1` (less than Spell Ward's 5) reproduces today's exact
+// sequence -- Adaptive Ward ran BEFORE Spell Ward inline, and
+// threadIncomingEntries' own per-step rounding makes "two entries in
+// one dispatch, ascending order" and "two separate dispatches in
+// sequence" produce an identical rounding sequence, so no new call
+// site is needed: both existing calculateAbilityIncomingMultiplier
+// calls (ally and player branches) already run right after this
+// entry's own old inline position and now just pick it up too, as long
+// as `creature` is added to their own ctx (needed to read the
+// attacking enemy's own element) -- see those two call sites.
+// abilityFlagHost(ctx) resolves the right storage object for the state
+// (adaptiveWardElement lives on `ally` directly for role "ally", or on
+// `state.combat.player` for role "player" -- same split
+// stormBarrierRatio/firstHitTakenRatio/openingReachRatio already use).
+registerBehavior("adaptiveWardRatio", (ctx) => {
+  const host = abilityFlagHost(ctx);
+  if (!host.adaptiveWardElement) {
+    host.adaptiveWardElement = ctx.creature.element;
+    return 1;
+  }
+  return ctx.creature.element === host.adaptiveWardElement ? 0.5 : 1;
+});
+// Perfect Balance (Divine Regalia): +2 to BOTH Attack and Defense when
+// they're within 2 of each other (checked against raw, unboosted
+// stats -- perfectBalanceBonus's own comment). Two entries, one per
+// stat, since one registry entry can only declare one hook; both call
+// the SAME unchanged perfectBalanceBonus(holder) function, so there's
+// no risk of the two halves drifting out of sync with each other.
+// `statBonus: true` on each -- see calculateStatBonus's own header.
+registerModifier("effect:perfect_balance", {
+  source: { kind: "effect", id: "perfect_balance" },
+  hook: statHook("atk"), order: 20, bucket: null, value: (ctx) => perfectBalanceBonus(ctx.holder), behavior: null, params: null,
+  when: null, holders: ["player"], state: null, statBonus: true,
+  notes: "Perfect Balance, Attack half.",
+});
+registerModifier("effect:perfect_balance.def", {
+  source: { kind: "effect", id: "perfect_balance" },
+  hook: statHook("def"), order: 20, bucket: null, value: (ctx) => perfectBalanceBonus(ctx.holder), behavior: null, params: null,
+  when: null, holders: ["player"], state: null, statBonus: true,
+  notes: "Perfect Balance, Defense half. Compound key (not the bare 'effect:perfect_balance' M1 needs) since the Attack half above already claims that key for the same effect id -- same convention as effect:adaptive_tide.physical/.magic.",
+});
+// Expanding Mind (Divine Regalia): +1 Magic per 5 effective Knowledge
+// above 50, read live every recompute -- expandingMindMagicBonus
+// (combat.js) is the exact formula effectiveMagic used inline before
+// this migration.
+registerModifier("effect:expanding_mind", {
+  source: { kind: "effect", id: "expanding_mind" },
+  hook: statHook("magic"), order: 20, bucket: null, value: (ctx) => expandingMindMagicBonus(ctx.holder), behavior: null, params: null,
+  when: null, holders: ["player"], state: null, statBonus: true,
+  notes: "Expanding Mind.",
+});
+// The Empty Hand (Artifact): +50% Attack/+25% Defense with no Off-Hand
+// equipped, applied LAST on top of every other atk/def source --
+// `statMultiplier: true` (see calculateStatMultiplier's own header),
+// two entries (one per stat) for the same reason Perfect Balance needed
+// two. `when` carries the !equipment.offhand half of today's gate;
+// `source.kind: "effect"` carries the hasEffect half.
+registerModifier("effect:empty_hand", {
+  source: { kind: "effect", id: "empty_hand" },
+  hook: statHook("atk"), order: 900, bucket: null, value: 1.5, behavior: null, params: null,
+  when: (ctx) => !ctx.holder.equipment.offhand, holders: ["player"], state: null, statMultiplier: true,
+  notes: "The Empty Hand, Attack half.",
+});
+registerModifier("effect:empty_hand.def", {
+  source: { kind: "effect", id: "empty_hand" },
+  hook: statHook("def"), order: 900, bucket: null, value: 1.25, behavior: null, params: null,
+  when: (ctx) => !ctx.holder.equipment.offhand, holders: ["player"], state: null, statMultiplier: true,
+  notes: "The Empty Hand, Defense half. Compound key, same reasoning as effect:perfect_balance.def above.",
+});
+// Master of Arms (Artifact): a cross-cutting amplifier, not a damage
+// multiplier of its own -- 2e §3 ruling (Tyler, 20 Nov). `amplifies`
+// lists every effect key it doubles (EFFECT_DEFS.master_of_arms's own
+// description: "only for passives with a well-defined 'doubled'
+// meaning" -- each one's own specific doubled value, not a generic x2,
+// since Kingslayer's 1.25x->1.5x and Execution Protocol's 2->3 are
+// each their own number). `hook`/`holders` are nominal (never dispatched
+// -- calculateOutgoingMultiplier's own filter excludes `amplifies`
+// entries explicitly, same as `upgrades`), since masterOfArmsDoubles
+// (combat.js) is the real consumer: every one of its 9 call sites now
+// reads THIS entry's own `amplifies` array as the source of truth,
+// instead of an implicit, undocumented list. 5 of the 8 keys already
+// have their own calculateDamage.outgoing entries (kingslayer,
+// hunters_instinct, arcane_overflow, execution_protocol, temporal_echo);
+// soul_leech/blood_debt/spell_echo don't yet (2e-1/2e-2 territory) --
+// masterOfArmsDoubles already works correctly for all 8 regardless,
+// since it only ever reads this array and mainhandGrants, neither of
+// which cares whether the AMPLIFIED effect itself has its own entry yet.
+registerModifier("effect:master_of_arms", {
+  source: { kind: "effect", id: "master_of_arms" },
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: null, behavior: null,
+  when: null, holders: ["player"], state: null,
+  amplifies: ["kingslayer", "hunters_instinct", "arcane_overflow", "execution_protocol", "temporal_echo", "soul_leech", "blood_debt", "spell_echo"],
+  notes: "Master of Arms. Main-hand weapon passives trigger twice if applicable -- see masterOfArmsDoubles (combat.js) for the actual gate (hasEffect + mainhandGrants(effectId)), now reading this entry's own amplifies array.",
+});
+// applyAndReact.onActionUsed (2e §3 follow-up, 20 Nov, Tyler's own
+// ruling): the first applyAndReact.* hook this registry actually
+// dispatches (2e-1 through 2e-5 build out the rest, onHitDealt/onKill/
+// etc). Fires whenever a TAGGED action resolves, hit or miss -- entries
+// match via `when` reading ctx.actionTags (the acting action's own
+// static `tags` array: ELEMENT_ABILITIES.*.action.tags/TACTICS.feint.action.tags),
+// not a per-action id check, so dispatch stays generic even though
+// only two call sites exist today (useElementAbility, useFeint). Lines
+// are optional per entry (most behaviors here return nothing); returns
+// the concatenation of whatever every matching entry's own behavior
+// produced, pushed by the caller the same way applyEndlessStudy/
+// applyWanderersReward already are.
+function runOnActionUsed(holder, holderRole, ctx) {
+  const results = runHook("applyAndReact.onActionUsed", holder, holderRole, ctx);
+  const lines = [];
+  for (const r of results) {
+    if (typeof r.result === "string") lines.push(r.result);
+    else if (Array.isArray(r.result)) lines.push(...r.result);
+  }
+  return lines;
+}
+// Seedbearer (Divine Regalia): heals 10% max HP every 3rd element-ability
+// cast, hit or miss. combat.player.spellCastCounter itself stays a
+// shared, unconditional, inline increment (useElementAbility) -- NOT
+// moved into this entry's own state, since Eureka (not yet migrated)
+// reads the exact same running counter (`% 4 === 0`); moving it here
+// would desync Eureka's own future trigger from it. `ctx.spellCastCounter`
+// carries the CURRENT count (read after the shared increment, same
+// value the old inline check read). No state of its own is needed --
+// there's nothing effect-specific to track beyond the shared count.
+registerBehavior("seedbearerHeal", (ctx) => {
+  if (ctx.spellCastCounter % 3 !== 0) return undefined;
+  const { healed, lines } = applyHeal(ctx.holder, Math.ceil(ctx.holder.maxHealth * 0.1));
+  return healed > 0 ? [`Seedbearer blooms — you're mended for ${healed} health.`, ...lines] : undefined;
+});
+registerModifier("effect:seedbearer", {
+  source: { kind: "effect", id: "seedbearer" },
+  hook: "applyAndReact.onActionUsed", order: 10, bucket: null, value: null, behavior: "seedbearerHeal", params: null,
+  when: (ctx) => ctx.actionTags.includes("elementAbility"), holders: ["player"], state: null,
+  notes: "Seedbearer. Matches every element cast via the 'elementAbility' tag, hit or miss -- today's own exact scope (the inline check ran unconditionally on cast, before the hit roll).",
+});
+// Siege Corps:6 (set bonus): banks a one-shot +2 Attack "next turn"
+// whenever Brace's own gear bonus fires during Feint's or Earth's
+// retaliation-defense step. Unlike Seedbearer's counter, nothing else
+// reads this charge, so it moves fully into this entry's own state
+// (`charge`), per Tyler's own ruling -- consumeSiegeCorpsAtkCharge/
+// peekSiegeCorpsAtkCharge (combat.js) now read/clear it there instead
+// of combat.player.siegeCorpsAtkCharge (retired, including its
+// PLAYER_FIELDS/init-default entries).
+registerBehavior("siegeCorpsChargeGrant", (ctx, entry, holderState) => {
+  if (!hasEffect(ctx.holder, "brace")) return undefined;
+  holderState.charge = 2;
+  return undefined;
+});
+registerModifier("set:Siege Corps:6", {
+  source: { kind: "set", id: "Siege Corps:6", setName: "Siege Corps", tier: 6 },
+  hook: "applyAndReact.onActionUsed", order: 11, bucket: null, value: null, behavior: "siegeCorpsChargeGrant", params: null,
+  when: (ctx) => ctx.actionTags.includes("appliesBraceDefense"), holders: ["player"], state: { charge: 0 },
+  notes: "Siege Corps 6pc. Matches Feint and Earth (the only two actions whose retaliation-defense step includes Brace's own bonus) via the 'appliesBraceDefense' tag; still gated on hasEffect(holder, 'brace') inside the behavior itself, exactly matching today's `hasEffect(state,'brace') && hasSetTier(state,'Siege Corps',6)` pair.",
+});
+registerModifier("effect:adaptive_ward", {
+  source: { kind: "effect", id: "adaptive_ward" },
+  hook: "calculateDamage.incoming", order: 1, bucket: "incomingMitigation", abilityPhase: true,
+  value: null, behavior: "adaptiveWardRatio", params: null,
+  when: (ctx) => ctx.kind === "magic", holders: ["player", "ally"], state: null,
+  notes: "Adaptive Ward. Magic-only (today's own code only ever reads it inside the creature.element-gated magic branches).",
 });

@@ -775,6 +775,15 @@ const M1_OUT_OF_COMBAT_SET_TIERS = new Set([
   "Mugamiir Safor:6", "Sandstrider:6", "Tide Merchant:6", "Master Appraiser:6",
 ]);
 
+// M1 out-of-combat exemption, EFFECT_DEFS side (2e §3 rulings, Tyler, 20
+// Nov): dual_focus (raises the trinket equipment-slot cap by 1) and
+// conduit_ascendant (an equip-time tertiary-element choice) are both
+// live but equip/inventory mechanics, never read inside combat at all
+// -- same P2-6 "out: non-combat effects" exemption the SETS-tier list
+// above already uses, just on the EFFECT_DEFS side, which had no
+// equivalent list until now.
+const M1_OUT_OF_COMBAT_EFFECT_IDS = new Set(["dual_focus", "conduit_ascendant"]);
+
 // M1: every combat-relevant EFFECT_DEFS id, and every SETS tier that
 // grants a `special` or `effects` bonus (a flat `bonuses: {...}` tier
 // needs no registry entry — stat() reads those directly, unchanged),
@@ -786,7 +795,7 @@ const M1_OUT_OF_COMBAT_SET_TIERS = new Set([
 for (const [id, def] of Object.entries(EFFECT_DEFS)) {
   if (!M1_COMBAT_EFFECT_CATEGORIES.has(def.category)) continue;
   if (isTextuallyInert(def.description)) continue;
-  if (M1_DEFERRED_EFFECT_IDS.has(id) || M1_GROUP_COVERED_EFFECT_IDS.has(id) || M1_BUCKET_EXEMPT_EFFECT_IDS.has(id)) continue;
+  if (M1_DEFERRED_EFFECT_IDS.has(id) || M1_GROUP_COVERED_EFFECT_IDS.has(id) || M1_BUCKET_EXEMPT_EFFECT_IDS.has(id) || M1_OUT_OF_COMBAT_EFFECT_IDS.has(id)) continue;
   if (!MODIFIERS_TABLE[`effect:${id}`]) warn("modifiers", `EFFECT_DEFS.${id} (${def.category}) has no registry entry yet (M1)`);
 }
 for (const [setName, set] of Object.entries(SETS)) {
@@ -842,12 +851,20 @@ for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
   // calculateDamage.cap (2d increment 3, 19 Nov) is exempt for the same
   // reason, per Tyler's own ruling: "a damage-value cap... outside the
   // buckets" -- Unyielding Wall/Perfect Fleshcraft apply last, after
-  // every bucket, and are never themselves capped. An `upgrades` entry
-  // (Rule 1, Amendment 1 gap close, 19 Nov) is exempt too -- it never
-  // contributes its own factor to a bucket sum (every combinator already
-  // skips it; resolveUpgradedValue is what actually reads it), so
-  // `bucket: null` on one of these is correct, not an oversight.
-  if (entry.hook && entry.hook.startsWith("calculateDamage.") && entry.hook !== "calculateDamage.tags" && entry.hook !== "calculateDamage.cap" && !entry.bucket && !entry.upgrades) {
+  // every bucket, and are never themselves capped. calculateDamage.baseRoll
+  // (2e §3 follow-up, 20 Nov) is exempt too: a base-roll behaviour
+  // (Arcane Convergence's reroll-for-advantage) runs BEFORE any
+  // multiplier bucket even exists, per Tyler's own ruling, not inside
+  // one. An `upgrades` entry (Rule 1, Amendment 1 gap close, 19 Nov) is
+  // exempt too -- it never contributes its own factor to a bucket sum
+  // (every combinator already skips it; resolveUpgradedValue is what
+  // actually reads it), so `bucket: null` on one of these is correct,
+  // not an oversight. An `amplifies` entry (Master of Arms, 2e §3
+  // ruling, 20 Nov) is exempt for the same reason as `upgrades` --
+  // calculateOutgoingMultiplier's own filter already skips it, and the
+  // amplified entries' own value functions read its `amplifies` array
+  // directly (masterOfArmsDoubles, combat.js), not through any bucket.
+  if (entry.hook && entry.hook.startsWith("calculateDamage.") && entry.hook !== "calculateDamage.tags" && entry.hook !== "calculateDamage.cap" && entry.hook !== "calculateDamage.baseRoll" && !entry.bucket && !entry.upgrades && !entry.amplifies) {
     warn("modifiers", `MODIFIERS["${key}"] is a damage/defense multiplier with no bucket (M3)`);
   }
   // Amendment 1 (18 Nov): an entry with neither `behavior` nor a non-
@@ -856,7 +873,16 @@ for (const [key, entry] of Object.entries(MODIFIERS_TABLE)) {
   // DOES, so widening its holders (R1/R2) would reach nothing. That was
   // 2b/2c's first-pass mistake before this amendment; flagged here so
   // it can't silently recur.
-  if (entry.behavior == null && entry.value == null) {
+  // An `amplifies` entry is a deliberate exception to presence-only:
+  // its own "value" IS its amplifies array, read directly by the
+  // amplified entries' own functions (masterOfArmsDoubles) rather than
+  // computed and returned the normal way -- there's no number for this
+  // entry itself to hold. Widening ITS OWN holders still does nothing
+  // (the same Amendment 1 concern) since the amplified entries each
+  // read combat.js's own hasEffect(state, "master_of_arms") directly,
+  // not this entry's holders array -- a pre-existing scope limit, not
+  // introduced by this field.
+  if (entry.behavior == null && entry.value == null && !entry.amplifies) {
     warn("modifiers", `MODIFIERS["${key}"] is presence-only (no behavior, no value) -- widening its holders would do nothing (M3, Amendment 1)`);
   }
 }

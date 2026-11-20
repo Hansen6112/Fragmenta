@@ -676,6 +676,15 @@ function ambushMultiplier(state, holderRole) {
   return resolveUpgradedValue("effect:ambush", base, state, holderRole || "player", "max");
 }
 
+// Feint's own damage bonus: base 1.6x; Patient Aim raises it to 1.75x.
+// Tag "effect:feint" -- same Rule 3 ("class mechanics stay outside the
+// buckets, same as an action's own dmgMult") as Ambush's own tag above;
+// Feint's bonus is consumed only when action.consumesFeintBonus &&
+// combat.player.nextAttackBonus, never through calculateDamage.outgoing.
+function feintMultiplier(state, holderRole) {
+  return resolveUpgradedValue("effect:feint", 1.6, state, holderRole || "player", "max");
+}
+
 // Armor Crack's flat Defense ignored: base 2 (only relevant with the item
 // effect equipped); Siege Corps 4pc doubles it to 4.
 function armorCrackAmount(state) {

@@ -30,7 +30,10 @@ const TACTICS = {
     // the shape for the audit (P2) and the coverage table; the mechanic
     // itself (sets state.combat.player.nextAttackBonus, consumed by
     // basic_attack's own consumesFeintBonus field) stays in useFeint.
-    action: { actorKinds: ["player"], actionType: "tactic", targeting: "self", toHit: "none", damage: null },
+    // tags: "appliesBraceDefense" (2e §3 follow-up, 20 Nov) -- Feint's
+    // own retaliation-defense branch is where hasEffect(state,"brace")
+    // is checked today (combat.js's useFeint), same as Earth's.
+    action: { actorKinds: ["player"], actionType: "tactic", targeting: "self", toHit: "none", damage: null, tags: ["appliesBraceDefense"] },
   },
   decoy: {
     name: "Decoy",

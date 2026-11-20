@@ -1665,7 +1665,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
   if (isSpell) {
     const magic = effectiveMagic(state);
     let base = randInt(magic - 2, magic + 2);
-    if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
+    base = calculateBaseRollAdvantage(state, "player", { holder: state, role: "player", base, magic });
     const multiplier = 1 + magic / 60;
     // Damage Types v2 (step 2d, off by default): tags replace the old
     // element-vs-element matchup cycle -- see enemyCore's own identical
@@ -1826,7 +1826,7 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
 
   let feintBonusApplied = false;
   if (action.consumesFeintBonus && state.combat.player.nextAttackBonus) {
-    const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
+    const feintMult = feintMultiplier(state, "player");
     dmg = Math.round(dmg * feintMult);
     state.combat.player.nextAttackBonus = false;
     feintBonusApplied = true;
@@ -2349,10 +2349,17 @@ function useElementAbility(state, elementKey) {
   out.push(...resolveSpeedInitiative(state, creature));
   if (!state.combat || state.health <= 0) return out;
   state.combat.player.spellCastCounter = (state.combat.player.spellCastCounter || 0) + 1;
-  if (hasEffect(state, "seedbearer") && state.combat.player.spellCastCounter % 3 === 0) {
-    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
-    if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
-  }
+  // Seedbearer (2e §3 follow-up, 20 Nov): dispatched via the registry
+  // (applyAndReact.onActionUsed, "elementAbility" tag -- every element
+  // shares it, via pipelinedElementAction). spellCastCounter itself
+  // stays this exact shared, unconditional, flat field -- read into
+  // ctx, not owned by Seedbearer's own entry state (Eureka, below,
+  // reads the same counter and isn't migrated yet). Passes only
+  // ["elementAbility"] here, NOT a.action.tags in full -- earth's own
+  // tags array also carries "appliesBraceDefense", which must only
+  // match at ITS OWN later dispatch call (after Stoneskin's defBuff is
+  // set), not here, or Siege Corps:6 would double-fire for an Earth cast.
+  out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["elementAbility"], spellCastCounter: state.combat.player.spellCastCounter }));
   out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"), ...applyPerfectMemory(state, elementKey));
   consumeTrailblazer(state);
   let cooldown = a.cooldown;
@@ -2450,9 +2457,15 @@ function useElementAbility(state, elementKey) {
     state.combat.player.defBuffTurns = 3;
     state.combat.player.defBuffAmount = defBonus;
     out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
-    if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
-      state.combat.player.siegeCorpsAtkCharge = 2;
-    }
+    // 2e §3 follow-up (20 Nov): Siege Corps:6, dispatched via the
+    // registry (applyAndReact.onActionUsed, "appliesBraceDefense" tag) --
+    // same call as useFeint's own, matching today's exact pair of
+    // conditions (the entry's own behavior still checks hasEffect(holder,"brace")).
+    // Passes only ["appliesBraceDefense"] here (not the full earth tags
+    // array, which also carries "elementAbility" -- Seedbearer's own
+    // dispatch already ran once, earlier, right after resolveSpeedInitiative;
+    // it must not match again here).
+    out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["appliesBraceDefense"] }));
   } else {
     const enemySlot = {
       creatureObj: creature,

@@ -138,6 +138,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       ['effect:timeless_guard', 'cooldown', 'timelessGuardCooldown'],
       ['effect:evasive_guard', 'stacks', 'evasiveGuardBonus'],
       ['set:River Warden:6', 'stacks', 'riverWardenMagicBonus'],
+      ['set:Siege Corps:6', 'charge', 'siegeCorpsAtkCharge'],
     ];
     function mapMovedFieldsBack(x) {
       if (Array.isArray(x)) return x.map(mapMovedFieldsBack);
@@ -288,7 +289,7 @@ const frozenIn = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
       element: 'fire', seq: LOW, mutate: (s, creature) => { creature.braceBonusDef = 3; creature.guardedStrikeBonusDef = 2; },
     });
     checkParity('P1E-III-SIEGECORPS-01', "Fire: Siege Corps' charge purity fix produces the identical roll (an element cast is always the spell branch, so this never actually fires -- but must still produce identical output either way)", useElementAbilityWrap, {
-      element: 'fire', seq: LOW, mutate: (s) => { s.combat.player.siegeCorpsAtkCharge = 2; },
+      element: 'fire', seq: LOW, mutate: (s) => { modifierStateFor(s, 'player', 'set:Siege Corps:6', MODIFIERS['set:Siege Corps:6']).charge = 2; },
     });
 
     // ============ Cross-cutting (synergy / Spell Echo / kill-after-synergy ordering) ============

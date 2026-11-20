@@ -158,6 +158,7 @@ const frozenIn = FREEZE ? {} : JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'))
       ['effect:timeless_guard', 'cooldown', 'timelessGuardCooldown'],
       ['effect:evasive_guard', 'stacks', 'evasiveGuardBonus'],
       ['set:River Warden:6', 'stacks', 'riverWardenMagicBonus'],
+      ['set:Siege Corps:6', 'charge', 'siegeCorpsAtkCharge'],
     ];
     function mapMovedFieldsBack(x) {
       if (Array.isArray(x)) return x.map(mapMovedFieldsBack);
