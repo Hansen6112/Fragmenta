@@ -1876,16 +1876,17 @@ function consumeTrailblazer(state) {
   }
 }
 
-// Open Road (Divine Regalia — Wayfinder's Compass) and Blessing of
-// Freedom's (Regalia of the Endless Horizon 2pc) heal-on-evade both key
-// off the same "the enemy's retaliation this turn dealt zero damage"
-// signal Every Choice Matters/Threads of Consequence/Unlikely Outcome
-// already use — called at the same 5 call sites as
-// applyDodgeBlockNegateBonuses. Unlike Twist of Fate (Regalia of the
-// Laughing Gale), which was deliberately scoped to only that set's OWN
-// randomness to avoid overtriggering off unrelated procs, Aethyra's whole
-// theme IS broad evasion itself, so both of these fire off any dodge/
-// miss/block/negate/evasion, regardless of which effect actually caused it.
+// Open Road (Divine Regalia — Wayfinder's Compass): keys off the same
+// "the enemy's retaliation this turn dealt zero damage" signal Every
+// Choice Matters/Threads of Consequence/Unlikely Outcome already use —
+// called at the same 5 call sites as applyDodgeBlockNegateBonuses.
+// Blessing of Freedom's own heal-on-evade used to live here too
+// (broadly gated on this same zero-damage signal, which also covers
+// Timeless Guard's own "negation" and Guardian Spirit's own block, not
+// just a genuine evasion) -- retired (2e-2 bug fix, 20 Nov, Tyler):
+// now set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal
+// (js/data/modifiers.js), dispatched via applyAndReact.onEvade, fired
+// only from the 3 mechanics the item's own text calls "Evasion."
 function applyEndlessHorizonEvasionBonuses(state) {
   if (!state.combat) return [];
   const combat = state.combat;
@@ -1899,13 +1900,6 @@ function applyEndlessHorizonEvasionBonuses(state) {
       }
     }
     if (eased) lines.push(`Open Road — the path clears; every active cooldown eases by a turn.`);
-  }
-  if (hasSetTier(state, "Regalia of the Endless Horizon", 2)) {
-    const heal = Math.ceil(state.maxHealth * 0.05);
-    if (heal > 0) {
-      const { healed, lines: healLines } = applyHeal(state, heal);
-      if (healed > 0) lines.push(`Blessing of Freedom mends you for ${healed} health.`, ...healLines);
-    }
   }
   return lines;
 }

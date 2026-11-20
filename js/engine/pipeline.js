@@ -276,7 +276,12 @@ function rollToHit(actor, target, action, ctx) {
   const combat = state.combat;
   const creature = actor.ref.creatureObj;
   const { abilityCtx, basicFirstBonus } = action;
-  const miss = (line) => ({ hit: false, result: { lines: [line], damage: 0 } });
+  // 2e-2 bug fix (20 Nov): accepts either a single line or an array --
+  // Blessing of Freedom's own entry (rollToHit.defender, "miss" phase)
+  // now returns an array (its own miss line plus whatever
+  // applyAndReact.onEvade's heal entry produced), the other 4 "miss"
+  // phase members still return a bare string, unchanged.
+  const miss = (line) => ({ hit: false, result: { lines: Array.isArray(line) ? line : [line], damage: 0 } });
   const baseAccBonus = (abilityCtx && abilityCtx.accBonus) || (basicFirstBonus && basicFirstBonus.accBonus) || 0;
 
   // Step 1f-iii §4: a reaction declares its own, much simpler to-hit
@@ -368,10 +373,18 @@ function rollToHit(actor, target, action, ctx) {
   // Math.random() call sequence matches exactly, and the first one that
   // fires stops the rest from even being evaluated, same as today's
   // sequential if/return chain.
-  const missChain = firstStop(runHook("rollToHit.defender", state, "player", { phase: "miss", creature }));
+  // `state`/`holder`/`role` added to this ctx (2e-2 bug fix, 20 Nov) so
+  // Blessing of Freedom's own behavior (blessingOfFreedomEvade) can
+  // dispatch applyAndReact.onEvade on success -- inert for the other 4
+  // "miss" phase members, which never read these fields.
+  const missChain = firstStop(runHook("rollToHit.defender", state, "player", { phase: "miss", creature, state, holder: state, role: "player" }));
   if (missChain) return miss(missChain.miss);
   if (combat.player.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
-    return miss(`Avatar of Freedom carries you beyond its reach entirely.`);
+    // Avatar of Freedom's own Evasion roll (2e-2 bug fix, 20 Nov): one
+    // of the 3 mechanics the game's own item text calls "Evasion" --
+    // dispatches applyAndReact.onEvade for Blessing of Freedom's heal.
+    const evadeLines = runReactionHook("applyAndReact.onEvade", state, "player", { state, holder: state, role: "player" });
+    return miss([`Avatar of Freedom carries you beyond its reach entirely.`, ...evadeLines]);
   }
   let evasionRolled = false;
   if (combat.player.evasionCharges > 0) {
@@ -385,7 +398,12 @@ function rollToHit(actor, target, action, ctx) {
     // registry dispatch, now reacting to an evasion that already
     // succeeded rather than deciding it themselves.
     runHook("rollToHit.defender", state, "player", { phase: "evasion", creature });
-    return miss(`You slip past ${withThe(creature.name, false)}'s counter entirely.`);
+    // 2e-2 bug fix (20 Nov): the dedicated evasionCharges/evasionTurns
+    // roll is one of the 3 mechanics the game's own item text calls
+    // "Evasion" -- dispatches applyAndReact.onEvade for Blessing of
+    // Freedom's heal.
+    const evadeLines = runReactionHook("applyAndReact.onEvade", state, "player", { state, holder: state, role: "player" });
+    return miss([`You slip past ${withThe(creature.name, false)}'s counter entirely.`, ...evadeLines]);
   }
   return { hit: true, accBonus, bankedPrepDmgMultBonus };
 }

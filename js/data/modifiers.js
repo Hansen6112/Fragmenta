@@ -38,6 +38,14 @@ const MOD_HOOKS = [
   // per-round reroll, a miss triggering Unlikely Outcome) -- Twist of
   // Fate's own home.
   "applyAndReact.onFavorableRoll",
+  // applyAndReact.onEvade (2e-2 bug fix, 20 Nov, Tyler, approved):
+  // fires whenever the player evades an attack, from any source of
+  // evasion -- exactly the mechanics the game's own item text calls
+  // "Evasion" (evasionCharges/evasionTurns' dedicated dodge roll, Avatar
+  // of Freedom's own roll, Blessing of Freedom's own roll), not every
+  // miss/negation in rollToHit.defender's broader "miss" phase chain.
+  // Blessing of Freedom's own home.
+  "applyAndReact.onEvade",
   // heal.incoming / heal.overflow (2e-1, 20 Nov): healFighter's own two
   // dispatch points -- see that function's header (combat.js) for the
   // full "one way in" shape (heal.incoming, applyHealing, heal.overflow).
@@ -674,6 +682,22 @@ registerBehavior("blockFlatChance", (ctx, entry) => {
   if (Math.random() < entry.params.chance) return { stop: true, miss: entry.params.line };
   return null;
 });
+// Blessing of Freedom's own 15% roll (2e-2 bug fix, 20 Nov): the same
+// blockFlatChance roll/shape, but this is one of the 3 mechanics the
+// game's own item text calls "Evasion" (not just "miss"), so a success
+// here ALSO dispatches applyAndReact.onEvade -- a dedicated behavior
+// instead of the shared blockFlatChance, purely for that one extra
+// dispatch. `ctx` here carries `state`/`holder`/`role` (added to the
+// "miss" phase's own ctx construction, rollToHit, pipeline.js) so this
+// can reach healFighter the same way every other applyAndReact entry
+// does. Returns `miss` as an array (line + whatever onEvade's own
+// entries produced) -- the "miss" phase's caller now accepts either a
+// string or a string[] for this exact reason.
+registerBehavior("blessingOfFreedomEvade", (ctx, entry) => {
+  if (Math.random() >= entry.params.chance) return null;
+  const evadeLines = runReactionHook("applyAndReact.onEvade", ctx.holder, ctx.role, ctx);
+  return { stop: true, miss: [entry.params.line, ...evadeLines] };
+});
 // Same block-outright shape as blockFirstHitOncePerFight, but gated by
 // a cooldown (ticked externally via tickModifierCooldown) instead of a
 // single per-fight use. params: { cooldown, line }.
@@ -975,10 +999,10 @@ registerModifier("effect:never_where_expected", {
 });
 registerModifier("set:Regalia of the Endless Horizon:2", {
   source: { kind: "set", id: "Regalia of the Endless Horizon:2", setName: "Regalia of the Endless Horizon", tier: 2 },
-  hook: "rollToHit.defender", order: 50, bucket: null, value: null, behavior: "blockFlatChance",
+  hook: "rollToHit.defender", order: 50, bucket: null, value: null, behavior: "blessingOfFreedomEvade",
   params: { chance: 0.15, line: "Blessing of Freedom carries you clear of the blow." },
   when: (ctx) => ctx.phase === "miss", holders: ["player"], state: null,
-  notes: "Blessing of Freedom. Same behavior as Never Where Expected, reused rather than redefined.",
+  notes: "Blessing of Freedom's own 15% Evasion chance. 2e-2 bug fix (20 Nov): behavior changed from the shared blockFlatChance to blessingOfFreedomEvade (same roll/shape) so a success also dispatches applyAndReact.onEvade for the heal -- see set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal, right below.",
 });
 registerModifier("effect:evasive_guard", {
   source: { kind: "effect", id: "evasive_guard" }, hook: "rollToHit.defender", order: 60,
@@ -2438,6 +2462,30 @@ registerModifier("always:avatar_of_renewal_heal", {
   },
   when: (ctx) => ctx.holder.combat.player.avatarOfRenewalTurns > 0, holders: ["player"], state: null,
   notes: "Avatar of Renewal (Regalia of the Endless Tide 6pc): restore 10% max Health at the end of every round during its 4-round window. source:'always' -- no hasSetTier re-check at this read site, same precedent as Avatar of Devotion/Endurance's own heal.incoming entries (the window itself could only ever be granted by that set bonus elsewhere). Found during 2e-1's own re-verification: this is a REAL, direct heal, not buff-grant-only like its sibling Avatars -- the initial research pass miscatalogued it; confirmed directly against beginTurn's own code before writing this entry.",
+});
+
+// Blessing of Freedom's heal half (2e-2 bug fix, 20 Nov, Tyler, approved):
+// "Whenever you evade an attack (from any source), restore 5% max
+// Health." This was already implemented, inline, broadly gated on ANY
+// zero-damage retaliation (applyEndlessHorizonEvasionBonuses, combat.js --
+// Timeless Guard's own "negation" and Guardian Spirit's own block both
+// satisfied that gate too, not just a genuine evasion); that inline
+// clause is retired, replaced by this entry, narrowly gated on
+// applyAndReact.onEvade -- fired only from the 3 mechanics the item text
+// itself calls "Evasion" (this set's own 15% roll, rollToHit.defender
+// above, Avatar of Freedom's own roll, evasionCharges/evasionTurns'
+// dedicated dodge roll). No switch: restores a bonus the item already
+// promises, like Fragmenta 6pc -- not a widening of who/what this
+// reaches.
+registerModifier("set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal", {
+  source: { kind: "set", id: "Regalia of the Endless Horizon:2", setName: "Regalia of the Endless Horizon", tier: 2 },
+  hook: "applyAndReact.onEvade", order: 10, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.05, round: "ceil", target: "self", heal: true, maxPerTrigger: 0.05,
+    message: (healed) => `Blessing of Freedom mends you for ${healed} health.`,
+  },
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of Freedom: restore 5% max Health whenever you evade an attack, from any source.",
 });
 
 // ================= 2e-1 close-out: applyAndReact.onLowHealth =================
