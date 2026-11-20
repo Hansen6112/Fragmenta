@@ -28,6 +28,10 @@ const MOD_HOOKS = [
   "applyAndReact.onHitDealt", "applyAndReact.onHitTaken", "applyAndReact.onMiss",
   "applyAndReact.onZeroDamage", "applyAndReact.onKill", "applyAndReact.onDowned",
   "applyAndReact.onStatusApplied", "applyAndReact.onActionUsed",
+  // heal.incoming / heal.overflow (2e-1, 20 Nov): healFighter's own two
+  // dispatch points -- see that function's header (combat.js) for the
+  // full "one way in" shape (heal.incoming, applyHealing, heal.overflow).
+  "heal.incoming", "heal.overflow",
   "fight.start", "round.start", "turn.start", "fight.end",
   "cheatDeath",
   // statusTick.incoming (2d increment 3, Tyler 19 Nov, Bucket Review §3):
@@ -533,6 +537,42 @@ function calculateStatusTickMultiplier(holder, holderRole, ctx) {
     total *= typeof r.result === "number" ? r.result : 1;
   }
   return total;
+}
+
+// heal.incoming (2e-1, 20 Nov): the healing-RECEIVED chain healFighter
+// (combat.js) runs before writing HP -- today's own applyHeal body,
+// unchanged in order/rounding, just moved into registry entries:
+// Flourishing Soul (1.5x), Blessing of Compassion/Eternal Heart:2
+// (1.25x), Avatar of Devotion (2x, reads combat.player.avatarOfDevotionTurns),
+// Avatar of Endurance (1.5x, reads combat.player.avatarOfEnduranceTurns),
+// Mercy's Gift (1.5x below 50% HP), healingReceivedPct status total
+// (Ashen Lungs and anything else in that family). Same sequential,
+// per-step-rounding shape as calculateIncomingDamage -- reuses
+// threadIncomingEntries directly, since "Math.round(amt * v)" each
+// step is exactly today's own chain. `upgrades` entries are excluded
+// the same way every other combinator already does.
+function calculateHealIncoming(holder, holderRole, ctx, amount) {
+  const entries = modifiersForHook(holder, holderRole, "heal.incoming", ctx).filter((e) => !e.upgrades);
+  return threadIncomingEntries(entries, ctx, holder, holderRole, amount);
+}
+
+// heal.overflow (2e-1, 20 Nov): dispatched once, right after the HP
+// write, with ctx.overflow set to the pre-clamp amount minus the
+// actual amount healed. One member today, Regalia of the First
+// Bloom:4 (Overflowing Life) -- returns an optional output line
+// (string or string[]), not a number; nothing here feeds back into
+// the heal amount itself, so this isn't threaded like heal.incoming.
+function calculateHealOverflow(holder, holderRole, ctx) {
+  const entries = modifiersForHook(holder, holderRole, "heal.overflow", ctx);
+  const lines = [];
+  for (const entry of entries) {
+    const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    const holderState = modifierStateFor(holder, holderRole, key, entry);
+    const result = entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+    if (typeof result === "string") lines.push(result);
+    else if (Array.isArray(result)) lines.push(...result);
+  }
+  return lines;
 }
 
 // calculateDamage.incoming, ENEMY-as-defender variant (2d increment 3b,
@@ -1999,6 +2039,48 @@ function runOnActionUsed(holder, holderRole, ctx) {
   }
   return lines;
 }
+// Generic applyAndReact.*/lifecycle reaction dispatcher (2e-1, 20 Nov):
+// same "run every matching entry, collect whatever optional line(s) it
+// returns" shape as runOnActionUsed above, generalized to any hook name
+// -- reused for every heal SOURCE's own real trigger (onHitDealt, onKill,
+// round.start, turn.start, fight.start, fight.end, onZeroDamage) instead
+// of writing one near-identical wrapper per hook. runOnActionUsed itself
+// is left exactly as-is (already shipped/tested); this is the general
+// form it could have been built from.
+function runReactionHook(hook, holder, holderRole, ctx) {
+  const results = runHook(hook, holder, holderRole, ctx);
+  const lines = [];
+  for (const r of results) {
+    if (typeof r.result === "string") lines.push(r.result);
+    else if (Array.isArray(r.result)) lines.push(...r.result);
+  }
+  return lines;
+}
+// Dispatches exactly ONE named registry entry, not every entry sharing
+// its hook (2e-1, 20 Nov) -- needed where several turn.start heals sit
+// INTERLEAVED with non-heal inline code at their own distinct original
+// call-site positions (beginTurn, combat.js: Living Steel between
+// Heartwood Vitality and Lasting Foundation, Work Refines/Patient
+// Current between Lasting Foundation and Flowing Waters/Avatar of
+// Renewal). Batching them into one runReactionHook call at a single
+// point would reorder their own output lines relative to that
+// interleaved code, breaking byte-identical output whenever more than
+// one fires in the same round. `entry.hook` still names "turn.start"
+// (matching the catalogue's own documented hook assignment); dispatch
+// here is by registry KEY, at the entry's own real call-site position,
+// not hook-driven fan-out.
+function runHookEntry(key, holder, holderRole, ctx) {
+  const entry = MODIFIERS[key];
+  if (!entry || !holder) return [];
+  if (!sourceActiveOn(holder, entry.source)) return [];
+  if (!(entry.holders.includes(holderRole) || entry.holders.includes(holder.id))) return [];
+  if (typeof entry.when === "function" && !entry.when(ctx)) return [];
+  const holderState = modifierStateFor(holder, holderRole, key, entry);
+  const result = entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+  if (typeof result === "string") return [result];
+  if (Array.isArray(result)) return result;
+  return [];
+}
 // Seedbearer (Divine Regalia): heals 10% max HP every 3rd element-ability
 // cast, hit or miss. combat.player.spellCastCounter itself stays a
 // shared, unconditional, inline increment (useElementAbility) -- NOT
@@ -2044,4 +2126,306 @@ registerModifier("effect:adaptive_ward", {
   value: null, behavior: "adaptiveWardRatio", params: null,
   when: (ctx) => ctx.kind === "magic", holders: ["player", "ally"], state: null,
   notes: "Adaptive Ward. Magic-only (today's own code only ever reads it inside the creature.element-gated magic branches).",
+});
+
+// ================= 2e-1: healFighter's heal.incoming chain =================
+// Today's own applyHeal order, unchanged: Flourishing Soul -> Blessing
+// of Compassion (Eternal Heart:2) -> Avatar of Devotion -> Avatar of
+// Endurance -> Mercy's Gift -> healingReceivedPct status total. Every
+// one is a plain ratio (no behavior/state needed -- none of these
+// consume anything; they're live reads, re-evaluated on every heal).
+registerModifier("effect:flourishing_soul", {
+  source: { kind: "effect", id: "flourishing_soul" },
+  hook: "heal.incoming", order: 10, bucket: null, value: 1.5, behavior: null, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Flourishing Soul: +50% healing received.",
+});
+registerModifier("set:Regalia of the Eternal Heart:2", {
+  source: { kind: "set", id: "Regalia of the Eternal Heart:2", setName: "Regalia of the Eternal Heart", tier: 2 },
+  hook: "heal.incoming", order: 20, bucket: null, value: 1.25, behavior: null, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of Compassion: +25% healing received, stacking multiplicatively with Flourishing Soul. The 'removes one minor negative status effect' clause is a pre-existing no-op (nothing in this engine inflicts one on the player) -- untouched, not this entry's concern.",
+});
+// Avatar of Devotion/Avatar of Endurance: both read a turn-counter
+// window (avatarOfDevotionTurns/avatarOfEnduranceTurns) GRANTED by the
+// LOW_HEALTH_REACTIONS table's own checkAvatarOfDevotion/
+// checkAvatarOfEndurance (combat.js) -- that grant mechanic itself is
+// reaction-stat territory (a buff-window trigger, not a heal), out of
+// 2e-1's own scope; this entry only reads the window the same way
+// applyHeal always did. `source: {kind:"always"}` since the window
+// check has no hasSetTier of its own at this exact read site (today's
+// code only tests the turn counter).
+registerModifier("always:avatar_of_devotion_heal", {
+  source: { kind: "always" },
+  hook: "heal.incoming", order: 30, bucket: null, value: (ctx) => (ctx.holder.combat && abilityFlagHost(ctx).avatarOfDevotionTurns > 0) ? 2 : 1, behavior: null, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Devotion: healing doubled for its 4-round window. `ctx.holder.combat` guard -- applyHeal is also called outside combat (resting/arena/dungeon), where the original inline code's own `combat &&` check already made this a no-op; abilityFlagHost assumes combat exists.",
+});
+registerModifier("always:avatar_of_endurance_heal", {
+  source: { kind: "always" },
+  hook: "heal.incoming", order: 40, bucket: null, value: (ctx) => (ctx.holder.combat && abilityFlagHost(ctx).avatarOfEnduranceTurns > 0) ? 1.5 : 1, behavior: null, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Avatar of Endurance: +50% healing received for its 4-round window. Same combat guard as Avatar of Devotion above.",
+});
+registerModifier("effect:mercys_gift", {
+  source: { kind: "effect", id: "mercys_gift" },
+  hook: "heal.incoming", order: 50, bucket: null, value: (ctx) => ctx.holder.health < ctx.holder.maxHealth * 0.5 ? 1.5 : 1, behavior: null, params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Mercy's Gift: +50% healing received while below 50% max Health, checked fresh on every heal (not latched). Proof test (2e-1): widened to ally -- an ally wearing it below 50% HP gets the bonus, one without the gear doesn't.",
+});
+// healingReceivedPct (Ashen Lungs and anything else in that status
+// family): the one entry in this chain that's a genuine widening on an
+// ally, per Tyler's own ruling -- `holders` includes "ally" structurally
+// (the dispatch is wired) but the `when` gate keeps it inert for an
+// ally until R1 is on, matching "holders stay as today" exactly (an
+// ally's own heals read nothing from this today).
+registerModifier("always:healing_received_pct_status", {
+  source: { kind: "always" },
+  hook: "heal.incoming", order: 60, bucket: null, value: (ctx) => {
+    const pct = statusStatPctTotalFor(ctx.holder, ctx.role, "healingReceivedPct");
+    return pct ? 1 + pct : 1;
+  }, behavior: null, params: null,
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "healingReceivedPct status total (Ashen Lungs, off by default -- only ever inflicted when DAMAGE_TYPES_V2 is on). Widening to ally is real (Tyler's own ruling, 2e-1): ally heals read nothing from this today -- gated behind R1, off by default, same discipline as every other staged widening this engagement.",
+});
+
+// heal.overflow: Regalia of the First Bloom:4 (Overflowing Life).
+// Converts unhealed overflow into capped Temporary Health. `ctx.overflow`
+// is populated by healFighter itself, right after the HP write.
+registerBehavior("overflowingLifeConvert", (ctx) => {
+  if (!ctx.holder.combat) return undefined;
+  const host = abilityFlagHost(ctx);
+  const cap = Math.round(ctx.holder.maxHealth * 0.3);
+  const beforeTemp = host.tempHealth || 0;
+  host.tempHealth = Math.min(cap, beforeTemp + ctx.overflow);
+  return host.tempHealth > beforeTemp ? `Overflowing Life — the excess crystallizes into ${host.tempHealth - beforeTemp} Temporary Health.` : undefined;
+});
+registerModifier("set:Regalia of the First Bloom:4", {
+  source: { kind: "set", id: "Regalia of the First Bloom:4", setName: "Regalia of the First Bloom", tier: 4 },
+  hook: "heal.overflow", order: 10, bucket: null, value: null, behavior: "overflowingLifeConvert", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Overflowing Life: unhealed overflow converts to Temporary Health, capped at 30% max Health.",
+});
+
+// ================= 2e-1: heal SOURCES (healOnEvent) =================
+// The shared behavior for most heal sources below, each hooked on its
+// own REAL trigger (applyAndReact.onHitDealt/.onKill, round.start,
+// turn.start, fight.start, fight.end, applyAndReact.onZeroDamage --
+// dispatched via runReactionHook, above, at that trigger's own real call
+// site). entry.params: { basis: "maxHp"|"damageDealt"|"flat", pct, flat,
+// round: "round"|"ceil"|"floor" (default "round"), min (an optional
+// floor), target: "self" (heals ctx.holder; reserved for a future
+// non-self heal per Tyler's own "target: 'self' | …"), message:
+// (healed, ctx) => string | undefined (this source's own flavor line).
+// `round`/`min` aren't in Tyler's own named vocabulary (basis/pct/flat/
+// target) -- added because each source's EXISTING code rounds
+// differently (Math.round/ceil/floor, several with no minimum, a couple
+// with Math.max(1, ...)) and byte-identical output means preserving each
+// one's own real rounding, not guessing a single rule for all 34.
+// Precondition gating (e.g. soul_leech's own `state.health <
+// state.maxHealth` skip) lives in each entry's own `when`, NOT here --
+// skipping the heal.overflow dispatch when a source's own precondition
+// would have skipped the heal entirely is the whole reason this can't
+// just rely on healFighter's healed<=0 short-circuit (overflow can still
+// be positive at exactly full HP, which would wrongly fire Overflowing
+// Life on a hit that today's code never even attempts a heal for).
+// Calls healFighter (combat.js) -- the SAME heal.incoming/applyHealing/
+// heal.overflow chain any other heal goes through, so a heal source
+// still stacks with every heal-received modifier exactly like
+// applyHeal's own callers always did.
+function resolveHealParam(v, ctx) { return typeof v === "function" ? v(ctx) : v; }
+registerBehavior("healOnEvent", (ctx, entry) => {
+  const p = entry.params;
+  let raw;
+  if (p.basis === "maxHp") raw = ctx.holder.maxHealth * resolveHealParam(p.pct, ctx);
+  else if (p.basis === "damageDealt") raw = ctx.edmg * resolveHealParam(p.pct, ctx);
+  else raw = resolveHealParam(p.flat, ctx);
+  let amount = p.round === "ceil" ? Math.ceil(raw) : p.round === "floor" ? Math.floor(raw) : Math.round(raw);
+  if (p.min != null) amount = Math.max(p.min, amount);
+  const { healed, lines: overflowLines } = healFighter(ctx.holder, ctx.role, amount, "healOnEvent", ctx);
+  // unconditionalMessage: a couple of sources (Blood Debt, Regrowth) push
+  // their own flavor line regardless of whether `healed` actually came
+  // back positive -- today's own code, preserved exactly, not this
+  // behavior's default (every other source's line IS healed>0-gated).
+  if (healed <= 0 && !p.unconditionalMessage) return overflowLines.length ? overflowLines : undefined;
+  const line = p.message ? p.message(healed, ctx) : undefined;
+  return line ? [line, ...overflowLines] : (overflowLines.length ? overflowLines : undefined);
+});
+
+// ---- applyAndReact.onHitDealt (2e-1): three lifesteal sources, same
+// order as today's own back-to-back inline chain (rollPlayerDamage,
+// combat.js, and rollPlayerDamageCoreForPipeline, pipeline.js -- two
+// byte-identical call sites, both replaced by one runReactionHook call
+// whose return is discarded, exactly like today's own
+// `applyHeal(state, ...)` calls with no destructure). All three are
+// genuinely silent today (the caller never read applyHeal's return at
+// either site) -- no `message` needed; discarding runReactionHook's
+// return at the call site reproduces that silence, overflow lines
+// included. ctx.edmg carries this hit's own resolved `dmg`.
+registerModifier("always:avatar_of_war_lifesteal", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onHitDealt", order: 10, bucket: null, value: null, behavior: "healOnEvent",
+  params: { basis: "damageDealt", pct: 0.1, round: "round", target: "self" },
+  when: (ctx) => ctx.holder.combat && ctx.holder.combat.player.avatarOfWarTurns > 0, holders: ["player"], state: null,
+  notes: "Avatar of War: all damage dealt heals 10% of it for its 4-round window. Silent (today's caller discards applyHeal's return at both call sites).",
+});
+registerModifier("effect:soul_leech", {
+  source: { kind: "effect", id: "soul_leech" },
+  hook: "applyAndReact.onHitDealt", order: 20, bucket: null, value: null, behavior: "healOnEvent",
+  params: { basis: "damageDealt", pct: (ctx) => (masterOfArmsDoubles(ctx.holder, "soul_leech") ? 0.2 : 0.1), round: "round", target: "self" },
+  when: (ctx) => ctx.holder.health < ctx.holder.maxHealth, holders: ["player"], state: null,
+  notes: "Soul Leech (Mythic): heals 10% of every hit's damage (20% doubled by Master of Arms). Silent, same as Avatar of War/Passing. `when` reproduces today's own `state.health < state.maxHealth` skip exactly (not just relying on healFighter's own healed<=0 no-op) -- at exactly full HP, today's code never even attempts the heal, so heal.overflow must never fire either.",
+});
+registerModifier("always:avatar_of_passing_lifesteal", {
+  source: { kind: "always" },
+  hook: "applyAndReact.onHitDealt", order: 30, bucket: null, value: null, behavior: "healOnEvent",
+  params: { basis: "damageDealt", pct: 0.3, round: "round", target: "self" },
+  when: (ctx) => ctx.holder.combat && ctx.holder.combat.player.avatarOfPassingTurns > 0, holders: ["player"], state: null,
+  notes: "Avatar of Passing: all damage dealt heals 30% of it for its 4-round window. Silent, same as Avatar of War/Soul Leech.",
+});
+
+// ---- applyAndReact.onKill (2e-1): three sources, same order as
+// resolveKill's own back-to-back inline chain (combat.js). Unlike
+// onHitDealt, these all push a real output line (resolveKill's own
+// `out` array is read by the caller) -- Blood Debt's own line is
+// UNCONDITIONAL once its gate passes (today's code pushes it regardless
+// of `healed`), Blessing of Valor/Keeper of History are both
+// healed>0-gated, matching each one's own real `if (healed > 0)` today.
+registerModifier("effect:blood_debt", {
+  source: { kind: "effect", id: "blood_debt" },
+  hook: "applyAndReact.onKill", order: 10, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: (ctx) => (masterOfArmsDoubles(ctx.holder, "blood_debt") ? 0.4 : 0.2), round: "ceil",
+    target: "self", unconditionalMessage: true,
+    message: (healed) => `Blood Debt repaid — you're mended for ${healed} health.`,
+  },
+  when: (ctx) => ctx.holder.health < ctx.holder.maxHealth, holders: ["player"], state: null,
+  notes: "Blood Debt: heals 20% max Health on a kill (40% doubled by Master of Arms). Flavor line is unconditional once the gate passes (today's own `out.push(flavor, ...lines)` isn't healed>0-gated, unlike every sibling onKill entry) -- preserved via unconditionalMessage.",
+});
+registerModifier("set:Regalia of the Crimson Vanguard:2:blessing_of_valor_heal", {
+  source: { kind: "set", id: "Regalia of the Crimson Vanguard:2", setName: "Regalia of the Crimson Vanguard", tier: 2 },
+  hook: "applyAndReact.onKill", order: 20, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.15, round: "ceil", target: "self",
+    message: (healed) => `Blessing of Valor — a killing opening blow steadies you; mended for ${healed} health.`,
+  },
+  when: (ctx) => ctx.holder.combat && ctx.holder.combat.player.actionCounter === 1,
+  holders: ["player"], state: null,
+  notes: "Blessing of Valor's own heal-on-kill clause -- missing from the original 34-row catalogue entirely (that catalogue only ever listed this set's opening-attack damage multiplier, already migrated as calculateDamage.outgoing). Gated on the shared combat.player.actionCounter === 1 (same counter Heartwood Vitality/Lasting Foundation/Hunter's Instinct read) -- read only, never owned by this entry.",
+});
+registerModifier("set:Regalia of the Eternal Hour:4", {
+  source: { kind: "set", id: "Regalia of the Eternal Hour:4", setName: "Regalia of the Eternal Hour", tier: 4 },
+  hook: "applyAndReact.onKill", order: 30, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.1, round: "ceil", target: "self",
+    message: (healed) => `Keeper of History mends you for ${healed} health.`,
+  },
+  when: (ctx) => ctx.holder.health < ctx.holder.maxHealth, holders: ["player"], state: null,
+  notes: "Keeper of History: heals 10% max Health on a kill. `when` reproduces today's own `heal > 0 && state.health < state.maxHealth` skip (heal is always >0 here, so only the health check matters) -- same reasoning as Soul Leech/Blood Debt's own `when`.",
+});
+
+// ---- fight.start (2e-1): Blessing of the Tide, dispatched at startCombat's
+// own call site, right after Events.emit("combat.started", ...). Fits
+// healOnEvent's plain maxHp*pct shape exactly.
+registerModifier("set:Regalia of the Endless Tide:2", {
+  source: { kind: "set", id: "Regalia of the Endless Tide:2", setName: "Regalia of the Endless Tide", tier: 2 },
+  hook: "fight.start", order: 10, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.1, round: "ceil", target: "self",
+    message: (healed) => `Blessing of the Tide mends you for ${healed} health.`,
+  },
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of the Tide: a one-time 10% max Health heal the moment any fight begins. Renamed from the source text's own 'Blessing of Renewal' -- that name (and a different, per-round, mechanic) is already Regalia of the First Bloom's own 2pc effect, below.",
+});
+
+// ---- fight.end (2e-1): Regrowth, a flat post-combat heal (5%/10% via
+// regrowthHealPct, data/sets.js) whether combat ended by winning or by
+// fleeing -- presence-only (hasEffect), so multiple copies don't stack.
+// Vaeloris:6 queues a Defense charge for the player's NEXT fight -- a
+// side effect unrelated to the heal amount itself, and its own flavor
+// line is unconditional once heal > 0 (unlike most onKill sources, which
+// gate on healed > 0) -- both are why this gets its own small behavior
+// rather than the shared healOnEvent.
+registerBehavior("regrowthHeal", (ctx) => {
+  const heal = Math.ceil(ctx.holder.maxHealth * regrowthHealPct(ctx.holder));
+  if (heal <= 0) return undefined;
+  const { healed, lines } = healFighter(ctx.holder, ctx.role, heal, "regrowthHeal", ctx);
+  if (hasSetTier(ctx.holder, "Vaeloris", 6)) ctx.holder.flags.forestGuardianCharge = true;
+  return [`Regrowth mends you for ${healed} health.`, ...lines];
+});
+registerModifier("effect:regrowth", {
+  source: { kind: "effect", id: "regrowth" },
+  hook: "fight.end", order: 10, bucket: null, value: null, behavior: "regrowthHeal",
+  params: null, when: null, holders: ["player"], state: null,
+  notes: "Regrowth: flat post-combat heal, whether combat ended by winning or by fleeing successfully.",
+});
+
+// ---- turn.start (2e-1): six sources, each dispatched via runHookEntry
+// at its own original call-site position inside beginTurn (combat.js) --
+// see runHookEntry's own header for why these can't be batched through
+// one runReactionHook call despite sharing the "turn.start" hook name.
+registerBehavior("endlessBloomTick", (ctx) => {
+  const combat = ctx.holder.combat;
+  const regen = combat && combat.player.regen;
+  if (!regen || regen.turnsLeft <= 0) return undefined;
+  const { healed, lines } = healFighter(ctx.holder, ctx.role, regen.healPerTurn, "endlessBloomTick", ctx);
+  regen.turnsLeft -= 1;
+  if (regen.turnsLeft <= 0) combat.player.regen = null;
+  return healed > 0 ? [`Endless Bloom mends you for ${healed} health.`, ...lines] : undefined;
+});
+registerModifier("always:endless_bloom_tick", {
+  source: { kind: "always" },
+  hook: "turn.start", order: 10, bucket: null, value: null, behavior: "endlessBloomTick",
+  params: null, when: null, holders: ["player"], state: null,
+  notes: "Endless Bloom: a 5-round Regeneration HoT set up once at combat start (startCombat's own combat.player.regen), ticked here identically in shape to burn/bleed but healing instead. source:'always' since presence is driven by combat.player.regen (set elsewhere), not a hasEffect/hasSetTier check at this read site -- the behavior's own regen/turnsLeft check reproduces today's exact guard.",
+});
+registerModifier("set:Regalia of the First Bloom:2", {
+  source: { kind: "set", id: "Regalia of the First Bloom:2", setName: "Regalia of the First Bloom", tier: 2 },
+  hook: "turn.start", order: 20, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.03, round: "ceil", target: "self",
+    message: (healed) => `Blessing of Renewal mends you for ${healed} health.`,
+  },
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of Renewal: an unconditional 3% max Health heal at the start of every round, for as long as the set bonus is active -- no duration or once-per-fight gate, unlike Endless Bloom.",
+});
+registerModifier("set:Heartwood:6", {
+  source: { kind: "set", id: "Heartwood:6", setName: "Heartwood", tier: 6 },
+  hook: "turn.start", order: 30, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.02, round: "ceil", target: "self", unconditionalMessage: true,
+    message: (healed) => `Heartwood Vitality mends you for ${healed} health.`,
+  },
+  when: (ctx) => ctx.holder.combat.player.actionCounter % 3 === 0, holders: ["player"], state: null,
+  notes: "Heartwood Vitality: every third combat round, restore 2% max Health. combat.player.actionCounter's own UNCONDITIONAL increment stays inline (applyHeartwoodVitality, combat.js) -- shared with Work Refines/Lasting Foundation/Patient Current/Blessing of Valor/Hunter's Instinct/Temporal Echo and others, per Tyler's own established ruling on the identical spellCastCounter/Seedbearer conflict -- only the %3 check + heal move here. Flavor line is unconditional once dispatched (today's own code has no healed>0 gate here, unlike every sibling in this block) -- preserved via unconditionalMessage.",
+});
+registerModifier("effect:lasting_foundation", {
+  source: { kind: "effect", id: "lasting_foundation" },
+  hook: "turn.start", order: 40, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.1, round: "ceil", target: "self",
+    message: (healed) => `Lasting Foundation mends you for ${healed} health.`,
+  },
+  when: (ctx) => ctx.holder.combat.player.actionCounter % 3 === 0, holders: ["player"], state: null,
+  notes: "Lasting Foundation: at the end of every third combat round, restore 10% max Health -- reuses the same shared actionCounter Heartwood Vitality/Work Refines/Patient Current read, checked right after applyHeartwoodVitality's own inline increment for this round.",
+});
+registerModifier("effect:flowing_waters", {
+  source: { kind: "effect", id: "flowing_waters" },
+  hook: "turn.start", order: 50, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.03, round: "ceil", target: "self",
+    message: (healed) => `Flowing Waters mends you for ${healed} health.`,
+  },
+  when: null, holders: ["player"], state: null,
+  notes: "Flowing Waters: restore 3% max Health at the end of every round. Its '3% Mana' half is a no-op (no Mana resource in this engine).",
+});
+registerModifier("always:avatar_of_renewal_heal", {
+  source: { kind: "always" },
+  hook: "turn.start", order: 60, bucket: null, value: null, behavior: "healOnEvent",
+  params: {
+    basis: "maxHp", pct: 0.1, round: "ceil", target: "self",
+    message: (healed) => `Avatar of Renewal mends you for ${healed} health.`,
+  },
+  when: (ctx) => ctx.holder.combat.player.avatarOfRenewalTurns > 0, holders: ["player"], state: null,
+  notes: "Avatar of Renewal (Regalia of the Endless Tide 6pc): restore 10% max Health at the end of every round during its 4-round window. source:'always' -- no hasSetTier re-check at this read site, same precedent as Avatar of Devotion/Endurance's own heal.incoming entries (the window itself could only ever be granted by that set bonus elsewhere). Found during 2e-1's own re-verification: this is a REAL, direct heal, not buff-grant-only like its sibling Avatars -- the initial research pass miscatalogued it; confirmed directly against beginTurn's own code before writing this entry.",
 });

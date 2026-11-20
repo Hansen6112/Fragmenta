@@ -489,6 +489,25 @@ function playerStatusStatPctTotal(state, statKey) {
   }
   return total;
 }
+// 2e-1 (20 Nov): statPctTotal generalized by role -- playerStatusStatPctTotal
+// itself is untouched (still read directly by every one of its existing
+// player-only callers), but healingReceivedPct's own registry entry
+// (heal.incoming) needs the SAME lookup for an ally receiver too, per
+// Tyler's own ruling ("the status penalty on an ally is also a
+// widening... the ally dispatch is wired, but it only applies when R1
+// is on"). Reads ally.statuses (the per-ally status bag Toxic
+// Preparation/Winter's Verdict's own ally branches already use), same
+// {debuff: {...}} shape as combat.player.playerStatuses.
+function statusStatPctTotalFor(holder, holderRole, statKey) {
+  if (holderRole === "player") return playerStatusStatPctTotal(holder, statKey);
+  const statuses = holder.statuses || {};
+  let total = 0;
+  for (const entry of Object.values(statuses)) {
+    if (!entry.debuff) continue;
+    if (typeof entry.debuff[statKey] === "number") total += entry.debuff[statKey];
+  }
+  return total;
+}
 function effectivePlayerAgility(state) {
   const pct = playerStatusStatPctTotal(state, "agiPct");
   const base = state.agility + playerStatusStatTotal(state, "agi") + playerBuffStatTotal(state, "agi");
@@ -1032,6 +1051,36 @@ function effectiveMagic(state) {
 // Returns the actual amount healed (after Flourishing Soul, clamped to
 // max) so the caller's own flavor line can report the real number, plus
 // any extra lines (Overflowing Life's conversion message) to append.
+// healFighter (2e-1, 20 Nov): the ONE way any heal reaches HP, for the
+// player or an ally (never an enemy -- enemy self-heals/regen already
+// call applyHealing directly today, with no gear/status heal.incoming
+// chain to run for them). receiver: the raw holder (state for the
+// player, the ally's own record for an ally -- NOT a combatant view).
+// Runs heal.incoming (today's healing-RECEIVED modifiers, moved into the
+// registry: Flourishing Soul, Blessing of Compassion, Avatar of
+// Devotion/Endurance, Mercy's Gift, healingReceivedPct -- same order,
+// same per-step rounding applyHeal's old inline chain always had), then
+// writes HP through applyHealing (step 1g-ii §2b's own generic, audit-P1
+// HP writer), then runs heal.overflow once IF there's unhealed overflow
+// (First Bloom 4pc's Temporary Health conversion -- gated on overflow > 0
+// here rather than inside the entry itself, matching today's own
+// `if (overflow > 0 && ...)` gate exactly). ctx.holder/ctx.role are set
+// here, same convention calculateEnemyIncomingMultiplier's own call site
+// already uses -- every heal.incoming/heal.overflow entry reads ctx.holder,
+// not a bare "state". Returns { healed, overflow, lines }.
+function healFighter(receiver, role, amount, source, ctx) {
+  if (!(amount > 0)) return { healed: 0, overflow: 0, lines: [] };
+  ctx.holder = receiver;
+  ctx.role = role;
+  const { edmg: amt } = calculateHealIncoming(receiver, role, ctx, amount);
+  const target = role === "player" ? makePlayerCombatant(receiver) : makeAllyCombatant(receiver);
+  const healed = applyHealing(target, amt, source, ctx);
+  const overflow = amt - healed;
+  ctx.overflow = overflow;
+  const lines = overflow > 0 ? calculateHealOverflow(receiver, role, ctx) : [];
+  return { healed, overflow, lines };
+}
+
 function applyHeal(state, amount) {
   // Injury System v0.2 §3: "Healing (potions, Apothecary abilities,
   // passive regeneration) does nothing to a downed fighter." A downed
@@ -1046,49 +1095,10 @@ function applyHeal(state, amount) {
   // should.
   if (state.playerDowned) return { healed: 0, lines: [] };
   if (amount <= 0) return { healed: 0, lines: [] };
-  let amt = amount;
-  if (hasEffect(state, "flourishing_soul")) amt = Math.round(amt * 1.5);
-  // Blessing of Compassion (Regalia of the Eternal Heart 2pc): +25%
-  // healing received, stacking multiplicatively with Flourishing Soul if
-  // a character somehow has both. Its "removes one minor negative status
-  // effect" clause is a no-op — nothing in this engine ever applies a
-  // negative status effect to the player (same reasoning as Immutable).
-  if (hasSetTier(state, "Regalia of the Eternal Heart", 2)) amt = Math.round(amt * 1.25);
+  const ctx = { state };
+  const { healed, lines: overflowLines } = healFighter(state, "player", amount, "player_heal", ctx);
   const combat = state.combat;
-  // Avatar of Devotion (Regalia of the Eternal Heart 6pc): all healing
-  // doubled for its 4-round window, stacking multiplicatively on top of
-  // Flourishing Soul/Blessing of Compassion above.
-  if (combat && combat.player.avatarOfDevotionTurns > 0) amt = Math.round(amt * 2);
-  // Avatar of Endurance (Regalia of the Eternal Bastion 6pc): +50% healing
-  // received for its 4-round window, stacking multiplicatively on top of
-  // everything above.
-  if (combat && combat.player.avatarOfEnduranceTurns > 0) amt = Math.round(amt * 1.5);
-  // Mercy's Gift (Divine Regalia — Ring of Gentle Rain): a live check
-  // against CURRENT Health (not a triggered/stacking buff) — +50% healing
-  // received for as long as Health is below 50% max, checked fresh on
-  // every single heal rather than latched on until recovery.
-  if (hasEffect(state, "mercys_gift") && state.health < state.maxHealth * 0.5) amt = Math.round(amt * 1.5);
-  // Ash Elemental's own Ashen Lungs (Decisions Addendum §3, off by
-  // default): -25% healing received while active, read the same
-  // generic way every other *Pct status modifier is
-  // (playerStatusStatPctTotal) -- only ever inflicted when
-  // DAMAGE_TYPES_V2 is on (A5's variantStatus override), so this needs
-  // no switch check of its own.
-  const healingReceivedPct = playerStatusStatPctTotal(state, "healingReceivedPct");
-  if (healingReceivedPct) amt = Math.round(amt * (1 + healingReceivedPct));
-  const before = state.health;
-  state.health = Math.min(state.maxHealth, state.health + amt);
-  const healed = state.health - before;
-  const lines = [];
-  const overflow = amt - healed;
-  if (overflow > 0 && combat && hasSetTier(state, "Regalia of the First Bloom", 4)) {
-    const cap = Math.round(state.maxHealth * 0.3);
-    const beforeTemp = combat.player.tempHealth || 0;
-    combat.player.tempHealth = Math.min(cap, beforeTemp + overflow);
-    if (combat.player.tempHealth > beforeTemp) {
-      lines.push(`Overflowing Life — the excess crystallizes into ${combat.player.tempHealth - beforeTemp} Temporary Health.`);
-    }
-  }
+  const lines = [...overflowLines];
   if (healed > 0 && combat && hasEffect(state, "living_current")) {
     combat.player.livingCurrentStacks = Math.min(5, (combat.player.livingCurrentStacks || 0) + 1);
   }
@@ -2223,28 +2233,13 @@ function rollPlayerDamage(state, creature, activeElement) {
       state.combat.player[field] = Math.min(30, (state.combat.player[field] || 0) + 10);
     }
   }
-  // Avatar of War (Regalia of the Crimson Vanguard 6pc): for its 4-round
-  // window, all damage dealt heals 10% — silent like Soul Leech/Avatar of
-  // Passing above.
-  if (state.combat && state.combat.player.avatarOfWarTurns > 0) {
-    applyHeal(state, Math.round(dmg * 0.1));
-  }
-  // Soul Leech (Mythic): heals 10% of every hit's damage (20% if Master of
-  // Arms doubles it from the Main Hand item), silently (this function only
-  // returns a number, no message line) — consistent with Momentum/
-  // Kingslayer/Hunter's Instinct also affecting the roll without their own
-  // narration.
-  if (hasEffect(state, "soul_leech") && state.health < state.maxHealth) {
-    const leechPct = masterOfArmsDoubles(state, "soul_leech") ? 0.2 : 0.1;
-    const leech = Math.round(dmg * leechPct);
-    applyHeal(state, leech);
-  }
-  // Avatar of Passing (Regalia of the Final Veil 6pc): for its 4-round
-  // window, all damage dealt heals 30% — silent like Soul Leech above
-  // (this function only returns a number, no message line to attach to).
-  if (state.combat && state.combat.player.avatarOfPassingTurns > 0) {
-    applyHeal(state, Math.round(dmg * 0.3));
-  }
+  // Avatar of War / Soul Leech / Avatar of Passing: dispatched via
+  // applyAndReact.onHitDealt, same order as today's own back-to-back
+  // inline chain -- see those entries (js/data/modifiers.js) for the
+  // exact gating/formula each preserves. Silent today (this function's
+  // return is never destructured at either call site) -- discarding
+  // runReactionHook's own return reproduces that silence exactly.
+  runReactionHook("applyAndReact.onHitDealt", state, "player", { state, holder: state, role: "player", edmg: dmg });
   // Enemy Ability Engine (data/enemyabilities.js): flat damage reduction
   // (Thick Hide-style) and on-hit reflect (Barbed Hide/Quills-style)
   // passives, read off the target creature's own `passives` array. Silent
@@ -2474,12 +2469,14 @@ function attackFlavorLine(state, creature, dmg, activeElement) {
 // beginTurn (i.e. actually executes), not rejected/invalid attempts.
 function applyHeartwoodVitality(state) {
   const combat = state.combat;
+  // combat.player.actionCounter: an UNCONDITIONAL shared counter, read by
+  // several other effects too (Work Refines, Lasting Foundation, Patient
+  // Current, Blessing of Valor, Hunter's Instinct, Temporal Echo, ...) --
+  // stays inline here, never owned by set:Heartwood:6's own registry
+  // entry, per Tyler's own established ruling on the identical
+  // spellCastCounter/Seedbearer conflict.
   combat.player.actionCounter += 1;
-  if (!hasSetTier(state, "Heartwood", 6) || combat.player.actionCounter % 3 !== 0) return [];
-  const heal = Math.ceil(state.maxHealth * 0.02);
-  if (heal <= 0) return [];
-  const { healed, lines } = applyHeal(state, heal);
-  return [`Heartwood Vitality mends you for ${healed} health.`, ...lines];
+  return runHookEntry("set:Heartwood:6", state, "player", { state, holder: state, role: "player" });
 }
 
 // Speed (state.speed, data/races.js/classes.js/bestiary.js/enemymages.js
@@ -4236,23 +4233,12 @@ function beginTurn(state) {
   // ticked here identically in shape to burn/bleed but healing instead of
   // damaging — routed through applyHeal so Flourishing Soul/Overflowing
   // Life/Living Current all still apply to it.
-  if (combat.player.regen && combat.player.regen.turnsLeft > 0) {
-    const { healed, lines: healLines } = applyHeal(state, combat.player.regen.healPerTurn);
-    if (healed > 0) lines.push(`Endless Bloom mends you for ${healed} health.`, ...healLines);
-    combat.player.regen.turnsLeft -= 1;
-    if (combat.player.regen.turnsLeft <= 0) combat.player.regen = null;
-  }
+  lines.push(...runHookEntry("always:endless_bloom_tick", state, "player", { state, holder: state, role: "player" }));
   // Blessing of Renewal (Regalia of the First Bloom 2pc): an unconditional
   // 3% max Health heal at the start of every round, for as long as the set
   // bonus is active — no duration or once-per-fight gate, unlike Endless
   // Bloom above.
-  if (hasSetTier(state, "Regalia of the First Bloom", 2)) {
-    const heal = Math.ceil(state.maxHealth * 0.03);
-    if (heal > 0) {
-      const { healed, lines: healLines } = applyHeal(state, heal);
-      if (healed > 0) lines.push(`Blessing of Renewal mends you for ${healed} health.`, ...healLines);
-    }
-  }
+  lines.push(...runHookEntry("set:Regalia of the First Bloom:2", state, "player", { state, holder: state, role: "player" }));
   lines.push(...applyHeartwoodVitality(state));
   lines.push(...applyLivingSteel(state));
   // Lasting Foundation (Divine Regalia — Keystone of Endurance): at the end
@@ -4260,13 +4246,7 @@ function beginTurn(state) {
   // combat.player.actionCounter Heartwood Vitality/Calming Presence already read,
   // checked right after applyHeartwoodVitality has incremented it for
   // this round.
-  if (hasEffect(state, "lasting_foundation") && combat.player.actionCounter % 3 === 0) {
-    const lastingFoundationHeal = Math.ceil(state.maxHealth * 0.1);
-    if (lastingFoundationHeal > 0) {
-      const { healed, lines: healLines } = applyHeal(state, lastingFoundationHeal);
-      if (healed > 0) lines.push(`Lasting Foundation mends you for ${healed} health.`, ...healLines);
-    }
-  }
+  lines.push(...runHookEntry("effect:lasting_foundation", state, "player", { state, holder: state, role: "player" }));
   // Work Refines (Divine Regalia — Ring of Endless Labor): every third
   // action permanently grants +2 Attack/+2 Magic, capped at +20/+20 (10
   // triggers) — the same actionCounter cadence Lasting Foundation/
@@ -4279,13 +4259,7 @@ function beginTurn(state) {
   // the end of every round — its "3% Mana" half is a no-op, the same
   // standing limitation cited for every other Mana-flavored clause (this
   // engine has no Mana resource).
-  if (hasEffect(state, "flowing_waters")) {
-    const flowingWatersHeal = Math.ceil(state.maxHealth * 0.03);
-    if (flowingWatersHeal > 0) {
-      const { healed, lines: healLines } = applyHeal(state, flowingWatersHeal);
-      if (healed > 0) lines.push(`Flowing Waters mends you for ${healed} health.`, ...healLines);
-    }
-  }
+  lines.push(...runHookEntry("effect:flowing_waters", state, "player", { state, holder: state, role: "player" }));
   // Patient Current (Divine Regalia — Sandals of the River): every
   // second round spent in combat, ease a random currently-cooling-down
   // Ability/Tactic by 1 turn — the same random-pick-and-ease pattern
@@ -4304,13 +4278,7 @@ function beginTurn(state) {
   // inert — no negative-status mechanic exists on the player side — and
   // its "every healing effect also restores an equal amount of Mana"
   // clause is a no-op for the same Mana-resource reason as Flowing Waters.
-  if (combat.player.avatarOfRenewalTurns > 0) {
-    const avatarOfRenewalHeal = Math.ceil(state.maxHealth * 0.1);
-    if (avatarOfRenewalHeal > 0) {
-      const { healed, lines: healLines } = applyHeal(state, avatarOfRenewalHeal);
-      if (healed > 0) lines.push(`Avatar of Renewal mends you for ${healed} health.`, ...healLines);
-    }
-  }
+  lines.push(...runHookEntry("always:avatar_of_renewal_heal", state, "player", { state, holder: state, role: "player" }));
   // Companion cooldown/buff-turn bookkeeping ages down every round
   // regardless of whether (or when) an ally's own action actually lands —
   // allies now take their action as part of the Speed-ordered initiative
@@ -6012,13 +5980,9 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // blessing_of_renewal), so this needed its own distinct effect id and
   // display name. Its "10% Mana" half is a no-op — no Mana resource
   // exists in this engine.
-  if (hasSetTier(state, "Regalia of the Endless Tide", 2)) {
-    const heal = Math.ceil(state.maxHealth * 0.1);
-    if (heal > 0) {
-      const { healed, lines: healLines } = applyHeal(state, heal);
-      if (healed > 0) lines.push(`Blessing of the Tide mends you for ${healed} health.`, ...healLines);
-    }
-  }
+  // Blessing of the Tide: applyAndReact's fight.start hook -- see that
+  // entry (js/data/modifiers.js) for the exact formula.
+  lines.push(...runReactionHook("fight.start", state, "player", { state, holder: state, role: "player" }));
   // Weaver's Insight (Divine Regalia — Silver Thread of Veylana): reveal
   // the enemy's remaining Health, Defense, Attack, and any active status
   // at the start of combat. Its "future bosses reveal hidden phases one
@@ -6492,12 +6456,7 @@ function checkAvatarOfTime(state) {
 // (Forest Guardian) queues a Defense charge for the player's NEXT fight,
 // since Regrowth only ever fires after combat has already ended.
 function applyRegrowth(state) {
-  if (!hasEffect(state, "regrowth")) return [];
-  const heal = Math.ceil(state.maxHealth * regrowthHealPct(state));
-  if (heal <= 0) return [];
-  const { healed, lines } = applyHeal(state, heal);
-  if (hasSetTier(state, "Vaeloris", 6)) state.flags.forestGuardianCharge = true;
-  return [`Regrowth mends you for ${healed} health.`, ...lines];
+  return runReactionHook("fight.end", state, "player", { state, holder: state, role: "player" });
 }
 
 // Vanguard Momentum (Contract Hunter 6pc): +1 Attack per kill, stacking
@@ -6650,36 +6609,14 @@ function resolveKill(state, creature) {
   // fight — a no-op outside an active dungeon (and, now, for a
   // reward-ineligible summon, since goldFound/loot are 0/null above).
   trackDungeonKillRewards(state, goldFound, loot);
-  if (hasEffect(state, "blood_debt")) {
-    const healPct = masterOfArmsDoubles(state, "blood_debt") ? 0.4 : 0.2;
-    const heal = Math.ceil(state.maxHealth * healPct);
-    if (heal > 0 && state.health < state.maxHealth) {
-      const { healed, lines } = applyHeal(state, heal);
-      out.push(`Blood Debt repaid — you're mended for ${healed} health.`, ...lines);
-    }
-  }
-  // Blessing of Valor (Regalia of the Crimson Vanguard 2pc): if the
-  // opening attack of the fight is what landed this kill, restore 15% max
-  // Health — checked here (before state.combat is nulled below) since
-  // only resolveKill knows the kill actually happened.
-  if (hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.player.actionCounter === 1) {
-    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.15));
-    if (healed > 0) out.push(`Blessing of Valor — a killing opening blow steadies you; mended for ${healed} health.`, ...lines);
-  }
-  // Keeper of History (Regalia of the Eternal Hour 4pc): restore 10%
-  // Health on a kill. Its "10% Mana" half is a no-op (no Mana resource),
-  // and its "remove one cooldown from a random ability" half is
-  // effectively a no-op too — a kill always ends this engine's single-
-  // enemy fight, and the about-to-be-discarded combat object's cooldowns
-  // have no bearing on the next one (unlike Swift Passage's explicitly
-  // "next Ability or Tactic" wording, which this clause doesn't share).
-  if (hasSetTier(state, "Regalia of the Eternal Hour", 4)) {
-    const heal = Math.ceil(state.maxHealth * 0.1);
-    if (heal > 0 && state.health < state.maxHealth) {
-      const { healed, lines } = applyHeal(state, heal);
-      if (healed > 0) out.push(`Keeper of History mends you for ${healed} health.`, ...lines);
-    }
-  }
+  // Blood Debt / Blessing of Valor (Crimson Vanguard 2pc) / Keeper of
+  // History (Eternal Hour 4pc): dispatched via applyAndReact.onKill,
+  // same order as today's own back-to-back inline chain -- see those
+  // entries (js/data/modifiers.js) for the exact gating/formula each one
+  // preserves. Blessing of Valor's own gate reads combat.player.actionCounter,
+  // which is why this must run BEFORE state.combat is nulled below, same
+  // as today.
+  out.push(...runReactionHook("applyAndReact.onKill", state, "player", { state, holder: state, role: "player" }));
   out.push(...applyArchiveEternal(state, creature));
   // Only end the whole encounter once no roster member is left standing —
   // a pack fight continues with whoever's left. applyArchiveEternal above

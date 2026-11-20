@@ -140,6 +140,16 @@ const COMBAT_UNIFY = {
   // Riposte-on-miss: the enemy's own Riposte effect counters a plain
   // ally's miss (riposteCounterByEnemyOnAlly) but not Hadrian's.
   U3g: true,
+  // R1 (Phase 2 spec, "Party holders"): holders widen to the player AND
+  // allies for every kind B/kind D entry and every set bonus -- the
+  // first of the spec's own three widening rules (R1/R2/R3), off by
+  // default like every other widening this engagement has staged ahead
+  // of its own switch (2e-1, 20 Nov: healingReceivedPct/Ashen Lungs on
+  // an ally reads this; Riposte-for-allies, P2-5, will too once it's
+  // migrated). Turning this on is Tyler's own call, measured separately
+  // from any "move the number" migration, same discipline as every U-flag
+  // above.
+  R1: false,
 };
 
 // ---- Step 1: choose action ----
@@ -1744,17 +1754,10 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
       state.combat.player[field] = Math.min(30, (state.combat.player[field] || 0) + 10);
     }
   }
-  if (state.combat && state.combat.player.avatarOfWarTurns > 0) {
-    applyHeal(state, Math.round(dmg * 0.1));
-  }
-  if (hasEffect(state, "soul_leech") && state.health < state.maxHealth) {
-    const leechPct = masterOfArmsDoubles(state, "soul_leech") ? 0.2 : 0.1;
-    const leech = Math.round(dmg * leechPct);
-    applyHeal(state, leech);
-  }
-  if (state.combat && state.combat.player.avatarOfPassingTurns > 0) {
-    applyHeal(state, Math.round(dmg * 0.3));
-  }
+  // Avatar of War / Soul Leech / Avatar of Passing: applyAndReact.onHitDealt
+  // -- see combat.js's own rollPlayerDamage (the byte-identical sibling
+  // call site) for the full comment; both replaced the same way.
+  runReactionHook("applyAndReact.onHitDealt", state, "player", { state, holder: state, role: "player", edmg: dmg });
   if (state.combat && creature.passives && creature.passives.length) {
     dmg = applyEnemyFlatDamageReduction(dmg, creature);
     applyEnemyOnHitTakenPassives(state, creature, dmg);
