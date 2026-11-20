@@ -1,0 +1,46 @@
+range: 32bd211460bef6da61a25853375f634bc4622708..a66eb498b9aa2f158e7649a93c3e91fc9ebf4731
+=== a66eb498b9aa2f158e7649a93c3e91fc9ebf4731 2026-11-20 17:25:18 +0000
+Phase 2 step 2e-1 close-out: onLowHealth/onFavorableRoll hooks, 13 rows accounted for
+Two new hooks: applyAndReact.onLowHealth (LOW_HEALTH_REACTIONS moved onto
+it wholesale -- 14 buff-only triggers wrapped verbatim, Love Endures and
+Avatar of Bloom migrated for real through healFighter) and
+applyAndReact.onFavorableRoll (Twist of Fate, fired from Loaded Dice/
+Winds of Change/Unlikely Outcome -- both the heal and the cooldown ease,
+not entangled so no 2e-3 split needed).
+
+The 13 previously-unaccounted rows: migrated (Rooted Resolve, Rally the
+Line, Hold the Line, Heartwood:6, the 5 Avatars), reclassified with code
+citations (Vaeloris:4/Heartwood:4/Elder Bark:4 -- already covered via
+regrowthHealPct inside effect:regrowth's own dispatch; sang_cu_ie013 --
+confirmed an enemy self-buff, not a heal, misfiled into this table), or
+flagged (Leviathan:6/waterHealPct -- its HP write already goes through
+healFighter, but the source dispatch lives in a separate PIPELINE_HOOKS
+mechanism for elemental abilities; bridging it into the registry risks
+double-dispatching the base Water mechanic, left for Tyler's call).
+
+Living Forge reclassified as deferred to 2e-3 (entangled with unmigrated
+cooldown-tick internals). Baseline cleanup: the three stale/unseeded
+files (bs_off_n1000.json, p3_off_n1000.json,
+post_damage_types_baseline_249f74f.json -- no seed field, compare
+against a DAMAGE_TYPES_V2=off default the game no longer ships) moved to
+tools/baselines/historical/ with a README; the seeded _on_n1000.json
+pair is untouched. Blessing of Freedom still untouched, waiting on
+Tyler's call.
+
+Suite 645/645 (unchanged), audit 0 errors/348 warnings (down from 358).
+Seeded harness re-confirmation (boss_sweep/plus3_run, seed 777, against
+the prior 32bd211 commit) still running in the background at commit
+time; will follow up if it surfaces anything.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               | 205 ++++++++++++++++++++-
+ js/engine/combat.js                                | 109 ++---------
+ tools/baselines/historical/README.md               |  20 ++
+ tools/baselines/{ => historical}/bs_off_n1000.json |   0
+ tools/baselines/{ => historical}/p3_off_n1000.json |   0
+ .../post_damage_types_baseline_249f74f.json        |   0
+ tools/modifier_catalogue.md                        |  63 +++++--
+ 7 files changed, 287 insertions(+), 110 deletions(-)

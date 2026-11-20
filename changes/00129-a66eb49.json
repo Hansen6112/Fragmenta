@@ -1,0 +1,129 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onLowHealth",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onFavorableRoll",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "lowHealthReactionWrap",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "loveEnduresHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "avatarOfBloomHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "twistOfFateReaction",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:loaded_dice",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Loaded Dice. A behavior (not a bare value) because loadedDiceMultiplier itself calls applyTwistOfFate(state) on its favorable roll -- a real pre-existing state write, carried over unchanged. 'variance' bucket -- its own resolved number IS the raw multiplier (0.5/1/2.0), not an additive delta, matching critMultiplier's own convention and spec §4's 'stays as a product' note.",
+    "new": "Loaded Dice. A behavior (not a bare value) because loadedDiceMultiplier itself dispatches applyAndReact.onFavorableRoll (Twist of Fate) on its favorable roll -- a real pre-existing state write, carried over unchanged. 'variance' bucket -- its own resolved number IS the raw multiplier (0.5/1/2.0), not an additive delta, matching critMultiplier's own convention and spec §4's 'stays as a product' note."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Legion:8",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:rooted_resolve",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the First Bloom:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Final Veil:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Woven Thread:6:avatar_of_fate_trigger",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:6:avatar_of_war_trigger",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Archive:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:love_endures",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Heart:6:avatar_of_devotion_trigger",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Laughing Gale:6:avatar_of_chaos_trigger",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Bastion:6:avatar_of_endurance_trigger",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Forge:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Tide:6:avatar_of_renewal_trigger",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:rally_the_line",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Hour:6:avatar_of_time_trigger",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Laughing Gale:4",
+  "type": "added"
+ }
+]

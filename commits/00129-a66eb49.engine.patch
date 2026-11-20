@@ -1,0 +1,163 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 450cc61..055cf53 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -1551,7 +1551,7 @@ function loadedDiceMultiplier(state) {
+   if (!hasEffect(state, "loaded_dice") || !state.combat) return 1;
+   if (Math.random() >= 0.2) return 1;
+   if (Math.random() < 0.5) {
+-    applyTwistOfFate(state);
++    runReactionHook("applyAndReact.onFavorableRoll", state, "player", { state, holder: state, role: "player" });
+     return 2.0;
+   }
+   return 0.5;
+@@ -4135,7 +4135,7 @@ function beginTurn(state) {
+     else if (roll === 2) combat.player.windsOfChangeMagic = 6;
+     else combat.player.windsOfChangeKnowledge = 6;
+     lines.push(`Winds of Change shifts — +6 ${labels[roll]} this round.`);
+-    lines.push(...applyTwistOfFate(state));
++    lines.push(...runReactionHook("applyAndReact.onFavorableRoll", state, "player", { state, holder: state, role: "player" }));
+   }
+   // Burn/Bleed tick per-enemy, not just against whoever's currently
+   // targeted — igniting one wolf and then switching to another shouldn't
+@@ -5169,32 +5169,10 @@ function cooldownDisplayName(key) {
+   return key;
+ }
+ 
+-// Twist of Fate (Regalia of the Laughing Gale 4pc): whenever one of this
+-// god's own random passives favors the player — Loaded Dice's double-
+-// damage roll, Winds of Change's per-round reroll, or a miss triggering
+-// Unlikely Outcome (see applyLaughingGaleMissBonuses below) — immediately
+-// restore 5% max Health and knock a turn off a random currently-cooling-
+-// down ability. Deliberately scoped to THIS set's own randomness rather
+-// than the pre-existing generic crit/dodge systems from other gods' sets,
+-// which would fire constantly and swamp the intended "chaos favors you"
+-// flavor with unrelated procs.
+-function applyTwistOfFate(state) {
+-  if (!state.combat || !hasSetTier(state, "Regalia of the Laughing Gale", 4)) return [];
+-  const combat = state.combat;
+-  const lines = [];
+-  const heal = Math.ceil(state.maxHealth * 0.05);
+-  if (heal > 0) {
+-    const { healed, lines: healLines } = applyHeal(state, heal);
+-    if (healed > 0) lines.push(`Twist of Fate mends you for ${healed} health.`, ...healLines);
+-  }
+-  const cooling = Object.keys(combat.cooldowns).filter((k) => combat.cooldowns[k] > 0);
+-  if (cooling.length) {
+-    const key = cooling[Math.floor(Math.random() * cooling.length)];
+-    combat.cooldowns[key] = Math.max(0, combat.cooldowns[key] - 1);
+-    lines.push(`Twist of Fate eases ${cooldownDisplayName(key)}'s recovery by a turn.`);
+-  }
+-  return lines;
+-}
++// Twist of Fate (Regalia of the Laughing Gale 4pc): migrated for real
++// into the registry's own twistOfFateReaction behavior (js/data/modifiers.js,
++// applyAndReact.onFavorableRoll, fired from loadedDiceMultiplier/Winds of
++// Change/applyLaughingGaleMissBonuses) -- this function is retired.
+ 
+ // Unlikely Outcome (Divine Regalia — Ring of Lucky Misfortune): whenever
+ // an attack against the player fails to land — the same "retaliation
+@@ -5209,7 +5187,7 @@ function applyLaughingGaleMissBonuses(state) {
+     combat.player.unlikelyOutcomeGuaranteedCrit = true;
+     lines.push(`Unlikely Outcome — the miss steadies your hand; your next strike is a guaranteed critical hit.`);
+   }
+-  lines.push(...applyTwistOfFate(state));
++  lines.push(...runReactionHook("applyAndReact.onFavorableRoll", state, "player", { state, holder: state, role: "player" }));
+   return lines;
+ }
+ 
+@@ -6070,28 +6048,14 @@ Events.on("combat.started", ({ state }) => {
+ // handlers — a new Avatar/threshold effect added to six of them and missed
+ // in the seventh would silently never fire on that action. Add new
+ // low-Health triggers HERE, once, as a new entry in this table.
+-const LOW_HEALTH_REACTIONS = [
+-  { id: "hold_the_line", trigger: "lowHealth", resolve: checkHoldTheLine },
+-  { id: "rooted_resolve", trigger: "lowHealth", resolve: checkRootedResolve },
+-  { id: "avatar_of_bloom", trigger: "lowHealth", resolve: checkAvatarOfBloom },
+-  { id: "avatar_of_passing", trigger: "lowHealth", resolve: checkAvatarOfPassing },
+-  { id: "avatar_of_fate", trigger: "lowHealth", resolve: checkAvatarOfFate },
+-  { id: "rally_the_line", trigger: "lowHealth", resolve: checkRallyTheLine },
+-  { id: "avatar_of_war", trigger: "lowHealth", resolve: checkAvatarOfWar },
+-  { id: "avatar_of_knowledge", trigger: "lowHealth", resolve: checkAvatarOfKnowledge },
+-  { id: "love_endures", trigger: "lowHealth", resolve: checkLoveEndures },
+-  { id: "avatar_of_devotion", trigger: "lowHealth", resolve: checkAvatarOfDevotion },
+-  { id: "avatar_of_chaos", trigger: "lowHealth", resolve: checkAvatarOfChaos },
+-  { id: "avatar_of_endurance", trigger: "lowHealth", resolve: checkAvatarOfEndurance },
+-  { id: "avatar_of_freedom", trigger: "lowHealth", resolve: checkAvatarOfFreedom },
+-  { id: "avatar_of_creation", trigger: "lowHealth", resolve: checkAvatarOfCreation },
+-  { id: "avatar_of_renewal", trigger: "lowHealth", resolve: checkAvatarOfRenewal },
+-  { id: "avatar_of_time", trigger: "lowHealth", resolve: checkAvatarOfTime },
+-];
++// 2e-1 close-out (20 Nov, Tyler): LOW_HEALTH_REACTIONS moved onto the
++// registry's own applyAndReact.onLowHealth hook -- see js/data/modifiers.js's
++// own section header for the full 16-entry mapping (14 wrapped verbatim
++// via the shared lowHealthReactionWrap behavior, Love Endures/Avatar of
++// Bloom migrated for real through healFighter). `order` on each entry
++// reproduces this array's own original sequence exactly.
+ function lowHealthTriggerChecks(state) {
+-  const lines = [];
+-  for (const reaction of LOW_HEALTH_REACTIONS) lines.push(...reaction.resolve(state));
+-  return lines;
++  return runReactionHook("applyAndReact.onLowHealth", state, "player", { state, holder: state, role: "player" });
+ }
+ 
+ // The incoming-damage mitigation pipeline for a hit on the PLAYER, shared
+@@ -6149,22 +6113,9 @@ function checkRootedResolve(state) {
+   return [`Rooted Resolve — you plant yourself as your Health falls; +${flatStat(8)} Defense for 3 turns.`];
+ }
+ 
+-// Love Endures (Divine Regalia — Bloom of Devotion): the first time each
+-// combat Health would fall below 20%, immediately restore 15% max
+-// Health. Checked at the same call sites as the other threshold buffs —
+-// all of which only ever run when state.health > 0, exactly matching the
+-// source text's "does not prevent death from the triggering hit" (a
+-// lethal hit is handled by checkDeathPrevention instead, and this never
+-// gets checked at all in that case).
+-function checkLoveEndures(state) {
+-  const combat = state.combat;
+-  if (!combat || combat.player.loveEnduresUsed || !hasEffect(state, "love_endures")) return [];
+-  if (state.health <= 0 || state.health >= state.maxHealth * 0.2) return [];
+-  combat.player.loveEnduresUsed = true;
+-  const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.15));
+-  if (healed <= 0) return [];
+-  return [`Love Endures — even now, it holds you up; mended for ${healed} health.`, ...lines];
+-}
++// Love Endures (Divine Regalia — Bloom of Devotion): migrated for real
++// into the registry's own loveEnduresHeal behavior (js/data/modifiers.js,
++// applyAndReact.onLowHealth) -- this function is retired.
+ 
+ // Rally the Line (Divine Regalia — General's Standard): the same below-
+ // 50%-Health trigger as Rooted Resolve above, granting both a flat +10
+@@ -6184,29 +6135,9 @@ function checkRallyTheLine(state) {
+   return [`Rally the Line — your Health falls, and the line holds; +${flatStat(10)} Attack, +${flatStat(10)} Defense for 4 rounds.`];
+ }
+ 
+-// Avatar of Bloom (Regalia of the First Bloom 6pc): once per fight, the
+-// first time the player's Health drops below 25%, an instant 50% max
+-// Health heal (routed through applyHeal like every other heal, so
+-// Flourishing Soul/Overflowing Life/Living Current all still apply), a
+-// status cleanse (currently a no-op — nothing in this engine ever applies
+-// a negative status effect to the player; see Immutable/Nature's
+-// Persistence), and +25% Attack/Magic/Defense for 3 turns. Checked at the
+-// same call sites as Hold the Line/Rooted Resolve.
+-function checkAvatarOfBloom(state) {
+-  const combat = state.combat;
+-  if (!combat || combat.player.avatarOfBloomUsed || !hasSetTier(state, "Regalia of the First Bloom", 6)) return [];
+-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.player.avatarOfBloomUsed = true;
+-  const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.5));
+-  const dur = applyBeneficialEffectBonuses(state, 3);
+-  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.25)));
+-  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.25)));
+-  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
+-  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, Math.round(state.def * 0.25)));
+-  return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
+-}
++// Avatar of Bloom (Regalia of the First Bloom 6pc): migrated for real
++// into the registry's own avatarOfBloomHeal behavior (js/data/modifiers.js,
++// applyAndReact.onLowHealth) -- this function is retired.
+ 
+ // Avatar of Passing (Regalia of the Final Veil 6pc): once per fight, the
+ // same below-25%-Health trigger as Avatar of Bloom above (no threshold of
