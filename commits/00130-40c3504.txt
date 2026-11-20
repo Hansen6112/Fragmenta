@@ -1,0 +1,49 @@
+range: a66eb498b9aa2f158e7649a93c3e91fc9ebf4731..40c35047ab91007691ec9b88205458b6fd980bac
+=== 40c35047ab91007691ec9b88205458b6fd980bac 2026-11-20 18:40:16 +0000
+Phase 2 step 2e-2 bug fix: Blessing of Freedom's heal-on-evade, for real
+Correction: Blessing of Freedom (Endless Horizon:2) wasn't actually
+missing. Its 15% Evasion chance was already a registered
+rollToHit.defender entry; its heal was already implemented inline
+(applyEndlessHorizonEvasionBonuses), just gated broadly on "any
+zero-damage retaliation" rather than a genuine evasion. The 2e-1
+close-out's "not implemented anywhere" finding was wrong -- an earlier
+research pass's claim, never independently re-checked before being
+reported.
+
+New hook: applyAndReact.onEvade, fired from exactly the 3 mechanics the
+item's own text calls "Evasion" (confirmed against every nearby effect's
+own description): the dedicated evasionCharges/evasionTurns dodge roll,
+Avatar of Freedom's own roll, and Blessing of Freedom's own roll.
+Timeless Guard/Guardian Spirit/Guided Footsteps/Never Where Expected and
+the baseline accuracy miss are excluded -- their own text says
+"miss"/"negation," never "evasion" (Tyler's ruling after a clarifying
+question).
+
+The heal: set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal,
+healOnEvent, routed through healFighter, holders: ["player"]. No switch.
+The old inline clause is retired; Open Road's own clause in the same
+function is untouched.
+
+Proof test (phase2_step2e2_blessing_of_freedom_evade_ledger.js, 6/6):
+drives the real dispatch path with Math.random/hasEffect/hasSetTier
+stubbed. Confirms the heal fires from all 3 evasion sources, and not on
+a landed hit, a non-evasion miss, or for a non-wearer even when a real
+evasion happens via a different source.
+
+Suite 651/651 (645 + 6 new), audit 0 errors/348 warnings. Seeded harness
+re-confirmation (seed 777, against the prior commit) still running in
+the background at commit time; will follow up if it surfaces anything.
+The harness's own roster never equips this set, so nothing here should
+move its output.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               |  52 ++++++-
+ js/engine/combat.js                                |  28 ++--
+ js/engine/pipeline.js                              |  26 +++-
+ tools/modifier_catalogue.md                        |  16 ++-
+ ...se2_step2e2_blessing_of_freedom_evade_ledger.js | 155 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 6 files changed, 254 insertions(+), 24 deletions(-)

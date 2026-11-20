@@ -1,0 +1,34 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onEvade",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "blessingOfFreedomEvade",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "behavior",
+    "old": "blockFlatChance",
+    "new": "blessingOfFreedomEvade"
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of Freedom. Same behavior as Never Where Expected, reused rather than redefined.",
+    "new": "Blessing of Freedom's own 15% Evasion chance. 2e-2 bug fix (20 Nov): behavior changed from the shared blockFlatChance to blessingOfFreedomEvade (same roll/shape) so a success also dispatches applyAndReact.onEvade for the heal -- see set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal, right below."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal",
+  "type": "added"
+ }
+]
