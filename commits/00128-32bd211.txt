@@ -1,0 +1,45 @@
+range: efa6defb4801383d188ab064b859bc1e90305bb8..32bd211460bef6da61a25853375f634bc4622708
+=== 32bd211460bef6da61a25853375f634bc4622708 2026-11-20 13:25:19 +0000
+Phase 2 step 2e-1: the "one way in" healing pipeline
+healFighter(receiver, role, amount, source, ctx) is now the single choke
+point for any heal to the player or an ally: heal.incoming (the
+healing-received chain applyHeal used to run inline), applyHealing (the
+existing generic HP writer), then heal.overflow once if there's unhealed
+overflow. applyHeal is now a thin wrapper around it, player-only
+post-heal reactions untouched.
+
+Heal sources moved onto their own real trigger (applyAndReact.onHitDealt/
+.onKill, fight.start, fight.end, turn.start), mostly through a shared
+healOnEvent behavior: Soul Leech, Avatar of War/Passing lifesteal, Blood
+Debt, Blessing of Valor's heal-on-kill (missing from the original
+catalogue entirely), Keeper of History, Blessing of the Tide, Regrowth,
+Endless Bloom, Blessing of Renewal, Heartwood Vitality, Lasting
+Foundation, Flowing Waters, Avatar of Renewal (found during
+re-verification to be a real heal, not buff-only like its catalogued
+siblings).
+
+Flagged, left untouched: Living Forge (entangled with unmigrated
+cooldown internals), Love Endures/Avatar of Bloom (route through
+LOW_HEALTH_REACTIONS, no MOD_HOOK yet), Twist of Fate (no unifying
+trigger), Blessing of Freedom (not implemented anywhere today).
+
+Proof test (phase2_step2e1_heal_ally_proof_ledger.js, 8/8): Soul Leech
+and Mercy's Gift temporarily widened to ally in-test; the heal follows
+the wearer, not the role, and production holders stays ["player"].
+
+Suite 645/645 (637 + 8 new), audit 0 errors/358 warnings. Seeded
+harness re-confirmation (boss_sweep/plus3_run, seed 777) still running
+in the background at commit time; will follow up if it surfaces
+anything.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               | 384 +++++++++++++++++++++
+ js/engine/combat.js                                | 229 +++++-------
+ js/engine/pipeline.js                              |  25 +-
+ tools/modifier_catalogue.md                        |  25 ++
+ .../tests/phase2_step2e1_heal_ally_proof_ledger.js | 180 ++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 6 files changed, 687 insertions(+), 157 deletions(-)

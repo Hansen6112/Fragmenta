@@ -1,0 +1,137 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "heal.incoming",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "heal.overflow",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "overflowingLifeConvert",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "healOnEvent",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "regrowthHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "endlessBloomTick",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:flourishing_soul",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Heart:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:avatar_of_devotion_heal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:avatar_of_endurance_heal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:mercys_gift",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:healing_received_pct_status",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the First Bloom:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:avatar_of_war_lifesteal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:soul_leech",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:avatar_of_passing_lifesteal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:blood_debt",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:2:blessing_of_valor_heal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Hour:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Tide:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:regrowth",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:endless_bloom_tick",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the First Bloom:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Heartwood:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:lasting_foundation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:flowing_waters",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "always:avatar_of_renewal_heal",
+  "type": "added"
+ }
+]
