@@ -1,0 +1,531 @@
+[
+ {
+  "reg": "TACTICS",
+  "id": "feint",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "targeting": "self",
+     "toHit": "none",
+     "damage": null
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "tactic",
+     "targeting": "self",
+     "toHit": "none",
+     "damage": null,
+     "tags": [
+      "appliesBraceDefense"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "fire",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "fireOnHit",
+     "damageType": "fire"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "fireOnHit",
+     "damageType": "fire",
+     "tags": [
+      "elementAbility"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "water",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "waterOnHit",
+     "damageType": "water"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "waterOnHit",
+     "damageType": "water",
+     "tags": [
+      "elementAbility"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "earth",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "targeting": "self",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "toHit": "none",
+     "damage": null
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "targeting": "self",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "toHit": "none",
+     "damage": null,
+     "tags": [
+      "elementAbility",
+      "appliesBraceDefense"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "lightning",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "lightningOnHit",
+     "damageType": "lightning"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "lightningOnHit",
+     "damageType": "lightning",
+     "tags": [
+      "elementAbility"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "acid",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "acidOnHit",
+     "damageType": "acid"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "acidOnHit",
+     "damageType": "acid",
+     "tags": [
+      "elementAbility"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "force",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "forceOnHit",
+     "damageType": "force"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "forceOnHit",
+     "damageType": "force",
+     "tags": [
+      "elementAbility"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "transportation",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "transportationOnHit",
+     "damageType": "spatial",
+     "extraElementMultiplier": 1.3
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "transportationOnHit",
+     "damageType": "spatial",
+     "tags": [
+      "elementAbility"
+     ],
+     "extraElementMultiplier": 1.3
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "air",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "airOnHit",
+     "damageType": "air"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "airOnHit",
+     "damageType": "air",
+     "tags": [
+      "elementAbility"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "ELEMENT_ABILITIES",
+  "id": "frost",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "action",
+    "old": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "frostOnHit",
+     "damageType": "frost"
+    },
+    "new": {
+     "actorKinds": [
+      "player"
+     ],
+     "actionType": "elemental",
+     "usesPerfectMemory": true,
+     "consumesTrailblazer": true,
+     "targeting": "singleEnemy",
+     "toHit": "roll",
+     "formula": "playerCore",
+     "usesOrchestratorDmgMult": true,
+     "reportPhysical": "always",
+     "missLine": "[fn]",
+     "elementOnHit": "frostOnHit",
+     "damageType": "frost",
+     "tags": [
+      "elementAbility"
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "calculateDamage.baseRoll",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onActionUsed",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "decisiveImpactRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "toxicPreparationDirectApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "adaptiveWardRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "seedbearerHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "siegeCorpsChargeGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:arcane_convergence",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:patient_aim",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_mil_ie005_decisive_impact",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_iag_ie008_toxic_preparation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:perfect_balance",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:perfect_balance.def",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:expanding_mind",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:empty_hand",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:empty_hand.def",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:master_of_arms",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:seedbearer",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Siege Corps:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:adaptive_ward",
+  "type": "added"
+ }
+]

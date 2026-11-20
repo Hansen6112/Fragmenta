@@ -1,0 +1,85 @@
+range: fbd03ba5086d55cc47ae109a8755d7aac91e6081..efa6defb4801383d188ab064b859bc1e90305bb8
+=== efa6defb4801383d188ab064b859bc1e90305bb8 2026-11-20 03:23:48 +0000
+Phase 2 step 2e, §3 follow-up: the redirected rows + Tyler's rulings
+Finishes 2d/2b for the rows §3's review redirected out of lifecycle,
+and implements Tyler's rulings on the 5 flagged-ambiguous rows, before
+2e-1 starts.
+
+Redirected rows (2d/2b):
+- Arcane Convergence: a base-roll behaviour outside the buckets (Rule
+  3) -- new calculateDamage.baseRoll hook, exempted from M3 the same
+  way .tags/.cap are. `rerollAdvantage: true` tags it for Phase 4.
+- Patient Aim: a Rule 1 upgrade of Feint's own bonus (1.6x -> 1.75x),
+  also outside the buckets -- virtual tag "effect:feint", same pattern
+  as "effect:ambush" before its own base entry existed.
+- Decisive Impact + Toxic Preparation: real calculateDamage.outgoing
+  entries (Rule 2, burst), each its own lateOutgoingPhase group so
+  their different relative position vs enemyWearer1/enemyWearer2 in
+  the ally- vs player-target branches is preserved exactly. Toxic
+  Preparation is directApply (additive, not a ratio) and keeps its
+  COMBAT_UNIFY.U3d ally/player asymmetry via ctx.targetRole.
+- Adaptive Ward: confirmed distinct from adaptive_tide (own state,
+  own mechanic) -- real calculateDamage.incoming entry, abilityPhase,
+  folded into the existing calculateAbilityIncomingMultiplier call at
+  both its branches rather than a new call site (order 1, before Spell
+  Ward's 5 -- sequential rounding makes this equivalent to today's
+  separate inline check).
+- Perfect Balance, Expanding Mind, The Empty Hand: new statBonus
+  (additive) and statMultiplier (finishing multiplier) dispatch shapes
+  sharing the existing stat.* hooks Bedrock already uses, with mutual
+  exclusion so the three dispatch kinds never collide.
+
+Rulings:
+- dual_focus, conduit_ascendant -> outOfCombat (new
+  M1_OUT_OF_COMBAT_EFFECT_IDS exemption list, EFFECT_DEFS' own
+  equivalent of the existing SETS-tier list).
+- master_of_arms: its own entry with a new `amplifies` field (the 8
+  effect keys it doubles). masterOfArmsDoubles (combat.js) now reads
+  this array as the source of truth instead of an implicit list; all
+  9 call sites unchanged.
+- Seedbearer + Siege Corps:6: new hook, applyAndReact.onActionUsed --
+  fires on any tagged action's use, hit or miss, matched via
+  ELEMENT_ABILITIES.*.action.tags/TACTICS.feint.action.tags
+  ("elementAbility"/"appliesBraceDefense"). Siege Corps:6's banked
+  charge moves fully into its own entry state; Seedbearer's counter
+  stays the shared, flat spellCastCounter field (Eureka reads the same
+  counter, not yet migrated -- moving it would have desynced them).
+
+Also fixes the §3 summary's own arithmetic (totalled 45, not 40).
+
+Two bugs caught by the regression suite before landing: a bare
+`upgrades`-tagged M1 placeholder with no value corrupted
+resolveUpgradedValue's Math.min via null-coercion (fixed by using
+`when: () => false` instead); and the Siege Corps:6 charge move needed
+an eager modifierState init (matching the five existing entries' own
+precedent) plus MODIFIER_STATE_FIELD_MAP/direct-poke updates across
+seven parity test files, or scenarios that never exercise Feint/Earth
+would see the old flat field "disappear" instead of reading 0.
+
+Suite 637/637, audit 0 errors/371 warnings. Both seeded harnesses
+(boss_sweep --rows all, plus3_run) re-confirmed byte-identical at
+n=1000/seed 777 against the committed baselines.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/actions.js                                 |  66 ++--
+ js/data/elementabilities.js                        |  14 +-
+ js/data/modifiers.js                               | 339 ++++++++++++++++++++-
+ js/data/sets.js                                    |   9 +
+ js/data/tactics.js                                 |   5 +-
+ js/engine/combat.js                                |  69 ++++-
+ js/engine/pipeline.js                              |  31 +-
+ js/engine/state.js                                 |  12 +-
+ tools/audit.js                                     |  42 ++-
+ tools/modifier_catalogue.md                        |  16 +-
+ tools/tests/phase1_step1a_combatant_ledger.js      |  10 +-
+ tools/tests/phase1_step1b_pipeline_parity.js       |   1 +
+ tools/tests/phase1_step1c_ally_pipeline_parity.js  |   1 +
+ .../phase1_step1d_ally_attack_pipeline_parity.js   |   1 +
+ ...hase1_step1e_i_player_attack_pipeline_parity.js |   3 +-
+ .../phase1_step1e_ii_tactics_pipeline_parity.js    |   7 +-
+ .../phase1_step1e_iii_elements_pipeline_parity.js  |   3 +-
+ .../phase1_step1g_vi_field_move_batch4_ledger.js   |   5 +-
+ 18 files changed, 540 insertions(+), 94 deletions(-)

@@ -1,0 +1,245 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 3aea503..4bf9582 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -177,7 +177,9 @@ const PLAYER_FIELDS = [
+   // step 2c rework) -- see "effect:evasive_guard"'s own registry entry.
+   "evasionCharges", "evasionTurns", "exposedTarget",
+   "playerLastHitType", "actionCounter", "weaponAttackCounter",
+-  "momentumStacks", "momentumUnboundStacks", "siegeCorpsAtkCharge",
++  // siegeCorpsAtkCharge moved off this list under the 2e §3 follow-up
++  // (20 Nov) -- see "set:Siege Corps:6"'s own registry entry.
++  "momentumStacks", "momentumUnboundStacks",
+ ];
+ 
+ // Step 1h-iii: the explicit player combat store. Captures each
+@@ -244,8 +246,15 @@ function mainhandGrants(state, effectId) {
+   const def = item && ITEM_DEFS[item];
+   return !!(def && def.effects && def.effects.includes(effectId));
+ }
++// 2e §3 ruling (Tyler, 20 Nov): the registry's own "effect:master_of_arms"
++// entry (js/data/modifiers.js) is now the single source of truth for
++// WHICH effect keys Master of Arms amplifies -- its own `amplifies`
++// array, not a hardcoded id repeated at each of this function's 9 call
++// sites. Every existing call site is unchanged; only this function's
++// own internals now consult the registry's data.
+ function masterOfArmsDoubles(state, effectId) {
+-  return hasEffect(state, "master_of_arms") && mainhandGrants(state, effectId);
++  const entry = MODIFIERS["effect:master_of_arms"];
++  return hasEffect(state, "master_of_arms") && entry.amplifies.includes(effectId) && mainhandGrants(state, effectId);
+ }
+ 
+ // Creature names that are already articled ("The Turned") or proper nouns
+@@ -394,7 +403,7 @@ function effectivePlayerDef(state) {
+   // Evasive Guard's stack now lives on its own registry entry's state
+   // (Amendment 1, Phase 2 step 2c rework), not combat.player.evasiveGuardBonus.
+   const evasiveGuardStacks = modifierStateFor(state, "player", "effect:evasive_guard", MODIFIERS["effect:evasive_guard"]).stacks || 0;
+-  const flatStacks = evasiveGuardStacks + (combat.player.forestGuardianBonus || 0) + (combat.player.queenCarapaceBonus || 0) + (combat.player.whiteWatchRiposteDefBonus || 0) + perfectBalanceBonus(state) + (combat.player.livingSteelBonus || 0) + (combat.player.battleTemperedDefStacks || 0) + (combat.player.compassionsGraceDefStacks || 0) * 2 + (combat.player.windsOfChangeDef || 0) + (combat.player.avatarOfChaosDefBonus || 0) + (combat.player.wallsEndureDefStacks || 0) + (combat.player.avatarOfEnduranceDefBonus || 0) + (combat.player.reinforcedDefStacks || 0) + (combat.player.orderedMindDefStacks || 0) + calmWatersDef;
++  const flatStacks = evasiveGuardStacks + (combat.player.forestGuardianBonus || 0) + (combat.player.queenCarapaceBonus || 0) + (combat.player.whiteWatchRiposteDefBonus || 0) + calculateStatBonus(state, "player", "def", { holder: state, role: "player" }) + (combat.player.livingSteelBonus || 0) + (combat.player.battleTemperedDefStacks || 0) + (combat.player.compassionsGraceDefStacks || 0) * 2 + (combat.player.windsOfChangeDef || 0) + (combat.player.avatarOfChaosDefBonus || 0) + (combat.player.wallsEndureDefStacks || 0) + (combat.player.avatarOfEnduranceDefBonus || 0) + (combat.player.reinforcedDefStacks || 0) + (combat.player.orderedMindDefStacks || 0) + calmWatersDef;
+   const base = state.def + buff + flatStat(flatStacks) + playerBuffStatTotal(state, "def");
+   // Enemy Ability Engine (data/enemyabilities.js): a Defense-reducing
+   // status an enemy's active ability just inflicted (Shield Crush, ...),
+@@ -506,7 +515,7 @@ function computeEffectivePlayerAtk(state, siegeCorpsTerm) {
+   // atkBuff and playerBuffs are already scaled where they're granted.
+   const flatStacks =
+     siegeCorpsTerm +
+-    perfectBalanceBonus(state) +
++    calculateStatBonus(state, "player", "atk", { holder: state, role: "player" }) +
+     (combat.player.lastStandAtkBonus || 0) +
+     (combat.player.livingSteelBonus || 0) +
+     everyChoiceAtk * 2 +
+@@ -885,6 +894,22 @@ function perfectBalanceBonus(state) {
+   return Math.abs(state.atk - state.def) <= flatStat(2) ? 2 : 0; // v0.11: threshold on scaled stats; the +2 itself is scaled by the caller's flatStat
+ }
+ 
++// Expanding Mind (Divine Regalia -- Vestments of the First Scholar):
++// extracted from effectiveMagic's own former inline computation (2e §3
++// follow-up, 20 Nov) so the registry's "effect:expanding_mind" entry
++// (statBonus, calculateStatBonus) can call the exact same formula --
++// a live read off the CURRENT effective Knowledge stat (every 5 above
++// 50 grants +1 Magic), not a stacking/triggered bonus. Avatar of
++// Knowledge/Winds of Change/Avatar of Chaos/Perfect Memory all feed the
++// Knowledge input here, the same deliberate scope limit as before
++// (this formula only, not every knowledgeReq gate in the codebase).
++function expandingMindMagicBonus(state) {
++  if (!hasEffect(state, "expanding_mind")) return 0;
++  const combat = state.combat;
++  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.player.knowledgeBuffAmount) || 0) + ((combat && combat.player.windsOfChangeKnowledge) || 0) + ((combat && combat.player.avatarOfChaosKnowledgeBonus) || 0) + ((combat && combat.player.perfectMemoryKnowledgeBonus) || 0);
++  return Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5);
++}
++
+ // Kingslayer (Legendary): +25% damage against Elite/Boss-equivalent
+ // creatures — now a direct read of the real Danger Class/Spawn Rarity
+ // tags (see data/creaturetags.js isNotableCreature) instead of the old
+@@ -976,8 +1001,7 @@ function effectiveMagic(state) {
+   // knowledgeReq gate in the codebase).
+   // Perfect Memory (Divine Regalia — Robes of Endless Record) also feeds
+   // this same Knowledge input, the same deliberate scope limit as above.
+-  const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.player.knowledgeBuffAmount) || 0) + ((combat && combat.player.windsOfChangeKnowledge) || 0) + ((combat && combat.player.avatarOfChaosKnowledgeBonus) || 0) + ((combat && combat.player.perfectMemoryKnowledgeBonus) || 0);
+-  const expandingMindMagic = hasEffect(state, "expanding_mind") ? Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5) : 0;
++  const expandingMindMagic = calculateStatBonus(state, "player", "magic", { holder: state, role: "player" });
+   const unwaveringDevotionMagic = ((combat && combat.player.unwaveringDevotionStacks) || 0) * 2;
+   const windsOfChangeMagic = (combat && combat.player.windsOfChangeMagic) || 0;
+   const avatarOfChaosMagic = (combat && combat.player.avatarOfChaosMagicBonus) || 0;
+@@ -1439,9 +1463,14 @@ function bleedExploitationMultiplier(state) {
+ // Siege Corps's 6pc set bonus grants a one-shot +2 Attack "next turn"
+ // whenever Brace fires (see useFeint/useElementAbility's earth case) —
+ // consumed by whichever physical damage roll comes next, wherever that is.
++// 2e §3 follow-up (20 Nov): the charge itself now lives in the
++// registry's own entry state ("set:Siege Corps:6"), not a flat
++// combat.player field.
+ function consumeSiegeCorpsAtkCharge(state) {
+-  if (!state.combat || !state.combat.player.siegeCorpsAtkCharge) return 0;
+-  state.combat.player.siegeCorpsAtkCharge = 0;
++  if (!state.combat) return 0;
++  const st = modifierStateFor(state, "player", "set:Siege Corps:6", MODIFIERS["set:Siege Corps:6"]);
++  if (!st.charge) return 0;
++  st.charge = 0;
+   return 2;
+ }
+ // Pure read of the same charge, for peekPlayerAtk (step 1e handoff §3.2)
+@@ -1449,7 +1478,8 @@ function consumeSiegeCorpsAtkCharge(state) {
+ // consumeSiegeCorpsAtkCharge above directly when it actually needs to
+ // spend the charge; this one is for a stat() read that must not.
+ function peekSiegeCorpsAtkCharge(state) {
+-  return (state.combat && state.combat.player.siegeCorpsAtkCharge) ? 2 : 0;
++  if (!state.combat) return 0;
++  return modifierStateFor(state, "player", "set:Siege Corps:6", MODIFIERS["set:Siege Corps:6"]).charge ? 2 : 0;
+ }
+ 
+ // Foreseen Strike (Divine Regalia — Loom of Destinies): every 3rd action
+@@ -2052,7 +2082,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // the higher result — an "advantage" reroll rather than a flat
+     // multiplier, so it still respects the natural magic-2..magic+2 spread.
+     let base = randInt(magic - 2, magic + 2);
+-    if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
++    base = calculateBaseRollAdvantage(state, "player", { holder: state, role: "player", base, magic });
+     // v0.9 playtest fix: was /40 — quadratic in magic, and combined with
+     // Mage's old 1.6x growth multiplier (see data/classes.js), an unspent
+     // Mage was one-shotting elite-tier enemies by level 20-25. Splitting
+@@ -5730,7 +5760,10 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     // see the modifierState block below, not a flat field here.
+     queenCarapaceBonus: 0, // Carapace Adaptation's stacking def, capped +9
+     whiteWatchRiposteDefBonus: 0, // White Watch 6pc — stacking def per Riposte
+-    siegeCorpsAtkCharge: 0, // Siege Corps 6pc — one-shot +2 atk after Brace
++    // siegeCorpsAtkCharge moved off this flat field under the 2e §3
++    // follow-up (20 Nov) -- its state lives under "set:Siege Corps:6"'s
++    // own registry entry now, initialized directly on
++    // combat.player.modifierState, never flat on combat.player.
+     lastElementUsed: null, // for elemental synergy — see data/synergy.js
+     firstPhysicalAttackDone: false, // gates Opening Reach
+     firstHitTakenUsed: false, // gates Stonewarden 6pc's first-hit reduction
+@@ -5898,6 +5931,12 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+     "effect:guided_footsteps": { used: false },
+     "effect:evasive_guard": { stacks: 0 },
+     "set:River Warden:6": { stacks: 0 },
++    // 2e §3 follow-up (20 Nov): eagerly initialized for the same reason
++    // as the five above -- so "charge" exists from fight start, not
++    // just after Siege Corps:6's own dispatch first fires, keeping
++    // MODIFIER_STATE_FIELD_MAP's mapping back to siegeCorpsAtkCharge
++    // correct even in a scenario that never triggers Feint/Earth at all.
++    "set:Siege Corps:6": { charge: 0 },
+   };
+   // Lore tab's Enemies category (parser.js's buildLoreMenu) only lists a
+   // creature once actually fought — dynamic creatures (enemy mages) have
+@@ -7025,9 +7064,11 @@ function useFeint(state) {
+     braceBonus += 3;
+     out.push(`Disciplined Formation — your training holds; +3 Defense against the counter.`);
+   }
+-  if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
+-    state.combat.player.siegeCorpsAtkCharge = 2;
+-  }
++  // 2e §3 follow-up (20 Nov): Siege Corps:6, dispatched via the
++  // registry (applyAndReact.onActionUsed, "appliesBraceDefense" tag) --
++  // the entry's own behavior still checks hasEffect(holder,"brace")
++  // itself, matching today's exact pair of conditions.
++  out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: TACTICS.feint.action.tags }));
+   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
+   out.push(...retaliation.lines);
+   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index a033558..a464ab3 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -1665,7 +1665,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+   if (isSpell) {
+     const magic = effectiveMagic(state);
+     let base = randInt(magic - 2, magic + 2);
+-    if (hasEffect(state, "arcane_convergence")) base = Math.max(base, randInt(magic - 2, magic + 2));
++    base = calculateBaseRollAdvantage(state, "player", { holder: state, role: "player", base, magic });
+     const multiplier = 1 + magic / 60;
+     // Damage Types v2 (step 2d, off by default): tags replace the old
+     // element-vs-element matchup cycle -- see enemyCore's own identical
+@@ -1826,7 +1826,7 @@ function calculateDamagePlayerActor(actor, target, action, ctx, hitInfo) {
+ 
+   let feintBonusApplied = false;
+   if (action.consumesFeintBonus && state.combat.player.nextAttackBonus) {
+-    const feintMult = hasEffect(state, "patient_aim") ? 1.75 : 1.6;
++    const feintMult = feintMultiplier(state, "player");
+     dmg = Math.round(dmg * feintMult);
+     state.combat.player.nextAttackBonus = false;
+     feintBonusApplied = true;
+@@ -2349,10 +2349,17 @@ function useElementAbility(state, elementKey) {
+   out.push(...resolveSpeedInitiative(state, creature));
+   if (!state.combat || state.health <= 0) return out;
+   state.combat.player.spellCastCounter = (state.combat.player.spellCastCounter || 0) + 1;
+-  if (hasEffect(state, "seedbearer") && state.combat.player.spellCastCounter % 3 === 0) {
+-    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.1));
+-    if (healed > 0) out.push(`Seedbearer blooms — you're mended for ${healed} health.`, ...lines);
+-  }
++  // Seedbearer (2e §3 follow-up, 20 Nov): dispatched via the registry
++  // (applyAndReact.onActionUsed, "elementAbility" tag -- every element
++  // shares it, via pipelinedElementAction). spellCastCounter itself
++  // stays this exact shared, unconditional, flat field -- read into
++  // ctx, not owned by Seedbearer's own entry state (Eureka, below,
++  // reads the same counter and isn't migrated yet). Passes only
++  // ["elementAbility"] here, NOT a.action.tags in full -- earth's own
++  // tags array also carries "appliesBraceDefense", which must only
++  // match at ITS OWN later dispatch call (after Stoneskin's defBuff is
++  // set), not here, or Siege Corps:6 would double-fire for an Earth cast.
++  out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["elementAbility"], spellCastCounter: state.combat.player.spellCastCounter }));
+   out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"), ...applyPerfectMemory(state, elementKey));
+   consumeTrailblazer(state);
+   let cooldown = a.cooldown;
+@@ -2450,9 +2457,15 @@ function useElementAbility(state, elementKey) {
+     state.combat.player.defBuffTurns = 3;
+     state.combat.player.defBuffAmount = defBonus;
+     out.push(`Your skin hardens to something between flesh and stone — your defenses surge for the next few turns.`);
+-    if (hasEffect(state, "brace") && hasSetTier(state, "Siege Corps", 6)) {
+-      state.combat.player.siegeCorpsAtkCharge = 2;
+-    }
++    // 2e §3 follow-up (20 Nov): Siege Corps:6, dispatched via the
++    // registry (applyAndReact.onActionUsed, "appliesBraceDefense" tag) --
++    // same call as useFeint's own, matching today's exact pair of
++    // conditions (the entry's own behavior still checks hasEffect(holder,"brace")).
++    // Passes only ["appliesBraceDefense"] here (not the full earth tags
++    // array, which also carries "elementAbility" -- Seedbearer's own
++    // dispatch already ran once, earlier, right after resolveSpeedInitiative;
++    // it must not match again here).
++    out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["appliesBraceDefense"] }));
+   } else {
+     const enemySlot = {
+       creatureObj: creature,
+diff --git a/js/engine/state.js b/js/engine/state.js
+index 11eda3b..b5df877 100644
+--- a/js/engine/state.js
++++ b/js/engine/state.js
+@@ -517,11 +517,13 @@ class GameState {
+     this.agility = BASE_AGILITY + (race.agilityMod || 0) + (pb.agility || 0) + Math.round(PLAYER_SECONDARY_GROWTH_RATE * cls.secondaryMult.agility * om("agility") * n) + (this.scoutDeepenBonus || 0) + equipmentBonus(this, "agility") + setStatBonus(this, "agility");
+     // The Empty Hand (Artifact): fighting with no Off-Hand equipped is a
+     // flat +50%/+25% multiplier, applied last on top of every other atk/
+-    // def source above (growth, gear, sets).
+-    if (hasEffect(this, "empty_hand") && !this.equipment.offhand) {
+-      this.atk = Math.round(this.atk * 1.5);
+-      this.def = Math.round(this.def * 1.25);
+-    }
++    // def source above (growth, gear, sets). Dispatched via the
++    // registry (2e §3 follow-up, 20 Nov) -- "effect:empty_hand"'s own
++    // `when` carries the !equipment.offhand gate, so this is a no-op
++    // (statMultiplier entries filtered out, value unchanged) exactly
++    // when the old inline condition was false.
++    this.atk = calculateStatMultiplier(this, "player", "atk", { holder: this, role: "player" }, this.atk);
++    this.def = calculateStatMultiplier(this, "player", "def", { holder: this, role: "player" }, this.def);
+     // Fatigue: going too long without a full sleep saps every combat/
+     // utility stat (not max Health — this shouldn't put you at death's
+     // door on its own, just make you worse at everything). Cleared by
