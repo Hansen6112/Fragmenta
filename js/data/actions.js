@@ -154,7 +154,10 @@ const PIPELINE_HOOKS = {
     return { lines: [`${ELEMENTS.fire.verb(withThe(h.creature.name, false))} for ${h.edmg} damage, and the flame catches.`], castDamageDealt: h.edmg };
   },
   waterOnHit(h) {
-    const heal = Math.round(h.edmg * waterHealPct(h.state));
+    // 2e-2 (22 Nov): waterHealPct now reads its own percentage via the
+    // registry's Rule 1 upgrade mechanism (Leviathan:6) -- h.actor.kind
+    // is "player" today, the same role this function has always read for.
+    const heal = Math.round(h.edmg * waterHealPct(h.state, h.actor.kind));
     const { healed, lines: healLines } = applyHeal(h.state, heal);
     if (hasSetTier(h.state, "First Sword's Regalia", 10)) h.state.combat.player.sovereigntyTurnsLeft = 2;
     return { lines: [`${ELEMENTS.water.verb(withThe(h.creature.name, false))} for ${h.edmg} damage, and the backwash mends you for ${healed}.`, ...healLines], castDamageDealt: h.edmg };

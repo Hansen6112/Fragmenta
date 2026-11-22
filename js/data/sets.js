@@ -741,6 +741,12 @@ function hasColdproof(state) {
 
 // Torrent (Water)'s self-heal percentage of damage dealt: base 50%;
 // Leviathan 6pc raises it to 75%.
-function waterHealPct(state) {
-  return hasSetTier(state, "Leviathan", 6) ? 0.75 : 0.5;
+// 2e-2 (22 Nov, Tyler): a Rule 1 upgrade of Water's own base self-heal %,
+// same shape as feintMultiplier's own "effect:feint" upgrade -- "action:water"
+// is a pure virtual tag (no base registry entry; Water's own self-heal is
+// the element's own action behavior, not an EFFECT_DEFS/SETS bonus, so
+// there's nothing else to key it to). Leviathan:6's own upgrade entry
+// (set:Leviathan:6) is the only thing resolveUpgradedValue ever finds here.
+function waterHealPct(state, holderRole) {
+  return resolveUpgradedValue("action:water", 0.5, state, holderRole || "player", "max");
 }

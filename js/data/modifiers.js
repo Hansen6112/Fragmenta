@@ -1710,6 +1710,22 @@ registerModifier("set:Leviathan:4", {
   when: () => false, holders: ["player"], state: null,
   notes: "M1 placeholder only -- grants Spell Ward's base outright (spellWardMultiplier's own hasBase check already covers this); the Coldproof half of this tier is an unrelated flat stat.def grant, outside calculateDamage entirely.",
 });
+// Leviathan:6: a Rule 1 upgrade of Water's own base self-heal % (2e-2,
+// 22 Nov, Tyler) -- 50% -> 75%, same shape as Patient Aim's own upgrade
+// of Feint. "action:water" is a pure virtual tag (no base registry
+// entry; Water's self-heal is the element action's own behavior, not an
+// EFFECT_DEFS/SETS bonus, same reasoning as "effect:feint") -- only
+// waterHealPct's own resolveUpgradedValue call (js/data/sets.js) reads
+// it. `hook`/`bucket: null` are required fields, never consulted for an
+// `upgrades` entry (M3 exempts them); `calculateDamage.outgoing` here is
+// nominal, matching the family this upgrade conceptually belongs to.
+registerModifier("set:Leviathan:6", {
+  source: { kind: "set", id: "Leviathan:6", setName: "Leviathan", tier: 6 },
+  upgrades: "action:water",
+  hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 0.75, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Water self-heal upgrade: 50% -> 75%.",
+});
 
 // ---- 2d, increment 3d (19 Nov): statusTick.incoming (Ashward). The
 // only member of this hook -- holders stays ["enemy"], matching
