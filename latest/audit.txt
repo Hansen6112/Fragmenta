@@ -1,5 +1,5 @@
 
-WARNINGS (348)
+WARNINGS (347)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -150,7 +150,6 @@ WARNINGS (348)
   [modifiers] SETS.Elder Bark tier 4 ("elderbark_regrowth_10") has no registry entry yet (M1)
   [modifiers] SETS.Elder Bark tier 6 ("elderbark_survive_1hp") has no registry entry yet (M1)
   [modifiers] SETS.Bonecaller tier 4 ("bonecaller_deepcut_35") has no registry entry yet (M1)
-  [modifiers] SETS.Leviathan tier 6 ("leviathan_water_heal_75") has no registry entry yet (M1)
   [modifiers] SETS.First Kingdom tier 4 ("firstkingdom_tacticalmemory_50") has no registry entry yet (M1)
   [modifiers] SETS.First Kingdom tier 6 ("firstkingdom_cooldowns") has no registry entry yet (M1)
   [modifiers] SETS.Pre-Kabal tier 6 ("prekabal_generic_synergy_140") has no registry entry yet (M1)
@@ -345,7 +344,7 @@ WARNINGS (348)
   [modifiers] js/engine/resolver.js still has 3 hasEffect() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/resolver.js still has 1 hasSetTier() call(s) not yet migrated to the registry (M2)
   [modifiers] js/data/sets.js still has 7 hasEffect() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/data/sets.js still has 26 hasSetTier() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/data/sets.js still has 25 hasSetTier() call(s) not yet migrated to the registry (M2)
   [modifiers] js/data/synergy.js still has 1 hasEffect() call(s) not yet migrated to the registry (M2)
   [modifiers] js/data/synergy.js still has 1 hasSetTier() call(s) not yet migrated to the registry (M2)
 
@@ -354,4 +353,4 @@ WARNINGS (348)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 348 warning(s) across 53 scripts.
+0 error(s), 347 warning(s) across 53 scripts.
