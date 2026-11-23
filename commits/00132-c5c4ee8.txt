@@ -1,0 +1,52 @@
+range: 9958626eddacebdbde6bb841eb1fcb869312dc6d..c5c4ee842527ec3080c34a3959fb2223144692b9
+=== c5c4ee842527ec3080c34a3959fb2223144692b9 2026-11-23 20:37:10 +0000
+2e-2: heal.applied/onSummon/onStatusApplied/onTargeted hooks, the Guarded Strike/Brace/Legion:6/Stonewarden:4 retaliationDef unit, and the onKill family
+New hooks: heal.applied (Living Current, Compassion's Grace, Endless
+Current), applyAndReact.onSummon (Hunter's Call, Boarding Discipline),
+applyAndReact.onTargeted (Reinforced), applyAndReact.onPhysicalHitLanded
+(Guarded Strike's player-side retaliation bonus), applyAndReact.onKillLate
+(Passing Whisper, which sits after recomputeStats/the enemy.killed event
+in resolveKill and can't share the early onKill dispatch without
+double-firing Blood Debt/Blessing of Valor/Keeper of History/Archive
+Eternal/Battle Scholar/Living Legacy/Victor's Momentum).
+
+Wired real dispatch for applyAndReact.onStatusApplied (previously
+reserved, never fired): Imperial Authority/Company Standard/Rallying
+Standard (granter side) and Faithful Heart/Heartward Bond (receiver
+side, threaded duration via threadStatusAppliedDuration).
+
+Guarded Strike/Brace/Legion:6/Stonewarden:4: migrated onto the registry
+while keeping the real flat fields (guardedStrikeBonusDef/braceBonusDef/
+legion6BonusDef) as the actual storage, since several frozen
+pipeline-parity fixtures simulate "already banked" state by mutating
+those fields directly. Legion:6 modeled as its own additive entry (not
+a Rule 1 upgrade of Brace, per the real code's own stacking behavior);
+Stonewarden:4 genuinely is a Rule 1 upgrade of Brace's base value.
+Disarm's own unconditional Guarded Strike check stays untouched, inline.
+
+onKill family: Battle Scholar/Living Legacy/Victor's Momentum moved off
+their own Events.on("enemy.killed") listeners; Archive Eternal moved off
+its own direct call -- all four were catalogue-overstated (hook column
+read "onKill" already, but no registry code existed).
+
+Catalogue updated throughout, including holders corrections for several
+Sanguivorum (enemy-held) rows previously mislabeled "player", and a
+catalogue-only fix for 5 rows that were already migrated but never had
+their hook column updated to match.
+
+Suite 651/651, audit 0 errors (347->327 warnings). Sim harness
+verification (plus3_run + boss_sweep, both switch states, N=1000 seed
+777) still running in the background against the pre-2e-2 baseline --
+will confirm once it lands.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 457 ++++++++++++++++++++++++++++++++++++++++++++
+ js/data/sets.js             |   7 -
+ js/engine/combat.js         | 281 +++++++++------------------
+ js/engine/pipeline.js       |  31 ++-
+ js/engine/resolver.js       |   2 +-
+ tools/modifier_catalogue.md |  50 ++---
+ 6 files changed, 580 insertions(+), 248 deletions(-)

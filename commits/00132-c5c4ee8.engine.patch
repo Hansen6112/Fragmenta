@@ -1,0 +1,560 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index cf31993..1d74540 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -37,7 +37,7 @@ function randInt(min, max) {
+ // base via data/creaturetags.js computeCreatureStats (see startCombat) —
+ // so the shared BESTIARY dict entry is never mutated. state.combat.dynamicCreature
+ // (not creatureObj's truthiness) is the real "is this an enemy mage, not
+-// a BESTIARY species" signal — see applyArchiveEternal.
++// a BESTIARY species" signal — see archiveEternalOnKill, js/data/modifiers.js.
+ function getCombatCreature(state) {
+   if (!state.combat) return null;
+   const slot = activeEnemySlot(state.combat);
+@@ -1061,13 +1061,16 @@ function effectiveMagic(state) {
+ // Devotion/Endurance, Mercy's Gift, healingReceivedPct -- same order,
+ // same per-step rounding applyHeal's old inline chain always had), then
+ // writes HP through applyHealing (step 1g-ii §2b's own generic, audit-P1
+-// HP writer), then runs heal.overflow once IF there's unhealed overflow
+-// (First Bloom 4pc's Temporary Health conversion -- gated on overflow > 0
+-// here rather than inside the entry itself, matching today's own
+-// `if (overflow > 0 && ...)` gate exactly). ctx.holder/ctx.role are set
+-// here, same convention calculateEnemyIncomingMultiplier's own call site
+-// already uses -- every heal.incoming/heal.overflow entry reads ctx.holder,
+-// not a bare "state". Returns { healed, overflow, lines }.
++// HP writer), then runs heal.applied unconditionally (Living Current,
++// Compassion's Grace, Endless Current -- each entry's own `when` gates
++// on ctx.amountHealed > 0, same as their old inline checks), then runs
++// heal.overflow once IF there's unhealed overflow (First Bloom 4pc's
++// Temporary Health conversion -- gated on overflow > 0 here rather than
++// inside the entry itself, matching today's own `if (overflow > 0 && ...)`
++// gate exactly). ctx.holder/ctx.role are set here, same convention
++// calculateEnemyIncomingMultiplier's own call site already uses -- every
++// heal.incoming/heal.applied/heal.overflow entry reads ctx.holder, not a
++// bare "state". Returns { healed, overflow, lines }.
+ function healFighter(receiver, role, amount, source, ctx) {
+   if (!(amount > 0)) return { healed: 0, overflow: 0, lines: [] };
+   ctx.holder = receiver;
+@@ -1075,10 +1078,12 @@ function healFighter(receiver, role, amount, source, ctx) {
+   const { edmg: amt } = calculateHealIncoming(receiver, role, ctx, amount);
+   const target = role === "player" ? makePlayerCombatant(receiver) : makeAllyCombatant(receiver);
+   const healed = applyHealing(target, amt, source, ctx);
++  ctx.amountHealed = healed;
++  const appliedLines = calculateHealApplied(receiver, role, ctx);
+   const overflow = amt - healed;
+   ctx.overflow = overflow;
+   const lines = overflow > 0 ? calculateHealOverflow(receiver, role, ctx) : [];
+-  return { healed, overflow, lines };
++  return { healed, overflow, lines: [...appliedLines, ...lines] };
+ }
+ 
+ function applyHeal(state, amount) {
+@@ -1099,37 +1104,9 @@ function applyHeal(state, amount) {
+   const { healed, lines: overflowLines } = healFighter(state, "player", amount, "player_heal", ctx);
+   const combat = state.combat;
+   const lines = [...overflowLines];
+-  if (healed > 0 && combat && hasEffect(state, "living_current")) {
+-    combat.player.livingCurrentStacks = Math.min(5, (combat.player.livingCurrentStacks || 0) + 1);
+-  }
+-  // Compassion's Grace (Divine Regalia — Roseheart Scepter): whenever you
+-  // restore Health, also gain +2 Defense, capped +10 (5 stacks). The
+-  // source text says "for 2 rounds," but this engine has no precedent for
+-  // independent per-stack expiry (every other stacking bonus here —
+-  // Living Steel, Every Choice Matters, Battle Tempered — is permanent
+-  // for the rest of the fight once gained), so it's approximated the same
+-  // way for consistency.
+-  if (healed > 0 && combat && hasEffect(state, "compassions_grace")) {
+-    combat.player.compassionsGraceDefStacks = Math.min(5, (combat.player.compassionsGraceDefStacks || 0) + 1);
+-  }
+-  // Endless Current (Regalia of the Endless Tide 4pc): whenever you
+-  // remove a negative effect (never happens — no such mechanic exists;
+-  // see Cleansing Current/Calm Waters) or restore Health, gain +2
+-  // Attack/+2 Defense/+2 Magic for 3 rounds, stacking up to +10 in each
+-  // (5 stacks) — its own dedicated stack counter (rather than a plain
+-  // "+2 flat" like Rally the Line) since this one genuinely stacks in
+-  // magnitude across repeated procs, not just refreshes duration.
+-  if (healed > 0 && combat && hasSetTier(state, "Regalia of the Endless Tide", 4)) {
+-    combat.player.endlessCurrentStacks = Math.min(5, (combat.player.endlessCurrentStacks || 0) + 1);
+-    const dur = applyBeneficialEffectBonuses(state, 3);
+-    const grant = applyBlessingOfCreationBonus(state, flatStat(combat.player.endlessCurrentStacks * 2)); // v0.11 PLAYER_STAT_SCALE
+-    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+-    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, grant);
+-    combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
+-    combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, grant);
+-    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+-    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, grant);
+-  }
++  // Living Current, Compassion's Grace, Endless Current (2e-2, 23 Nov):
++  // moved onto heal.applied (modifiers.js) -- healFighter dispatches all
++  // three now, this function no longer touches their state directly.
+   // Avatar of Devotion: whenever you restore Health during its window,
+   // immediately gain +5 Attack/+5 Magic/+5 Defense for 2 rounds.
+   if (healed > 0 && combat && combat.player.avatarOfDevotionTurns > 0) {
+@@ -1948,18 +1925,13 @@ function commandingPresenceDefMultiplier(state) {
+ // of X effects, Rally the Line, Endless Bloom's regen, Unbroken Line's
+ // damage reduction), returning the possibly-extended duration for that
+ // call site's own field.
++// Faithful Heart / Heartward Bond (2e-2, 23 Nov): moved onto
++// applyAndReact.onStatusApplied (modifiers.js, threadStatusAppliedDuration)
++// verbatim -- Faithful Heart still extends the duration by 1, Heartward
++// Bond still grants +2 Attack/Magic/Defense for that same duration, same
++// order as today.
+ function applyBeneficialEffectBonuses(state, duration) {
+-  const combat = state.combat;
+-  const d = duration + (hasEffect(state, "faithful_heart") ? 1 : 0);
+-  if (hasSetTier(state, "Regalia of the Eternal Heart", 4)) {
+-    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, d);
+-    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, flatStat(2));
+-    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, d);
+-    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, flatStat(2));
+-    combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, d);
+-    combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, flatStat(2));
+-  }
+-  return d;
++  return threadStatusAppliedDuration(state, "player", { state, beneficial: true, status: null }, duration);
+ }
+ 
+ // Hardened Formation (MIL-IE001, Veteran Tower Shield V1-V3) / Officer's
+@@ -1977,8 +1949,8 @@ function applyBeneficialEffectBonuses(state, duration) {
+ // (enemyFirstHitTakenUsed) rather than on combat. No explicit per-combat
+ // reset is needed: every enemy creature object is rebuilt fresh by
+ // buildFightCreature at the start of each fight (same reasoning as
+-// commandersPoiseUsed/serratedOpeningUsed/huntersCallUsed elsewhere in
+-// this file), so the flag simply starts undefined each time.
++// commandersPoiseUsed/serratedOpeningUsed elsewhere in this file), so
++// the flag simply starts undefined each time.
+ // Watchman's Resilience (SANG-SEC-IE004, Reinforced Watch Shield/Master
+ // Watch Shield, Sanguivorum Security and Enforcement): "first successful
+ // damaging attack received each combat, final damage x0.90, once/combat"
+@@ -2053,9 +2025,7 @@ function rollPlayerDamage(state, creature, activeElement) {
+   // non-damaging-action branch, or its own landed basic attack — see
+   // resolveEnemyAttackOnPlayer/resolveEnemyAttackOnAlly) — consumed here, the
+   // one place the player's own damage against any creature is computed.
+-  const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
+-  creature.braceBonusDef = 0;
+-  creature.guardedStrikeBonusDef = 0;
++  const bankedDefBonus = consumeRetaliationDefBonus(creature, "enemy");
+   // Sure Foundation (DRA-E05): physical-only, so kept out of
+   // bankedDefBonus above (which Brace/Guarded Strike apply to both the
+   // magic and physical branches below) — only peeked here; the physical
+@@ -2748,8 +2718,8 @@ function resolveEnemyAction(state, creatureObj, atkSpread, extraDef) {
+   // own compound retaliation call is, since enemies have no symmetric
+   // compound structure to hook into; an honest, slightly looser version of
+   // the same idea.
+-  if (abilityCtx && (abilityCtx.summon || abilityCtx.dmgMult === 0) && hasEffect(creatureObj, "brace")) {
+-    creatureObj.braceBonusDef = 3;
++  if (abilityCtx && (abilityCtx.summon || abilityCtx.dmgMult === 0)) {
++    runOnActionUsed(creatureObj, "enemy", { holder: creatureObj, role: "enemy", actionTags: ["appliesBraceDefense"] });
+   }
+   // Summons (Burrow Call, Nest Call, Brood Call, Grave Bloom) are a pure
+   // support action — nothing is attacked, so this returns before ever
+@@ -3552,7 +3522,7 @@ function buildSummonedEnemyRecord(id, creature, sourceKey, dynamicCreature, arri
+   return {
+     creatureId: id,
+     creatureObj: creature,
+-    dynamicCreature: !!dynamicCreature, // true for a fully dynamic creature (engine/arena.js's gladiators) rather than a real BESTIARY id — see applyArchiveEternal, which skips species-tracking for those exactly like generateEnemyMage's own encounters already do
++    dynamicCreature: !!dynamicCreature, // true for a fully dynamic creature (engine/arena.js's gladiators) rather than a real BESTIARY id — see archiveEternalOnKill (js/data/modifiers.js), which skips species-tracking for those exactly like generateEnemyMage's own encounters already do
+     name: creature.name,
+     hp: arrivalHpPct != null ? Math.max(1, Math.round(maxHp * arrivalHpPct)) : maxHp,
+     maxHp,
+@@ -3644,20 +3614,12 @@ function resolveEnemySummon(state, level, spec, sourceKey, summonerName, summone
+   }
+   // Hunter's Call (SANG-CU-IE009, Packmaster's Whistle, Criminal
+   // Underworld) / Boarding Discipline (MIL-IE006, Boarding Command
+-  // Whistle V1-V2, Sanguivorum Imperial Military): the summoner's OWN
+-  // first successful summon-creation each combat grants one NEW summon
+-  // +5 Accuracy for 2 of its own turns — generalized onto this one shared
+-  // code path per this division's own explicit instruction, rather than
+-  // duplicating it under a second id. Boarding Discipline's own wording
+-  // asks for the first-spawned summon deterministically rather than
+-  // Hunter's Call's random pick; reusing the identical path (including
+-  // the random pick) was the explicit ask, so both resolve the same way —
+-  // a documented, intentional simplification for Boarding Discipline.
+-  const BOARDING_SUMMON_BUFF_EFFECT_IDS = ["sang_cu_ie009_hunters_call", "sang_mil_ie006_boarding_discipline"];
+-  if (summonerCreature && !summonerCreature.huntersCallUsed && BOARDING_SUMMON_BUFF_EFFECT_IDS.some((id) => hasEffect(summonerCreature, id))) {
+-    summonerCreature.huntersCallUsed = true;
+-    const chosen = summonedRecords[Math.floor(Math.random() * summonedRecords.length)];
+-    applyEnemySelfModifier(combat, chosen.creatureObj, { acc: 5, turns: 2 });
++  // Whistle V1-V2, Sanguivorum Imperial Military): moved onto
++  // applyAndReact.onSummon (modifiers.js, 2e-2, 23 Nov) -- see that
++  // hook's registry entries for the actual buff (same shared once-per-
++  // fight flag, same random-pick-from-this-cast's-summons mechanism).
++  if (summonerCreature) {
++    runReactionHook("applyAndReact.onSummon", summonerCreature, "enemy", { state, combat, summons: summonedRecords });
+   }
+   return [`${withThe(summonerName, true)} calls for reinforcements — ${summoned.join(", ")} ${summoned.length === 1 ? "joins" : "join"} the fight!`];
+ }
+@@ -3716,40 +3678,20 @@ function applyPackAuraBuff(combat, creature, spec) {
+       other.selfBuffs.push({ stat, amount: delta, turnsLeft: turns });
+     }
+   }
+-  // Imperial Authority (MIL-IE008, Arbitarius Insignia, Sanguivorum
+-  // Imperial Military): the first time each combat the wearer successfully
+-  // grants an active beneficial buff to one or more allies, the first
+-  // recipient (in resolution order) additionally gets +5 Defense for 2 of
+-  // its own turns. applyPackAuraBuff is only ever called for an
+-  // ally-targeted packAuraBuff spec (never a self-only selfBuff/
+-  // selfDebuff, which route through applyEnemySelfModifier directly), so
+-  // "not triggered by a self-only buff" holds for free from this
+-  // placement; `recipients` is already empty whenever nothing was
+-  // actually buffed (no group, or no living packmate to find).
+-  if (recipients.length && !creature.imperialAuthorityUsed && hasEffect(creature, "sang_mil_ie008_imperial_authority")) {
+-    creature.imperialAuthorityUsed = true;
+-    applyEnemySelfModifier(combat, recipients[0].creatureObj, { def: 5, turns: 2 });
+-  }
+-  // Company Standard (SANG-IAG-IE004, Free Company Standard, Sanguivorum
+-  // Independent Armed Groups): the first successful wearer-originated
+-  // Attack buff to allies each combat grants the recipient at LOWEST
+-  // current HP% an additional +5 Defense for 2 of its own turns — same
+-  // once-per-combat shape as Imperial Authority above, just a different
+-  // recipient-selection rule (pickLowestHpRecipient instead of
+-  // recipients[0]). Kept as its own independent if-block (not a shared
+-  // dispatcher), so a creature carrying more than one of these three
+-  // effects could fire all of them off the same call.
+-  if (recipients.length && !creature.companyStandardUsed && hasEffect(creature, "sang_iag_ie004_company_standard")) {
+-    creature.companyStandardUsed = true;
+-    applyEnemySelfModifier(combat, pickLowestHpRecipient(recipients).creatureObj, { def: 5, turns: 2 });
+-  }
+-  // Rallying Standard (SANG-IAG-IE010, Militia Rallying Standard,
+-  // Sanguivorum Independent Armed Groups): same shape as Company Standard
+-  // just above, but selects the recipient at LOWEST current ATK and grants
+-  // +5 ATK for 2 turns instead.
+-  if (recipients.length && !creature.rallyingStandardUsed && hasEffect(creature, "sang_iag_ie010_rallying_standard")) {
+-    creature.rallyingStandardUsed = true;
+-    applyEnemySelfModifier(combat, pickLowestAtkRecipient(recipients).creatureObj, { atk: 5, turns: 2 });
++  // Imperial Authority / Company Standard / Rallying Standard (2e-2, 23
++  // Nov): moved onto applyAndReact.onStatusApplied (modifiers.js) --
++  // each is its own independent registry entry (not a shared dispatcher),
++  // so a creature carrying more than one still fires all of them off the
++  // same call, same as today. `recipients` is already empty whenever
++  // nothing was actually buffed (no group, or no living packmate to
++  // find), so the granter-side dispatch is skipped entirely in that case
++  // -- same "not triggered by a self-only buff" guarantee as today.
++  if (recipients.length) {
++    const granterCtx = { combat, source: creature, target: recipients, beneficial: true, status: null };
++    runReactionHook("applyAndReact.onStatusApplied", creature, "enemy", { ...granterCtx, side: "granter", holder: creature, role: "enemy" });
++    for (const other of recipients) {
++      runReactionHook("applyAndReact.onStatusApplied", other.creatureObj, "enemy", { ...granterCtx, target: other.creatureObj, side: "receiver", holder: other.creatureObj, role: "enemy" });
++    }
+   }
+ }
+ 
+@@ -3959,7 +3901,7 @@ function allyDefensiveAction(state, ally) {
+   // ally's own "no-damage action" equivalent to the player's Feint/
+   // Stoneskin, same as a dmgMult: 0 enemy active. Banked against whatever
+   // hits this ally next (see allyAggressiveAction/resolveEnemyAttackOnAlly).
+-  if (hasEffect(ally, "brace")) ally.braceBonusDef = 3;
++  runOnActionUsed(ally, "ally", { holder: ally, role: "ally", actionTags: ["appliesBraceDefense"] });
+   const cap = 6;
+   if ((target.enemyAtkPenalty || 0) >= cap) {
+     return [`${ally.name} keeps ${withThe(target.creatureObj.name, false)} off balance.`];
+@@ -3975,7 +3917,7 @@ function allyDefensiveAction(state, ally) {
+ function allySupportAction(state, ally) {
+   // Brace, generalized — see allyDefensiveAction's own copy of this
+   // comment; Support stance is this ally's other no-damage action.
+-  if (hasEffect(ally, "brace")) ally.braceBonusDef = 3;
++  runOnActionUsed(ally, "ally", { holder: ally, role: "ally", actionTags: ["appliesBraceDefense"] });
+   const candidates = [{ isPlayer: true, hp: state.health, maxHp: state.maxHealth }].concat(
+     aliveAllies(state)
+       .filter((a) => a !== ally)
+@@ -5652,7 +5594,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+   const enemies = roster.map(({ id, creature, dynamicCreature }) => ({
+     creatureId: dynamicCreature ? creature.id : id,
+     creatureObj: creature,
+-    dynamicCreature, // the real "is this an enemy mage, not a BESTIARY species" signal — see applyArchiveEternal
++    dynamicCreature, // the real "is this an enemy mage, not a BESTIARY species" signal — see archiveEternalOnKill, js/data/modifiers.js
+     name: creature.name,
+     hp: creature.hp,
+     maxHp: creature.hp,
+@@ -6401,21 +6343,9 @@ function applyVanguardMomentum(state) {
+   return [`Vanguard Momentum — the fight sharpens you; +${flatStat(1)} Attack (${before + 1}/5 this streak).`];
+ }
+ 
+-// Passing Whisper (Divine Regalia — Ring of Last Breath): +1 Magic per
+-// kill, capped +15. Same "persists across fights, decays on rest" shape as
+-// Vanguard Momentum above, approximating "until combat ends" the same
+-// way — every encounter here is its own fully separate fight, with no
+-// back-to-back multi-kill combat for the bonus to have a real "until this
+-// same fight ends" boundary.
+-function applyPassingWhisper(state) {
+-  if (!hasEffect(state, "passing_whisper")) return [];
+-  const before = state.flags.passingWhisperStacks || 0;
+-  if (before >= 15) return [];
+-  state.flags.passingWhisperStacks = before + 1;
+-  state.recomputeStats(true);
+-  // v0.11 PLAYER_STAT_SCALE: see Vanguard Momentum's own copy of this note.
+-  return [`Passing Whisper — a departing breath lends you strength; +${flatStat(1)} Magic (${before + 1}/15 this streak).`];
+-}
++// Passing Whisper (2e-2, 23 Nov): moved onto applyAndReact.onKillLate
++// (js/data/modifiers.js, passingWhisperOnKill) -- see resolveKill's own
++// late dispatch, above.
+ 
+ // Soul Ledger (Divine Regalia — Coin of the Ferryman): a permanent,
+ // uncapped, whole-game kill counter (not reset by rest or a new fight,
+@@ -6432,25 +6362,14 @@ function applySoulLedger(state, creature) {
+   return [];
+ }
+ 
+-// Archive Eternal (Divine Regalia — Scholar's Seal): the first time each
+-// creature "species" is recorded, permanently grants +1 Knowledge —
+-// whole-game, uncapped (naturally bounded by however many distinct
+-// species/types actually exist). BESTIARY creatures use their stable
+-// bestiary key (state.combat.creatureId) as the species identifier;
++// Archive Eternal (2e-2, 23 Nov): moved onto applyAndReact.onKill
++// (js/data/modifiers.js, archiveEternalOnKill) -- see resolveKill's own
++// early dispatch, above. BESTIARY creatures use their stable bestiary
++// key (state.combat.creatureId) as the species identifier;
+ // dynamically-generated creatures (enemy mages, whose own id/name is
+-// randomized per instance) are bucketed by element instead — the closest
+-// thing they have to a repeatable "type" — so this can't be farmed
+-// infinitely by just fighting more enemy mages.
+-function applyArchiveEternal(state, creature) {
+-  if (!hasEffect(state, "archive_eternal") || !state.combat) return [];
+-  const combat = state.combat;
+-  const speciesKey = activeEnemySlot(combat).dynamicCreature ? "enemy_mage_" + (creature.element || "unknown") : activeEnemySlot(combat).creatureId;
+-  if (!state.archiveEternalSeen) state.archiveEternalSeen = [];
+-  if (state.archiveEternalSeen.includes(speciesKey)) return [];
+-  state.archiveEternalSeen.push(speciesKey);
+-  state.archiveEternalKnowledgeBonus = (state.archiveEternalKnowledgeBonus || 0) + 1;
+-  return [`Archive Eternal — a new species recorded; +1 permanent Knowledge.`];
+-}
++// randomized per instance) are bucketed by element instead -- the
++// closest thing they have to a repeatable "type" -- so this can't be
++// farmed infinitely by just fighting more enemy mages.
+ 
+ // Death line per damage type — keyed by state.combat.lastDamageType, set at
+ // every site that reduces combat.hp (burn/bleed DOTs, Mirror Soul's
+@@ -6535,16 +6454,16 @@ function resolveKill(state, creature) {
+   // reward-ineligible summon, since goldFound/loot are 0/null above).
+   trackDungeonKillRewards(state, goldFound, loot);
+   // Blood Debt / Blessing of Valor (Crimson Vanguard 2pc) / Keeper of
+-  // History (Eternal Hour 4pc): dispatched via applyAndReact.onKill,
+-  // same order as today's own back-to-back inline chain -- see those
+-  // entries (js/data/modifiers.js) for the exact gating/formula each one
+-  // preserves. Blessing of Valor's own gate reads combat.player.actionCounter,
+-  // which is why this must run BEFORE state.combat is nulled below, same
+-  // as today.
+-  out.push(...runReactionHook("applyAndReact.onKill", state, "player", { state, holder: state, role: "player" }));
+-  out.push(...applyArchiveEternal(state, creature));
++  // History (Eternal Hour 4pc) / Archive Eternal / Battle Scholar /
++  // Living Legacy / Victor's Momentum (2e-2, 23 Nov): dispatched via
++  // applyAndReact.onKill, same order as today's own back-to-back inline
++  // chain -- see those entries (js/data/modifiers.js) for the exact
++  // gating/formula each one preserves. Blessing of Valor's own gate
++  // reads combat.player.actionCounter, which is why this must run
++  // BEFORE state.combat is nulled below, same as today.
++  out.push(...runReactionHook("applyAndReact.onKill", state, "player", { state, holder: state, role: "player", creature }));
+   // Only end the whole encounter once no roster member is left standing —
+-  // a pack fight continues with whoever's left. applyArchiveEternal above
++  // a pack fight continues with whoever's left. Archive Eternal above
+   // still needed activeIndex pointing at the creature that just died (it
+   // reads combat.dynamicCreature), so this is deliberately the last thing
+   // that happens before the roster bookkeeping.
+@@ -6597,16 +6516,15 @@ function resolveKill(state, creature) {
+     out.push(`${remaining} more ${remaining === 1 ? "enemy stands" : "enemies stand"} against you.`);
+   }
+   // Every pure side-effect fragment that used to be hardwired inline here
+-  // (Kessa's quest-ready flag, Battle Scholar, Living Legacy, Victor's
+-  // Momentum, Swift Passage — none of them ever produced a printed line)
+-  // now lives as an "enemy.killed" listener instead. Emitted here,
+-  // deliberately before recomputeStats below, since Battle Scholar/Living
+-  // Legacy/Victor's Momentum all feed stats it recomputes.
++  // (Kessa's quest-ready flag, Swift Passage — neither ever produced a
++  // printed line; Battle Scholar/Living Legacy/Victor's Momentum moved
++  // on to applyAndReact.onKill above, 2e-2) now lives as an
++  // "enemy.killed" listener instead.
+   Events.emit("enemy.killed", { creature, state });
+   state.recomputeStats(true);
+   out.push(...applyRegrowth(state));
+   out.push(...applyVanguardMomentum(state));
+-  out.push(...applyPassingWhisper(state));
++  out.push(...runReactionHook("applyAndReact.onKillLate", state, "player", { state, holder: state, role: "player", creature }));
+   out.push(...applySoulLedger(state, creature));
+   // Reward-ineligible summons (isSummoned, above) skip XP too — "no
+   // rewards from the summon" means gold, loot, AND XP.
+@@ -6648,31 +6566,9 @@ Events.on("enemy.killed", ({ state }) => {
+     state.flags.kessaQuestReady = true;
+   }
+ });
+-Events.on("enemy.killed", ({ state }) => {
+-  // Battle Scholar (Artifact): +1 Knowledge, permanently, after every
+-  // kill — capped at +50 total.
+-  if (hasEffect(state, "battle_scholar") && state.battleScholarBonus < 50) {
+-    state.battleScholarBonus += 1;
+-  }
+-});
+-Events.on("enemy.killed", ({ creature, state }) => {
+-  // Living Legacy (Artifact): +1 permanent max Health after an Elite-or-
+-  // stronger kill, capped +100 — same isNotableCreature check Kingslayer uses.
+-  if (hasEffect(state, "living_legacy") && isNotableCreature(creature) && state.livingLegacyBonus < 100) {
+-    state.livingLegacyBonus += 1;
+-  }
+-});
+-Events.on("enemy.killed", ({ state }) => {
+-  // Victor's Momentum (Divine Regalia — Ring of Conquest): +3 Attack per
+-  // kill, persisting across fights and decaying on rest — the same
+-  // approximation Vanguard Momentum/Passing Whisper use for "for the
+-  // remainder of combat" in an engine where a kill always ends the fight.
+-  // No cap was given for this one (unlike Passing Whisper's explicit +15),
+-  // so it's left uncapped, relying on the same rest-decay safety valve.
+-  if (hasEffect(state, "victors_momentum")) {
+-    state.flags.victorsMomentumStacks = (state.flags.victorsMomentumStacks || 0) + 3;
+-  }
+-});
++// Battle Scholar / Living Legacy / Victor's Momentum (2e-2, 23 Nov):
++// moved onto applyAndReact.onKill (js/data/modifiers.js) -- see
++// resolveKill's own early dispatch, above.
+ Events.on("enemy.killed", ({ state }) => {
+   // Swift Passage (Divine Regalia — Windstep Boots): defeating an enemy
+   // queues a charge that grants the next Ability or Tactic used a free
+@@ -6920,18 +6816,13 @@ function useFeint(state) {
+   // Legion's Disciplined Formation (6pc, redefined): a one-shot +3
+   // Defense against THIS same retaliation, functionally identical to
+   // Brace — the two stack if somehow both are active.
+-  let braceBonus = 0;
+-  if (hasEffect(state, "brace")) braceBonus += braceDefBonus(state);
+-  if (hasSetTier(state, "Legion", 6)) {
+-    braceBonus += 3;
+-    out.push(`Disciplined Formation — your training holds; +3 Defense against the counter.`);
+-  }
+-  // 2e §3 follow-up (20 Nov): Siege Corps:6, dispatched via the
+-  // registry (applyAndReact.onActionUsed, "appliesBraceDefense" tag) --
+-  // the entry's own behavior still checks hasEffect(holder,"brace")
+-  // itself, matching today's exact pair of conditions.
+-  out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: TACTICS.feint.action.tags }));
+-  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
++  // Brace/Legion:6/Siege Corps:6 (2e-2, 23 Nov): all three now dispatch
++  // from this one runOnActionUsed call (Legion:6's own line prints via
++  // its own behavior's return, order:1, same position it always held
++  // relative to Siege Corps:6's own silent effect) -- consumeRetaliationDefBonus
++  // reads the combined banked total right after, same as Earth's own copy.
++  out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: TACTICS.feint.action.tags, actionId: "feint" }));
++  const retaliation = resolveRemainingInitiativeActions(state, creature, 2, consumeRetaliationDefBonus(state, "player"));
+   out.push(...retaliation.lines);
+   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
+   if (retaliation.damage === 0 && state.combat) out.push(...applyDodgeBlockNegateBonuses(state), ...applyLaughingGaleMissBonuses(state), ...applyEndlessHorizonEvasionBonuses(state));
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index e7a1b1d..c8e8b15 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -183,13 +183,7 @@ function chooseAction(actor, ctx) {
+     // CounterOnPlayer) never advanced this counter either -- the original
+     // functions never touched combat.reinforcedAttackCount at all.
+     if (!ctx.pendingAction.isReaction && ctx.target && ctx.target.kind === "player") {
+-      const combat = ctx.state.combat;
+-      if (hasEffect(ctx.state, "reinforced")) {
+-        activeEnemySlot(combat).reinforcedAttackCount = (activeEnemySlot(combat).reinforcedAttackCount || 0) + 1;
+-        if (activeEnemySlot(combat).reinforcedAttackCount % 3 === 0 && (combat.player.reinforcedDefStacks || 0) < 20) {
+-          combat.player.reinforcedDefStacks = Math.min(20, (combat.player.reinforcedDefStacks || 0) + 2);
+-        }
+-      }
++      runReactionHook("applyAndReact.onTargeted", ctx.state, "player", ctx);
+     }
+     return ctx.pendingAction;
+   }
+@@ -534,7 +528,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+ 
+   if (target.kind === "ally") {
+     const ally = target.ref;
+-    if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
++    if (!abilityCtx && edmg > 0) runReactionHook("applyAndReact.onHitDealt", creature, "enemy", { state, holder: creature, role: "enemy" });
+     const sangAllyLines = [];
+     if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+       creature.serratedOpeningUsed = true;
+@@ -634,7 +628,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
+       ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
+       : "physical";
+   }
+-  if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
++  if (!abilityCtx && edmg > 0) runReactionHook("applyAndReact.onHitDealt", creature, "enemy", { state, holder: creature, role: "enemy" });
+   const sangLines = [];
+   if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+     creature.serratedOpeningUsed = true;
+@@ -868,8 +862,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
+     // with U3e off this block never runs at all — no zero, no Sure
+     // Foundation re-grant — matching today's untouched behavior exactly.
+     if (COMBAT_UNIFY.U3e) {
+-      creature.braceBonusDef = 0;
+-      creature.guardedStrikeBonusDef = 0;
++      consumeRetaliationDefBonus(creature, "enemy");
+       creature.sureFoundationBonusDef = 0;
+       creature.sureFoundationBonusDefTurnsLeft = 0;
+       if (hasEffect(creature, "dra_e05_sure_foundation")) {
+@@ -918,8 +911,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
+   // Plain ally (no kit) — allyAggressiveActionLegacy.
+   // Brace/Guarded Strike/Sure Foundation ON THE ENEMY: the one-shot
+   // zero + Sure Foundation's immediate re-grant — see this file's header.
+-  creature.braceBonusDef = 0;
+-  creature.guardedStrikeBonusDef = 0;
++  consumeRetaliationDefBonus(creature, "enemy");
+   creature.sureFoundationBonusDef = 0;
+   creature.sureFoundationBonusDefTurnsLeft = 0;
+   if (hasEffect(creature, "dra_e05_sure_foundation")) {
+@@ -933,7 +925,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
+   // hits this ally next — unconditional (no edmg > 0 guard in the
+   // original, unlike the enemy/ally-as-target versions elsewhere in
+   // this file).
+-  if (hasEffect(ally, "guarded_strike")) ally.guardedStrikeBonusDef = 2;
++  runReactionHook("applyAndReact.onHitDealt", ally, "ally", { state, holder: ally, role: "ally" });
+   if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, creature));
+   return { lines, damage: null };
+ }
+@@ -1670,7 +1662,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
+   // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
+   // this section's header. Consumption moves to applyAndReactPlayerActor
+   // (step 5).
+-  const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
++  const bankedDefBonus = peekRetaliationDefBonus(creature, "enemy");
+   const sureFoundationDef = creature.sureFoundationBonusDef || 0;
+   const isSpell = !!(state.flags.isMage && state.primaryElement);
+   // 2d, increment 2: calculateDamage.defenseIgnore -- see modifiers.js's
+@@ -1875,8 +1867,7 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
+   // Brace/Guarded Strike/Sure Foundation: consumed here -- see this
+   // section's own header for why (stat()-purity, same split 1d made for
+   // the ally-attack path on this exact creature object).
+-  creature.braceBonusDef = 0;
+-  creature.guardedStrikeBonusDef = 0;
++  consumeRetaliationDefBonus(creature, "enemy");
+   if (isPhysical) {
+     creature.sureFoundationBonusDef = 0;
+     creature.sureFoundationBonusDefTurnsLeft = 0;
+@@ -2034,7 +2025,7 @@ function playerAttack(state) {
+     }
+   }
+ 
+-  const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
++  const guardBonus = isPhysicalHit ? sumNumeric(runHook("applyAndReact.onPhysicalHitLanded", state, "player", { state, holder: state, role: "player" })) : 0;
+   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
+   out.push(...retaliation.lines);
+   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
+@@ -2486,7 +2477,7 @@ function useElementAbility(state, elementKey) {
+     // array, which also carries "elementAbility" -- Seedbearer's own
+     // dispatch already ran once, earlier, right after resolveSpeedInitiative;
+     // it must not match again here).
+-    out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["appliesBraceDefense"] }));
++    out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["appliesBraceDefense"], actionId: "earth" }));
+   } else {
+     const enemySlot = {
+       creatureObj: creature,
+@@ -2532,7 +2523,7 @@ function useElementAbility(state, elementKey) {
+     out.push(...checkEnemyLowHealthTriggers(state, creature));
+   }
+ 
+-  let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
++  let braceBonus = elementKey === "earth" ? consumeRetaliationDefBonus(state, "player") : 0;
+   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
+   out.push(...retaliation.lines);
+   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
+diff --git a/js/engine/resolver.js b/js/engine/resolver.js
+index 4791150..b578d83 100644
+--- a/js/engine/resolver.js
++++ b/js/engine/resolver.js
+@@ -100,7 +100,7 @@ function usePlayerAction(state, actionId) {
+     }
+   }
+ 
+-  const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
++  const guardBonus = isPhysicalHit ? sumNumeric(runHook("applyAndReact.onPhysicalHitLanded", state, "player", { state, holder: state, role: "player" })) : 0;
+   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
+   out.push(...retaliation.lines);
+   if (def.runsLowHealthChecks && state.health > 0) out.push(...lowHealthTriggerChecks(state));

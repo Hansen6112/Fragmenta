@@ -1,0 +1,222 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onSummon",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onTargeted",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onKillLate",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onPhysicalHitLanded",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "heal.applied",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "huntersCallBuffSummon",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "faithfulHeartExtendDuration",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "heartwardBondGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "imperialAuthorityOnGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "companyStandardOnGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "rallyingStandardOnGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "reinforcedOnTargeted",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "guardedStrikeGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "braceGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "legion6Grant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "livingCurrentOnHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "compassionsGraceOnHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "endlessCurrentOnHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "archiveEternalOnKill",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "battleScholarOnKill",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "livingLegacyOnKill",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "victorsMomentumOnKill",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "passingWhisperOnKill",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_cu_ie009_hunters_call",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_mil_ie006_boarding_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:faithful_heart",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Heart:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_mil_ie008_imperial_authority",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_iag_ie004_company_standard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_iag_ie010_rallying_standard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:reinforced",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guarded_strike",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guarded_strike:player_retaliation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:brace",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Stonewarden:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Legion:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:living_current",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:compassions_grace",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Tide:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:archive_eternal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:battle_scholar",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:living_legacy",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:victors_momentum",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:passing_whisper",
+  "type": "added"
+ }
+]
