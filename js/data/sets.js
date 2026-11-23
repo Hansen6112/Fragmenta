@@ -692,13 +692,6 @@ function armorCrackAmount(state) {
   return hasSetTier(state, "Siege Corps", 4) ? 4 : 2;
 }
 
-// Brace's Defense bonus for that single retaliation: base 3 (only
-// relevant with the item effect equipped); Stonewarden 4pc raises it to 5.
-function braceDefBonus(state) {
-  if (!hasEffect(state, "brace")) return 0;
-  return hasSetTier(state, "Stonewarden", 4) ? 5 : 3;
-}
-
 // Riposte's damage multiplier: base 0.5x; White Watch 4pc raises it to 0.75x.
 function riposteMultiplier(state) {
   return hasSetTier(state, "White Watch", 4) ? 0.75 : 0.5;

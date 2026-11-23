@@ -183,13 +183,7 @@ function chooseAction(actor, ctx) {
     // CounterOnPlayer) never advanced this counter either -- the original
     // functions never touched combat.reinforcedAttackCount at all.
     if (!ctx.pendingAction.isReaction && ctx.target && ctx.target.kind === "player") {
-      const combat = ctx.state.combat;
-      if (hasEffect(ctx.state, "reinforced")) {
-        activeEnemySlot(combat).reinforcedAttackCount = (activeEnemySlot(combat).reinforcedAttackCount || 0) + 1;
-        if (activeEnemySlot(combat).reinforcedAttackCount % 3 === 0 && (combat.player.reinforcedDefStacks || 0) < 20) {
-          combat.player.reinforcedDefStacks = Math.min(20, (combat.player.reinforcedDefStacks || 0) + 2);
-        }
-      }
+      runReactionHook("applyAndReact.onTargeted", ctx.state, "player", ctx);
     }
     return ctx.pendingAction;
   }
@@ -534,7 +528,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
 
   if (target.kind === "ally") {
     const ally = target.ref;
-    if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
+    if (!abilityCtx && edmg > 0) runReactionHook("applyAndReact.onHitDealt", creature, "enemy", { state, holder: creature, role: "enemy" });
     const sangAllyLines = [];
     if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
       creature.serratedOpeningUsed = true;
@@ -634,7 +628,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
       ? resolveDamageType(action, equipmentWeaponDamageType(creature), creature.attackType, creature.elementType)
       : "physical";
   }
-  if (!abilityCtx && edmg > 0 && hasEffect(creature, "guarded_strike")) creature.guardedStrikeBonusDef = 2;
+  if (!abilityCtx && edmg > 0) runReactionHook("applyAndReact.onHitDealt", creature, "enemy", { state, holder: creature, role: "enemy" });
   const sangLines = [];
   if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
     creature.serratedOpeningUsed = true;
@@ -868,8 +862,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
     // with U3e off this block never runs at all — no zero, no Sure
     // Foundation re-grant — matching today's untouched behavior exactly.
     if (COMBAT_UNIFY.U3e) {
-      creature.braceBonusDef = 0;
-      creature.guardedStrikeBonusDef = 0;
+      consumeRetaliationDefBonus(creature, "enemy");
       creature.sureFoundationBonusDef = 0;
       creature.sureFoundationBonusDefTurnsLeft = 0;
       if (hasEffect(creature, "dra_e05_sure_foundation")) {
@@ -918,8 +911,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
   // Plain ally (no kit) — allyAggressiveActionLegacy.
   // Brace/Guarded Strike/Sure Foundation ON THE ENEMY: the one-shot
   // zero + Sure Foundation's immediate re-grant — see this file's header.
-  creature.braceBonusDef = 0;
-  creature.guardedStrikeBonusDef = 0;
+  consumeRetaliationDefBonus(creature, "enemy");
   creature.sureFoundationBonusDef = 0;
   creature.sureFoundationBonusDefTurnsLeft = 0;
   if (hasEffect(creature, "dra_e05_sure_foundation")) {
@@ -933,7 +925,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
   // hits this ally next — unconditional (no edmg > 0 guard in the
   // original, unlike the enemy/ally-as-target versions elsewhere in
   // this file).
-  if (hasEffect(ally, "guarded_strike")) ally.guardedStrikeBonusDef = 2;
+  runReactionHook("applyAndReact.onHitDealt", ally, "ally", { state, holder: ally, role: "ally" });
   if (enemySlot.hp <= 0 && enemySlot.alive) lines.push(...resolveKill(state, creature));
   return { lines, damage: null };
 }
@@ -1670,7 +1662,7 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
   // Brace/Guarded Strike/Sure Foundation: PEEKED, not consumed -- see
   // this section's header. Consumption moves to applyAndReactPlayerActor
   // (step 5).
-  const bankedDefBonus = (creature.braceBonusDef || 0) + (creature.guardedStrikeBonusDef || 0);
+  const bankedDefBonus = peekRetaliationDefBonus(creature, "enemy");
   const sureFoundationDef = creature.sureFoundationBonusDef || 0;
   const isSpell = !!(state.flags.isMage && state.primaryElement);
   // 2d, increment 2: calculateDamage.defenseIgnore -- see modifiers.js's
@@ -1875,8 +1867,7 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
   // Brace/Guarded Strike/Sure Foundation: consumed here -- see this
   // section's own header for why (stat()-purity, same split 1d made for
   // the ally-attack path on this exact creature object).
-  creature.braceBonusDef = 0;
-  creature.guardedStrikeBonusDef = 0;
+  consumeRetaliationDefBonus(creature, "enemy");
   if (isPhysical) {
     creature.sureFoundationBonusDef = 0;
     creature.sureFoundationBonusDefTurnsLeft = 0;
@@ -2034,7 +2025,7 @@ function playerAttack(state) {
     }
   }
 
-  const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
+  const guardBonus = isPhysicalHit ? sumNumeric(runHook("applyAndReact.onPhysicalHitLanded", state, "player", { state, holder: state, role: "player" })) : 0;
   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));
@@ -2486,7 +2477,7 @@ function useElementAbility(state, elementKey) {
     // array, which also carries "elementAbility" -- Seedbearer's own
     // dispatch already ran once, earlier, right after resolveSpeedInitiative;
     // it must not match again here).
-    out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["appliesBraceDefense"] }));
+    out.push(...runOnActionUsed(state, "player", { holder: state, role: "player", actionTags: ["appliesBraceDefense"], actionId: "earth" }));
   } else {
     const enemySlot = {
       creatureObj: creature,
@@ -2532,7 +2523,7 @@ function useElementAbility(state, elementKey) {
     out.push(...checkEnemyLowHealthTriggers(state, creature));
   }
 
-  let braceBonus = elementKey === "earth" && hasEffect(state, "brace") ? braceDefBonus(state) : 0;
+  let braceBonus = elementKey === "earth" ? consumeRetaliationDefBonus(state, "player") : 0;
   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, braceBonus);
   out.push(...retaliation.lines);
   if (state.health > 0) out.push(...lowHealthTriggerChecks(state));

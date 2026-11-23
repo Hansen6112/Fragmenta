@@ -100,7 +100,7 @@ function usePlayerAction(state, actionId) {
     }
   }
 
-  const guardBonus = isPhysicalHit && hasEffect(state, "guarded_strike") ? 2 : 0;
+  const guardBonus = isPhysicalHit ? sumNumeric(runHook("applyAndReact.onPhysicalHitLanded", state, "player", { state, holder: state, role: "player" })) : 0;
   const retaliation = resolveRemainingInitiativeActions(state, creature, 2, guardBonus);
   out.push(...retaliation.lines);
   if (def.runsLowHealthChecks && state.health > 0) out.push(...lowHealthTriggerChecks(state));

@@ -38,6 +38,40 @@ const MOD_HOOKS = [
   // per-round reroll, a miss triggering Unlikely Outcome) -- Twist of
   // Fate's own home.
   "applyAndReact.onFavorableRoll",
+  // applyAndReact.onSummon (2e-2, 23 Nov, Tyler): fires for the summoner
+  // right after a successful summon-creation (resolveEnemySummon,
+  // combat.js), ctx.summons set to the new fighters' own summoned
+  // records. Hunter's Call / Boarding Discipline's own home.
+  "applyAndReact.onSummon",
+  // applyAndReact.onTargeted (2e-2, 23 Nov, Tyler): fires for the
+  // defender when a non-reaction attack is declared against it, hit or
+  // miss (chooseAction, pipeline.js -- the same point today's inline
+  // counter advances). Reinforced's own home.
+  "applyAndReact.onTargeted",
+  // applyAndReact.onKillLate (2e-2, 23 Nov): resolveKill's own LATE
+  // position (after recomputeStats/the "enemy.killed" event, right
+  // where applyPassingWhisper used to be called) -- a separate hook
+  // from applyAndReact.onKill's own EARLY position (Blood Debt et al.,
+  // right after the kill is confirmed) specifically so moving Passing
+  // Whisper onto a registry entry can't also make Blood Debt/Blessing
+  // of Valor/Keeper of History/Archive Eternal/Battle Scholar/Living
+  // Legacy/Victor's Momentum double-fire by matching a second dispatch
+  // of the SAME hook with no distinguishing ctx. Passing Whisper's own
+  // home.
+  "applyAndReact.onKillLate",
+  // applyAndReact.onPhysicalHitLanded (2e-2, 23 Nov, Tyler): fires for
+  // the PLAYER right when a landed, normal (non-reaction, non-ability)
+  // physical hit is confirmed -- basic attack and the generic kit
+  // resolver only, NOT Disarm (which checks Guarded Strike unconditionally,
+  // a genuine pre-existing exception Tyler's own ruling kept untouched)
+  // and not applyAndReact.onHitDealt (already taken by the lifesteal
+  // sources, whose own `when` clauses would double-fire on a second
+  // dispatch of that same hook at this new point). Guarded Strike's own
+  // player-side home -- a direct, stateless value (grant and consume
+  // happen in the same synchronous call, unlike the enemy/ally side's
+  // real banked retaliationDef), so entries here return a plain number,
+  // summed via sumNumeric, not a behavior.
+  "applyAndReact.onPhysicalHitLanded",
   // applyAndReact.onEvade (2e-2 bug fix, 20 Nov, Tyler, approved):
   // fires whenever the player evades an attack, from any source of
   // evasion -- exactly the mechanics the game's own item text calls
@@ -50,6 +84,13 @@ const MOD_HOOKS = [
   // dispatch points -- see that function's header (combat.js) for the
   // full "one way in" shape (heal.incoming, applyHealing, heal.overflow).
   "heal.incoming", "heal.overflow",
+  // heal.applied (2e-2, 23 Nov, Tyler): dispatched once, right after the
+  // HP write (same point as heal.overflow, just unconditional -- fires
+  // even when the actual amount healed is 0, e.g. already at full HP;
+  // each member's own `when` reproduces whatever gate today's inline
+  // code used). ctx.amountHealed carries the post-clamp amount. Living
+  // Current, Compassion's Grace, Endless Current's own home.
+  "heal.applied",
   "fight.start", "round.start", "turn.start", "fight.end",
   "cheatDeath",
   // statusTick.incoming (2d increment 3, Tyler 19 Nov, Bucket Review §3):
@@ -205,6 +246,57 @@ function modifierStateFor(holder, holderRole, key, entry) {
     host.modifierState[stateKey] = entry.state ? JSON.parse(JSON.stringify(entry.state)) : {};
   }
   return host.modifierState[stateKey];
+}
+// retaliationDef (2e-2, 23 Nov, Tyler): Guarded Strike's (enemy/ally),
+// Brace's (player/enemy/ally), and Legion:6's (player) grant each still
+// write their own FLAT field on the holder's own modifierStateHost
+// (guardedStrikeBonusDef/braceBonusDef/legion6BonusDef) -- the exact
+// same fields (two of the three) the real code has always used, not a
+// new modifierState-backed representation. Deliberately NOT routed
+// through modifierStateFor/sharedStateKey: several of this engagement's
+// own frozen pipeline-parity fixtures simulate "a bonus already banked
+// from a prior turn" by mutating creature.braceBonusDef/
+// guardedStrikeBonusDef directly, bypassing any grant dispatch entirely
+// -- moving the real storage into modifierState would silently stop
+// honoring that (the fixture's own direct mutation would land somewhere
+// this code never reads). Keeping the literal field names is also just
+// correct: these three are read as a genuine three-way sum at a single
+// point in time, never independently composed/overridden the way a
+// real modifierState-backed entry's bucket math would need.
+// peek (read only, for calculateDamage's own "what's the TARGET's
+// banked bonus" look -- today's own `bankedDefBonus` at the defense-
+// ignore step, PEEKED not consumed there) and consume (read AND zero,
+// today's own exact read-then-clear pattern, at every clear point the
+// real code has) are two different operations on the same fields, same
+// split the real code already makes between calculateDamage's own peek
+// and applyAndReact's own consume.
+function peekRetaliationDefBonus(holder, holderRole) {
+  const host = modifierStateHost(holder, holderRole);
+  const legion6 = holderRole === "player" ? (host.legion6BonusDef || 0) : 0;
+  return (host.guardedStrikeBonusDef || 0) + (host.braceBonusDef || 0) + legion6;
+}
+function consumeRetaliationDefBonus(holder, holderRole) {
+  const host = modifierStateHost(holder, holderRole);
+  const legion6 = holderRole === "player" ? (host.legion6BonusDef || 0) : 0;
+  const total = (host.guardedStrikeBonusDef || 0) + (host.braceBonusDef || 0) + legion6;
+  if (holderRole === "player") {
+    // The player's own Brace/Legion:6 never had a persistent field at
+    // all before today (always a local variable) -- only clear a field
+    // that's actually nonzero, so a cast with neither effect active
+    // doesn't stamp a brand-new, always-0 field onto combat.player that
+    // never existed before (a real schema change, not a relocation).
+    if (host.guardedStrikeBonusDef) host.guardedStrikeBonusDef = 0;
+    if (host.braceBonusDef) host.braceBonusDef = 0;
+    if (host.legion6BonusDef) host.legion6BonusDef = 0;
+  } else {
+    // Enemy/ally: today's own code unconditionally zeroes both fields
+    // every time, regardless of whether anything was ever banked --
+    // keeping that exactly (these two fields already always existed on
+    // every creature/ally record after its first hit, win or lose).
+    host.guardedStrikeBonusDef = 0;
+    host.braceBonusDef = 0;
+  }
+  return total;
 }
 // For a behavior whose state includes a cooldown ticked once per round
 // OUTSIDE rollToHit itself (Timeless Guard) — called from wherever that
@@ -582,6 +674,25 @@ function calculateHealIncoming(holder, holderRole, ctx, amount) {
 // the heal amount itself, so this isn't threaded like heal.incoming.
 function calculateHealOverflow(holder, holderRole, ctx) {
   const entries = modifiersForHook(holder, holderRole, "heal.overflow", ctx);
+  const lines = [];
+  for (const entry of entries) {
+    const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    const holderState = modifierStateFor(holder, holderRole, key, entry);
+    const result = entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+    if (typeof result === "string") lines.push(result);
+    else if (Array.isArray(result)) lines.push(...result);
+  }
+  return lines;
+}
+
+// heal.applied (2e-2, 23 Nov, Tyler): dispatched unconditionally right
+// after the HP write (ctx.amountHealed already set by the caller) --
+// same per-entry shape as heal.overflow above, just not gated on
+// overflow>0. Members that only fire on a real heal reproduce that via
+// their own `when: (ctx) => ctx.amountHealed > 0`, matching each one's
+// original inline `if (healed > 0 && ...)` gate exactly.
+function calculateHealApplied(holder, holderRole, ctx) {
+  const entries = modifiersForHook(holder, holderRole, "heal.applied", ctx);
   const lines = [];
   for (const entry of entries) {
     const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
@@ -1049,6 +1160,35 @@ registerModifier("effect:sang_iag_ie003_measured_aim", {
   when: (ctx) => (ctx.creature.bankedAttackAccBonusTurnsLeft || 0) > 0,
   holders: ["enemy"], state: null,
   notes: "Measured Aim. Pure value+when -- the unconditional bankedAttackAccBonus*/TurnsLeft zeroing (a DIFFERENT, unrelated 'prepared state' mechanic) stays inline in rollToHit regardless of whether this fires.",
+});
+
+// ---- applyAndReact.onSummon (2e-2, 23 Nov, Tyler): Hunter's Call /
+// Boarding Discipline, dispatched from resolveEnemySummon (combat.js)
+// right after a successful summon-creation. ctx.summons holds the
+// summoned records from THIS cast; the behavior picks one at random and
+// grants it +5 Accuracy for 2 of its own turns, once per fight -- same
+// shared-flag precedent as Calculated Aim/Concealed Edge above (today's
+// code gates both ids behind one creature.huntersCallUsed flag).
+registerBehavior("huntersCallBuffSummon", (ctx, entry, holderState) => {
+  if (holderState.used) return undefined;
+  holderState.used = true;
+  const summons = ctx.summons;
+  if (!summons || !summons.length) return undefined;
+  const chosen = summons[Math.floor(Math.random() * summons.length)];
+  applyEnemySelfModifier(ctx.combat, chosen.creatureObj, { acc: 5, turns: 2 });
+  return undefined;
+});
+registerModifier("effect:sang_cu_ie009_hunters_call", {
+  source: { kind: "effect", id: "sang_cu_ie009_hunters_call" },
+  hook: "applyAndReact.onSummon", order: 10, bucket: null, value: null, behavior: "huntersCallBuffSummon", params: null,
+  sharedStateKey: "enemy:huntersCallSummonBuff", when: null, holders: ["enemy"], state: { used: false },
+  notes: "Hunter's Call. Shares its once-per-fight 'used' flag with Boarding Discipline via sharedStateKey -- today's code gates both ids behind ONE creature.huntersCallUsed flag, picking a random new summon from this cast and granting +5 Accuracy for 2 turns.",
+});
+registerModifier("effect:sang_mil_ie006_boarding_discipline", {
+  source: { kind: "effect", id: "sang_mil_ie006_boarding_discipline" },
+  hook: "applyAndReact.onSummon", order: 11, bucket: null, value: null, behavior: "huntersCallBuffSummon", params: null,
+  sharedStateKey: "enemy:huntersCallSummonBuff", when: null, holders: ["enemy"], state: { used: false },
+  notes: "Boarding Discipline. Same shared flag and mechanism as Hunter's Call (its own wording asks for the first-spawned summon deterministically, but reusing the identical random-pick path was the explicit original-implementation ask, per the catalogue's own note) -- see that entry's notes.",
 });
 
 // ---- Fragmenta 6pc tag override (approved fix, 18 Nov -- separate from
@@ -2131,6 +2271,135 @@ function runHookEntry(key, holder, holderRole, ctx) {
   if (Array.isArray(result)) return result;
   return [];
 }
+// applyAndReact.onStatusApplied, self-granted shape (2e-2, 23 Nov,
+// Tyler): applyBeneficialEffectBonuses's (combat.js) own call site --
+// "a beneficial effect was just granted" to the SAME holder that
+// granted it (source === target), so only the receiver side ever
+// fires here. THREADED, not lines-collecting (unlike every other
+// applyAndReact.* hook): Faithful Heart (order 10) returns the
+// duration extended by 1, which Heartward Bond (order 20) then reads
+// via ctx.duration to size its own buff grant -- today's exact order.
+// A member that doesn't change the duration (Heartward Bond) just
+// returns undefined and the running value passes through unchanged,
+// same convention calculateIncomingDamage's own multiplier chain uses
+// for a no-op step.
+function threadStatusAppliedDuration(holder, holderRole, baseCtx, duration) {
+  const ctx = { ...baseCtx, side: "receiver", source: holder, target: holder, holder, role: holderRole, duration };
+  const entries = modifiersForHook(holder, holderRole, "applyAndReact.onStatusApplied", ctx);
+  let d = duration;
+  for (const entry of entries) {
+    const key = Object.keys(MODIFIERS).find((k) => MODIFIERS[k] === entry);
+    const holderState = modifierStateFor(holder, holderRole, key, entry);
+    ctx.duration = d;
+    const result = entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+    if (typeof result === "number") d = result;
+  }
+  return d;
+}
+
+// ---- applyAndReact.onStatusApplied (2e-2, 23 Nov, Tyler) ----
+// Faithful Heart (Divine Regalia -- Ring of Sacred Vows) / Heartward
+// Bond (Regalia of the Eternal Heart 4pc): applyBeneficialEffectBonuses's
+// own self-granted pair -- see threadStatusAppliedDuration above.
+registerBehavior("faithfulHeartExtendDuration", (ctx) => ctx.duration + 1);
+registerModifier("effect:faithful_heart", {
+  source: { kind: "effect", id: "faithful_heart" },
+  hook: "applyAndReact.onStatusApplied", order: 10, bucket: null, value: null, behavior: "faithfulHeartExtendDuration", params: null,
+  when: (ctx) => ctx.side === "receiver", holders: ["player"], state: null,
+  notes: "Faithful Heart: extends any temporary combat buff's own granted duration by 1 round. Returns the extended duration -- threadStatusAppliedDuration folds it into the running value Heartward Bond (order 20) then reads via ctx.duration.",
+});
+registerBehavior("heartwardBondGrant", (ctx) => {
+  const combat = ctx.holder.combat;
+  const d = ctx.duration;
+  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, d);
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, flatStat(2));
+  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, d);
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, flatStat(2));
+  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, d);
+  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, flatStat(2));
+  return undefined;
+});
+registerModifier("set:Regalia of the Eternal Heart:4", {
+  source: { kind: "set", id: "Regalia of the Eternal Heart:4", setName: "Regalia of the Eternal Heart", tier: 4 },
+  hook: "applyAndReact.onStatusApplied", order: 20, bucket: null, value: null, behavior: "heartwardBondGrant", params: null,
+  when: (ctx) => ctx.side === "receiver", holders: ["player"], state: null,
+  notes: "Heartward Bond: +2 Attack/Magic/Defense for the SAME (possibly Faithful-Heart-extended) duration order 10 above already threaded through ctx.duration.",
+});
+
+// Imperial Authority (MIL-IE008) / Company Standard (SANG-IAG-IE004) /
+// Rallying Standard (SANG-IAG-IE010): applyPackAuraBuff's (combat.js)
+// own granter-side reactions -- each fires at most once per combat, the
+// first time the wearer's own ally-buff cast actually lands on at least
+// one living packmate (ctx.target is the full recipients array for this
+// one cast; each entry picks its own target from within it). Dispatched
+// only on the GRANTER side (ctx.side === "granter") -- nothing reacts on
+// the receiver side at this call site today.
+registerBehavior("imperialAuthorityOnGrant", (ctx, entry, holderState) => {
+  if (holderState.used) return undefined;
+  const recipients = ctx.target;
+  if (!recipients || !recipients.length) return undefined;
+  holderState.used = true;
+  applyEnemySelfModifier(ctx.combat, recipients[0].creatureObj, { def: 5, turns: 2 });
+  return undefined;
+});
+registerModifier("effect:sang_mil_ie008_imperial_authority", {
+  source: { kind: "effect", id: "sang_mil_ie008_imperial_authority" },
+  hook: "applyAndReact.onStatusApplied", order: 30, bucket: null, value: null, behavior: "imperialAuthorityOnGrant", params: null,
+  when: (ctx) => ctx.side === "granter", holders: ["enemy"], state: { used: false },
+  notes: "Imperial Authority: the first recipient in resolution order (recipients[0]) additionally gets +5 Defense for 2 turns.",
+});
+registerBehavior("companyStandardOnGrant", (ctx, entry, holderState) => {
+  if (holderState.used) return undefined;
+  const recipients = ctx.target;
+  if (!recipients || !recipients.length) return undefined;
+  holderState.used = true;
+  applyEnemySelfModifier(ctx.combat, pickLowestHpRecipient(recipients).creatureObj, { def: 5, turns: 2 });
+  return undefined;
+});
+registerModifier("effect:sang_iag_ie004_company_standard", {
+  source: { kind: "effect", id: "sang_iag_ie004_company_standard" },
+  hook: "applyAndReact.onStatusApplied", order: 31, bucket: null, value: null, behavior: "companyStandardOnGrant", params: null,
+  when: (ctx) => ctx.side === "granter", holders: ["enemy"], state: { used: false },
+  notes: "Company Standard: the recipient at LOWEST current HP% additionally gets +5 Defense for 2 turns.",
+});
+registerBehavior("rallyingStandardOnGrant", (ctx, entry, holderState) => {
+  if (holderState.used) return undefined;
+  const recipients = ctx.target;
+  if (!recipients || !recipients.length) return undefined;
+  holderState.used = true;
+  applyEnemySelfModifier(ctx.combat, pickLowestAtkRecipient(recipients).creatureObj, { atk: 5, turns: 2 });
+  return undefined;
+});
+registerModifier("effect:sang_iag_ie010_rallying_standard", {
+  source: { kind: "effect", id: "sang_iag_ie010_rallying_standard" },
+  hook: "applyAndReact.onStatusApplied", order: 32, bucket: null, value: null, behavior: "rallyingStandardOnGrant", params: null,
+  when: (ctx) => ctx.side === "granter", holders: ["enemy"], state: { used: false },
+  notes: "Rallying Standard: the recipient at LOWEST current Attack additionally gets +5 Attack for 2 turns.",
+});
+
+// Reinforced (Divine Regalia): applyAndReact.onTargeted (2e-2, 23 Nov,
+// Tyler) -- every 3rd non-reaction enemy attack declared against the
+// player, hit or miss, grants +2 Defense (capped +20, 10 stacks). The
+// counter itself stays exactly where it was (activeEnemySlot(combat)
+// .reinforcedAttackCount, per attacking enemy) -- NOT moved into this
+// entry's own state, same "don't relocate a counter something else
+// might read" discipline as Seedbearer's spellCastCounter just below.
+registerBehavior("reinforcedOnTargeted", (ctx) => {
+  const combat = ctx.state.combat;
+  const slot = activeEnemySlot(combat);
+  slot.reinforcedAttackCount = (slot.reinforcedAttackCount || 0) + 1;
+  if (slot.reinforcedAttackCount % 3 === 0 && (combat.player.reinforcedDefStacks || 0) < 20) {
+    combat.player.reinforcedDefStacks = Math.min(20, (combat.player.reinforcedDefStacks || 0) + 2);
+  }
+  return undefined;
+});
+registerModifier("effect:reinforced", {
+  source: { kind: "effect", id: "reinforced" },
+  hook: "applyAndReact.onTargeted", order: 10, bucket: null, value: null, behavior: "reinforcedOnTargeted", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Reinforced. Dispatch site's own gate (chooseAction, pipeline.js) already matches today's exact scope (non-reaction, target.kind === 'player') -- this entry's own `when` is null, same as Seedbearer's own presence-only gating.",
+});
+
 // Seedbearer (Divine Regalia): heals 10% max HP every 3rd element-ability
 // cast, hit or miss. combat.player.spellCastCounter itself stays a
 // shared, unconditional, inline increment (useElementAbility) -- NOT
@@ -2169,6 +2438,60 @@ registerModifier("set:Siege Corps:6", {
   hook: "applyAndReact.onActionUsed", order: 11, bucket: null, value: null, behavior: "siegeCorpsChargeGrant", params: null,
   when: (ctx) => ctx.actionTags.includes("appliesBraceDefense"), holders: ["player"], state: { charge: 0 },
   notes: "Siege Corps 6pc. Matches Feint and Earth (the only two actions whose retaliation-defense step includes Brace's own bonus) via the 'appliesBraceDefense' tag; still gated on hasEffect(holder, 'brace') inside the behavior itself, exactly matching today's `hasEffect(state,'brace') && hasSetTier(state,'Siege Corps',6)` pair.",
+});
+
+// ---- Guarded Strike / Brace / Legion:6 / Stonewarden:4 (2e-2, 23 Nov,
+// Tyler) -- the retaliationDef unit. Every grant below writes the SAME
+// flat field the real code has always used (guardedStrikeBonusDef/
+// braceBonusDef/legion6BonusDef, on modifierStateHost -- the creature/
+// ally object itself, or combat.player for the player), not a
+// modifierState-backed entry -- see peekRetaliationDefBonus/
+// consumeRetaliationDefBonus's own header above for why. The player's
+// own Guarded Strike grant lives on a SEPARATE hook entirely (below) --
+// grant and consume are already synchronous for the player there, and
+// onHitDealt is already spoken for by the lifesteal sources.
+registerBehavior("guardedStrikeGrant", (ctx) => {
+  modifierStateHost(ctx.holder, ctx.role).guardedStrikeBonusDef = 2;
+  return undefined;
+});
+registerModifier("effect:guarded_strike", {
+  source: { kind: "effect", id: "guarded_strike" },
+  hook: "applyAndReact.onHitDealt", order: 5, bucket: null, value: null, behavior: "guardedStrikeGrant", params: null,
+  when: null, holders: ["enemy", "ally"], state: null,
+  notes: "Guarded Strike (enemy/ally). Banks +2 Defense against this same target's immediate retaliation. Dispatch sites keep today's own exact gates inline (enemy: !abilityCtx && edmg>0, pipeline.js's applyAndReact enemy branches; ally plain-attack: unconditional, pipeline.js:930) rather than folding them into `when` -- a real, pre-existing asymmetry between the two paths, not something to unify. Never dispatched for the player at this hook (see effect:guarded_strike:player_retaliation, applyAndReact.onPhysicalHitLanded, below) -- onHitDealt is already the lifesteal sources' home for the player, and a second player-side dispatch here would double-fire them.",
+});
+registerModifier("effect:guarded_strike:player_retaliation", {
+  source: { kind: "effect", id: "guarded_strike" },
+  hook: "applyAndReact.onPhysicalHitLanded", order: 10, bucket: null, value: 2, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Guarded Strike (player). Stateless -- grant and consume happen in the same synchronous call (basic attack, resolver.js's generic kit path), so this is a plain summed value, not banked state. Disarm's own retaliation-defense check stays its own untouched inline `hasEffect(state,'guarded_strike')` read (Tyler's own ruling, 23 Nov) -- genuinely unconditional even on a miss, unlike this hook's own isPhysicalHit gate, which the two real dispatch sites keep inline rather than folding into `when`.",
+});
+registerBehavior("braceGrant", (ctx) => {
+  modifierStateHost(ctx.holder, ctx.role).braceBonusDef = ctx.role === "player" ? resolveUpgradedValue("effect:brace", 3, ctx.state, "player", "max") : 3;
+  return undefined;
+});
+registerModifier("effect:brace", {
+  source: { kind: "effect", id: "brace" },
+  hook: "applyAndReact.onActionUsed", order: 10, bucket: null, value: null, behavior: "braceGrant", params: null,
+  when: (ctx) => ctx.actionTags.includes("appliesBraceDefense"), holders: ["player", "enemy", "ally"], state: null,
+  notes: "Brace. Banks Defense (3; 5 for the player with Stonewarden:4, Rule 1 upgrade below) against this same target's immediate retaliation. Player: Feint's/Earth's own cast, the existing onActionUsed dispatch (pipeline.js:2483, combat.js's useFeint). Enemy: a pure summon or any dmgMult:0 active (combat.js, 'Brace, generalized' -- no equivalent named action, so this dispatch is added at that same real trigger). Ally: Defensive/Support stance (combat.js's allyDefensiveAction/allySupportAction, same addition).",
+});
+registerModifier("set:Stonewarden:4", {
+  source: { kind: "set", id: "Stonewarden:4", setName: "Stonewarden", tier: 4 },
+  upgrades: "effect:brace",
+  hook: "applyAndReact.onActionUsed", order: 999, bucket: null, value: 5, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Stonewarden 4pc. Rule 1 upgrade of Brace's own base value (3 -> 5), player only -- matches js/data/sets.js's old braceDefBonus(state) exactly (that function is now dead code, deleted; braceGrant's own behavior, modifiers.js, calls resolveUpgradedValue directly); never applied to the enemy's or an ally's own flat-3 Brace grant, same as today (hasSetTier always reads the PLAYER's own gear).",
+});
+registerBehavior("legion6Grant", (ctx) => {
+  modifierStateHost(ctx.holder, ctx.role).legion6BonusDef = 3;
+  return `Disciplined Formation — your training holds; +3 Defense against the counter.`;
+});
+registerModifier("set:Legion:6", {
+  source: { kind: "set", id: "Legion:6", setName: "Legion", tier: 6 },
+  hook: "applyAndReact.onActionUsed", order: 1, bucket: null, value: null, behavior: "legion6Grant", params: null,
+  when: (ctx) => ctx.actionId === "feint", holders: ["player"], state: null,
+  notes: "Legion 6pc (Disciplined Formation): a flat, ADDITIVE +3 Defense against Feint's own retaliation -- functionally identical to Brace, and stacks with it if somehow both are active (combat.js's own comment), NOT a magnitude upgrade of Brace's value (unlike Stonewarden:4, which genuinely is one). Feint-only, unlike Brace (which also applies to Earth) -- `actionId` is a new ctx field only Feint's own dispatch call sets, added specifically so this entry doesn't also fire on Earth's cast (Earth passes the same bare ['appliesBraceDefense'] actionTags array Feint does, so actionTags alone can't tell them apart). order:1 so its own flavor line keeps printing before Siege Corps:6's own (silent) effect, matching today's exact output order (Legion:6's own check ran before the original runOnActionUsed call existed at all).",
 });
 registerModifier("effect:adaptive_ward", {
   source: { kind: "effect", id: "adaptive_ward" },
@@ -2255,6 +2578,55 @@ registerModifier("set:Regalia of the First Bloom:4", {
   hook: "heal.overflow", order: 10, bucket: null, value: null, behavior: "overflowingLifeConvert", params: null,
   when: null, holders: ["player"], state: null,
   notes: "Overflowing Life: unhealed overflow converts to Temporary Health, capped at 30% max Health.",
+});
+
+// ================= 2e-2 (23 Nov, Tyler): heal.applied =================
+// Living Current, Compassion's Grace, Endless Current all used to live
+// as inline blocks in applyHeal (combat.js), each gated on the same
+// `healed > 0 && hasEffect/hasSetTier(...)` shape that still-fires
+// `when` reproduces below. Moved onto heal.applied verbatim; applyHeal
+// no longer touches any of their state directly.
+registerBehavior("livingCurrentOnHeal", (ctx) => {
+  const combat = ctx.holder.combat;
+  combat.player.livingCurrentStacks = Math.min(5, (combat.player.livingCurrentStacks || 0) + 1);
+  return undefined;
+});
+registerModifier("effect:living_current", {
+  source: { kind: "effect", id: "living_current" },
+  hook: "heal.applied", order: 10, bucket: null, value: null, behavior: "livingCurrentOnHeal", params: null,
+  when: (ctx) => ctx.amountHealed > 0, holders: ["player"], state: null,
+  notes: "Living Current: whenever you restore Health, gain a Magic stack (+2 Magic, 5 stacks max) -- read by effectiveMagic's own livingCurrentStacks term.",
+});
+registerBehavior("compassionsGraceOnHeal", (ctx) => {
+  const combat = ctx.holder.combat;
+  combat.player.compassionsGraceDefStacks = Math.min(5, (combat.player.compassionsGraceDefStacks || 0) + 1);
+  return undefined;
+});
+registerModifier("effect:compassions_grace", {
+  source: { kind: "effect", id: "compassions_grace" },
+  hook: "heal.applied", order: 20, bucket: null, value: null, behavior: "compassionsGraceOnHeal", params: null,
+  when: (ctx) => ctx.amountHealed > 0, holders: ["player"], state: null,
+  notes: "Compassion's Grace: whenever you restore Health, gain a Defense stack (+2 Defense, 5 stacks max, approximated as permanent-for-the-fight same as Living Steel/Every Choice Matters/Battle Tempered).",
+});
+registerBehavior("endlessCurrentOnHeal", (ctx) => {
+  const state = ctx.holder;
+  const combat = state.combat;
+  combat.player.endlessCurrentStacks = Math.min(5, (combat.player.endlessCurrentStacks || 0) + 1);
+  const dur = applyBeneficialEffectBonuses(state, 3);
+  const grant = applyBlessingOfCreationBonus(state, flatStat(combat.player.endlessCurrentStacks * 2));
+  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, grant);
+  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
+  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, grant);
+  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, grant);
+  return undefined;
+});
+registerModifier("set:Regalia of the Endless Tide:4", {
+  source: { kind: "set", id: "Regalia of the Endless Tide:4", setName: "Regalia of the Endless Tide", tier: 4 },
+  hook: "heal.applied", order: 30, bucket: null, value: null, behavior: "endlessCurrentOnHeal", params: null,
+  when: (ctx) => ctx.amountHealed > 0, holders: ["player"], state: null,
+  notes: "Endless Current: whenever you restore Health, +2 Attack/Defense/Magic for 3 rounds, stacking to +10 (5 stacks) -- own dedicated stack counter (genuinely stacks in magnitude, not just refreshes duration like Rally the Line).",
 });
 
 // ================= 2e-1: heal SOURCES (healOnEvent) =================
@@ -2372,6 +2744,91 @@ registerModifier("set:Regalia of the Eternal Hour:4", {
   },
   when: (ctx) => ctx.holder.health < ctx.holder.maxHealth, holders: ["player"], state: null,
   notes: "Keeper of History: heals 10% max Health on a kill. `when` reproduces today's own `heal > 0 && state.health < state.maxHealth` skip (heal is always >0 here, so only the health check matters) -- same reasoning as Soul Leech/Blood Debt's own `when`.",
+});
+// Archive Eternal / Battle Scholar / Living Legacy / Victor's Momentum
+// (2e-2, 23 Nov): catalogue-overstated rows -- the hook column already
+// read "onKill" from the 19 Nov pass, but none of the four had any real
+// registry code; Archive Eternal was still a direct inline call
+// (resolveKill, right next to this same dispatch), the other three were
+// separate Events.on("enemy.killed") listeners, firing slightly later
+// (after survivor bookkeeping) but reading/writing nothing that changes
+// in between and producing no output line -- moving them onto this
+// SAME early dispatch, right where Archive Eternal's own call already
+// was, is behavior-invisible. ctx.creature (new field on this hook's
+// ctx) carries the just-killed creature, same param resolveKill's own
+// Archive Eternal call already had.
+registerBehavior("archiveEternalOnKill", (ctx) => {
+  const state = ctx.holder;
+  if (!state.combat) return undefined;
+  const combat = state.combat;
+  const creature = ctx.creature;
+  const speciesKey = activeEnemySlot(combat).dynamicCreature ? "enemy_mage_" + (creature.element || "unknown") : activeEnemySlot(combat).creatureId;
+  if (!state.archiveEternalSeen) state.archiveEternalSeen = [];
+  if (state.archiveEternalSeen.includes(speciesKey)) return undefined;
+  state.archiveEternalSeen.push(speciesKey);
+  state.archiveEternalKnowledgeBonus = (state.archiveEternalKnowledgeBonus || 0) + 1;
+  return `Archive Eternal — a new species recorded; +1 permanent Knowledge.`;
+});
+registerModifier("effect:archive_eternal", {
+  source: { kind: "effect", id: "archive_eternal" },
+  hook: "applyAndReact.onKill", order: 40, bucket: null, value: null, behavior: "archiveEternalOnKill", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Archive Eternal: the first time each creature species is recorded, +1 permanent Knowledge. Moved off its own direct applyArchiveEternal(state, creature) call, same position.",
+});
+registerBehavior("battleScholarOnKill", (ctx) => {
+  const state = ctx.holder;
+  if (state.battleScholarBonus < 50) state.battleScholarBonus += 1;
+  return undefined;
+});
+registerModifier("effect:battle_scholar", {
+  source: { kind: "effect", id: "battle_scholar" },
+  hook: "applyAndReact.onKill", order: 50, bucket: null, value: null, behavior: "battleScholarOnKill", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Battle Scholar: +1 Knowledge, permanently, after every kill, capped +50. Moved off its own Events.on('enemy.killed') listener onto this hook -- silent, so the small timing shift (now fires right after the kill is confirmed, rather than after survivor bookkeeping) is behavior-invisible.",
+});
+registerBehavior("livingLegacyOnKill", (ctx) => {
+  const state = ctx.holder;
+  if (isNotableCreature(ctx.creature) && state.livingLegacyBonus < 100) state.livingLegacyBonus += 1;
+  return undefined;
+});
+registerModifier("effect:living_legacy", {
+  source: { kind: "effect", id: "living_legacy" },
+  hook: "applyAndReact.onKill", order: 60, bucket: null, value: null, behavior: "livingLegacyOnKill", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Living Legacy: +1 permanent max Health after an Elite-or-stronger kill (isNotableCreature, same check Kingslayer uses), capped +100. Moved off its own Events.on('enemy.killed') listener, same reasoning as Battle Scholar.",
+});
+registerBehavior("victorsMomentumOnKill", (ctx) => {
+  ctx.holder.flags.victorsMomentumStacks = (ctx.holder.flags.victorsMomentumStacks || 0) + 3;
+  return undefined;
+});
+registerModifier("effect:victors_momentum", {
+  source: { kind: "effect", id: "victors_momentum" },
+  hook: "applyAndReact.onKill", order: 70, bucket: null, value: null, behavior: "victorsMomentumOnKill", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Victor's Momentum: +3 Attack per kill, persisting across fights, uncapped. Moved off its own Events.on('enemy.killed') listener, same reasoning as Battle Scholar/Living Legacy.",
+});
+// Passing Whisper (2e-2, 23 Nov): the one onKill source that genuinely
+// cannot share the early dispatch above -- today's own applyPassingWhisper
+// call sits well AFTER recomputeStats/the "enemy.killed" event (resolveKill),
+// printing its own flavor line after "N more enemies stand against you"/
+// the fight-end lines. Folding it onto applyAndReact.onKill's own early
+// dispatch would reorder that line ahead of them, a real behavior change --
+// applyAndReact.onKillLate is its own dedicated hook, dispatched only from
+// that same later position, so nothing above can accidentally double-fire
+// by matching a second dispatch of the same hook.
+registerBehavior("passingWhisperOnKill", (ctx) => {
+  const state = ctx.holder;
+  const before = state.flags.passingWhisperStacks || 0;
+  if (before >= 15) return undefined;
+  state.flags.passingWhisperStacks = before + 1;
+  state.recomputeStats(true);
+  return `Passing Whisper — a departing breath lends you strength; +${flatStat(1)} Magic (${before + 1}/15 this streak).`;
+});
+registerModifier("effect:passing_whisper", {
+  source: { kind: "effect", id: "passing_whisper" },
+  hook: "applyAndReact.onKillLate", order: 10, bucket: null, value: null, behavior: "passingWhisperOnKill", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Passing Whisper: +1 Magic per kill, capped +15. Moved off its own direct applyPassingWhisper(state) call, same late position (after recomputeStats/the enemy.killed event), via its own dedicated hook.",
 });
 
 // ---- fight.start (2e-1): Blessing of the Tide, dispatched at startCombat's
