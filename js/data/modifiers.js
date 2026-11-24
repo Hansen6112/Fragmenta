@@ -2537,6 +2537,30 @@ registerModifier("effect:adaptive_ward", {
   notes: "Adaptive Ward. Magic-only (today's own code only ever reads it inside the creature.element-gated magic branches).",
 });
 
+// ================= task 40 (24 Nov): remaining REVIEW rows needing no
+// new hook -- each attaches onto a hook already wired/dispatched
+// elsewhere in this engagement. =================
+registerBehavior("windsOfChangeGrant", (ctx) => {
+  const combat = ctx.holder.combat;
+  combat.player.windsOfChangeAtk = 0;
+  combat.player.windsOfChangeDef = 0;
+  combat.player.windsOfChangeMagic = 0;
+  combat.player.windsOfChangeKnowledge = 0;
+  const roll = Math.floor(Math.random() * 4);
+  const labels = ["Attack", "Defense", "Magic", "Knowledge"];
+  if (roll === 0) combat.player.windsOfChangeAtk = 6;
+  else if (roll === 1) combat.player.windsOfChangeDef = 6;
+  else if (roll === 2) combat.player.windsOfChangeMagic = 6;
+  else combat.player.windsOfChangeKnowledge = 6;
+  return `Winds of Change shifts — +6 ${labels[roll]} this round.`;
+});
+registerModifier("effect:winds_of_change", {
+  source: { kind: "effect", id: "winds_of_change" },
+  hook: "turn.start", order: 100, bucket: null, value: null, behavior: "windsOfChangeGrant", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Winds of Change: at the start of every round, re-roll a fresh +6 Attack/Defense/Magic/Knowledge bonus (four mutually exclusive fields, always exactly one nonzero). Dispatched by key at its own real beginTurn call site, inside the SAME `if (hasEffect(state,'winds_of_change'))` block the already-wired applyAndReact.onFavorableRoll dispatch sits in (added when Twist of Fate was migrated, task 26) -- that block's wrapper and the onFavorableRoll call both stay untouched; only the bonus-rolling body moves here.",
+});
+
 // ================= 2e-1: healFighter's heal.incoming chain =================
 // Today's own applyHeal order, unchanged: Flourishing Soul -> Blessing
 // of Compassion (Eternal Heart:2) -> Avatar of Devotion -> Avatar of
@@ -2860,6 +2884,142 @@ registerBehavior("passingWhisperOnKill", (ctx) => {
   state.recomputeStats(true);
   return `Passing Whisper — a departing breath lends you strength; +${flatStat(1)} Magic (${before + 1}/15 this streak).`;
 });
+registerBehavior("vanguardMomentumGrant", (ctx) => {
+  const state = ctx.state;
+  const before = state.flags.vanguardMomentumStacks || 0;
+  if (before >= 5) return undefined;
+  state.flags.vanguardMomentumStacks = before + 1;
+  state.recomputeStats(true);
+  return `Vanguard Momentum — the fight sharpens you; +${flatStat(1)} Attack (${before + 1}/5 this streak).`;
+});
+registerModifier("set:Contract Hunter:6", {
+  source: { kind: "set", id: "Contract Hunter:6", setName: "Contract Hunter", tier: 6 },
+  hook: "applyAndReact.onKillLate", order: 5, bucket: null, value: null, behavior: "vanguardMomentumGrant", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Vanguard Momentum (Contract Hunter 6pc, task 40, 24 Nov): +1 Attack per kill (stacks to +5), persisting across fights until rest (parser.js cmdRest), not reset per-combat. Moved onto the SAME applyAndReact.onKillLate dispatch Passing Whisper already uses (task 38) -- order:5, before Passing Whisper's own order:10, preserving today's exact output order (applyVanguardMomentum's own call sat directly before applyPassingWhisper's in resolveKill's victory tail).",
+});
+registerBehavior("queenCarapaceGrant", (ctx) => {
+  const combat = ctx.state.combat;
+  combat.player.queenCarapaceBonus = Math.min(9, combat.player.queenCarapaceBonus + 3);
+  return undefined;
+});
+registerModifier("set:Queen Carapace:6", {
+  source: { kind: "set", id: "Queen Carapace:6", setName: "Queen Carapace", tier: 6 },
+  hook: "applyAndReact.onHitTaken", order: 10, bucket: null, value: null, behavior: "queenCarapaceGrant", params: null,
+  when: (ctx) => ctx.site === "mitigateAndApplyHitOnPlayer" && ctx.edmg > 0, holders: ["player"], state: null,
+  notes: "Carapace Adaptation (Queen Carapace 6pc, task 40, 24 Nov): +3 permanent Defense per hit taken (post-mitigation damage > 0), capped +9. First role:'player' dispatch on applyAndReact.onHitTaken -- task 39 wired it for role:'enemy' only (Sure Foundation); this is a separate holder, no collision. Dispatch added at mitigateAndApplyHitOnPlayer's own real site, right after applyPlayerDamage/adaptive_tide's own stack growth (left untouched, out of scope per an existing ruling). `when` checks ctx.site === 'mitigateAndApplyHitOnPlayer' -- applyPlayerDamage's own, separate onHitTaken dispatch (set:Regalia of the Eternal Bastion:4, below) fires from INSIDE mitigateAndApplyHitOnPlayer's own call to applyPlayerDamage too, so without this site check this entry would double-fire on every normal hit (once from each nested dispatch) while ALSO incorrectly widening to reflect/counter damage, which today's code never touches. Read site (combat.player.queenCarapaceBonus, effectivePlayerDef) stays untouched.",
+});
+registerBehavior("wallsEndureGrant", (ctx) => {
+  const combat = ctx.state.combat;
+  combat.player.wallsEndureDefStacks = Math.min(20, (combat.player.wallsEndureDefStacks || 0) + 1);
+  return undefined;
+});
+registerModifier("set:Regalia of the Eternal Bastion:4", {
+  source: { kind: "set", id: "Regalia of the Eternal Bastion:4", setName: "Regalia of the Eternal Bastion", tier: 4 },
+  hook: "applyAndReact.onHitTaken", order: 20, bucket: null, value: null, behavior: "wallsEndureGrant", params: null,
+  when: (ctx) => ctx.site === "applyPlayerDamage", holders: ["player"], state: null,
+  notes: "Walls Endure (Regalia of the Eternal Bastion 4pc, task 40, 24 Nov): +1 Defense every time damage is actually taken (raw pre-absorption amount, capped +20). Dispatched at applyPlayerDamage's own site (combat.js), NOT Queen Carapace's narrower mitigateAndApplyHitOnPlayer one -- applyPlayerDamage has 4 real callers (reflect/counter/mitigateAndApplyHitOnPlayer/pipeline.js's enemy-attack path), so this fires on ANY damage the player takes, a genuinely broader surface. `when` checks ctx.site === 'applyPlayerDamage' so this never also matches Queen Carapace's own dispatch (same hook, same role, nested call path -- see that entry's own note for the double-fire risk this avoids). Avatar of Endurance (6pc, same function) stays untouched inline, out of scope.",
+});
+registerBehavior("firstSwordsLegacyGrant", (ctx) => {
+  const creatureObj = ctx.holder;
+  creatureObj.legacyUsed = true;
+  creatureObj.legacyCharges = 2;
+  creatureObj.legacyTurnsLeft = 3;
+  return `First Sword's Legacy answers in kind — the Regalia itself steadies ${withThe(creatureObj.name, false)}'s grip.`;
+});
+registerModifier("set:First Sword's Regalia:10:legacy", {
+  source: { kind: "set", id: "First Sword's Regalia:10", setName: "First Sword's Regalia", tier: 10 },
+  hook: "applyAndReact.onLowHealth", order: 10, bucket: null, value: null, behavior: "firstSwordsLegacyGrant", params: null,
+  when: (ctx) => !ctx.holder.legacyUsed && ctx.e.maxHp > 0 && ctx.e.hp / ctx.e.maxHp <= 0.4,
+  holders: ["enemy"], state: null,
+  notes: "First Sword's Legacy (First Sword's Regalia 10pc, task 40, 24 Nov): once per combat, the first time HP is observed at or below 40% at the top of a normal action -- a Dregnar-boss-specific mirror of DRA-P03 First Sword's Resolve (dregnarResolveDamagingAttempt, combat.js, left untouched, its own independent once-per-combat gate/fields), holders corrected to 'enemy' only -- `hasSetTier(creatureObj, ...)` there always checked the ENEMY/boss's own equipment, never the player; the catalogue's old blank/unclear holder column is finalized here. First role:'enemy' dispatch on applyAndReact.onLowHealth -- every existing entry on this hook is role:'player' only (Love Endures/Avatar of Bloom/etc., tasks 25/2e-1), so this is purely additive, no collision. `ctx.e` (the enemy slot, for hp/maxHp) is passed alongside `ctx.holder` (creatureObj, for the flat legacyUsed/legacyCharges/legacyTurnsLeft fields) at this one dispatch call site.",
+});
+registerBehavior("markedTargetGrant", (ctx) => {
+  ctx.holder.markedTargetUsed = true;
+  ctx.state.combat.player.exposedTarget = { by: ctx.holder };
+  return undefined;
+});
+registerModifier("effect:sang_cu_ie002_marked_target", {
+  source: { kind: "effect", id: "sang_cu_ie002_marked_target" },
+  hook: "applyAndReact.onHitDealt", order: 10, bucket: null, value: null, behavior: "markedTargetGrant", params: null,
+  when: (ctx) => ctx.edmg > 0 && !ctx.holder.markedTargetUsed && !ctx.state.combat.player.exposedTarget && (ctx.targetKind === "player" || COMBAT_UNIFY.U3a),
+  holders: ["enemy"], state: null,
+  notes: "Marked Target (task 40, 24 Nov): once per combat, the first landed hit against the player marks them (combat.player.exposedTarget), granting a +8 accuracy bonus to the next qualifying ally attack (U3a, off by default -- widens it so an ally's own landed hit can ALSO set the mark) or player attack (unconditional, no switch). Holders corrected to 'enemy' -- the catalogue's old 'player' value was stale, this is a Sanguivorum creature effect. Dispatched by KEY (runHookEntry), not fan-out, at its own two real sites (applyAndReactReactionOnAlly/applyAndReactReactionOnPlayer, pipeline.js) -- NOT folded into the already-dispatched applyAndReact.onHitDealt fan-out call sitting right above each site, because that call is gated `!abilityCtx` (Guarded Strike's own real gate) while Marked Target's own gate has never checked abilityCtx at all -- it also fires on an ABILITY-based counter (e.g. Arena Riposte), a genuinely broader trigger surface. Fan-out dispatch would have either double-fired Guarded Strike et al. (if unconditional) or silently narrowed Marked Target to plain counters only (if reusing the existing gate) -- by-key dispatch avoids both. `ctx.targetKind` ('ally'/'player') lets one entry serve both real call sites with their different U3a gating. The read/consume side (combat.player.exposedTarget, pipeline.js's rollToHit ally/player branches) stays untouched.",
+});
+registerBehavior("everyChoiceMattersGrant", (ctx) => {
+  const combat = ctx.holder.combat;
+  const atkStacks = combat.player.everyChoiceAtkStacks || 0;
+  if (atkStacks >= 5) return undefined;
+  combat.player.everyChoiceAtkStacks = atkStacks + 1;
+  combat.player.everyChoiceMagicStacks = (combat.player.everyChoiceMagicStacks || 0) + 1;
+  return `Every Choice Matters — the near miss sharpens you; +${flatStat(2)} Attack, +${flatStat(2)} Magic (now +${flatStat((atkStacks + 1) * 2)}/+${flatStat((atkStacks + 1) * 2)}).`;
+});
+registerModifier("effect:every_choice_matters", {
+  source: { kind: "effect", id: "every_choice_matters" },
+  hook: "applyAndReact.onZeroDamage", order: 10, bucket: null, value: null, behavior: "everyChoiceMattersGrant", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Every Choice Matters (Divine Regalia, task 40, 24 Nov): +2 Attack/+2 Magic stacking per 'zero damage retaliation' (dodge/stun/Decoy/reduced-to-0), capped at 5 stacks. First real dispatch of applyAndReact.onZeroDamage (declared in MOD_HOOKS, never dispatched before this task) -- dispatched via fan-out (runReactionHook) INSIDE applyDodgeBlockNegateBonuses's own body (combat.js), the single shared function already called at all 9 real zero-damage call sites (same ones maybeRiposte uses) -- no per-call-site edits needed. Threads of Consequence (Regalia of the Woven Thread 4pc) shares this same function but is a genuinely independent if-block (own gate, own effect, no shared state) -- left untouched inline, not part of this task's scope.",
+});
+registerBehavior("endlessStudyGrant", (ctx) => {
+  const combat = ctx.holder.combat;
+  combat.player.endlessStudyKeys.push(ctx.actionKey);
+  combat.player.endlessStudyMagicBonus = Math.min(20, (combat.player.endlessStudyMagicBonus || 0) + 2);
+  return `Endless Study — a new technique, understood; +${flatStat(2)} Magic (now +${flatStat(combat.player.endlessStudyMagicBonus)}).`;
+});
+registerModifier("effect:endless_study", {
+  source: { kind: "effect", id: "endless_study" },
+  hook: "applyAndReact.onActionUsed", order: 10, bucket: null, value: null, behavior: "endlessStudyGrant", params: null,
+  when: (ctx) => !ctx.holder.combat.player.endlessStudyKeys.includes(ctx.actionKey) && (ctx.holder.combat.player.endlessStudyMagicBonus || 0) < 20,
+  holders: ["player"], state: null,
+  notes: "Endless Study (task 40, 24 Nov): first use of each distinct ability/tactic/plain-attack this fight grants +2 Magic permanently, capped +20. Hook stays `applyAndReact.onActionUsed` (Tyler's own 24 Nov ruling on this cluster), but dispatch is BY KEY (runHookEntry), not fan-out -- same convention as Living Steel/Winds of Change/Marked Target -- at applyEndlessStudy's own 8 real call sites (combat.js's Feint/apothecary, pipeline.js's basic attack/Decoy/Ambush/Disarm/element cast, resolver.js's generic kit path), chosen specifically so this can never also match Brace/Legion:6's own existing FAN-OUT entries on this same hook name at THEIR real sites (Feint's retaliation-step/Earth's cast/2 enemy/2 ally sites) -- zero collision risk, no ctx-scoping field needed; by-key dispatch never iterates other registered entries at all.",
+});
+registerBehavior("wanderersRewardGrant", (ctx) => {
+  const state = ctx.state;
+  const combat = state.combat;
+  const dur = applyBeneficialEffectBonuses(state, 2);
+  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
+  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
+  return `Wanderer's Reward — new ground, new strength; +${flatStat(4)} Attack, +${flatStat(4)} Magic for ${dur} rounds.`;
+});
+registerModifier("effect:wanderers_reward", {
+  source: { kind: "effect", id: "wanderers_reward" },
+  hook: "applyAndReact.onActionUsed", order: 10, bucket: null, value: null, behavior: "wanderersRewardGrant", params: null,
+  when: (ctx) => !(ctx.holder.combat.player.recentActionKeys || []).includes(ctx.actionKey),
+  holders: ["player"], state: null,
+  notes: "Wanderer's Reward (task 40, 24 Nov): whenever the specific ability/tactic used hasn't been used in either of the previous two turns, +4 Attack/+4 Magic for applyBeneficialEffectBonuses's own threaded duration (2 base). Same by-key dispatch choice/reasoning as effect:endless_study above -- see its notes. `recentActionKeys` is read here (before this action joins it) and updated by the caller (applyWanderersReward, combat.js) right after, same order as before.",
+});
+registerBehavior("perfectMemoryGrant", (ctx) => {
+  const combat = ctx.holder.combat;
+  combat.player.perfectMemoryKeys.push(ctx.actionKey);
+  combat.player.perfectMemoryKnowledgeBonus = Math.min(16, (combat.player.perfectMemoryKnowledgeBonus || 0) + 2);
+  return `Perfect Memory — a new technique, remembered; +2 Knowledge (now +${combat.player.perfectMemoryKnowledgeBonus}).`;
+});
+registerModifier("effect:perfect_memory", {
+  source: { kind: "effect", id: "perfect_memory" },
+  hook: "applyAndReact.onActionUsed", order: 10, bucket: null, value: null, behavior: "perfectMemoryGrant", params: null,
+  when: (ctx) => !ctx.holder.combat.player.perfectMemoryKeys.includes(ctx.actionKey) && (ctx.holder.combat.player.perfectMemoryKnowledgeBonus || 0) < 16,
+  holders: ["player"], state: null,
+  notes: "Perfect Memory (task 40, 24 Nov): first use of each distinct Tactic/Elemental Ability this fight grants +2 Knowledge permanently, capped +16 -- never plain Attack (unlike Endless Study/Wanderer's Reward), its own separate tracking list. No flatStat() wrapping on the Knowledge grant -- matches today's own code exactly (Knowledge isn't PLAYER_STAT_SCALE'd the way Magic/Attack are). Same by-key dispatch choice/reasoning as effect:endless_study above -- see its notes. Dispatched at only 5 of the 8 real sites (Feint/Decoy/Ambush/Disarm/element cast, plus resolver.js's generic kit path conditionally on def.usesPerfectMemory) -- basic attack/apothecary never call applyPerfectMemory at all, unchanged.",
+});
+registerBehavior("everForwardGrant", (ctx) => {
+  const state = ctx.state;
+  const combat = state.combat;
+  const dur = applyBeneficialEffectBonuses(state, 3);
+  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
+  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
+  return `Ever Forward — three strides, three shapes; +${flatStat(10)} Attack, +${flatStat(10)} Magic for ${dur} rounds.`;
+});
+registerModifier("set:Regalia of the Endless Horizon:4", {
+  source: { kind: "set", id: "Regalia of the Endless Horizon:4", setName: "Regalia of the Endless Horizon", tier: 4 },
+  hook: "applyAndReact.onActionUsed", order: 20, bucket: null, value: null, behavior: "everForwardGrant", params: null,
+  when: (ctx) => ctx.holder.combat.player.actionTypeHistory.length === 3 && new Set(ctx.holder.combat.player.actionTypeHistory).size === 3,
+  holders: ["player"], state: null,
+  notes: "Ever Forward (task 40, 24 Nov): whenever the last 3 actions' broad category (attack/tactic/elemental) are all 3 distinct, +10 Attack/+10 Magic for applyBeneficialEffectBonuses's own threaded duration (3 base). Dispatched BY KEY inside applyActionTypeTracking's own body (combat.js), the single shared function already called at the SAME 8 real sites Endless Study uses -- Momentum Unbound, the OTHER effect in that function, is a genuinely independent block (own gate, own stacking field) left untouched inline, not part of this task's scope. The `actionTypeHistory` bookkeeping (push + slice(-3)) stays inline, shared with Momentum Unbound's own read of `lastActionType`. Same by-key dispatch choice/reasoning as effect:endless_study above -- see its notes.",
+});
 registerModifier("effect:passing_whisper", {
   source: { kind: "effect", id: "passing_whisper" },
   hook: "applyAndReact.onKillLate", order: 10, bucket: null, value: null, behavior: "passingWhisperOnKill", params: null,
@@ -2941,6 +3101,18 @@ registerModifier("set:Heartwood:6", {
   },
   when: (ctx) => ctx.holder.combat.player.actionCounter % 3 === 0, holders: ["player"], state: null,
   notes: "Heartwood Vitality: every third combat round, restore 2% max Health. combat.player.actionCounter's own UNCONDITIONAL increment stays inline (applyHeartwoodVitality, combat.js) -- shared with Work Refines/Lasting Foundation/Patient Current/Blessing of Valor/Hunter's Instinct/Temporal Echo and others, per Tyler's own established ruling on the identical spellCastCounter/Seedbearer conflict -- only the %3 check + heal move here. Flavor line is unconditional once dispatched (today's own code has no healed>0 gate here, unlike every sibling in this block) -- preserved via unconditionalMessage.",
+});
+registerBehavior("livingSteelGrant", (ctx) => {
+  const combat = ctx.holder.combat;
+  if (combat.player.livingSteelBonus >= 5) return undefined;
+  combat.player.livingSteelBonus += 1;
+  return `Living Steel hardens further — +${flatStat(1)} Attack, +${flatStat(1)} Defense (now +${flatStat(combat.player.livingSteelBonus)}/+${flatStat(combat.player.livingSteelBonus)}).`;
+});
+registerModifier("effect:living_steel", {
+  source: { kind: "effect", id: "living_steel" },
+  hook: "turn.start", order: 35, bucket: null, value: null, behavior: "livingSteelGrant", params: null,
+  when: (ctx) => ctx.holder.combat.player.actionCounter % 3 === 0, holders: ["player"], state: null,
+  notes: "Living Steel (Mythic, task 40, 24 Nov): +1 Attack/+1 Defense every 3rd combat action, capped at +5/+5 (checked inside the behavior itself, not `when` -- matches today's own single combined if). Same shared actionCounter cadence as Heartwood Vitality/Lasting Foundation/Work Refines/Patient Current (dispatched by KEY at its own real beginTurn position, combat.js, between those two -- not hook fan-out, same convention as every other turn.start-by-key entry in this block). The Attack half is folded into effectivePlayerAtk, the Defense half into effectivePlayerDef -- both untouched, they already just read combat.player.livingSteelBonus.",
 });
 registerModifier("effect:lasting_foundation", {
   source: { kind: "effect", id: "lasting_foundation" },

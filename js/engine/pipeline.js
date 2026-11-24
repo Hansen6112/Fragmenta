@@ -536,12 +536,11 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
         sangAllyLines.push(...applyAbilityInflictOnAlly(ally, { status: "bleed", chance: 1 }, creature.name));
       }
     }
-    // U3a (off by default): grant side of Marked Target — see this
+    // Marked Target: migrated (task 40, 24 Nov) -- see modifiers.js's own
+    // effect:sang_cu_ie002_marked_target/markedTargetGrant. U3a (off by
+    // default) gates this ally-target site specifically -- see this
     // function's own read/consume in rollToHit's ally branch.
-    if (COMBAT_UNIFY.U3a && edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.player.exposedTarget) {
-      creature.markedTargetUsed = true;
-      combat.player.exposedTarget = { by: creature };
-    }
+    runHookEntry("effect:sang_cu_ie002_marked_target", creature, "enemy", { state, holder: creature, role: "enemy", targetKind: "ally", edmg });
     if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
       creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
       creature.duelistMeasurePendingTarget = ally.name;
@@ -636,10 +635,11 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
       sangLines.push(...applyAbilityInflict(state, { status: "bleed", chance: 1 }, creature.name));
     }
   }
-  if (edmg > 0 && !creature.markedTargetUsed && hasEffect(creature, "sang_cu_ie002_marked_target") && !combat.player.exposedTarget) {
-    creature.markedTargetUsed = true;
-    combat.player.exposedTarget = { by: creature };
-  }
+  // Marked Target: migrated (task 40, 24 Nov) -- see modifiers.js's own
+  // effect:sang_cu_ie002_marked_target/markedTargetGrant. Unconditional
+  // here (no U3a gate) -- see this function's own read/consume in
+  // rollToHit's player branch.
+  runHookEntry("effect:sang_cu_ie002_marked_target", creature, "enemy", { state, holder: creature, role: "enemy", targetKind: "player", edmg });
   if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
     creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
     creature.duelistMeasurePendingTarget = "player";

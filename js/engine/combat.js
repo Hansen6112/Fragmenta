@@ -889,20 +889,9 @@ function checkMercyOfTheVeil(state) {
   return hadAny ? [`Mercy of the Veil strips away every affliction clinging to you.`] : [];
 }
 
-// Living Steel (Mythic): +1 Attack and +1 Defense every 3rd combat action,
-// capped at +5/+5. Reuses combat.player.actionCounter (already incremented by
-// applyHeartwoodVitality/beginTurn), so it fires on the exact same
-// cadence Heartwood Vitality does. The Attack half is added directly in
-// rollPlayerDamage's atk line; the Defense half lives in effectivePlayerDef.
-function applyLivingSteel(state) {
-  const combat = state.combat;
-  if (!hasEffect(state, "living_steel") || combat.player.actionCounter % 3 !== 0 || combat.player.livingSteelBonus >= 5) return [];
-  combat.player.livingSteelBonus += 1;
-  // v0.11 PLAYER_STAT_SCALE: livingSteelBonus is a raw stat-point stack,
-  // folded into effectivePlayerAtk/effectivePlayerDef's flatStat()'d
-  // total — the real grant is PLAYER_STAT_SCALE x the raw +1/stack.
-  return [`Living Steel hardens further — +${flatStat(1)} Attack, +${flatStat(1)} Defense (now +${flatStat(combat.player.livingSteelBonus)}/+${flatStat(combat.player.livingSteelBonus)}).`];
-}
+// Living Steel: migrated (task 40, 24 Nov) -- see modifiers.js's own
+// effect:living_steel/livingSteelGrant for the real behavior, dispatched
+// by key at this function's own former beginTurn call site.
 
 // Perfect Balance (Legendary): whenever base Attack and Defense are within
 // 2 points of each other, +2 to both during combat. Checked against the
@@ -1571,14 +1560,11 @@ function avatarOfKnowledgeMatchupOverride(state, matchup) {
 // with its own distinguishing key.
 function applyEndlessStudy(state, actionKey) {
   if (!hasEffect(state, "endless_study") || !state.combat) return [];
-  const combat = state.combat;
-  if (!combat.player.endlessStudyKeys) combat.player.endlessStudyKeys = [];
-  if (combat.player.endlessStudyKeys.includes(actionKey) || (combat.player.endlessStudyMagicBonus || 0) >= 20) return [];
-  combat.player.endlessStudyKeys.push(actionKey);
-  combat.player.endlessStudyMagicBonus = Math.min(20, (combat.player.endlessStudyMagicBonus || 0) + 2);
-  // v0.11 PLAYER_STAT_SCALE: endlessStudyMagicBonus is a raw stat-point
-  // stack, folded into effectiveMagic's flatStat()'d total.
-  return [`Endless Study — a new technique, understood; +${flatStat(2)} Magic (now +${flatStat(combat.player.endlessStudyMagicBonus)}).`];
+  if (!state.combat.player.endlessStudyKeys) state.combat.player.endlessStudyKeys = [];
+  // Migrated (task 40, 24 Nov) -- see modifiers.js's own
+  // effect:endless_study/endlessStudyGrant, dispatched BY KEY at this
+  // function's own 8 real call sites (unchanged).
+  return runHookEntry("effect:endless_study", state, "player", { state, holder: state, role: "player", actionKey });
 }
 
 // Prepared Response (Divine Regalia — Librarian's Ward): the enemy in
@@ -1770,16 +1756,12 @@ function applyActionTypeTracking(state, actionType) {
   }
   combat.player.lastActionType = actionType;
   combat.player.actionTypeHistory = [...(combat.player.actionTypeHistory || []), actionType].slice(-3);
-  if (hasSetTier(state, "Regalia of the Endless Horizon", 4) && combat.player.actionTypeHistory.length === 3 && new Set(combat.player.actionTypeHistory).size === 3) {
-    const dur = applyBeneficialEffectBonuses(state, 3);
-    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
-    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
-    // v0.11 PLAYER_STAT_SCALE: the flatStat(10) above is the real grant;
-    // the bare "10" is only the pre-scale design value.
-    lines.push(`Ever Forward — three strides, three shapes; +${flatStat(10)} Attack, +${flatStat(10)} Magic for ${dur} rounds.`);
-  }
+  // Ever Forward: migrated (task 40, 24 Nov) -- see modifiers.js's own
+  // set:Regalia of the Endless Horizon:4/everForwardGrant, dispatched BY
+  // KEY at this function's own 8 real call sites (unchanged). Momentum
+  // Unbound above is a genuinely independent effect sharing only this
+  // function, left untouched, not part of this task's scope.
+  lines.push(...runHookEntry("set:Regalia of the Endless Horizon:4", state, "player", { state, holder: state, role: "player" }));
   return lines;
 }
 
@@ -1793,19 +1775,14 @@ function applyActionTypeTracking(state, actionType) {
 // the same generic actionKey Endless Study already treats uniformly.
 function applyWanderersReward(state, actionKey) {
   if (!hasEffect(state, "wanderers_reward") || !state.combat) return [];
+  // Migrated (task 40, 24 Nov) -- see modifiers.js's own
+  // effect:wanderers_reward/wanderersRewardGrant, dispatched BY KEY at
+  // this function's own 8 real call sites (unchanged). The grant check
+  // reads recentActionKeys BEFORE this same action joins it, same order
+  // as before.
+  const lines = runHookEntry("effect:wanderers_reward", state, "player", { state, holder: state, role: "player", actionKey });
   const combat = state.combat;
-  const recent = combat.player.recentActionKeys || [];
-  const lines = [];
-  if (!recent.includes(actionKey)) {
-    const dur = applyBeneficialEffectBonuses(state, 2);
-    combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
-    combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
-    // v0.11 PLAYER_STAT_SCALE: see Ever Forward's own copy of this note.
-    lines.push(`Wanderer's Reward — new ground, new strength; +${flatStat(4)} Attack, +${flatStat(4)} Magic for ${dur} rounds.`);
-  }
-  combat.player.recentActionKeys = [actionKey, ...recent].slice(0, 2);
+  combat.player.recentActionKeys = [actionKey, ...(combat.player.recentActionKeys || [])].slice(0, 2);
   return lines;
 }
 
@@ -1820,12 +1797,14 @@ function applyWanderersReward(state, actionKey) {
 // action functions, never from playerAttack.
 function applyPerfectMemory(state, actionKey) {
   if (!hasEffect(state, "perfect_memory") || !state.combat) return [];
-  const combat = state.combat;
-  if (!combat.player.perfectMemoryKeys) combat.player.perfectMemoryKeys = [];
-  if (combat.player.perfectMemoryKeys.includes(actionKey) || (combat.player.perfectMemoryKnowledgeBonus || 0) >= 16) return [];
-  combat.player.perfectMemoryKeys.push(actionKey);
-  combat.player.perfectMemoryKnowledgeBonus = Math.min(16, (combat.player.perfectMemoryKnowledgeBonus || 0) + 2);
-  return [`Perfect Memory — a new technique, remembered; +2 Knowledge (now +${combat.player.perfectMemoryKnowledgeBonus}).`];
+  if (!state.combat.player.perfectMemoryKeys) state.combat.player.perfectMemoryKeys = [];
+  // Migrated (task 40, 24 Nov) -- see modifiers.js's own
+  // effect:perfect_memory/perfectMemoryGrant, dispatched BY KEY at this
+  // function's own 5-of-8 real call sites (Feint/Decoy/Ambush/Disarm/
+  // element cast, plus resolver.js's generic kit path conditionally on
+  // def.usesPerfectMemory -- basic attack/apothecary never call this
+  // function at all, unchanged).
+  return runHookEntry("effect:perfect_memory", state, "player", { state, holder: state, role: "player", actionKey });
 }
 
 // Trailblazer (Divine Regalia — Feather of the First Wind) and Avatar of
@@ -2936,17 +2915,14 @@ function resolveDregnarAction(state, creatureObj, atkSpread, extraDef) {
     e.draP03TurnsLeft = 3;
     lines.push(`${withThe(creatureObj.name, true)} grits its teeth, First Sword's Resolve steadying its grip.`);
   }
-  // First Sword's Legacy (First Sword's Regalia 10pc, exclusive): the
-  // same ≤40% HP breakpoint as DRA-P03 above, but its own independent
-  // once-per-combat gate and charge/turn fields (stored on the wearer,
-  // not the slot — see dregnarResolveDamagingAttempt) so the two can be
-  // simultaneously active without interfering with each other.
-  if (!creatureObj.legacyUsed && e.maxHp > 0 && e.hp / e.maxHp <= 0.4 && hasSetTier(creatureObj, "First Sword's Regalia", 10)) {
-    creatureObj.legacyUsed = true;
-    creatureObj.legacyCharges = 2;
-    creatureObj.legacyTurnsLeft = 3;
-    lines.push(`First Sword's Legacy answers in kind — the Regalia itself steadies ${withThe(creatureObj.name, false)}'s grip.`);
-  }
+  // First Sword's Legacy (First Sword's Regalia 10pc): migrated (task 40,
+  // 24 Nov) -- see modifiers.js's own set:First Sword's Regalia:10:legacy/
+  // firstSwordsLegacyGrant, dispatched via applyAndReact.onLowHealth for
+  // role:"enemy". The same ≤40% HP breakpoint as DRA-P03 above, but its
+  // own independent once-per-combat gate and charge/turn fields (stored
+  // on the wearer, not the slot) so the two can be simultaneously active
+  // without interfering with each other.
+  lines.push(...runReactionHook("applyAndReact.onLowHealth", creatureObj, "enemy", { state, holder: creatureObj, role: "enemy", e }));
 
   // --- Normal action ---
   // Stun (Stage B): consumed per ACTION SLOT, not per turn — e is the
@@ -4057,17 +4033,7 @@ function beginTurn(state) {
   // re-roll always favors the player (there's no "no bonus" outcome), so
   // it also counts as "a random effect favors you" for Twist of Fate.
   if (hasEffect(state, "winds_of_change")) {
-    combat.player.windsOfChangeAtk = 0;
-    combat.player.windsOfChangeDef = 0;
-    combat.player.windsOfChangeMagic = 0;
-    combat.player.windsOfChangeKnowledge = 0;
-    const roll = Math.floor(Math.random() * 4);
-    const labels = ["Attack", "Defense", "Magic", "Knowledge"];
-    if (roll === 0) combat.player.windsOfChangeAtk = 6;
-    else if (roll === 1) combat.player.windsOfChangeDef = 6;
-    else if (roll === 2) combat.player.windsOfChangeMagic = 6;
-    else combat.player.windsOfChangeKnowledge = 6;
-    lines.push(`Winds of Change shifts — +6 ${labels[roll]} this round.`);
+    lines.push(...runHookEntry("effect:winds_of_change", state, "player", { state, holder: state, role: "player" }));
     lines.push(...runReactionHook("applyAndReact.onFavorableRoll", state, "player", { state, holder: state, role: "player" }));
   }
   // Burn/Bleed tick per-enemy, not just against whoever's currently
@@ -4173,7 +4139,7 @@ function beginTurn(state) {
   // Bloom above.
   lines.push(...runHookEntry("set:Regalia of the First Bloom:2", state, "player", { state, holder: state, role: "player" }));
   lines.push(...applyHeartwoodVitality(state));
-  lines.push(...applyLivingSteel(state));
+  lines.push(...runHookEntry("effect:living_steel", state, "player", { state, holder: state, role: "player" }));
   // Lasting Foundation (Divine Regalia — Keystone of Endurance): at the end
   // of every third combat round, restore 10% max Health — reuses the same
   // combat.player.actionCounter Heartwood Vitality/Calming Presence already read,
@@ -4577,15 +4543,19 @@ function applyPlayerDamage(state, dmg) {
     if (absorbed > 0) lines.push(`Your Temporary Health absorbs ${absorbed} of it.`);
   }
   state.health -= remaining;
-  // Walls Endure (Regalia of the Eternal Bastion 4pc): +1 Defense every
-  // time damage is actually taken (the raw pre-absorption amount, gated by
-  // this function's own dmg > 0 check above — an attack connected, whether
-  // or not Temporary Health cushioned the real Health loss), capped at
-  // +20. "Resets after combat" is automatic — a fresh fight always starts
-  // this at 0 via startCombat's initializer.
-  if (combat && hasSetTier(state, "Regalia of the Eternal Bastion", 4)) {
-    combat.player.wallsEndureDefStacks = Math.min(20, (combat.player.wallsEndureDefStacks || 0) + 1);
-  }
+  // Walls Endure (Regalia of the Eternal Bastion 4pc): migrated (task 40,
+  // 24 Nov) -- see modifiers.js's own set:Regalia of the Eternal
+  // Bastion:4/wallsEndureGrant. Dispatched via the SAME applyAndReact.
+  // onHitTaken hook mitigateAndApplyHitOnPlayer's own dispatch uses
+  // (Queen Carapace), but at THIS site -- applyPlayerDamage has 4 real
+  // callers (reflect/counter/mitigateAndApplyHitOnPlayer/pipeline.js's
+  // enemy-attack path), a genuinely broader surface than Queen
+  // Carapace's single site, so ctx.site distinguishes the two (see both
+  // entries' own `when`, modifiers.js) rather than letting either widen
+  // onto the other's trigger. Still gated on the same `combat &&` check
+  // this function's own dmg > 0 early-return already makes redundant for
+  // `dmg` itself, kept inline (combat can still be absent in some caller).
+  if (combat) runReactionHook("applyAndReact.onHitTaken", state, "player", { state, holder: state, role: "player", site: "applyPlayerDamage" });
   // Avatar of Endurance (Regalia of the Eternal Bastion 6pc): during its
   // 4-round window, every hit taken also grants +2 Attack/+2 Defense,
   // capped at +20/+20 for the window's duration — silent, the same
@@ -5071,19 +5041,12 @@ function applyDodgeBlockNegateBonuses(state) {
   if (!state.combat) return [];
   const combat = state.combat;
   const lines = [];
-  if (hasEffect(state, "every_choice_matters")) {
-    const atkStacks = combat.player.everyChoiceAtkStacks || 0;
-    if (atkStacks < 5) {
-      combat.player.everyChoiceAtkStacks = atkStacks + 1;
-      combat.player.everyChoiceMagicStacks = (combat.player.everyChoiceMagicStacks || 0) + 1;
-      // v0.11 PLAYER_STAT_SCALE: each stack is worth 2 Attack/Magic by
-      // design (the *2 below, unchanged) — that design total is then
-      // itself folded into effectivePlayerAtk/effectiveMagic's own
-      // flatStat()'d sum, so the real grant is PLAYER_STAT_SCALE x bigger
-      // again on top of the per-stack "2."
-      lines.push(`Every Choice Matters — the near miss sharpens you; +${flatStat(2)} Attack, +${flatStat(2)} Magic (now +${flatStat((atkStacks + 1) * 2)}/+${flatStat((atkStacks + 1) * 2)}).`);
-    }
-  }
+  // Every Choice Matters: migrated (task 40, 24 Nov) -- see modifiers.js's
+  // own effect:every_choice_matters/everyChoiceMattersGrant, the first
+  // real dispatch of applyAndReact.onZeroDamage (declared, never
+  // dispatched before this task). Fan-out is safe here -- nothing else
+  // is registered on this hook.
+  lines.push(...runReactionHook("applyAndReact.onZeroDamage", state, "player", { state, holder: state, role: "player" }));
   if (hasSetTier(state, "Regalia of the Woven Thread", 4) && !combat.player.threadsOfConsequencePending) {
     combat.player.threadsOfConsequencePending = true;
     lines.push(`Threads of Consequence — your next strike will land harder for it.`);
@@ -6016,7 +5979,7 @@ function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
     const key = kind === "magic" ? "adaptiveTideMagicStacks" : "adaptiveTidePhysicalStacks";
     combat[key] = Math.min(5, (combat[key] || 0) + 1);
   }
-  if (edmg > 0 && hasSetTier(state, "Queen Carapace", 6)) combat.player.queenCarapaceBonus = Math.min(9, combat.player.queenCarapaceBonus + 3);
+  runReactionHook("applyAndReact.onHitTaken", state, "player", { state, holder: state, role: "player", site: "mitigateAndApplyHitOnPlayer", edmg });
   return { edmg, absorbLines };
 }
 
@@ -6323,22 +6286,10 @@ function applyRegrowth(state) {
   return runReactionHook("fight.end", state, "player", { state, holder: state, role: "player" });
 }
 
-// Vanguard Momentum (Contract Hunter 6pc): +1 Attack per kill, stacking
-// to +5. Since every BESTIARY encounter is its own fully separate fight
-// in this engine (no back-to-back multi-wave combat exists), "for the
-// remainder of combat" is approximated as a charge that persists across
-// fights until the player rests (see parser.js cmdRest) rather than
-// resetting the instant this kill's combat object is torn down.
-function applyVanguardMomentum(state) {
-  if (!hasSetTier(state, "Contract Hunter", 6)) return [];
-  const before = state.flags.vanguardMomentumStacks || 0;
-  if (before >= 5) return [];
-  state.flags.vanguardMomentumStacks = before + 1;
-  state.recomputeStats(true);
-  // v0.11 PLAYER_STAT_SCALE: vanguardMomentumStacks is a raw stat-point
-  // stack, summed into recomputeStats' own scaledStat()'d atk total.
-  return [`Vanguard Momentum — the fight sharpens you; +${flatStat(1)} Attack (${before + 1}/5 this streak).`];
-}
+// Vanguard Momentum (Contract Hunter 6pc): migrated (task 40, 24 Nov) --
+// see modifiers.js's own set:Contract Hunter:6/vanguardMomentumGrant,
+// dispatched via the same applyAndReact.onKillLate hook Passing Whisper
+// already uses (resolveKill's own late dispatch, above).
 
 // Passing Whisper (2e-2, 23 Nov): moved onto applyAndReact.onKillLate
 // (js/data/modifiers.js, passingWhisperOnKill) -- see resolveKill's own
@@ -6520,7 +6471,6 @@ function resolveKill(state, creature) {
   Events.emit("enemy.killed", { creature, state });
   state.recomputeStats(true);
   out.push(...applyRegrowth(state));
-  out.push(...applyVanguardMomentum(state));
   out.push(...runReactionHook("applyAndReact.onKillLate", state, "player", { state, holder: state, role: "player", creature }));
   out.push(...applySoulLedger(state, creature));
   // Reward-ineligible summons (isSummoned, above) skip XP too — "no
