@@ -863,12 +863,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
     // Foundation re-grant — matching today's untouched behavior exactly.
     if (COMBAT_UNIFY.U3e) {
       consumeRetaliationDefBonus(creature, "enemy");
-      creature.sureFoundationBonusDef = 0;
-      creature.sureFoundationBonusDefTurnsLeft = 0;
-      if (hasEffect(creature, "dra_e05_sure_foundation")) {
-        creature.sureFoundationBonusDef = 2;
-        creature.sureFoundationBonusDefTurnsLeft = 2;
-      }
+      grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
     }
     enemySlot.hp -= edmg;
     enemySlot.lastDamageType = "physical";
@@ -912,12 +907,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
   // Brace/Guarded Strike/Sure Foundation ON THE ENEMY: the one-shot
   // zero + Sure Foundation's immediate re-grant — see this file's header.
   consumeRetaliationDefBonus(creature, "enemy");
-  creature.sureFoundationBonusDef = 0;
-  creature.sureFoundationBonusDefTurnsLeft = 0;
-  if (hasEffect(creature, "dra_e05_sure_foundation")) {
-    creature.sureFoundationBonusDef = 2;
-    creature.sureFoundationBonusDefTurnsLeft = 2;
-  }
+  grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
   enemySlot.hp -= edmg;
   enemySlot.lastDamageType = "physical";
   const lines = [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
@@ -1869,12 +1859,7 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
   // the ally-attack path on this exact creature object).
   consumeRetaliationDefBonus(creature, "enemy");
   if (isPhysical) {
-    creature.sureFoundationBonusDef = 0;
-    creature.sureFoundationBonusDefTurnsLeft = 0;
-    if (hasEffect(creature, "dra_e05_sure_foundation")) {
-      creature.sureFoundationBonusDef = 2;
-      creature.sureFoundationBonusDefTurnsLeft = 2;
-    }
+    grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
   }
 
   // Step 1e completion handoff: dispatch reads only action.elementOnHit

@@ -298,6 +298,30 @@ function consumeRetaliationDefBonus(holder, holderRole) {
   }
   return total;
 }
+// Sure Foundation (DRA-E05, 2e-2, 23 Nov, Tyler) -- the same "peek-then-
+// defer" shape as retaliationDef above, but its OWN holder state
+// (sureFoundationBonusDef/sureFoundationBonusDefTurnsLeft), since it's
+// never summed together with Guarded Strike/Brace/Legion:6 at any real
+// read site (combat.js/pipeline.js add it as a separate term, not
+// through peekRetaliationDefBonus). Today's only real holder is
+// "enemy" (bestiary.js can equip a boss with Stillwater Sabatons the
+// same way the player's own loot table does; no code path ever checks
+// this effect against the PLAYER despite the item also existing in the
+// player's loot table under "First Sword's Regalia" -- the catalogue's
+// old "player" holders value was simply wrong, same correction Guarded
+// Strike's row needed). Flat field, not modifierState-backed, for the
+// same frozen-fixture-direct-mutation reason as retaliationDef (several
+// pipeline-parity fixtures set creature.sureFoundationBonusDef directly
+// to simulate "already banked"). The decay tick (combat.js, once per
+// round, "expires after one full global turn if unused") stays
+// untouched inline -- it's a passive timer on this same field, not a
+// reaction to anything, so it doesn't fit any hook shape.
+function grantSureFoundationCharge(holder, holderRole, ctx) {
+  const host = modifierStateHost(holder, holderRole);
+  host.sureFoundationBonusDef = 0;
+  host.sureFoundationBonusDefTurnsLeft = 0;
+  runReactionHook("applyAndReact.onHitTaken", holder, holderRole, ctx);
+}
 // For a behavior whose state includes a cooldown ticked once per round
 // OUTSIDE rollToHit itself (Timeless Guard) — called from wherever that
 // per-round tick already lives, in place of decrementing a bespoke
@@ -2492,6 +2516,18 @@ registerModifier("set:Legion:6", {
   hook: "applyAndReact.onActionUsed", order: 1, bucket: null, value: null, behavior: "legion6Grant", params: null,
   when: (ctx) => ctx.actionId === "feint", holders: ["player"], state: null,
   notes: "Legion 6pc (Disciplined Formation): a flat, ADDITIVE +3 Defense against Feint's own retaliation -- functionally identical to Brace, and stacks with it if somehow both are active (combat.js's own comment), NOT a magnitude upgrade of Brace's value (unlike Stonewarden:4, which genuinely is one). Feint-only, unlike Brace (which also applies to Earth) -- `actionId` is a new ctx field only Feint's own dispatch call sets, added specifically so this entry doesn't also fire on Earth's cast (Earth passes the same bare ['appliesBraceDefense'] actionTags array Feint does, so actionTags alone can't tell them apart). order:1 so its own flavor line keeps printing before Siege Corps:6's own (silent) effect, matching today's exact output order (Legion:6's own check ran before the original runOnActionUsed call existed at all).",
+});
+registerBehavior("sureFoundationGrant", (ctx) => {
+  const host = modifierStateHost(ctx.holder, ctx.role);
+  host.sureFoundationBonusDef = 2;
+  host.sureFoundationBonusDefTurnsLeft = 2;
+  return undefined;
+});
+registerModifier("effect:dra_e05_sure_foundation", {
+  source: { kind: "effect", id: "dra_e05_sure_foundation" },
+  hook: "applyAndReact.onHitTaken", order: 10, bucket: null, value: null, behavior: "sureFoundationGrant", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Sure Foundation (DRA-E05, boots -- Stillwater Sabatons/First Sword's Regalia). Banks +2 effective Defense (2-round expiry) against this same creature's NEXT incoming physical hit, after this creature's own physical hit just landed. Dispatch sites keep today's own exact gates inline (grantSureFoundationCharge, modifiers.js -- the unconditional-clear-then-conditional-regrant pair, called at the SAME 4 real sites Guarded Strike/Brace already clear/grant at: combat.js's rollPlayerDamage physical branch, unconditional; pipeline.js's applyAndReactAllyActor kit-ally branch, U3e-gated; pipeline.js's plain-ally branch, unconditional; pipeline.js's applyAndReactPlayerActor, isPhysical-gated) rather than folding them into `when`. Holders corrected to 'enemy' only -- no code path ever checks this effect against the player's own equipment, despite the item existing in the player's loot table; the catalogue's old 'player' value was stale. The peek (combat.js:2034, pipeline.js:1666 -- `creature.sureFoundationBonusDef || 0`, added to effDef only in the physical branch) and the decay tick (combat.js, once per round) stay untouched inline -- a single-source field never needs peekRetaliationDefBonus-style summing, and the decay is a passive timer, not a reaction.",
 });
 registerModifier("effect:adaptive_ward", {
   source: { kind: "effect", id: "adaptive_ward" },

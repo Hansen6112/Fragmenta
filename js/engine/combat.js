@@ -2149,13 +2149,10 @@ function rollPlayerDamage(state, creature, activeElement) {
     // at all) — so any pending charge is now spent (whether or not this
     // creature even carries the effect, consuming is unconditional on a
     // landed physical hit), and a fresh one is banked for the creature's
-    // NEXT incoming physical hit if it still carries the effect.
-    creature.sureFoundationBonusDef = 0;
-    creature.sureFoundationBonusDefTurnsLeft = 0;
-    if (hasEffect(creature, "dra_e05_sure_foundation")) {
-      creature.sureFoundationBonusDef = 2;
-      creature.sureFoundationBonusDefTurnsLeft = 2;
-    }
+    // NEXT incoming physical hit if it still carries the effect. 2e-2
+    // (23 Nov): registry's own applyAndReact.onHitTaken dispatch
+    // (grantSureFoundationCharge, modifiers.js) now does both halves.
+    grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every
     // successful physical attack during its window PERMANENTLY increases
     // Attack by +2 — see the spell-branch comment above for why this
