@@ -1,0 +1,57 @@
+range: c8a8c348b7fac322f559e7dbc0e8fdedafe5beee..3f439c0e9e38d9e071d2d97fbc3c448bf1aa2a5c
+=== 3f439c0e9e38d9e071d2d97fbc3c448bf1aa2a5c 2026-11-24 14:31:32 +0000
+2e-2 task 40: migrate 13 remaining REVIEW-row effects onto already-dispatched hooks; defer last_stand, leave elemental_sovereignty inline
+Migrated onto existing hooks, no new hook names:
+- living_steel, winds_of_change: turn.start, dispatched by key at their
+  own real beginTurn positions (same convention as Living Steel's own
+  prior-task siblings).
+- every_choice_matters: first real dispatch of applyAndReact.onZeroDamage
+  (declared, never wired before this task) -- fan-out, safe since nothing
+  else is registered on it yet. Threads of Consequence, sharing the same
+  function, stays untouched.
+- endless_study, wanderers_reward, perfect_memory, ever_forward: hook
+  stays applyAndReact.onActionUsed, but dispatched BY KEY (not fan-out) at
+  each effect's own real call sites -- deliberately avoids ever matching
+  Brace/Legion:6's existing fan-out entries on this same hook name, since
+  Feint's real actionTags would otherwise cause a double-grant. Momentum
+  Unbound, sharing applyActionTypeTracking with Ever Forward, stays
+  untouched.
+- sang_cu_ie002_marked_target: dispatched by key (its real gate never
+  checked abilityCtx, a broader surface than the existing fan-out
+  onHitDealt call beside it -- by-key avoids both double-firing Guarded
+  Strike and narrowing Marked Target). Holders corrected to enemy.
+- Contract Hunter:6 (vanguard_momentum): applyAndReact.onKillLate,
+  ordered before Passing Whisper to preserve today's output order.
+- Queen Carapace:6 (carapace_adaptation), Regalia of the Eternal
+  Bastion:4 (walls_endure): both on applyAndReact.onHitTaken, role
+  player -- a new ctx.site field distinguishes their two real, differently
+  -scoped dispatch call sites (mitigateAndApplyHitOnPlayer vs the broader
+  applyPlayerDamage, which nests the former) to avoid a double-fire.
+- First Sword's Regalia:10 (first_swords_legacy): applyAndReact.onLowHealth,
+  first role:"enemy" dispatch on that hook (Dregnar-boss-specific).
+  Holders corrected to enemy.
+- Vaeloris:6: catalogue-only fix, already covered by effect:regrowth.
+
+Deferred/left inline (Tyler's rulings, 24 Nov):
+- last_stand: part of a mutually-exclusive if/else chain already deferred
+  to cheatDeath/2e-5 territory; left alone.
+- elemental_sovereignty: a live, turn-counted multiplicative stat buff --
+  not a clean fit for the existing recomputeStats-based stat.* mechanism
+  (which bakes in a PERMANENT base stat). Stays inline, same exception as
+  Disarm/Mirror Soul; catalogue's stale rollToHit.attacker classification
+  corrected.
+
+Suite 651/651, audit 0 errors (315 warnings). Sim harness verification
+(plus3_run + boss_sweep, both switch states, N=1000 seed 777) for task 39
+still running in the background; task 40's own harness run will follow
+once that completes.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 172 +++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         | 176 ++++++++++++++++----------------------------
+ js/engine/pipeline.js       |  18 ++---
+ tools/modifier_catalogue.md |  30 ++++----
+ 4 files changed, 259 insertions(+), 137 deletions(-)

@@ -1,0 +1,122 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "windsOfChangeGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "vanguardMomentumGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "queenCarapaceGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "wallsEndureGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "firstSwordsLegacyGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "markedTargetGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "everyChoiceMattersGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "endlessStudyGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "wanderersRewardGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "perfectMemoryGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "everForwardGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "livingSteelGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:winds_of_change",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Contract Hunter:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Queen Carapace:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Bastion:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:First Sword's Regalia:10:legacy",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:sang_cu_ie002_marked_target",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:every_choice_matters",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:endless_study",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:wanderers_reward",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:perfect_memory",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:living_steel",
+  "type": "added"
+ }
+]
