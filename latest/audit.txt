@@ -1,5 +1,5 @@
 
-WARNINGS (327)
+WARNINGS (326)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -113,7 +113,6 @@ WARNINGS (327)
   [modifiers] EFFECT_DEFS.unhurried_step (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.hourglass_reserve (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.dra_e02_unshaken_command (combat) has no registry entry yet (M1)
-  [modifiers] EFFECT_DEFS.dra_e05_sure_foundation (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.sang_cu_ie002_marked_target (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.sang_cu_ie003_serrated_opening (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.sang_cu_ie008_handlers_resilience (combat) has no registry entry yet (M1)
@@ -317,9 +316,9 @@ WARNINGS (327)
   [modifiers] ENEMY_ABILITIES.sang_iag_arena_handler (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
   [modifiers] ENEMY_ABILITIES.sang_iag_militia_authority (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
   [modifiers] ENEMY_ABILITIES.sang_iag_warleaders_resolve (passive, trigger "healthBelowPct") has no registry entry yet (M1)
-  [modifiers] js/engine/combat.js still has 96 hasEffect() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/engine/combat.js still has 95 hasEffect() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/combat.js still has 38 hasSetTier() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/engine/pipeline.js still has 31 hasEffect() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/engine/pipeline.js still has 28 hasEffect() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/pipeline.js still has 5 hasSetTier() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/resolver.js still has 2 hasEffect() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/resolver.js still has 1 hasSetTier() call(s) not yet migrated to the registry (M2)
@@ -333,4 +332,4 @@ WARNINGS (327)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 327 warning(s) across 53 scripts.
+0 error(s), 326 warning(s) across 53 scripts.

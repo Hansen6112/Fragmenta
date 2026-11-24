@@ -1,0 +1,68 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 1d74540..df8d929 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -2149,13 +2149,10 @@ function rollPlayerDamage(state, creature, activeElement) {
+     // at all) — so any pending charge is now spent (whether or not this
+     // creature even carries the effect, consuming is unconditional on a
+     // landed physical hit), and a fresh one is banked for the creature's
+-    // NEXT incoming physical hit if it still carries the effect.
+-    creature.sureFoundationBonusDef = 0;
+-    creature.sureFoundationBonusDefTurnsLeft = 0;
+-    if (hasEffect(creature, "dra_e05_sure_foundation")) {
+-      creature.sureFoundationBonusDef = 2;
+-      creature.sureFoundationBonusDefTurnsLeft = 2;
+-    }
++    // NEXT incoming physical hit if it still carries the effect. 2e-2
++    // (23 Nov): registry's own applyAndReact.onHitTaken dispatch
++    // (grantSureFoundationCharge, modifiers.js) now does both halves.
++    grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
+     // Avatar of Creation (Regalia of the Eternal Forge 6pc): every
+     // successful physical attack during its window PERMANENTLY increases
+     // Attack by +2 — see the spell-branch comment above for why this
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index c8e8b15..d966926 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -863,12 +863,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
+     // Foundation re-grant — matching today's untouched behavior exactly.
+     if (COMBAT_UNIFY.U3e) {
+       consumeRetaliationDefBonus(creature, "enemy");
+-      creature.sureFoundationBonusDef = 0;
+-      creature.sureFoundationBonusDefTurnsLeft = 0;
+-      if (hasEffect(creature, "dra_e05_sure_foundation")) {
+-        creature.sureFoundationBonusDef = 2;
+-        creature.sureFoundationBonusDefTurnsLeft = 2;
+-      }
++      grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
+     }
+     enemySlot.hp -= edmg;
+     enemySlot.lastDamageType = "physical";
+@@ -912,12 +907,7 @@ function applyAndReactAllyActor(actor, target, dmgInfo, ctx, action) {
+   // Brace/Guarded Strike/Sure Foundation ON THE ENEMY: the one-shot
+   // zero + Sure Foundation's immediate re-grant — see this file's header.
+   consumeRetaliationDefBonus(creature, "enemy");
+-  creature.sureFoundationBonusDef = 0;
+-  creature.sureFoundationBonusDefTurnsLeft = 0;
+-  if (hasEffect(creature, "dra_e05_sure_foundation")) {
+-    creature.sureFoundationBonusDef = 2;
+-    creature.sureFoundationBonusDefTurnsLeft = 2;
+-  }
++  grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
+   enemySlot.hp -= edmg;
+   enemySlot.lastDamageType = "physical";
+   const lines = [`${ally.name} strikes ${withThe(creature.name, false)} for ${edmg} damage.`];
+@@ -1869,12 +1859,7 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
+   // the ally-attack path on this exact creature object).
+   consumeRetaliationDefBonus(creature, "enemy");
+   if (isPhysical) {
+-    creature.sureFoundationBonusDef = 0;
+-    creature.sureFoundationBonusDefTurnsLeft = 0;
+-    if (hasEffect(creature, "dra_e05_sure_foundation")) {
+-      creature.sureFoundationBonusDef = 2;
+-      creature.sureFoundationBonusDefTurnsLeft = 2;
+-    }
++    grantSureFoundationCharge(creature, "enemy", { state, holder: creature, role: "enemy" });
+   }
+ 
+   // Step 1e completion handoff: dispatch reads only action.elementOnHit

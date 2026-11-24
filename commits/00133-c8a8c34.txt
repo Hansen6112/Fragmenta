@@ -1,0 +1,38 @@
+range: c5c4ee842527ec3080c34a3959fb2223144692b9..c8a8c348b7fac322f559e7dbc0e8fdedafe5beee
+=== c8a8c348b7fac322f559e7dbc0e8fdedafe5beee 2026-11-24 12:29:41 +0000
+2e-2 task 39: migrate Sure Foundation onto applyAndReact.onHitTaken; finalize Mirror Soul as a deliberate no-hook exception
+Sure Foundation (DRA-E05): the grant (unconditional-clear-then-
+conditional-regrant) now dispatches through a real registry entry
+(effect:dra_e05_sure_foundation) on the newly-wired applyAndReact.onHitTaken
+hook, via grantSureFoundationCharge -- called at the same 4 real sites
+Guarded Strike/Brace already clear/grant at (combat.js's rollPlayerDamage,
+pipeline.js's ally-kit/plain-ally/player-actor branches). Real flat field
+(sureFoundationBonusDef/sureFoundationBonusDefTurnsLeft), not modifierState-
+backed, matching the retaliationDef precedent -- several frozen pipeline-
+parity fixtures mutate it directly. Holders corrected to "enemy" only: the
+item (Stillwater Sabatons) sits in the player's own loot table, but no code
+path ever checks this effect against the player -- only a bestiary-equipped
+boss ever satisfies the check. The peek and the once-per-round decay tick
+stay untouched inline (single-source field, passive timer).
+
+Mirror Soul: ruled (Tyler) to stay fully inline, same exception as Disarm's
+own retaliation-defense check -- calculateDamage already replaces the normal
+damage computation for it (trigger + roll in one place, HP write deferred to
+applyAndReactMirrorSoul), a control-flow substitution rather than a post-hoc
+reaction, with no Rule 1 upgrade and only one holder. Catalogue row finalized
+to document this as a settled decision, not a pending REVIEW item.
+
+Suite 651/651, audit 0 errors (326 warnings, down from 332). Sim harness
+verification (plus3_run + boss_sweep, both switch states, N=1000 seed 777)
+running in the background against the pre-task-39 baseline -- will confirm
+once it lands.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 36 ++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         | 11 ++++-------
+ js/engine/pipeline.js       | 21 +++------------------
+ tools/modifier_catalogue.md |  4 ++--
+ 4 files changed, 45 insertions(+), 27 deletions(-)

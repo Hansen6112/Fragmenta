@@ -1,0 +1,12 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "sureFoundationGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:dra_e05_sure_foundation",
+  "type": "added"
+ }
+]
