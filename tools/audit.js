@@ -830,6 +830,27 @@ const M2_SCOPED_FILES = [
   "js/engine/combat.js", "js/engine/pipeline.js", "js/engine/resolver.js",
   "js/data/sets.js", "js/data/synergy.js", "js/data/matchups.js",
 ];
+// M2 allowlist: effect/set ids whose hasEffect()/hasSetTier() call is a
+// deliberate, PERMANENT exception, named here so 2g's close-out (M2
+// as a hard zero, not a count) doesn't choke on a call that will
+// never move to the registry.
+//   elemental_sovereignty (First Sword's Regalia 10pc, exclusive):
+//   Tyler's 24 Nov ruling -- the live, turn-counted +15% buff it grants
+//   is structurally incompatible with the stat.*/recomputeStats-based
+//   registry mechanism (which bakes in a PERMANENT base stat on gear
+//   change, not a decaying combat buff), so it stays inline; the
+//   catalogue was corrected instead of the code. Its grant site is
+//   js/data/actions.js's water-cast heal action
+//   (hasSetTier(h.state, "First Sword's Regalia", 10)) -- not currently
+//   inside M2_SCOPED_FILES, so this entry isn't subtracted from any
+//   count below yet; it's named here in advance so the exception is on
+//   record if 2f/2g ever widen M2's scope to js/data/actions.js. The
+//   decay (combat.js, beginTurn) and the +15% multiplier (combat.js
+//   line ~385) read combat.player.sovereigntyTurnsLeft directly, with
+//   no hasEffect()/hasSetTier() call at either site.
+const M2_ALLOWLISTED_EFFECT_IDS = new Set([
+  "elemental_sovereignty",
+]);
 for (const file of M2_SCOPED_FILES) {
   if (!sources[file]) continue;
   const hasEffectCount = (sources[file].match(/\bhasEffect\(/g) || []).length;
