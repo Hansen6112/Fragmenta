@@ -2187,7 +2187,9 @@ function applyEnemyFlatDamageReduction(dmg, creature) {
   let mult = 1;
   for (const id of creature.passives) {
     const ability = getEnemyAbility(id);
-    if (ability && ability.trigger === "flatDamageReduction") mult *= (1 - ability.pct);
+    if (!ability || ability.trigger !== "flatDamageReduction") continue;
+    const v = runHookEntryValue(`passive:${id}`, creature, "enemy", { holder: creature, role: "enemy" });
+    if (typeof v === "number") mult *= v;
   }
   let result = mult === 1 ? dmg : Math.max(0, Math.round(dmg * mult));
   // Perfect Fleshcraft (2d increment 3, Tyler 19 Nov): dispatched through
@@ -4664,10 +4666,8 @@ function tickEnemyPassives(state, e) {
   for (const pid of creature.passives || []) {
     const p = getEnemyAbility(pid);
     if (!p) continue;
-    if (p.trigger === "regenPerTurn" && e.hp > 0 && e.hp < e.maxHp) {
-      const heal = Math.max(1, Math.round(e.maxHp * p.pct));
-      const healed = applyHealing(makeEnemyCombatant(state, e, state.combat.enemies.indexOf(e)), heal, "enemy_regen", { state });
-      if (healed > 0) lines.push(`${withThe(creature.name, true)} recovers ${healed} health.`);
+    if (p.trigger === "regenPerTurn") {
+      lines.push(...runHookEntry(`passive:${pid}`, creature, "enemy", { state, holder: creature, role: "enemy", enemySlot: e, creature }));
     } else if (p.trigger === "healthBelowPct" && !e.passiveOnceFlags[pid] && e.hp / e.maxHp <= p.threshold) {
       e.passiveOnceFlags[pid] = true;
       // Arena Ferocity/Veteran's Guard (Sanguivorum Criminal Underworld):

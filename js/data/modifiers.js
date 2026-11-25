@@ -25,6 +25,22 @@ const MOD_HOOKS = [
   "rollToHit.attacker", "rollToHit.defender",
   "calculateDamage.outgoing", "calculateDamage.defenseIgnore", "calculateDamage.incoming",
   "calculateDamage.tags", "calculateDamage.cap", "calculateDamage.baseRoll",
+  // calculateDamage.enemyFlatReduction (2f, 25 Nov): Thick Hide and its
+  // 10 siblings' own home. NOT "calculateDamage.incoming" -- that hook
+  // is also fanned out by calculateEnemyIncomingMultiplier (the
+  // Sanguivorum sangMit combinator's own flat/unrounded product, called
+  // from combat.js:1991, pipeline.js:1651, actions.js:338/371/398) via
+  // runHook(), which matches on entry.hook alone and does not care how
+  // any OTHER caller chose to dispatch the same entry. Registering these
+  // 11 entries under "calculateDamage.incoming" put them on BOTH that
+  // fan-out AND applyEnemyFlatDamageReduction's own explicit by-key
+  // dispatch (runHookEntryValue, which reads MODIFIERS[key] directly and
+  // never consults entry.hook) -- a real double-application bug caught
+  // by P1E-I-ENEMYPASSIVE-FLATREDUCTION-01 (45 expected, 41 produced: the
+  // 10% ratio applied twice). This dedicated hook is never fanned out by
+  // anything -- applyEnemyFlatDamageReduction's loop is these 11 entries'
+  // only caller -- so by-key dispatch is now the only path to them.
+  "calculateDamage.enemyFlatReduction",
   "applyAndReact.onHitDealt", "applyAndReact.onHitTaken", "applyAndReact.onMiss",
   "applyAndReact.onZeroDamage", "applyAndReact.onKill", "applyAndReact.onDowned",
   "applyAndReact.onStatusApplied", "applyAndReact.onActionUsed",
@@ -3907,4 +3923,142 @@ registerModifier("effect:riposte", {
   hook: "applyAndReact.onZeroDamage", order: 1, bucket: null, value: true, behavior: null,
   when: null, holders: ["player", "enemy", "ally"], state: null,
   notes: "Riposte: a free counter-strike when the wearer's own attacker misses them. Player (maybeRiposte) is uncapped; enemy/ally (riposteCounterOnPlayer/riposteCounterByEnemyOnAlly/riposteCounterByAllyOnEnemy) are capped via nonPlayerRiposteCapAllows (once/round, twice/combat) -- that cap logic is untouched, same as the resolve*/pipeline.js execution. hook name corrected from the catalogue's stale 'rollToHit.defender' guess -- the real signal is the same zero-damage-retaliation moment Every Choice Matters/Open Road already use (though dispatched by key here, not fan-out, since each of the 4 real call sites has its own cap/target wiring the shared hook name doesn't drive).",
+});
+
+// ================= 2f (25 Nov): enemy passives, batch 1 =================
+// flatDamageReduction (11 ids) and regenPerTurn (5 ids) -- the simplest/
+// safest trigger shapes per the recon's own sequencing. Both read off
+// `creature.passives` (the equipment/ability-list holder, confirmed
+// directly: hasRealEffect-equivalent for passives is
+// sourceActiveOn's "passive" case, Array.isArray(holder.passives) &&
+// holder.passives.includes(id)) but their REAL per-fight state
+// (e.hp/e.maxHp for regenPerTurn) lives on the per-fight enemy SLOT
+// record, a DIFFERENT object from creatureObj -- the identical split
+// 2e-3 found for tactical_memory. Every entry here is dispatched BY
+// KEY, never fan-out: calculateDamage.incoming/calculateEnemyIncomingMultiplier
+// is ALREADY called from 4 other real sites (combat.js:1991,
+// pipeline.js:1651, actions.js:338/371/398) for the unrelated sangMit
+// (Sanguivorum) chain -- registering flatDamageReduction on that hook
+// with generic fan-out would leak Thick Hide-style reduction into all
+// four of those sites too, a real behavioral widening, not a
+// relocation. By-key dispatch (same precedent as 2e-3's cooldown
+// cluster) avoids this entirely: each "passive:<id>" key only ever
+// fires when explicitly dispatched by that exact key, never through
+// hook-driven fan-out.
+registerBehavior("flatDamageReductionRatio", (ctx, entry) => entry.params.ratio);
+registerModifier("passive:thick_hide", {
+  source: { kind: "passive", id: "thick_hide" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.9 }, when: null, holders: ["enemy"], state: null,
+  notes: "Thick Hide: -10% incoming damage. Dispatched by key from applyEnemyFlatDamageReduction's own loop (combat.js) -- see this batch's own header comment for why not hook fan-out.",
+});
+registerModifier("passive:thick_hide_2", {
+  source: { kind: "passive", id: "thick_hide_2" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.8 }, when: null, holders: ["enemy"], state: null,
+  notes: "Thick Hide II: -20% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:wing_guard", {
+  source: { kind: "passive", id: "wing_guard" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.8 }, when: null, holders: ["enemy"], state: null,
+  notes: "Wing Guard: -20% incoming damage. Its own `rangedOnly: true` field (enemyabilities.js) is declared but never read anywhere in the engine -- confirmed directly (no other reference exists) -- so this applies unconditionally today, same as every other flatDamageReduction entry; not implementing a ranged-only gate that doesn't exist yet. See passive:thick_hide's own note.",
+});
+registerModifier("passive:thick_scales", {
+  source: { kind: "passive", id: "thick_scales" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.85 }, when: null, holders: ["enemy"], state: null,
+  notes: "Thick Scales: -15% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:hardened_carapace", {
+  source: { kind: "passive", id: "hardened_carapace" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.85 }, when: null, holders: ["enemy"], state: null,
+  notes: "Hardened Carapace: -15% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:hardened_exoskeleton", {
+  source: { kind: "passive", id: "hardened_exoskeleton" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.8 }, when: null, holders: ["enemy"], state: null,
+  notes: "Hardened Exoskeleton: -20% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:elder_carapace", {
+  source: { kind: "passive", id: "elder_carapace" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.8 }, when: null, holders: ["enemy"], state: null,
+  notes: "Elder Carapace: -20% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:crystal_hide", {
+  source: { kind: "passive", id: "crystal_hide" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.85 }, when: null, holders: ["enemy"], state: null,
+  notes: "Crystal Hide: -15% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:ancient_preservation", {
+  source: { kind: "passive", id: "ancient_preservation" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.9 }, when: null, holders: ["enemy"], state: null,
+  notes: "Ancient Preservation: -10% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:reinforced_frame", {
+  source: { kind: "passive", id: "reinforced_frame" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.85 }, when: null, holders: ["enemy"], state: null,
+  notes: "Reinforced Frame: -15% incoming damage. See passive:thick_hide's own note.",
+});
+registerModifier("passive:earthen_form", {
+  source: { kind: "passive", id: "earthen_form" },
+  hook: "calculateDamage.enemyFlatReduction", order: 1, bucket: "incomingMitigation", value: null, behavior: "flatDamageReductionRatio",
+  params: { ratio: 0.9 }, when: null, holders: ["enemy"], state: null,
+  notes: "Earthen Form: -10% incoming damage. See passive:thick_hide's own note.",
+});
+
+// regenPerTurn (5 ids): a flat %-max-HP heal every round while
+// 0 &lt; hp &lt; maxHp, dispatched by key from tickEnemyPassives' own
+// per-passive-id loop (combat.js) -- NOT the generic turn.start fan-out
+// used for player-side heals (healOnEvent assumes player-shaped
+// maxHealth/health fields; the enemy slot's own hp/maxHp fields are a
+// different shape, so this gets its own small behavior rather than
+// risk a field-naming mismatch). State lives on the per-fight enemy
+// slot (ctx.enemySlot), passed explicitly since the presence check's
+// own holder (creature, for sourceActiveOn's "passive" case) is a
+// different object. applyHealing/makeEnemyCombatant stay the exact
+// unchanged pathway already used for every other enemy heal.
+registerBehavior("enemyRegenPerTurnHeal", (ctx, entry) => {
+  const e = ctx.enemySlot;
+  if (!(e.hp > 0 && e.hp < e.maxHp)) return undefined;
+  const heal = Math.max(1, Math.round(e.maxHp * entry.params.pct));
+  const healed = applyHealing(makeEnemyCombatant(ctx.state, e, ctx.state.combat.enemies.indexOf(e)), heal, "enemy_regen", { state: ctx.state });
+  if (healed <= 0) return undefined;
+  return `${withThe(ctx.creature.name, true)} recovers ${healed} health.`;
+});
+registerModifier("passive:ancient_resilience", {
+  source: { kind: "passive", id: "ancient_resilience" },
+  hook: "turn.start", order: 2, bucket: null, value: null, behavior: "enemyRegenPerTurnHeal",
+  params: { pct: 0.03 }, when: null, holders: ["enemy"], state: null,
+  notes: "Ancient Resilience: regenerates 3% max Health per round while alive and not at full Health. Dispatched by key from tickEnemyPassives's own loop (combat.js) -- see this batch's own header comment.",
+});
+registerModifier("passive:rootbound", {
+  source: { kind: "passive", id: "rootbound" },
+  hook: "turn.start", order: 2, bucket: null, value: null, behavior: "enemyRegenPerTurnHeal",
+  params: { pct: 0.03 }, when: null, holders: ["enemy"], state: null,
+  notes: "Rootbound: regenerates 3% max Health per round. See passive:ancient_resilience's own note.",
+});
+registerModifier("passive:black_ichor", {
+  source: { kind: "passive", id: "black_ichor" },
+  hook: "turn.start", order: 2, bucket: null, value: null, behavior: "enemyRegenPerTurnHeal",
+  params: { pct: 0.05 }, when: null, holders: ["enemy"], state: null,
+  notes: "Black Ichor: regenerates 5% max Health per round. See passive:ancient_resilience's own note.",
+});
+registerModifier("passive:living_heart", {
+  source: { kind: "passive", id: "living_heart" },
+  hook: "turn.start", order: 2, bucket: null, value: null, behavior: "enemyRegenPerTurnHeal",
+  params: { pct: 0.04 }, when: null, holders: ["enemy"], state: null,
+  notes: "Living Heart: regenerates 4% max Health per round. See passive:ancient_resilience's own note.",
+});
+registerModifier("passive:living_timber", {
+  source: { kind: "passive", id: "living_timber" },
+  hook: "turn.start", order: 2, bucket: null, value: null, behavior: "enemyRegenPerTurnHeal",
+  params: { pct: 0.03 }, when: null, holders: ["enemy"], state: null,
+  notes: "Living Timber: regenerates 3% max Health per round. See passive:ancient_resilience's own note.",
 });

@@ -177,7 +177,7 @@ record("P2-2D-INC-WIRING-01", "mitigateAndApplyHitOnPlayer dispatches calculateI
 });
 record("P2-2D-CAP-WIRING-ENEMY-01", "applyEnemyFlatDamageReduction dispatches applyDamageCap for Perfect Fleshcraft, old inline damageCapPctMaxHp loop gone from that function", () => {
   const body = sources["js/engine/combat.js"];
-  const fnBody = body.slice(body.indexOf("function applyEnemyFlatDamageReduction"), body.indexOf("function applyEnemyFlatDamageReduction") + 800);
+  const fnBody = body.slice(body.indexOf("function applyEnemyFlatDamageReduction"), body.indexOf("function applyEnemyFlatDamageReduction") + 1200);
   const hasNewCall = /applyDamageCap\(creature, "enemy"/.test(fnBody);
   const oldLoopGone = !/damageCapPctMaxHp/.test(fnBody);
   return { pass: hasNewCall && oldLoopGone, hasNewCall, oldLoopGone };
