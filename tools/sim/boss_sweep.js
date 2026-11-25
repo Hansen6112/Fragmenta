@@ -24,8 +24,10 @@
  * purpose: Dregnar/Arbitarius x 3 gear tiers).
  */
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
-const { buildSandbox, cellSeed, pickSeed } = require("./sim_common");
+const { Worker } = require("worker_threads");
+const { buildSandbox, pickSeed } = require("./sim_common");
 
 const args = process.argv.slice(2);
 const argVal = (flag, def) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : def; };
@@ -75,38 +77,6 @@ const ENEMY_MAGE_ELEMENTS = ["fire", "water", "earth", "lightning", "acid", "for
 
 function median(a) { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; }
 
-function runCell(sb, cls, L, cellSpec, key) {
-  const seed = cellSeed(SEED, key);
-  sb.seedRandom(seed);
-  let wins = 0, allyDeaths = 0, n = 0, roundsSum = 0, playerHpSum = 0, allyHpSum = 0, allyHpCells = 0;
-  const injuryTotals = {};
-  for (let i = 0; i < N; i++) {
-    let spawnArg = cellSpec.spawn;
-    if (cellSpec.enemyMageElement) {
-      spawnArg = sb.spawnEnemyMage("norrvael", L, cellSpec.enemyMageElement);
-    }
-    const r = sb.runFight({
-      cls, L, spawn: spawnArg, party: cellSpec.party, spawnMode: cellSpec.spawnMode || "asSpawned",
-      forceVariant: cellSpec.forceVariant || null,
-    });
-    if (!r) continue;
-    n++;
-    wins += r.won ? 1 : 0;
-    allyDeaths += r.allyDeaths;
-    roundsSum += r.rounds;
-    playerHpSum += r.playerHpFrac;
-    if (r.allyHpFrac != null) { allyHpSum += r.allyHpFrac; allyHpCells++; }
-    for (const [g, c] of Object.entries(r.injuryGroups)) injuryTotals[g] = (injuryTotals[g] || 0) + c;
-  }
-  return {
-    n, winRate: n ? wins / n : null, allyDeathsPerFight: n ? allyDeaths / n : null, injuryTotals,
-    meanRounds: n ? roundsSum / n : null,
-    meanPlayerHpPct: n ? (playerHpSum / n) * 100 : null,
-    meanAllyHpPct: allyHpCells ? (allyHpSum / allyHpCells) * 100 : null,
-    seed,
-  };
-}
-
 function levelFor(sb, id) {
   const t = sb.BESTIARY[id];
   if (t.levelRange) return Math.round((t.levelRange[0] + t.levelRange[1]) / 2);
@@ -115,32 +85,36 @@ function levelFor(sb, id) {
   return Math.round((r.levelMin + Math.min(r.levelMax, 25)) / 2);
 }
 
-function main() {
-  const sb = buildSandbox(SWITCH === "on");
-  const results = {};
-
+// Builds the SAME flat list of cells the old sequential main() visited,
+// in the SAME order ("existing" rows, then "new" rows, then enemy-mage
+// elements, each inner loop identical to the original nesting) -- the
+// one thing every downstream step (chunking, worker dispatch, result
+// reassembly) depends on to reproduce the original's exact `results`
+// key order byte-for-byte, regardless of which worker computes which
+// cell or which one finishes first. `sb` here is ONLY for the BESTIARY/
+// SPAWN_RARITIES lookups levelFor needs to plan the list -- no fight is
+// run against it; the real simulation sandboxes are each worker's own
+// (sweep_worker.js's own buildSandbox call), never this one.
+function buildTaskList(sb) {
+  const tasks = [];
   if (ROWS === "existing" || ROWS === "all") {
     for (const id of BOSS_ROSTER) {
       const L = levelFor(sb, id);
       for (const cls of sb.CLASS_IDS) {
         for (const mode of ["alone", "asSpawned"]) {
           const key = `boss:${id}:${mode}:${cls}`;
-          results[key] = runCell(sb, cls, L, { spawn: id, party: true, spawnMode: mode }, key);
-          results[key].L = L;
+          tasks.push({ key, kind: "run", cls, L, cellSpec: { spawn: id, party: true, spawnMode: mode } });
         }
       }
     }
   }
-
   if (ROWS === "new" || ROWS === "all") {
     for (const row of NEW_ROWS) {
       const L = levelFor(sb, row.spawn);
       const party = row.tier !== "normal";
       for (const cls of sb.CLASS_IDS) {
         const key = `new:${row.key}:${cls}`;
-        results[key] = runCell(sb, cls, L, { spawn: row.spawn, party, spawnMode: "alone", forceVariant: row.forceVariant }, key);
-        results[key].L = L;
-        results[key].tier = row.tier;
+        tasks.push({ key, kind: "run", cls, L, tier: row.tier, cellSpec: { spawn: row.spawn, party, spawnMode: "alone", forceVariant: row.forceVariant } });
       }
     }
     for (const el of ENEMY_MAGE_ELEMENTS) {
@@ -148,18 +122,65 @@ function main() {
       // (js/data/damagetypes.js's own ELEMENTS.frost mutation) -- a
       // Frost Enemy Mage literally cannot be built pre-switch, so this
       // cell has no "before" by construction, not by omission. Matches
-      // Part C item 3's own "new cells have no before" rule.
+      // Part C item 3's own "new cells have no before" rule. A "skip"
+      // task never goes to a worker -- main() fills its synthetic
+      // result in directly, same shape the sequential code always used.
       if (el === "frost" && SWITCH !== "on") {
-        for (const cls of sb.CLASS_IDS) results[`new:enemyMage_${el}:${cls}`] = { n: 0, winRate: null, allyDeathsPerFight: null, injuryTotals: {}, skipped: "frost requires the switch on (no ELEMENTS.frost pre-switch)" };
+        for (const cls of sb.CLASS_IDS) {
+          tasks.push({ key: `new:enemyMage_${el}:${cls}`, kind: "skip", skipMsg: "frost requires the switch on (no ELEMENTS.frost pre-switch)" });
+        }
         continue;
       }
       const L = 20;
       for (const cls of sb.CLASS_IDS) {
         const key = `new:enemyMage_${el}:${cls}`;
-        results[key] = runCell(sb, cls, L, { spawn: null, party: false, spawnMode: "alone", enemyMageElement: el }, key);
-        results[key].L = L;
-        results[key].tier = "normal";
+        tasks.push({ key, kind: "run", cls, L, tier: "normal", cellSpec: { spawn: null, party: false, spawnMode: "alone", enemyMageElement: el } });
       }
+    }
+  }
+  return tasks;
+}
+
+function runWorker(chunk) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "sweep_worker.js"), {
+      workerData: { switchOn: SWITCH === "on", seed: SEED, n: N, tasks: chunk },
+    });
+    worker.on("message", resolve);
+    worker.on("error", reject);
+  });
+}
+
+async function main() {
+  const sbForPlanning = buildSandbox(SWITCH === "on");
+  const tasks = buildTaskList(sbForPlanning);
+  const runTasks = tasks.filter((t) => t.kind === "run");
+
+  // One worker per core (capped to the number of cells there actually
+  // are, so a tiny --n/--rows run doesn't spin up idle workers), each
+  // given a contiguous slice -- which slice doesn't matter: cellSeed is
+  // a pure function of (masterSeed, key), so every cell's own seed and
+  // outcome is identical no matter which worker runs it or in what
+  // order workers finish.
+  const numWorkers = Math.max(1, Math.min(os.cpus().length, runTasks.length || 1));
+  const chunks = Array.from({ length: numWorkers }, () => []);
+  runTasks.forEach((t, i) => chunks[i % numWorkers].push(t));
+  const nonEmptyChunks = chunks.filter((c) => c.length);
+
+  const workerMaps = nonEmptyChunks.length ? await Promise.all(nonEmptyChunks.map(runWorker)) : [];
+  const merged = Object.assign({}, ...workerMaps);
+
+  // Reassemble `results` by walking `tasks` in its ORIGINAL order (not
+  // completion order, not Object.keys(merged) order) -- this is what
+  // actually guarantees the final JSON's key order matches the old
+  // sequential version byte-for-byte, the same way the old code's own
+  // nested for-loops determined it.
+  const results = {};
+  for (const t of tasks) {
+    if (t.kind === "skip") {
+      results[t.key] = { n: 0, winRate: null, allyDeathsPerFight: null, injuryTotals: {}, skipped: t.skipMsg };
+    } else {
+      results[t.key] = merged[t.key];
     }
   }
 
@@ -169,4 +190,4 @@ function main() {
   else console.log(text);
 }
 
-main();
+main().catch((err) => { console.error(err); process.exitCode = 1; });

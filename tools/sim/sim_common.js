@@ -310,4 +310,45 @@ function buildSandbox(switchOn) {
   };
 }
 
-module.exports = { buildSandbox, ROOT, mulberry32, cellSeed, pickSeed };
+// Shared by boss_sweep.js and its worker_threads workers (sweep_worker.js)
+// -- identical to boss_sweep.js's own former inline runCell, just with
+// masterSeed/n taken as explicit parameters instead of closed over that
+// file's own module-level SEED/N constants, so a worker thread (which
+// gets its own masterSeed/n via workerData, not those globals) can call
+// it unchanged. Behavior is byte-identical given the same masterSeed/n:
+// cellSeed(masterSeed, key) is a pure function of its two arguments, not
+// of call order, so splitting cells across workers changes nothing about
+// any individual cell's own seed or outcome.
+function runCell(sb, cls, L, cellSpec, key, masterSeed, n) {
+  const seed = cellSeed(masterSeed, key);
+  sb.seedRandom(seed);
+  let wins = 0, allyDeaths = 0, cnt = 0, roundsSum = 0, playerHpSum = 0, allyHpSum = 0, allyHpCells = 0;
+  const injuryTotals = {};
+  for (let i = 0; i < n; i++) {
+    let spawnArg = cellSpec.spawn;
+    if (cellSpec.enemyMageElement) {
+      spawnArg = sb.spawnEnemyMage("norrvael", L, cellSpec.enemyMageElement);
+    }
+    const r = sb.runFight({
+      cls, L, spawn: spawnArg, party: cellSpec.party, spawnMode: cellSpec.spawnMode || "asSpawned",
+      forceVariant: cellSpec.forceVariant || null,
+    });
+    if (!r) continue;
+    cnt++;
+    wins += r.won ? 1 : 0;
+    allyDeaths += r.allyDeaths;
+    roundsSum += r.rounds;
+    playerHpSum += r.playerHpFrac;
+    if (r.allyHpFrac != null) { allyHpSum += r.allyHpFrac; allyHpCells++; }
+    for (const [g, c] of Object.entries(r.injuryGroups)) injuryTotals[g] = (injuryTotals[g] || 0) + c;
+  }
+  return {
+    n: cnt, winRate: cnt ? wins / cnt : null, allyDeathsPerFight: cnt ? allyDeaths / cnt : null, injuryTotals,
+    meanRounds: cnt ? roundsSum / cnt : null,
+    meanPlayerHpPct: cnt ? (playerHpSum / cnt) * 100 : null,
+    meanAllyHpPct: allyHpCells ? (allyHpSum / allyHpCells) * 100 : null,
+    seed,
+  };
+}
+
+module.exports = { buildSandbox, ROOT, mulberry32, cellSeed, pickSeed, runCell };
