@@ -472,8 +472,8 @@ function useHadrianActive(state, ally, kit, ability, enemies) {
   // in engine/combat.js for the fuller comment): the same proportional -1
   // equivalent, for a companion's own kit cooldowns.
   let hadrianCooldown = Math.max(0, ability.cooldown - (cdrActive ? 1 : 0));
-  if (hadrianCooldown && hasEffect(ally, "feinting_edge")) hadrianCooldown = Math.max(0, hadrianCooldown - 1);
-  if (hadrianCooldown && !ally.tacticalMemoryUsed && hasEffect(ally, "tactical_memory") && Math.random() < 0.2) {
+  if (hadrianCooldown && hasModifier(ally, "ally", "effect:feinting_edge")) hadrianCooldown = Math.max(0, hadrianCooldown - 1);
+  if (hadrianCooldown && !ally.tacticalMemoryUsed && hasModifier(ally, "ally", "effect:tactical_memory") && Math.random() < 0.2) {
     ally.tacticalMemoryUsed = true;
     hadrianCooldown = Math.max(0, hadrianCooldown - 1);
   }

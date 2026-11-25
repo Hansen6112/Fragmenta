@@ -1845,18 +1845,8 @@ function consumeTrailblazer(state) {
 // only from the 3 mechanics the item's own text calls "Evasion."
 function applyEndlessHorizonEvasionBonuses(state) {
   if (!state.combat) return [];
-  const combat = state.combat;
   const lines = [];
-  if (hasEffect(state, "open_road")) {
-    let eased = false;
-    for (const key of Object.keys(combat.cooldowns)) {
-      if (combat.cooldowns[key] > 0) {
-        combat.cooldowns[key] -= 1;
-        eased = true;
-      }
-    }
-    if (eased) lines.push(`Open Road — the path clears; every active cooldown eases by a turn.`);
-  }
+  lines.push(...runHookEntry("effect:open_road", state, "player", { state, holder: state, role: "player" }));
   return lines;
 }
 
@@ -3289,8 +3279,8 @@ function resolveEnemyActiveAbility(state, creature) {
   // override-to-1 (which would be a wildly bigger effect on an active with
   // a 5-7 round cooldown than Feint's own 2-round one).
   let setCooldown = ability.cooldown;
-  if (setCooldown && hasEffect(creature, "feinting_edge")) setCooldown = Math.max(1, setCooldown - 1);
-  if (setCooldown && !enemy.tacticalMemoryUsed && hasEffect(creature, "tactical_memory") && Math.random() < 0.2) {
+  if (setCooldown && hasModifier(creature, "enemy", "effect:feinting_edge")) setCooldown = Math.max(1, setCooldown - 1);
+  if (setCooldown && !enemy.tacticalMemoryUsed && hasModifier(creature, "enemy", "effect:tactical_memory") && Math.random() < 0.2) {
     enemy.tacticalMemoryUsed = true;
     setCooldown = Math.max(1, setCooldown - 1);
   }
@@ -3927,15 +3917,15 @@ function beginTurn(state) {
   // hasn't been incremented for THIS round yet (that happens further down,
   // via applyHeartwoodVitality), so "+1" here predicts what it's about to
   // become.
-  const blessingOfTheHourRound = hasSetTier(state, "Regalia of the Eternal Hour", 2) && (combat.player.actionCounter + 1) % 4 === 0;
+  // Blessing of the Hour / Living Forge: migrated (2e-3, 25 Nov) -- see
+  // modifiers.js's own set:Regalia of the Eternal Hour:2/effect:living_forge
+  // entries. The hasSetTier/hasEffect presence reads below moved to
+  // hasModifier; the modulus condition, the decrement formula, and the
+  // completion-counting loop itself all stay exactly inline.
+  const blessingOfTheHourRound = hasModifier(state, "player", "set:Regalia of the Eternal Hour:2") && (combat.player.actionCounter + 1) % 4 === 0;
   const cooldownDecrement = combat.player.avatarOfFreedomTurns > 0 || combat.player.avatarOfCreationTurns > 0 || blessingOfTheHourRound ? 2 : 1;
-  // Living Forge (Divine Regalia — Embercore): every cooldown that
-  // actually reaches 0 THIS tick ("completes") restores 3% max Health —
-  // its "3% Mana" half is a no-op, since this engine has no Mana resource
-  // (the same standing limitation cited for every other Mana-flavored
-  // clause so far).
   let livingForgeCompletions = 0;
-  const livingForgeActive = hasEffect(state, "living_forge");
+  const livingForgeActive = hasModifier(state, "player", "effect:living_forge");
   for (const key of Object.keys(combat.cooldowns)) {
     const before = combat.cooldowns[key];
     if (before > 0) {
@@ -3943,13 +3933,7 @@ function beginTurn(state) {
       if (livingForgeActive && combat.cooldowns[key] === 0) livingForgeCompletions += 1;
     }
   }
-  if (livingForgeCompletions > 0) {
-    const heal = Math.ceil(state.maxHealth * 0.03) * livingForgeCompletions;
-    if (heal > 0) {
-      const { healed, lines: healLines } = applyHeal(state, heal);
-      if (healed > 0) lines.push(`Living Forge mends you for ${healed} health.`, ...healLines);
-    }
-  }
+  lines.push(...runHookEntry("effect:living_forge", state, "player", { state, holder: state, role: "player", livingForgeCompletions }));
   // Avatar of Time (Regalia of the Eternal Hour 6pc): "buff durations no
   // longer decrease" for its window — scoped to these 3 shared buff-turn
   // fields, the same "temporary stat bonus" scope Blessing of Creation
@@ -4163,14 +4147,7 @@ function beginTurn(state) {
   // second round spent in combat, ease a random currently-cooling-down
   // Ability/Tactic by 1 turn — the same random-pick-and-ease pattern
   // Universal Understanding/Twist of Fate already established.
-  if (hasEffect(state, "patient_current") && combat.player.actionCounter % 2 === 0) {
-    const cooling = Object.keys(combat.cooldowns).filter((k) => combat.cooldowns[k] > 0);
-    if (cooling.length) {
-      const key = cooling[Math.floor(Math.random() * cooling.length)];
-      combat.cooldowns[key] = Math.max(0, combat.cooldowns[key] - 1);
-      lines.push(`Patient Current eases ${cooldownDisplayName(key)}'s recovery by a turn.`);
-    }
-  }
+  lines.push(...runHookEntry("effect:patient_current", state, "player", { state, holder: state, role: "player" }));
   // Avatar of Renewal (Regalia of the Endless Tide 6pc): restore 10% max
   // Health at the end of every round during its 4-round window. Its
   // "automatically cleanse one negative effect each round" clause is
@@ -5712,7 +5689,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     // (Amendment 1, Phase 2 step 2c rework) -- modifierState below.
     perfectMemoryKeys: [], // Perfect Memory's (Divine Regalia) list of distinct Tactics/Elemental Abilities already used this fight
     perfectMemoryKnowledgeBonus: 0, // Perfect Memory's stacking +2 Knowledge per first-use, capped at 16 (8 distinct actions)
-    hourglassReserveReady: hasEffect(state, "hourglass_reserve"), // Hourglass Reserve's (Divine Regalia) once-per-combat free-cooldown charge, available from combat start
+    hourglassReserveReady: hasModifier(state, "player", "effect:hourglass_reserve"), // Hourglass Reserve's (Divine Regalia) once-per-combat free-cooldown charge, available from combat start
     avatarOfTimeUsed: false, // gates Avatar of Time's (Regalia of the Eternal Hour 6pc) below-25%-HP burst
     avatarOfTimeTurns: 0, // Avatar of Time's temporary all-cooldowns-zeroed/frozen-buffs/+25%-damage duration remaining
     cooldowns: {},
@@ -6524,7 +6501,7 @@ Events.on("enemy.killed", ({ state }) => {
   // "queue a charge for the next fight" pattern Forest Guardian (Vaeloris
   // 6pc) already established (see startCombat, where the charge is
   // transferred onto the fresh combat object).
-  if (hasEffect(state, "swift_passage")) {
+  if (hasModifier(state, "player", "effect:swift_passage")) {
     state.flags.swiftPassageCharge = true;
   }
 });
@@ -6653,25 +6630,25 @@ function attemptFlee(state) {
 // Examiner 6pc/First Kingdom 4pc — re-rolled on each qualifying use until
 // one hits) gets cut by 1 turn (minimum 1). Shared by Feint, Decoy, and
 // Disarm — Ambush has no cooldown to shorten.
+// Tactical Memory: migrated (2e-3, 25 Nov) -- see modifiers.js's own
+// effect:tactical_memory/tacticalMemoryFire. Same name/signature/call
+// sites as before this task; only the internal presence+flag+roll moved
+// into the registry (dispatched via runHookEntryValue, which returns
+// `undefined` when the effect isn't active at all -- the `|| {cooldown,
+// fired:false}` fallback reproduces today's own default exactly).
 function applyTacticalMemory(state, cooldown) {
-  if (!cooldown || state.combat.player.tacticalMemoryUsed || !hasEffect(state, "tactical_memory")) {
-    return { cooldown, fired: false };
-  }
-  if (Math.random() < tacticalMemoryChance(state)) {
-    state.combat.player.tacticalMemoryUsed = true;
-    return { cooldown: Math.max(1, cooldown - 1), fired: true };
-  }
-  return { cooldown, fired: false };
+  const result = runHookEntryValue("effect:tactical_memory", state, "player", { state, holder: state, role: "player", cooldown });
+  return result || { cooldown, fired: false };
 }
 
-// Perfect Timing (Mythic): the first tactic used each fight ignores its
-// cooldown entirely — takes priority over First Kingdom/Master
-// Strategist's flat reduction and Tactical Memory's probabilistic one,
-// both moot once the cooldown is already 0.
+// Perfect Timing: migrated (2e-3, 25 Nov) -- see modifiers.js's own
+// effect:perfect_timing/perfectTimingFire. Same name/signature/call
+// sites as before this task. Takes priority over First Kingdom/Master
+// Strategist's flat reduction and Tactical Memory's probabilistic one
+// (both moot once the cooldown is already 0) -- today's own exact
+// position in each caller's if/else-if chain, unchanged.
 function applyPerfectTiming(state) {
-  if (!hasEffect(state, "perfect_timing") || state.combat.player.perfectTimingUsed) return false;
-  state.combat.player.perfectTimingUsed = true;
-  return true;
+  return runHookEntryValue("effect:perfect_timing", state, "player", { state, holder: state, role: "player" }) === true;
 }
 
 // First Kingdom's 6pc set bonus and Master Strategist (Mythic) are both a
@@ -6709,7 +6686,7 @@ function useFeint(state) {
   // than zeroing state.combat.cooldowns.feint — cooldowns still accrue
   // normally underneath (so losing the effect mid-fight falls back to
   // whatever's actually stored), they just never block the next use.
-  if ((state.combat.cooldowns.feint || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Feint is still recovering — ${state.combat.cooldowns.feint} more turn(s).`];
+  if ((state.combat.cooldowns.feint || 0) > 0 && !hasModifier(state, "player", "effect:perfect_recall")) return [`Feint is still recovering — ${state.combat.cooldowns.feint} more turn(s).`];
 
   const out = beginTurn(state);
   // beginTurn can itself end the fight now — a burn/bleed tick on a
@@ -6745,8 +6722,8 @@ function useFeint(state) {
     state.combat.player.hourglassReserveReady = false;
     feintMemory = { cooldown: 0, fired: false };
   } else {
-    let baseCooldown = hasEffect(state, "feinting_edge") ? 1 : t.cooldown;
-    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+    let baseCooldown = hasModifier(state, "player", "effect:feinting_edge") ? 1 : t.cooldown;
+    if (hasModifier(state, "player", "set:First Kingdom:6") || hasModifier(state, "player", "effect:master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
     feintMemory = applyTacticalMemory(state, baseCooldown);
   }
   // Borrowed Seconds (Divine Regalia — Epochkeeper): refunds 50% of

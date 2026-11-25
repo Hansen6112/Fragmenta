@@ -2041,7 +2041,7 @@ function useDecoy(state) {
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't attacking you. No need for a decoy.`];
   const t = TACTICS.decoy;
   if (state.knowledge < t.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
-  if ((state.combat.cooldowns.decoy || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
+  if ((state.combat.cooldowns.decoy || 0) > 0 && !hasModifier(state, "player", "effect:perfect_recall")) return [`Decoy is still recovering — ${state.combat.cooldowns.decoy} more turn(s).`];
 
   const out = beginTurn(state);
   if (!state.combat) return out;
@@ -2069,7 +2069,7 @@ function useDecoy(state) {
     decoyMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
-    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+    if (hasModifier(state, "player", "set:First Kingdom:6") || hasModifier(state, "player", "effect:master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
     decoyMemory = applyTacticalMemory(state, baseCooldown);
   }
   if (borrowedSecondsActive(state) && decoyMemory.cooldown > 0) {
@@ -2215,7 +2215,7 @@ function useDisarm(state) {
   const disarmBypass = activationRestrictionsBypassed(state);
   if (state.knowledge < t.knowledgeReq && !disarmBypass) return [`You don't know that tactic yet. (needs Knowledge ${t.knowledgeReq}+)`];
   if (activeEnemySlot(state.combat).disarmed && !disarmBypass) return [`It's already lost whatever you could have disarmed.`];
-  if ((state.combat.cooldowns.disarm || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
+  if ((state.combat.cooldowns.disarm || 0) > 0 && !hasModifier(state, "player", "effect:perfect_recall")) return [`Disarm is still recovering — ${state.combat.cooldowns.disarm} more turn(s).`];
 
   const out = beginTurn(state);
   if (!state.combat) return out;
@@ -2242,7 +2242,7 @@ function useDisarm(state) {
     disarmMemory = { cooldown: 0, fired: false };
   } else {
     let baseCooldown = t.cooldown;
-    if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+    if (hasModifier(state, "player", "set:First Kingdom:6") || hasModifier(state, "player", "effect:master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
     disarmMemory = applyTacticalMemory(state, baseCooldown);
   }
   if (borrowedSecondsActive(state) && disarmMemory.cooldown > 0) {
@@ -2360,16 +2360,17 @@ function useElementAbility(state, elementKey) {
   out.push(...applyEndlessStudy(state, elementKey), ...applyWanderersReward(state, elementKey), ...applyActionTypeTracking(state, "elemental"), ...applyPerfectMemory(state, elementKey));
   consumeTrailblazer(state);
   let cooldown = a.cooldown;
-  if (hasEffect(state, "conduit_mastery")) cooldown = Math.max(1, cooldown - 1);
-  if ((hasSetTier(state, "Novitiate", 6) || hasEffect(state, "rivers_favor")) && !state.combat.player.noviceFreeCastUsed) {
-    state.combat.player.noviceFreeCastUsed = true;
+  if (hasModifier(state, "player", "effect:conduit_mastery")) cooldown = Math.max(1, cooldown - 1);
+  const noviceFreeCastKey = hasModifier(state, "player", "effect:rivers_favor") ? "effect:rivers_favor"
+    : hasModifier(state, "player", "set:Novitiate:6") ? "set:Novitiate:6" : null;
+  if (noviceFreeCastKey && runHookEntryValue(noviceFreeCastKey, state, "player", { state, holder: state, role: "player" })) {
     cooldown = 0;
     out.push(`First casting's free — the conduit hasn't tired yet.`);
-  } else if (hasEffect(state, "conduit_ease") && Math.random() < conduitEaseChance(state)) {
+  } else if (hasModifier(state, "player", "effect:conduit_ease") && Math.random() < conduitEaseChance(state)) {
     cooldown = Math.max(1, cooldown - 1);
     out.push(`The conduit answers easier than expected — ${a.name} will recover faster this time.`);
   }
-  if (hasEffect(state, "eureka") && state.combat.player.spellCastCounter % 4 === 0) {
+  if (hasModifier(state, "player", "effect:eureka") && state.combat.player.spellCastCounter % 4 === 0) {
     cooldown = 0;
     out.push(`Eureka — the insight arrives before the cost does.`);
   }
@@ -2387,15 +2388,7 @@ function useElementAbility(state, elementKey) {
     cooldown = Math.round(cooldown / 2);
   }
   state.combat.cooldowns[elementKey] = cooldown;
-  if (hasSetTier(state, "Regalia of the Endless Archive", 4)) {
-    const otherKnown = [state.primaryElement, state.secondaryElement, state.tertiaryElement]
-      .filter((el) => el && el !== elementKey && (state.combat.cooldowns[el] || 0) > 0);
-    if (otherKnown.length) {
-      const pick = otherKnown[Math.floor(Math.random() * otherKnown.length)];
-      state.combat.cooldowns[pick] = Math.max(0, state.combat.cooldowns[pick] - 2);
-      out.push(`Universal Understanding — the insight carries over; ${ELEMENT_ABILITIES[pick].name}'s cooldown eases.`);
-    }
-  }
+  out.push(...runHookEntry("set:Regalia of the Endless Archive:4", state, "player", { state, holder: state, role: "player", elementKey }));
 
   const synergy = getSynergy(state, elementKey);
   let dmgMult = synergy ? synergy.dmgMultiplier : 1;

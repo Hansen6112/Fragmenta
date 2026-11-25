@@ -27,7 +27,7 @@ function usePlayerAction(state, actionId) {
   if (!state.combat) return ["There's nothing here to do that."];
   let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} has done you no harm.`];
-  if (def.cooldownKey && (state.combat.cooldowns[def.cooldownKey] || 0) > 0 && !hasEffect(state, "perfect_recall")) {
+  if (def.cooldownKey && (state.combat.cooldowns[def.cooldownKey] || 0) > 0 && !hasModifier(state, "player", "effect:perfect_recall")) {
     return [`${def.name} is still recovering — ${state.combat.cooldowns[def.cooldownKey]} more turn(s).`];
   }
 
@@ -61,7 +61,7 @@ function usePlayerAction(state, actionId) {
       cooldown = 0;
     } else {
       let baseCooldown = def.cooldown;
-      if (hasSetTier(state, "First Kingdom", 6) || hasEffect(state, "master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
+      if (hasModifier(state, "player", "set:First Kingdom:6") || hasModifier(state, "player", "effect:master_strategist")) baseCooldown = applyFirstKingdomCooldown(baseCooldown);
       const memory = applyTacticalMemory(state, baseCooldown);
       cooldown = memory.cooldown;
       if (memory.fired) out.push(`Old instincts kick in — ${def.name} recovers faster this time.`);

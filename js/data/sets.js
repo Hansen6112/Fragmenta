@@ -634,17 +634,19 @@ function spellWardMultiplier(state, holderRole) {
 }
 
 // Tactical Memory's proc chance: base 20% (only relevant if the item
-// effect is equipped); Examiner 6pc and First Kingdom 4pc push it to 50%.
+// effect is equipped); Examiner 6pc and First Kingdom 4pc push it to 50%
+// (2e-3, 25 Nov: Rule 1 upgrade, set:Examiner:6/set:First Kingdom:4 in
+// js/data/modifiers.js -- resolveUpgradedValue's own Math.max reproduces
+// the OR exactly).
 function tacticalMemoryChance(state) {
-  if (hasSetTier(state, "Examiner", 6) || hasSetTier(state, "First Kingdom", 4)) return 0.5;
-  return 0.2;
+  return resolveUpgradedValue("effect:tactical_memory", 0.2, state, "player", "max");
 }
 
 // Conduit Ease's proc chance: base 20%; Kabal 6pc and Conduit Master 4pc
-// push it to 40%.
+// push it to 40% (2e-3, 25 Nov: Rule 1 upgrade, set:Kabal:6/set:Conduit
+// Master:4 in js/data/modifiers.js).
 function conduitEaseChance(state) {
-  if (hasSetTier(state, "Kabal", 6) || hasSetTier(state, "Conduit Master", 4)) return 0.4;
-  return 0.2;
+  return resolveUpgradedValue("effect:conduit_ease", 0.2, state, "player", "max");
 }
 
 // Elemental Focus's damage multiplier: base 1.08x; Novitiate/Kabal/

@@ -93,6 +93,20 @@ const MOD_HOOKS = [
   "heal.applied",
   "fight.start", "round.start", "turn.start", "fight.end",
   "cheatDeath",
+  // cooldown.set (2e-3, 25 Nov, Tyler): the "resolve this cast's own
+  // cooldown" moment -- useFeint/useDecoy/useDisarm/resolver.js's shared
+  // Tactics sequence and useElementAbility's own mage-flavored sequence
+  // (both pipeline.js/combat.js). Every member here is dispatched BY KEY,
+  // at its own real, pre-existing position in one of those two already-
+  // factored sequences (never hook fan-out -- several members share this
+  // hook name purely for M1 bookkeeping while their real order/short-
+  // circuit shape stays whatever the untouched surrounding code already
+  // does). Covers the gate-bypass (Perfect Recall), the once-per-fight
+  // free-cast sources (Perfect Timing, Hourglass Reserve, Swift Passage,
+  // River's Favor/Novitiate:6), and the flat/probabilistic reducers
+  // (Feinting Edge, Master Strategist/First Kingdom:6, Tactical Memory,
+  // Conduit Mastery, Conduit Ease, Eureka, Universal Understanding).
+  "cooldown.set",
   // statusTick.incoming (2d increment 3, Tyler 19 Nov, Bucket Review §3):
   // Ashward's own home -- a DoT-style status reduction read when a status
   // ticks, not a damage-roll multiplier, so it's its own hook rather than
@@ -777,12 +791,22 @@ function resolveUpgradedValue(tag, base, holder, holderRole, direction) {
   return best;
 }
 
-// Deprecated (Amendment 1): a presence-only check with a hard-coded
-// role, the shape 2b/2c's first pass used before this amendment. Kept
-// defined (nothing calls it as of this rework) but superseded by
-// runHook() for any new work -- a presence-only entry can't do anything
-// when R1/R2 widen its holders, since there's no behavior/value for the
-// widened holder to actually receive.
+// Amendment 1 flagged this as superseded by runHook() for any new work
+// where the registry entry's own behavior/value IS the real effect --
+// a presence-only check can't carry that when R1/R2 widen holders,
+// since there's nothing for the widened holder to actually receive.
+// Revived for 2e-3 (25 Nov, Tyler) for the opposite, equally real case:
+// a gate bypass, a once-only override, or a combined OR-presence check
+// where the CALL SITE's own surrounding arithmetic already IS the
+// complete effect (Perfect Recall's gate, Feinting Edge's override-to-1,
+// Master Strategist/First Kingdom:6's shared flat -1, Hourglass
+// Reserve/Swift Passage's seed checks) -- there, `value: true` is this
+// entry's whole, correct "value" (M3 is satisfied), and no behavior
+// could add anything a widened holder would actually use, because the
+// call site itself stays scoped to whichever role it's literally
+// written for. Still wrong for anything whose real value (a number, a
+// line, a stateful flag) needs to travel with the holder -- those stay
+// on runHook/runHookEntry/behaviors as before.
 function hasModifier(holder, holderRole, key) {
   const entry = MODIFIERS[key];
   if (!entry || !holder) return false;
@@ -2295,6 +2319,24 @@ function runHookEntry(key, holder, holderRole, ctx) {
   if (Array.isArray(result)) return result;
   return [];
 }
+// Same by-key convention as runHookEntry just above, but for a hook
+// whose own call-site convention isn't lines -- a caller-owned local
+// value (a boolean, a computed {cooldown, fired}) the caller threads
+// back into its own variable, instead of log text to concatenate (2e-3,
+// 25 Nov: Perfect Timing/Tactical Memory's own preserved-signature
+// wrapper functions, combat.js). Returns the behavior's raw result
+// UNWRAPPED -- `undefined` if the entry isn't active at all (absent,
+// holders mismatch, when-gate fails), so "not active" stays
+// distinguishable from "active but returned a falsy value."
+function runHookEntryValue(key, holder, holderRole, ctx) {
+  const entry = MODIFIERS[key];
+  if (!entry || !holder) return undefined;
+  if (!sourceActiveOn(holder, entry.source)) return undefined;
+  if (!(entry.holders.includes(holderRole) || entry.holders.includes(holder.id))) return undefined;
+  if (typeof entry.when === "function" && !entry.when(ctx)) return undefined;
+  const holderState = modifierStateFor(holder, holderRole, key, entry);
+  return entry.behavior ? MODIFIER_BEHAVIORS[entry.behavior](ctx, entry, holderState) : (typeof entry.value === "function" ? entry.value(ctx) : entry.value);
+}
 // applyAndReact.onStatusApplied, self-granted shape (2e-2, 23 Nov,
 // Tyler): applyBeneficialEffectBonuses's (combat.js) own call site --
 // "a beneficial effect was just granted" to the SAME holder that
@@ -2960,6 +3002,33 @@ registerModifier("effect:every_choice_matters", {
   when: null, holders: ["player"], state: null,
   notes: "Every Choice Matters (Divine Regalia, task 40, 24 Nov): +2 Attack/+2 Magic stacking per 'zero damage retaliation' (dodge/stun/Decoy/reduced-to-0), capped at 5 stacks. First real dispatch of applyAndReact.onZeroDamage (declared in MOD_HOOKS, never dispatched before this task) -- dispatched via fan-out (runReactionHook) INSIDE applyDodgeBlockNegateBonuses's own body (combat.js), the single shared function already called at all 9 real zero-damage call sites (same ones maybeRiposte uses) -- no per-call-site edits needed. Threads of Consequence (Regalia of the Woven Thread 4pc) shares this same function but is a genuinely independent if-block (own gate, own effect, no shared state) -- left untouched inline, not part of this task's scope.",
 });
+// Open Road (Divine Regalia -- Wayfinder's Compass, 2e-3, 25 Nov): the
+// same "this turn's retaliation dealt zero damage" signal Every Choice
+// Matters above already uses -- but dispatched BY KEY at its OWN real
+// call site (applyEndlessHorizonEvasionBonuses, combat.js), not folded
+// into Every Choice Matters' own fan-out at applyDodgeBlockNegateBonuses's
+// EARLIER call site. Both functions run at the same 5 real locations,
+// back to back, with Laughing Gale's own bonuses in between -- letting
+// runReactionHook's fan-out here catch Open Road too would print its
+// line before Laughing Gale's, not after, breaking byte-identical
+// output. hook name shared purely for M1 bookkeeping.
+registerBehavior("openRoadEaseAll", (ctx) => {
+  const cooldowns = ctx.holder.combat.cooldowns;
+  let eased = false;
+  for (const key of Object.keys(cooldowns)) {
+    if (cooldowns[key] > 0) {
+      cooldowns[key] -= 1;
+      eased = true;
+    }
+  }
+  return eased ? `Open Road — the path clears; every active cooldown eases by a turn.` : undefined;
+});
+registerModifier("effect:open_road", {
+  source: { kind: "effect", id: "open_road" },
+  hook: "applyAndReact.onZeroDamage", order: 20, bucket: null, value: null, behavior: "openRoadEaseAll", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Open Road: eases EVERY active cooldown by 1, on the same zero-damage-retaliation signal Every Choice Matters uses -- see the comment just above for why this dispatches by key at its own position instead of fan-out.",
+});
 registerBehavior("endlessStudyGrant", (ctx) => {
   const combat = ctx.holder.combat;
   combat.player.endlessStudyKeys.push(ctx.actionKey);
@@ -3102,6 +3171,47 @@ registerModifier("set:Heartwood:6", {
   when: (ctx) => ctx.holder.combat.player.actionCounter % 3 === 0, holders: ["player"], state: null,
   notes: "Heartwood Vitality: every third combat round, restore 2% max Health. combat.player.actionCounter's own UNCONDITIONAL increment stays inline (applyHeartwoodVitality, combat.js) -- shared with Work Refines/Lasting Foundation/Patient Current/Blessing of Valor/Hunter's Instinct/Temporal Echo and others, per Tyler's own established ruling on the identical spellCastCounter/Seedbearer conflict -- only the %3 check + heal move here. Flavor line is unconditional once dispatched (today's own code has no healed>0 gate here, unlike every sibling in this block) -- preserved via unconditionalMessage.",
 });
+// ================= 2e-3 (25 Nov): cooldown reactions, plus Living Forge =================
+// Blessing of the Hour (Regalia of the Eternal Hour 2pc): feeds
+// beginTurn's own cooldownDecrement formula (every 4th round, every
+// cooldown ticks by 2 instead of 1) -- read BEFORE the decrement loop
+// (combat.js), alongside Avatar of Freedom/Avatar of Creation's own
+// flag reads (untouched: those are turns-remaining flags, not
+// hasEffect/hasSetTier calls). Presence-only is correct (`value: true`
+// satisfies M3) -- the modulus condition itself stays inline at its own
+// real read site; nothing here needs to travel with a widened holder,
+// since beginTurn's cooldown loop is -- and stays -- player-only.
+registerModifier("set:Regalia of the Eternal Hour:2", {
+  source: { kind: "set", id: "Regalia of the Eternal Hour:2", setName: "Regalia of the Eternal Hour", tier: 2 },
+  hook: "turn.start", order: 2, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of the Hour: every 4th round, beginTurn's own cooldownDecrement doubles (2 instead of 1). hasModifier-read at its own real site (combat.js); the (actionCounter+1)%4===0 condition stays inline there, unchanged.",
+});
+// Living Forge (Divine Regalia -- Embercore): deferred from 2e-1 (20
+// Nov, Tyler) because its heal scales by a cooldown-completion COUNT
+// computed inside the same loop that drives Blessing of the Hour's own
+// decrement rate -- no clean extraction boundary until that loop's own
+// two hasEffect/hasSetTier reads (this entry and the one just above)
+// were ready to move. Dispatched BY KEY right after the loop finishes
+// counting completions into ctx.livingForgeCompletions (not a generic
+// turn.start fan-out -- this must run exactly once, reading a count
+// nothing else produces). The loop's own gate (whether to count
+// completions at all) reads this same key's presence via hasModifier,
+// at its own real site inside the loop (combat.js).
+registerBehavior("livingForgeHeal", (ctx) => {
+  if (!ctx.livingForgeCompletions) return undefined;
+  const heal = Math.ceil(ctx.holder.maxHealth * 0.03) * ctx.livingForgeCompletions;
+  if (heal <= 0) return undefined;
+  const { healed, lines } = healFighter(ctx.holder, ctx.role, heal, "livingForgeHeal", ctx);
+  if (healed <= 0) return undefined;
+  return [`Living Forge mends you for ${healed} health.`, ...lines];
+});
+registerModifier("effect:living_forge", {
+  source: { kind: "effect", id: "living_forge" },
+  hook: "turn.start", order: 5, bucket: null, value: null, behavior: "livingForgeHeal", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Living Forge: every cooldown that reaches 0 THIS tick ('completes') restores 3% max Health. Math.ceil(maxHealth*0.03)*completions preserved exactly (NOT Math.ceil(maxHealth*0.03*completions) -- the two differ whenever maxHealth*0.03 isn't already an integer, e.g. maxHealth=101, completions=2: 4*2=8 vs ceil(6.06)=7). Its '3% Mana' half is a no-op (no Mana resource). Only pushes its line when healed>0 -- matches today's own exact gate (no separate overflow-only path, unlike healOnEvent's default convention).",
+});
 registerBehavior("livingSteelGrant", (ctx) => {
   const combat = ctx.holder.combat;
   if (combat.player.livingSteelBonus >= 5) return undefined;
@@ -3133,6 +3243,20 @@ registerModifier("effect:flowing_waters", {
   },
   when: null, holders: ["player"], state: null,
   notes: "Flowing Waters: restore 3% max Health at the end of every round. Its '3% Mana' half is a no-op (no Mana resource in this engine).",
+});
+registerBehavior("patientCurrentEase", (ctx) => {
+  const cooldowns = ctx.holder.combat.cooldowns;
+  const cooling = Object.keys(cooldowns).filter((k) => cooldowns[k] > 0);
+  if (!cooling.length) return undefined;
+  const key = cooling[Math.floor(Math.random() * cooling.length)];
+  cooldowns[key] = Math.max(0, cooldowns[key] - 1);
+  return `Patient Current eases ${cooldownDisplayName(key)}'s recovery by a turn.`;
+});
+registerModifier("effect:patient_current", {
+  source: { kind: "effect", id: "patient_current" },
+  hook: "turn.start", order: 55, bucket: null, value: null, behavior: "patientCurrentEase", params: null,
+  when: (ctx) => ctx.holder.combat.player.actionCounter % 2 === 0, holders: ["player"], state: null,
+  notes: "Patient Current (Divine Regalia -- Sandals of the River): every second round spent in combat, ease a random currently-cooling-down Ability/Tactic by 1 turn -- the same random-pick-and-ease pattern Universal Understanding/Twist of Fate already established. Dispatched by KEY at its own real beginTurn position (combat.js, right after Flowing Waters), not hook fan-out -- same convention as Living Steel/Lasting Foundation beside it. cooldownDisplayName is combat.js's own shared helper (global scope).",
 });
 registerModifier("always:avatar_of_renewal_heal", {
   source: { kind: "always" },
@@ -3360,4 +3484,176 @@ registerModifier("set:Regalia of the Laughing Gale:4", {
   hook: "applyAndReact.onFavorableRoll", order: 10, bucket: null, value: null, behavior: "twistOfFateReaction",
   params: null, when: (ctx) => !!ctx.holder.combat, holders: ["player"], state: null,
   notes: "Twist of Fate: restores 5% max Health and eases a random cooling-down ability by a turn, whenever Loaded Dice/Winds of Change/Unlikely Outcome's own randomness favors the player.",
+});
+
+// ================= 2e-3 (25 Nov): the cooldown-reaction cluster =================
+// Recon (fork, 25 Nov) confirmed the catalogue's "applyAndReact.* /
+// chooseAction -- REVIEW" guess was simply wrong for every row below --
+// none of these touch chooseAction. The real dispatch points are
+// useFeint/useDecoy/useDisarm (Group A, an already-factored, IDENTICAL
+// sequence duplicated at 3 call sites, plus resolver.js's generic
+// usePlayerAction as a 4th) and useElementAbility (Group B, a parallel
+// but structurally DIFFERENT mage-flavored sequence -- independent `if`
+// statements, not one if/else-if chain). Every entry here is dispatched
+// either via the pre-existing named helper functions (applyPerfectTiming/
+// applyTacticalMemory, combat.js, kept at their exact original call
+// sites and signatures) or via hasModifier at the exact site the raw
+// hasEffect/hasSetTier call used to sit -- never a new generic fan-out,
+// since each real site's own surrounding arithmetic/short-circuit shape
+// is the actual effect and must stay byte-identical.
+
+// ---- Group C: once-per-combat free-cooldown charges, seeded outside
+// any cast's own resolution ----
+registerModifier("effect:hourglass_reserve", {
+  source: { kind: "effect", id: "hourglass_reserve" },
+  hook: "cooldown.set", order: 1, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Hourglass Reserve (Divine Regalia): once-per-combat free-cooldown charge, seeded into combat.player.hourglassReserveReady at combat-object creation (combat.js) -- hasModifier-read there; consumed inline at every cooldown call site (a flag READ, not a hasEffect call, left untouched).",
+});
+registerModifier("effect:swift_passage", {
+  source: { kind: "effect", id: "swift_passage" },
+  hook: "cooldown.set", order: 1, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Swift Passage (Divine Regalia -- Windstep Boots): defeating an enemy queues a free-cooldown charge for the player's NEXT fight, via the pre-existing Events.on('enemy.killed'/'combat.started') pub/sub bus (combat.js) -- kept as-is per Tyler's 25 Nov ruling (same parallel-dispatch-system acceptance LOW_HEALTH_REACTIONS got before 2e-1); only this entry's own hasEffect check (inside the 'enemy.killed' handler) moved to hasModifier. Consumed inline at every cooldown call site (combat.player.swiftPassageReady, a flag READ, not a hasEffect call, left untouched).",
+});
+
+// ---- Group A: Feint/Decoy/Disarm/resolver.js's shared Tactic cooldown
+// sequence (useFeint combat.js; useDecoy/useDisarm pipeline.js;
+// usePlayerAction resolver.js) ----
+registerModifier("effect:perfect_recall", {
+  source: { kind: "effect", id: "perfect_recall" },
+  hook: "cooldown.set", order: 1, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Perfect Recall (Artifact): skips the 'still recovering' gate entirely for Feint/Decoy/Disarm/resolver.js's generic Tactic path (NOT useElementAbility, which has no such check -- confirmed directly against its real code) -- cooldowns still accrue normally underneath. Presence-only is correct: the call site's own early-return IS the complete behavior.",
+});
+registerModifier("effect:feinting_edge", {
+  source: { kind: "effect", id: "feinting_edge" },
+  hook: "cooldown.set", order: 10, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player", "enemy", "ally"], state: null,
+  notes: "Feinting Edge: Feint-only override to a flat 1-round cooldown (player, useFeint, combat.js -- Decoy/Disarm/resolver.js's generic path have no such override, confirmed directly: they start from t.cooldown/def.cooldown plain). Generalized for enemy (resolveEnemyActiveAbility, combat.js) and ally (useHadrianActive, companion.js) as a proportional flat -1 instead (a flat override-to-1 would be a wildly bigger effect on a 5-7 round enemy Active than Feint's own 2-round one) -- holders widened to match code that already existed before this task (a catalogue correction, not R1/R2). Every site keeps its own inline arithmetic; this entry is presence-only (hasModifier) at all three.",
+});
+registerModifier("effect:master_strategist", {
+  source: { kind: "effect", id: "master_strategist" },
+  hook: "cooldown.set", order: 20, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Master Strategist (Mythic) and First Kingdom:6 (set:First Kingdom:6, below) are both a flat, unconditional -1 to every Tactic's cooldown, OR-gated (either or both present still only -1 once) -- applyFirstKingdomCooldown (combat.js) stays the untouched pure helper; only the two hasModifier presence reads feeding its call move here.",
+});
+registerModifier("set:First Kingdom:6", {
+  source: { kind: "set", id: "First Kingdom:6", setName: "First Kingdom", tier: 6 },
+  hook: "cooldown.set", order: 20, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "See effect:master_strategist's own note just above -- same shared flat -1, independent source.",
+});
+registerBehavior("perfectTimingFire", (ctx) => {
+  const player = ctx.holder.combat.player;
+  if (player.perfectTimingUsed) return false;
+  player.perfectTimingUsed = true;
+  return true;
+});
+registerModifier("effect:perfect_timing", {
+  source: { kind: "effect", id: "perfect_timing" },
+  hook: "cooldown.set", order: 30, bucket: null, value: null, behavior: "perfectTimingFire", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Perfect Timing (Mythic): the first Tactic/Ability used each fight ignores its cooldown entirely -- once-per-fight, combat.player.perfectTimingUsed kept as the literal flat field name (frozen-fixture-safe, same precedent as Sure Foundation/retaliationDef). Dispatched through applyPerfectTiming(state) -- combat.js, SAME name/signature/call sites as before this task, only its internal body now reads runHookEntryValue instead of raw hasEffect+flag. Takes priority over First Kingdom/Master Strategist's flat reduction and Tactical Memory's probabilistic one (both moot once cooldown is already 0) -- today's own if/else-if chain position, unchanged; this entry's own job is only the presence+once-per-fight check.",
+});
+registerBehavior("tacticalMemoryFire", (ctx) => {
+  const host = modifierStateHost(ctx.holder, ctx.role);
+  if (!ctx.cooldown || host.tacticalMemoryUsed) return { cooldown: ctx.cooldown, fired: false };
+  const rate = ctx.role === "player" ? tacticalMemoryChance(ctx.holder) : 0.2;
+  if (Math.random() < rate) {
+    host.tacticalMemoryUsed = true;
+    return { cooldown: Math.max(1, ctx.cooldown - 1), fired: true };
+  }
+  return { cooldown: ctx.cooldown, fired: false };
+});
+registerModifier("effect:tactical_memory", {
+  source: { kind: "effect", id: "tactical_memory" },
+  hook: "cooldown.set", order: 40, bucket: null, value: null, behavior: "tacticalMemoryFire", params: null,
+  when: null, holders: ["player", "enemy", "ally"], state: null,
+  notes: "Tactical Memory: probabilistic -1 to the Tactic/Active just resolved, once per fight, rate from tacticalMemoryChance (player only -- Examiner:6/First Kingdom:4 push 20%->50%, Rule 1) or a fixed 20% (enemy/ally, no upgrade source exists for either -- confirmed directly). holders widened to enemy/ally to match code that already existed before this task (catalogue correction, same as Feinting Edge above). For the PLAYER, dispatched through applyTacticalMemory(state, cooldown) -- combat.js, SAME name/signature/call sites as before, only its internal body changed. For enemy/ally, dispatched inline at resolveEnemyActiveAbility (combat.js)/useHadrianActive (companion.js) -- NOT through this same behavior path: those two sites store the once-per-fight flag on the per-fight enemy SLOT record (combat.enemies[i]), a DIFFERENT object from the equipment-bearing creatureObj that hasEffect/sourceActiveOn must read (confirmed directly: resolveEnemyActiveAbility's own `enemy` and `creature` params are genuinely different objects; `hasEffect(enemy,...)` would silently return false, no .equipment on the slot). Routing the real state write through modifierStateHost(holder,'enemy') would therefore need `holder` to BE the slot, which breaks the presence check -- so enemy/ally keep their own original inline flag+roll+math, with only the raw hasEffect call swapped for hasModifier(creature,'enemy',...). This entry's own `tacticalMemoryFire` behavior is reached ONLY via the player-side wrapper functions.",
+});
+registerModifier("set:Examiner:6", {
+  source: { kind: "set", id: "Examiner:6", setName: "Examiner", tier: 6 },
+  upgrades: "effect:tactical_memory",
+  hook: "cooldown.set", order: 999, bucket: null, value: 0.5, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Tactical Memory's proc rate, 20% -> 50% (Rule 1 upgrade, same shape as Patient Aim/Feint, Leviathan:6/Water). Math.max in resolveUpgradedValue means either (or both) this and set:First Kingdom:4 present still yields 50%, matching today's hasSetTier(...,'Examiner',6)||hasSetTier(...,'First Kingdom',4) OR-check in tacticalMemoryChance (js/data/sets.js) exactly.",
+});
+registerModifier("set:First Kingdom:4", {
+  source: { kind: "set", id: "First Kingdom:4", setName: "First Kingdom", tier: 4 },
+  upgrades: "effect:tactical_memory",
+  hook: "cooldown.set", order: 999, bucket: null, value: 0.5, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Tactical Memory's proc rate, 20% -> 50% -- see set:Examiner:6's own note just above (same upgrade, independent source).",
+});
+
+// ---- Group B: useElementAbility's own cooldown sequence (pipeline.js)
+// -- independent `if` statements, NOT an if/else-if chain (confirmed
+// directly: Conduit Mastery's flat -1 always applies when present, even
+// if a later free-cast source also zeroes the cooldown out) ----
+registerModifier("effect:conduit_mastery", {
+  source: { kind: "effect", id: "conduit_mastery" },
+  hook: "cooldown.set", order: 50, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Conduit Mastery (mage equivalent of Master Strategist/First Kingdom:6): flat, unconditional -1 to the just-cast element's own cooldown. Bare hasModifier swap -- the Math.max(1, cooldown-1) math stays inline at its own real site (useElementAbility, pipeline.js), unconditional on whatever a LATER free-cast source does to the same local variable (confirmed: today's own code applies this BEFORE the Novitiate/Conduit Ease/Eureka checks, not gated by them).",
+});
+registerBehavior("noviceFreeCastFire", (ctx) => {
+  const player = ctx.holder.combat.player;
+  if (player.noviceFreeCastUsed) return false;
+  player.noviceFreeCastUsed = true;
+  return true;
+});
+registerModifier("effect:rivers_favor", {
+  source: { kind: "effect", id: "rivers_favor" },
+  hook: "cooldown.set", order: 60, bucket: null, value: null, behavior: "noviceFreeCastFire", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "River's Favor and Novitiate:6 (set:Novitiate:6, below) share ONE check today (hasSetTier(...,'Novitiate',6)||hasEffect(...,'rivers_favor')), gating the SAME once-per-fight free-first-cast charge (combat.player.noviceFreeCastUsed, kept as the literal flat field name). Both keys share this one behavior; the call site (useElementAbility, pipeline.js) checks hasModifier against EITHER key first (matching today's OR exactly), then dispatches runHookEntryValue against whichever one is actually present -- the behavior itself doesn't care which key invoked it, since both read/write the same flat field.",
+});
+registerModifier("set:Novitiate:6", {
+  source: { kind: "set", id: "Novitiate:6", setName: "Novitiate", tier: 6 },
+  hook: "cooldown.set", order: 60, bucket: null, value: null, behavior: "noviceFreeCastFire", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "See effect:rivers_favor's own note just above -- same shared once-per-fight charge.",
+});
+registerModifier("effect:conduit_ease", {
+  source: { kind: "effect", id: "conduit_ease" },
+  hook: "cooldown.set", order: 70, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Conduit Ease (mage equivalent of Tactical Memory): probabilistic -1 to the just-cast element's own cooldown, rate from conduitEaseChance (Kabal:6/Conduit Master:4 push 20%->40%, Rule 1) -- NO once-per-fight flag (unlike Tactical Memory: confirmed directly, this can fire every single cast). Bare hasModifier swap at its own real else-if site (useElementAbility, pipeline.js) -- the Math.random()<conduitEaseChance(state) roll and the flavor line stay inline exactly as today.",
+});
+registerModifier("set:Kabal:6", {
+  source: { kind: "set", id: "Kabal:6", setName: "Kabal", tier: 6 },
+  upgrades: "effect:conduit_ease",
+  hook: "cooldown.set", order: 999, bucket: null, value: 0.4, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Conduit Ease's proc rate, 20% -> 40% (Rule 1 upgrade). Math.max in resolveUpgradedValue means either (or both) this and set:Conduit Master:4 present still yields 40%, matching today's hasSetTier(...,'Kabal',6)||hasSetTier(...,'Conduit Master',4) OR-check in conduitEaseChance (js/data/sets.js) exactly.",
+});
+registerModifier("set:Conduit Master:4", {
+  source: { kind: "set", id: "Conduit Master:4", setName: "Conduit Master", tier: 4 },
+  upgrades: "effect:conduit_ease",
+  hook: "cooldown.set", order: 999, bucket: null, value: 0.4, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Conduit Ease's proc rate, 20% -> 40% -- see set:Kabal:6's own note just above (same upgrade, independent source).",
+});
+registerModifier("effect:eureka", {
+  source: { kind: "effect", id: "eureka" },
+  hook: "cooldown.set", order: 80, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Eureka: every 4th spell cast (combat.player.spellCastCounter % 4 === 0) is free -- bare hasModifier swap, the modulus check and cooldown=0/flavor-line stay inline at their own real site (useElementAbility, pipeline.js). No once-per-fight flag, no randomness -- can fire repeatedly, every 4th cast, all fight.",
+});
+registerBehavior("universalUnderstandingEase", (ctx) => {
+  const holder = ctx.holder;
+  const combat = holder.combat;
+  const otherKnown = [holder.primaryElement, holder.secondaryElement, holder.tertiaryElement]
+    .filter((el) => el && el !== ctx.elementKey && (combat.cooldowns[el] || 0) > 0);
+  if (!otherKnown.length) return undefined;
+  const pick = otherKnown[Math.floor(Math.random() * otherKnown.length)];
+  combat.cooldowns[pick] = Math.max(0, combat.cooldowns[pick] - 2);
+  return `Universal Understanding — the insight carries over; ${ELEMENT_ABILITIES[pick].name}'s cooldown eases.`;
+});
+registerModifier("set:Regalia of the Endless Archive:4", {
+  source: { kind: "set", id: "Regalia of the Endless Archive:4", setName: "Regalia of the Endless Archive", tier: 4 },
+  hook: "cooldown.set", order: 90, bucket: null, value: null, behavior: "universalUnderstandingEase", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Universal Understanding: right after THIS cast's own cooldown is set, eases a DIFFERENT known element's cooldown by 2 (random pick among the ones currently cooling) -- dispatched by key right after state.combat.cooldowns[elementKey]=cooldown (useElementAbility, pipeline.js), via the plain lines convention (runHookEntry, not runHookEntryValue) since nothing here feeds back into the caller's own local cooldown variable, unlike every cooldown.set entry above it.",
 });
