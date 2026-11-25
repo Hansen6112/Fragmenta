@@ -807,8 +807,58 @@ for (const [setName, set] of Object.entries(SETS)) {
     if (!MODIFIERS_TABLE[`set:${setName}:${tier}`]) warn("modifiers", `SETS.${setName} tier ${tier} ("${bonus.special || (bonus.effects || []).join(",")}") has no registry entry yet (M1)`);
   }
 }
+// M1_INERT_PASSIVE_TRIGGERS (2f recon, 25 Nov): ENEMY_ABILITIES has no
+// per-entry "Currently inert" text the way EFFECT_DEFS does, so a
+// passive whose trigger string nothing in the engine actually reads is
+// silently dead code with no way to flag it as such -- the same
+// category isTextuallyInert already exempts on the EFFECT_DEFS side,
+// just reached a different way (by trigger STRING, not description
+// text, since there's no description field carrying that signal here).
+// Verified directly, independently of any prior count: every file under
+// js/engine/ was grepped for `.trigger ===`/`.trigger !==` against each
+// of the 64 distinct trigger strings ENEMY_ABILITIES actually uses --
+// exactly 20 have a real comparison site (confirmed by reading each
+// one, not just counting grep hits): flatDamageReduction (combat.js,
+// applyEnemyFlatDamageReduction), damageCapPctMaxHp (combat.js,
+// enemyDamageCapPctMaxHp -- already a real registry entry, effect:
+// perfect_fleshcraft's own calculateDamage.cap dispatch), onHitTaken
+// (combat.js, applyEnemyOnHitTakenPassives), counterOnHit (combat.js,
+// checkCounteringGuard), survivedBelowPct (combat.js,
+// checkEnemyLowHealthTriggers), firstAttack (combat.js,
+// firstAttackPassiveBonus), bonusVsHealthBelowPctAlways (combat.js,
+// inside resolveEnemyActiveAbility -- a passive-trigger field read from
+// ACTIVE-ability resolution code, not any passive-tick function),
+// regenPerTurn/healthBelowPct/whileAllyAlive/whileAlliesDiverse/
+// healthStagedBuff/everyPctHealthLostStacking/periodicSummon (all
+// combat.js, tickEnemyPassives), counterOnSuccessfulHit (combat.js,
+// hasArenaRiposteAbility/arenaRiposteCounterOnPlayer -- "Arena
+// Riposte"/"Arena Counter," an intrinsic passive, NOT the item-effect
+// "riposte" 2e-5 already migrated), flatStatBonus (combat.js,
+// buildFightCreature -- baked once at creature-build time, not any
+// per-turn/per-hit hook), combatStartDebuff/combatStartSelfBuff/
+// combatStartSummon (combat.js, startCombat), and onKill (pipeline.js,
+// inside the ally-kill branch -- found during this verification pass
+// itself: an initial recon pass missed it, since it's the one trigger
+// dispatched from pipeline.js rather than combat.js). The other 44
+// trigger strings below have zero `.trigger` comparison anywhere in
+// js/engine/ -- confirmed dead, not just unmigrated.
+const M1_INERT_PASSIVE_TRIGGERS = new Set([
+  "accuracyReductionImmune", "adaptToRepeatedAbility", "afterNHitsFromSameTarget",
+  "bonusVsAnyStatus", "bonusVsHealthAbovePct", "bonusVsStatus", "castActiveOnDeath",
+  "combatStartBuff", "consecutiveSameTarget", "critAlwaysBleeds", "critInflictsCustom",
+  "debuffOnHitDealt", "defenseFloorAtBase", "defensePenetration", "elementalResist",
+  "etherealCheatDeath", "etherealRegen", "etherealToggle", "firstMagicalHitPerRoundReduction",
+  "flatDamageBonus", "healthAboveBuff", "heartCheatDeath", "ignoresAmbush",
+  "independentMissChance", "leaderAura", "markedQuarrySelect", "onActiveUse",
+  "onAlliedSulDaunDeath", "onAllyDeath", "onAllyPassiveStack", "onAnyDeath", "onCrit",
+  "onFormToggle", "onHitLanded", "onMirrorScalesProc", "onOpponentStatusStart",
+  "onPlayerElementalStatusInflicted", "onPlayerIntimidated", "packCount",
+  "periodicFormToggle", "periodicRandomBuff", "periodicTemporaryShield", "reformOnDeath",
+  "stunKnockbackImmune",
+]);
 for (const [id, a] of Object.entries(ENEMY_ABILITIES_TABLE)) {
   if (a.type !== "passive") continue;
+  if (M1_INERT_PASSIVE_TRIGGERS.has(a.trigger)) continue;
   if (!MODIFIERS_TABLE[`passive:${id}`]) warn("modifiers", `ENEMY_ABILITIES.${id} (passive, trigger "${a.trigger}") has no registry entry yet (M1)`);
 }
 
