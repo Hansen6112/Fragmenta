@@ -1,0 +1,34 @@
+range: b60a7acebbc69d19acb3f7e59cf33f52814078c7..0d359ea28c84f6924ee49f4d70455bd2c0e75719
+=== 0d359ea28c84f6924ee49f4d70455bd2c0e75719 2026-11-25 21:58:18 +0000
+2f batch 1: enemy passives -- flatDamageReduction (11) + regenPerTurn (5)
+Both trigger types moved onto registry entries, dispatched by key from
+their existing call sites (applyEnemyFlatDamageReduction's own
+trigger-type-gated loop, tickEnemyPassives's regenPerTurn branch) --
+inline math replaced with runHookEntryValue, surrounding logic
+untouched.
+
+flatDamageReduction's 11 entries get a dedicated hook,
+calculateDamage.enemyFlatReduction, instead of calculateDamage.incoming:
+that hook is also fanned out by calculateEnemyIncomingMultiplier (the
+Sanguivorum sangMit combinator, at combat.js:1991/pipeline.js:1651/
+actions.js:338+371+398), so registering under it double-applied the
+ratio wherever that combinator runs -- caught by
+P1E-I-ENEMYPASSIVE-FLATREDUCTION-01 (expected 45, got 41).
+
+Also widened P2-2D-CAP-WIRING-ENEMY-01's fixed source-text slice
+(800 -> 1200 chars), which fell short of the unchanged applyDamageCap
+call once the loop's trigger-type guard line lengthened the function
+body.
+
+Suite 651/651, audit 0 errors, catalogue's §3 flatDamageReduction/
+regenPerTurn rows updated to migrated state.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                         | 154 +++++++++++++++++++++++++++
+ js/engine/combat.js                          |  10 +-
+ tools/modifier_catalogue.md                  |   4 +-
+ tools/tests/phase2_step2d_incoming_ledger.js |   2 +-
+ 4 files changed, 162 insertions(+), 8 deletions(-)

@@ -1,0 +1,97 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "calculateDamage.enemyFlatReduction",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "flatDamageReductionRatio",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "enemyRegenPerTurnHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:thick_hide",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:thick_hide_2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:wing_guard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:thick_scales",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:hardened_carapace",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:hardened_exoskeleton",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:elder_carapace",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:crystal_hide",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ancient_preservation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:reinforced_frame",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:earthen_form",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ancient_resilience",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:rootbound",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:black_ichor",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:living_heart",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:living_timber",
+  "type": "added"
+ }
+]
