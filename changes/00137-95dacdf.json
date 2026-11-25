@@ -1,0 +1,82 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "battleTemperedGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unwaveringDevotionGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "workRefinesGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unshakenCommandNegate",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "weaversInsightReveal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "insightRevealWeakness",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unsettlingDebuff",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Forge:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:battle_tempered",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:unwavering_devotion",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:work_refines",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:unhurried_step",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:dra_e02_unshaken_command",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:weavers_insight",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Archive:2:insight_reveal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:unsettling",
+  "type": "added"
+ }
+]

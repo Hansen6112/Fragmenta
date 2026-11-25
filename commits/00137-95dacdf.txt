@@ -1,0 +1,35 @@
+range: 5c009e85cd085030f8746cc632f0d1e52786160d..95dacdffa3e64b01a1ec42277e8c7df1e3ea2d8c
+=== 95dacdffa3e64b01a1ec42277e8c7df1e3ea2d8c 2026-11-25 16:21:07 +0000
+2e-4: migrate the lifecycle cluster
+Moves the 8 rows the 19 Nov §3 review already confirmed as "lifecycle"
+(kind + hook assigned) but never migrated into real registry entries:
+Battle Tempered, Unwavering Devotion, Work Refines (turn.start, silent
+capped stat-stack grants), Unhurried Step (round.start, an ordering
+effect -- resolved without a new registry variant, since the call
+site's own actsFirst sort-key read IS the complete behavior), Unshaken
+Command (onStatusApplied, a negation variant rather than a grant),
+Weaver's Insight and Unsettling (fight.start), and Blessing of Creation
+(Regalia of the Eternal Forge:2 -- resolved as a Rule 1 upgrade of a
+pure virtual tag, not an onStatusApplied dispatch, since it's a plain
+multiplier function called from many buff-grant sites, not a single
+dispatch point).
+
+Also fixes a catalogue gap found while reading this batch's own real
+code: Regalia of the Endless Archive:2 grants a second, previously-
+uncatalogued fight.start reveal ("which elements the enemy is weak
+against") alongside its already-catalogued stat.critChance bonus --
+migrated under its own compound key, leaving the stat.critChance half
+untouched (2b/stat territory, not lifecycle).
+
+Suite 651/651, audit 0 errors. Sim-harness verification running against
+a baseline worktree at 5c009e8; confirming byte-identical output in a
+follow-up.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 153 ++++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         |  58 +++--------------
+ tools/modifier_catalogue.md |  19 +++---
+ 3 files changed, 173 insertions(+), 57 deletions(-)
