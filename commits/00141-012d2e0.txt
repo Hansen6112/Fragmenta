@@ -1,0 +1,37 @@
+range: 0d359ea28c84f6924ee49f4d70455bd2c0e75719..012d2e03243452a6d4762f321290fdb5d0fefc03
+=== 012d2e03243452a6d4762f321290fdb5d0fefc03 2026-11-25 23:31:23 +0000
+boss_sweep.js: parallelize across worker threads
+160 cells (16 bosses x 5 classes x 2 spawn modes), each running 1000
+independent fights, were running one at a time on a single core --
+~88 minutes per run on this box. Each cell's own seed comes from
+cellSeed(masterSeed, key), a pure function of the two, so cells don't
+need to run in any particular order or on any particular thread to get
+identical results.
+
+Split the work across one worker_threads worker per CPU core
+(sweep_worker.js, new) -- each builds its own independent sandbox
+(buildSandbox already made a fresh vm context per call, nothing
+shared), runs its assigned slice, and reports back. main() reassembles
+the final `results` object by walking the original task list in order,
+not completion order, so the output JSON is byte-identical to the old
+sequential version regardless of which worker finished which cell when.
+
+runCell moved into sim_common.js (seed/n taken as explicit params
+instead of closed-over module globals) so both boss_sweep.js and its
+workers call the same code.
+
+Verified old-vs-new output byte-identical (minus the generatedAt
+timestamp) at n=20, both switch states, before committing. A full
+n=1000 old-vs-new comparison is still running and will be confirmed in
+a follow-up. Harness-only change -- no game code touched, so this
+doesn't go through the suite/audit discipline that applies to
+js/data and js/engine changes.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/sim/boss_sweep.js   | 119 +++++++++++++++++++++++++++-------------------
+ tools/sim/sim_common.js   |  43 ++++++++++++++++-
+ tools/sim/sweep_worker.js |  27 +++++++++++
+ 3 files changed, 139 insertions(+), 50 deletions(-)
