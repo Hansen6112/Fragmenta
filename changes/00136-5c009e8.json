@@ -1,0 +1,152 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "cooldown.set",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "openRoadEaseAll",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "livingForgeHeal",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "patientCurrentEase",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "perfectTimingFire",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "tacticalMemoryFire",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "noviceFreeCastFire",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "universalUnderstandingEase",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:open_road",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Hour:2",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:living_forge",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:patient_current",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:hourglass_reserve",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:swift_passage",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:perfect_recall",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:feinting_edge",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:master_strategist",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:First Kingdom:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:perfect_timing",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:tactical_memory",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Examiner:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:First Kingdom:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:conduit_mastery",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:rivers_favor",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Novitiate:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:conduit_ease",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Kabal:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Conduit Master:4",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:eureka",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Archive:4",
+  "type": "added"
+ }
+]

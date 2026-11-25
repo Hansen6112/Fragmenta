@@ -1,0 +1,45 @@
+range: 7987470d3a0ecec409776ec787a44c1de284c8c4..5c009e85cd085030f8746cc632f0d1e52786160d
+=== 5c009e85cd085030f8746cc632f0d1e52786160d 2026-11-25 04:25:47 +0000
+2e-3: migrate the cooldown-reaction cluster, plus Living Forge
+Moves the whole "reaction-cooldown" REVIEW category onto the registry:
+Perfect Recall, Feinting Edge, Master Strategist/First Kingdom:6,
+Tactical Memory (+Examiner:6/First Kingdom:4 Rule 1 upgrade), Perfect
+Timing, Hourglass Reserve, Swift Passage, Conduit Mastery, River's
+Favor/Novitiate:6, Conduit Ease (+Kabal:6/Conduit Master:4 Rule 1
+upgrade), Eureka, Universal Understanding, Open Road, and Patient
+Current, plus Living Forge and Blessing of the Hour (deferred from 2e-1
+because their cooldown-tick loop was itself unmigrated).
+
+The catalogue's "applyAndReact.* / chooseAction" guess for this whole
+category was wrong -- none of these touch chooseAction. The real sites
+are useFeint/useDecoy/useDisarm/resolver.js's shared Tactic sequence and
+useElementAbility's own mage-flavored sequence, both pipeline.js/
+combat.js, each with its own pre-existing short-circuit shape that stays
+untouched. Stateful effects (Perfect Timing, Tactical Memory) keep their
+exact original helper-function name/signature/call sites, now backed by
+the registry internally; pure gate/override checks (Perfect Recall,
+Feinting Edge, Master Strategist/First Kingdom:6, Conduit Mastery,
+Eureka) move via a revived `hasModifier` presence read, since the call
+site's own surrounding arithmetic already is the complete effect.
+
+Feinting Edge/Tactical Memory's holders widen to enemy/ally to match
+code that already existed before this task (a catalogue correction, not
+R1/R2) -- enemy/ally keep their own inline math since their once-per-
+fight flag lives on a different object than the one hasEffect reads.
+
+Suite 651/651, audit 0 errors. Sim-harness verification (plus3_run +
+boss_sweep, both switch states) running against a baseline worktree at
+7987470; confirming byte-identical output in a follow-up.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 308 +++++++++++++++++++++++++++++++++++++++++++-
+ js/data/sets.js             |  14 +-
+ js/engine/combat.js         |  87 +++++--------
+ js/engine/companion.js      |   4 +-
+ js/engine/pipeline.js       |  29 ++---
+ js/engine/resolver.js       |   4 +-
+ tools/modifier_catalogue.md |  44 +++----
+ 7 files changed, 379 insertions(+), 111 deletions(-)
