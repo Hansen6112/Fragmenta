@@ -1,0 +1,57 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "elderBarkSave",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "lastStandSave",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "betweenWorldsSave",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "avatarOfFateSave",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "avatarOfDevotionFollowup",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Elder Bark:6",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:last_stand",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:between_worlds",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Woven Thread:6:avatar_of_fate_save",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Heart:6:avatar_of_devotion_followup",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:riposte",
+  "type": "added"
+ }
+]

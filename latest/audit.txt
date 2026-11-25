@@ -1,5 +1,5 @@
 
-WARNINGS (284)
+WARNINGS (280)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -72,17 +72,14 @@ WARNINGS (284)
   [ability] passive artificial_construct (trigger "elementalResist") is on 1 creature(s) but no engine code handles that trigger — inert
   [ability] passive guardian_directive (trigger "leaderAura") is on 1 creature(s) but no engine code handles that trigger — inert
   [ability] passive arcane_reflection (trigger "firstMagicalHitPerRoundReduction") is on 1 creature(s) but no engine code handles that trigger — inert
-  [modifiers] EFFECT_DEFS.riposte (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.deep_cut (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.hamstring (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.evasive_release (combat) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.coldproof (defense) has no registry entry yet (M1)
-  [modifiers] EFFECT_DEFS.last_stand (legendary) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.spell_echo (legendary) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.mirror_soul (artifact) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.world_walker (artifact) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.endless_bloom (regalia) has no registry entry yet (M1)
-  [modifiers] EFFECT_DEFS.between_worlds (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.soul_ledger (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.unlikely_outcome (regalia) has no registry entry yet (M1)
   [modifiers] EFFECT_DEFS.trailblazer (regalia) has no registry entry yet (M1)
@@ -96,7 +93,6 @@ WARNINGS (284)
   [modifiers] SETS.White Watch tier 4 ("whitewatch_riposte_75") has no registry entry yet (M1)
   [modifiers] SETS.White Watch tier 6 ("whitewatch_riposte_def") has no registry entry yet (M1)
   [modifiers] SETS.Elder Bark tier 4 ("elderbark_regrowth_10") has no registry entry yet (M1)
-  [modifiers] SETS.Elder Bark tier 6 ("elderbark_survive_1hp") has no registry entry yet (M1)
   [modifiers] SETS.Bonecaller tier 4 ("bonecaller_deepcut_35") has no registry entry yet (M1)
   [modifiers] SETS.Pre-Kabal tier 6 ("prekabal_generic_synergy_140") has no registry entry yet (M1)
   [modifiers] SETS.Regalia of the Final Veil tier 2 ("blessing_of_acceptance") has no registry entry yet (M1)
@@ -276,8 +272,8 @@ WARNINGS (284)
   [modifiers] ENEMY_ABILITIES.sang_iag_arena_handler (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
   [modifiers] ENEMY_ABILITIES.sang_iag_militia_authority (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
   [modifiers] ENEMY_ABILITIES.sang_iag_warleaders_resolve (passive, trigger "healthBelowPct") has no registry entry yet (M1)
-  [modifiers] js/engine/combat.js still has 74 hasEffect() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/engine/combat.js still has 29 hasSetTier() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/engine/combat.js still has 68 hasEffect() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/engine/combat.js still has 26 hasSetTier() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/pipeline.js still has 18 hasEffect() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/pipeline.js still has 1 hasSetTier() call(s) not yet migrated to the registry (M2)
   [modifiers] js/data/sets.js still has 6 hasEffect() call(s) not yet migrated to the registry (M2)
@@ -290,4 +286,4 @@ WARNINGS (284)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 284 warning(s) across 53 scripts.
+0 error(s), 280 warning(s) across 53 scripts.

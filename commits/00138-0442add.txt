@@ -1,0 +1,39 @@
+range: 95dacdffa3e64b01a1ec42277e8c7df1e3ea2d8c..0442add71704869985222c5c81de65d4af5ed915
+=== 0442add71704869985222c5c81de65d4af5ed915 2026-11-25 17:15:16 +0000
+2e-5: migrate saves (cheatDeath chain) and Riposte
+checkDeathPrevention's if/else-if chain (Elder Bark:6 -> Last Stand ->
+Between Worlds -> Avatar of Fate, sharing one msg variable and one
+"set health to 1" side effect) is the first real dispatch of cheatDeath
+(declared, never dispatched before) -- the exact "first one that fires
+wins" shape rollToHit.defender's own miss chain already uses, so it
+reuses runHook + firstStop as-is. This resolves Tyler's 24 Nov
+deferral of Last Stand, which was left alone specifically because
+migrating one branch of a shared chain alone risked the real mutual-
+exclusivity ordering -- the whole chain moves together now. Avatar of
+Devotion's follow-up heal (a reaction to whichever save just fired, not
+a save of its own) dispatches separately, after firstStop.
+
+Also fixes two catalogue gaps found while reading this batch's own real
+code: Avatar of Fate (Regalia of the Woven Thread:6) and Avatar of
+Devotion (Regalia of the Eternal Heart:6) each grant a SECOND mechanic
+under the same set tier as their already-migrated halves -- the
+cheatDeath save and the cheatDeath follow-up heal, respectively -- now
+migrated under their own compound keys.
+
+Riposte (4 real call sites: player uncapped, enemy/ally capped) moves
+as a presence-only read at each already-isolated, single-check
+function -- the counter-strike execution and the non-player cap stay
+untouched. Holders widened to enemy/ally and the hook corrected from a
+stale "rollToHit.defender" guess to the real zero-damage-retaliation
+signal, both catalogue corrections matching code that already existed.
+
+Suite 651/651, audit 0 errors. Sim-harness verification pending.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 98 +++++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         | 50 +++++------------------
+ tools/modifier_catalogue.md | 12 +++---
+ 3 files changed, 113 insertions(+), 47 deletions(-)
