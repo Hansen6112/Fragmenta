@@ -1,0 +1,14 @@
+range: 3f439c0e9e38d9e071d2d97fbc3c448bf1aa2a5c..7987470d3a0ecec409776ec787a44c1de284c8c4
+=== 7987470d3a0ecec409776ec787a44c1de284c8c4 2026-11-25 03:22:05 +0000
+2e-2 correction: add elemental_sovereignty to M2's allowlist by name
+Tyler's 24 Nov ruling (stat.*/recomputeStats is structurally
+incompatible with a live, turn-counted buff) is the reason it stays
+inline. Named here so M2's close-out at 2g doesn't choke on a call
+that will never move to the registry.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
