@@ -1,0 +1,22 @@
+range: 0442add71704869985222c5c81de65d4af5ed915..b60a7acebbc69d19acb3f7e59cf33f52814078c7
+=== b60a7acebbc69d19acb3f7e59cf33f52814078c7 2026-11-25 21:07:57 +0000
+audit.js: exempt ENEMY_ABILITIES passives whose trigger is dead code
+M1's ENEMY_ABILITIES check had no inert-exemption, unlike its
+EFFECT_DEFS counterpart (isTextuallyInert). Verified directly: of the
+64 distinct trigger strings ENEMY_ABILITIES actually uses, only 20
+have any real `.trigger ===`/`.trigger !==` comparison anywhere in
+js/engine/ -- the other 44 (69 of 169 total passive entries) are
+confirmed dead code, not just unmigrated. Scopes the real 2f (enemy
+passives) workload down to the ~100 entries under a live trigger (99
+once perfect_fleshcraft's own damageCapPctMaxHp entry is excluded),
+and keeps every future batch's warning-count bookkeeping honest.
+
+Suite 651/651, audit 0 errors (211 warnings, down from 280 -- no
+registry/game-code changes, pure tooling).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 50 insertions(+)
