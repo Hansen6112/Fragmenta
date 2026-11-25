@@ -1735,7 +1735,7 @@ function borrowedSecondsActive(state) {
 // same "touch every enumerable call site" precedent
 // applyBeneficialEffectBonuses already established for duration.
 function applyBlessingOfCreationBonus(state, amount) {
-  return hasSetTier(state, "Regalia of the Eternal Forge", 2) ? Math.round(amount * 1.25) : amount;
+  return Math.round(amount * resolveUpgradedValue("always:buff_magnitude", 1, state, "player", "max"));
 }
 
 // Momentum Unbound (Divine Regalia — Galecaller) and Ever Forward
@@ -2437,7 +2437,7 @@ function buildInitiativeOrder(state) {
   for (const ally of aliveAllies(state)) {
     entries.push({ kind: "ally", ref: ally, group: 0, speed: effectiveAllySpeed(ally), actsFirst: !!ally.actsFirst });
   }
-  entries.push({ kind: "player", group: 0, speed: effectivePlayerSpeedForInitiative(state), actsFirst: hasEffect(state, "unhurried_step") });
+  entries.push({ kind: "player", group: 0, speed: effectivePlayerSpeedForInitiative(state), actsFirst: hasModifier(state, "player", "effect:unhurried_step") });
   combat.enemies.forEach((e, i) => {
     if (!e.alive || !e.creatureObj || e.creatureObj.friendly) return;
     entries.push({ kind: "enemy", ref: e, index: i, group: 1, speed: effectiveEnemySpeed(e), actsFirst: !!e.creatureObj.actsFirst });
@@ -3996,19 +3996,14 @@ function beginTurn(state) {
   // Battle Tempered (Divine Regalia — Armor of the First Legion): every
   // round spent in combat grants +1 Attack/+1 Defense, capped +10/+10.
   // Unconditional per-action, unlike Living Steel's every-3rd-action gate.
-  if (hasEffect(state, "battle_tempered")) {
-    if ((combat.player.battleTemperedAtkStacks || 0) < 10) combat.player.battleTemperedAtkStacks = (combat.player.battleTemperedAtkStacks || 0) + 1;
-    if ((combat.player.battleTemperedDefStacks || 0) < 10) combat.player.battleTemperedDefStacks = (combat.player.battleTemperedDefStacks || 0) + 1;
-  }
+  runHookEntry("effect:battle_tempered", state, "player", { state, holder: state, role: "player" });
   // Unwavering Devotion (Divine Regalia — Vestments of Boundless
   // Devotion): every round survived grants +2 Magic, capped +20 (10
   // stacks) — Battle Tempered's exact shape, one stat instead of two.
   // "Losing combat resets the effect" is automatically true here: every
   // new fight starts this counter fresh at 0 regardless of how the last
   // one ended.
-  if (hasEffect(state, "unwavering_devotion") && (combat.player.unwaveringDevotionStacks || 0) < 10) {
-    combat.player.unwaveringDevotionStacks = (combat.player.unwaveringDevotionStacks || 0) + 1;
-  }
+  runHookEntry("effect:unwavering_devotion", state, "player", { state, holder: state, role: "player" });
   // Winds of Change (Divine Regalia — Garments of the Wandering Breeze): at
   // the start of every round, replace last round's random +6 stat bonus
   // with a freshly rolled one (Attack/Defense/Magic/Knowledge, equally
@@ -4134,10 +4129,7 @@ function beginTurn(state) {
   // action permanently grants +2 Attack/+2 Magic, capped at +20/+20 (10
   // triggers) — the same actionCounter cadence Lasting Foundation/
   // Heartwood Vitality already read.
-  if (hasEffect(state, "work_refines") && combat.player.actionCounter % 3 === 0) {
-    if ((combat.player.workRefinesAtkStacks || 0) < 20) combat.player.workRefinesAtkStacks = Math.min(20, (combat.player.workRefinesAtkStacks || 0) + 2);
-    if ((combat.player.workRefinesMagicStacks || 0) < 20) combat.player.workRefinesMagicStacks = Math.min(20, (combat.player.workRefinesMagicStacks || 0) + 2);
-  }
+  runHookEntry("effect:work_refines", state, "player", { state, holder: state, role: "player" });
   // Flowing Waters (Divine Regalia — Tidecaller): restore 3% max Health at
   // the end of every round — its "3% Mana" half is a no-op, the same
   // standing limitation cited for every other Mana-flavored clause (this
@@ -4611,13 +4603,8 @@ function tryApplyEnemyStun(state, creature) {
   // existing per-combat ally/player reset block additionally clears this
   // back to null for the one kind of wearer that DOES persist across
   // fights, so a future ally/player wearer gets the same fresh-2 start.
-  if (hasEffect(creature, "dra_e02_unshaken_command")) {
-    const charges = creature.unshakenCommandCharges != null ? creature.unshakenCommandCharges : 2;
-    if (charges > 0) {
-      creature.unshakenCommandCharges = charges - 1;
-      return [`Unshaken Command turns the Stun aside.`];
-    }
-  }
+  const negated = runHookEntry("effect:dra_e02_unshaken_command", creature, "enemy", { state, holder: creature, role: "enemy" });
+  if (negated.length) return negated;
   activeEnemySlot(state.combat).enemyStunCharges = (activeEnemySlot(state.combat).enemyStunCharges || 0) + 1;
   return [];
 }
@@ -5839,34 +5826,9 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
   // at the start of combat. Its "future bosses reveal hidden phases one
   // turn earlier" clause is explicitly forward-looking (the user's own
   // wording) — nothing to build for that yet.
-  if (hasEffect(state, "weavers_insight")) {
-    const statusBits = [];
-    if (creature.element) statusBits.push(`${ELEMENTS[creature.element].name} affinity`);
-    if (creature.spawnRarity === "unique") statusBits.push("unique"); // was creature.unique — a field nothing ever sets
-    lines.push(
-      `Weaver's Insight unravels the moment: ${withThe(creature.name, false)} has ${creature.hp} Health, ${creature.def} Defense, ${creature.atk} Attack` +
-        (statusBits.length ? ` (${statusBits.join(", ")})` : "") + "."
-    );
-  }
-  // Blessing of Insight (Regalia of the Endless Archive 2pc): reveals
-  // which elements the enemy is weak against, at the start of combat.
-  // Only meaningful against elemental creatures — ELEMENT_MATCHUPS is a
-  // strict cycle, so exactly 2 elements always counter any given one.
-  if (hasSetTier(state, "Regalia of the Endless Archive", 2) && creature.element) {
-    const counters = Object.entries(ELEMENT_MATCHUPS)
-      .filter(([, m]) => m.strongVs.includes(creature.element))
-      .map(([el]) => ELEMENTS[el].name);
-    if (counters.length) {
-      lines.push(`Blessing of Insight reveals a weakness: ${withThe(creature.name, false)} is exposed to ${counters.join(" and ")}.`);
-    }
-  }
-  // Unsettling: a flat chance the enemy starts the fight already weakened,
-  // rolled once here rather than in playerAttack/etc. since it's a
-  // combat-start effect, not a per-action one.
-  if (!creature.friendly && hasEffect(state, "unsettling") && Math.random() < 0.2) {
-    activeEnemySlot(state.combat).enemyAtkPenalty += 2;
-    lines.push(`Something about you unsettles it before the fight even starts — its guard is already down.`);
-  }
+  lines.push(...runHookEntry("effect:weavers_insight", state, "player", { state, holder: state, role: "player", creature }));
+  lines.push(...runHookEntry("set:Regalia of the Endless Archive:2:insight_reveal", state, "player", { state, holder: state, role: "player", creature }));
+  lines.push(...runHookEntry("effect:unsettling", state, "player", { state, holder: state, role: "player", creature }));
   if (creature.friendly) {
     lines.push(`It does not seem hostile. (try: talk, examine, or leave)`);
   } else {

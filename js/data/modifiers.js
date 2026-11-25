@@ -3282,6 +3282,19 @@ registerModifier("always:avatar_of_renewal_heal", {
 // dedicated dodge roll). No switch: restores a bonus the item already
 // promises, like Fragmenta 6pc -- not a widening of who/what this
 // reaches.
+// Blessing of Creation (Regalia of the Eternal Forge 2pc, 2e-4, 25 Nov):
+// a Rule 1 upgrade of a pure virtual tag ("always:buff_magnitude" -- no
+// base registry entry, same shape as Leviathan:6/"action:water") -- base
+// 1 (no change), this set tier overrides to 1.25. applyBlessingOfCreationBonus
+// (combat.js) stays the untouched pure helper at every one of its many
+// call sites; only its internal hasSetTier check moved to resolveUpgradedValue.
+registerModifier("set:Regalia of the Eternal Forge:2", {
+  source: { kind: "set", id: "Regalia of the Eternal Forge:2", setName: "Regalia of the Eternal Forge", tier: 2 },
+  upgrades: "always:buff_magnitude",
+  hook: "applyAndReact.onStatusApplied", order: 999, bucket: null, value: 1.25, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of Creation: +25% to the MAGNITUDE of any temporary (duration-based) stat bonus granted -- scoped to the atk/magic/defBuffAmount-style buffs that funnel through the shared Turns-based buff fields (Hold the Line, Rooted Resolve, Rally the Line, the Avatar-of-X bursts, Wanderer's Reward, Ever Forward), NOT the separate permanent-for-the-fight stacking counters (Battle Tempered, Living Current, Every Choice Matters, Tempered Steel, Reinforced, Work Refines) -- a different category per the source text's own word choice. `hook`/`bucket: null` required but never consulted for an `upgrades` entry (M3 exempts them), same as every other Rule 1 upgrade.",
+});
 registerModifier("set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal", {
   source: { kind: "set", id: "Regalia of the Endless Horizon:2", setName: "Regalia of the Endless Horizon", tier: 2 },
   hook: "applyAndReact.onEvade", order: 10, bucket: null, value: null, behavior: "healOnEvent",
@@ -3656,4 +3669,144 @@ registerModifier("set:Regalia of the Endless Archive:4", {
   hook: "cooldown.set", order: 90, bucket: null, value: null, behavior: "universalUnderstandingEase", params: null,
   when: null, holders: ["player"], state: null,
   notes: "Universal Understanding: right after THIS cast's own cooldown is set, eases a DIFFERENT known element's cooldown by 2 (random pick among the ones currently cooling) -- dispatched by key right after state.combat.cooldowns[elementKey]=cooldown (useElementAbility, pipeline.js), via the plain lines convention (runHookEntry, not runHookEntryValue) since nothing here feeds back into the caller's own local cooldown variable, unlike every cooldown.set entry above it.",
+});
+
+// ================= 2e-4 (25 Nov): lifecycle =================
+// The 8 rows the 19 Nov §3 review already confirmed as "lifecycle" (kind
+// + hook assigned) but never migrated into real registry entries, plus
+// one catalogue gap found while reading this batch's own real code
+// (Regalia of the Endless Archive:2's fight.start reveal half, bundled
+// onto the same set tier as its already-separately-catalogued
+// stat.critChance half -- that half stays out of scope here, 2b/stat
+// territory, not lifecycle).
+
+// ---- turn.start: Battle Tempered / Unwavering Devotion / Work Refines
+// -- all three are SILENT (confirmed directly: no lines.push anywhere
+// in their real code), capped per-round stat-stack grants inside
+// beginTurn (combat.js) ----
+registerBehavior("battleTemperedGrant", (ctx) => {
+  const player = ctx.holder.combat.player;
+  if ((player.battleTemperedAtkStacks || 0) < 10) player.battleTemperedAtkStacks = (player.battleTemperedAtkStacks || 0) + 1;
+  if ((player.battleTemperedDefStacks || 0) < 10) player.battleTemperedDefStacks = (player.battleTemperedDefStacks || 0) + 1;
+  return undefined;
+});
+registerModifier("effect:battle_tempered", {
+  source: { kind: "effect", id: "battle_tempered" },
+  hook: "turn.start", order: 15, bucket: null, value: null, behavior: "battleTemperedGrant", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Battle Tempered (Divine Regalia -- Armor of the First Legion): every round spent in combat grants +1 Attack/+1 Defense, capped +10/+10 each independently -- unconditional per-action (confirmed directly), unlike Living Steel's every-3rd-action gate. Silent: no flavor line in today's own code.",
+});
+registerBehavior("unwaveringDevotionGrant", (ctx) => {
+  const player = ctx.holder.combat.player;
+  if ((player.unwaveringDevotionStacks || 0) < 10) player.unwaveringDevotionStacks = (player.unwaveringDevotionStacks || 0) + 1;
+  return undefined;
+});
+registerModifier("effect:unwavering_devotion", {
+  source: { kind: "effect", id: "unwavering_devotion" },
+  hook: "turn.start", order: 16, bucket: null, value: null, behavior: "unwaveringDevotionGrant", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Unwavering Devotion (Divine Regalia -- Vestments of Boundless Devotion): every round survived grants +2 Magic, capped +20 (10 stacks) -- Battle Tempered's exact shape, one stat instead of two. Silent: no flavor line.",
+});
+registerBehavior("workRefinesGrant", (ctx) => {
+  const player = ctx.holder.combat.player;
+  if ((player.workRefinesAtkStacks || 0) < 20) player.workRefinesAtkStacks = Math.min(20, (player.workRefinesAtkStacks || 0) + 2);
+  if ((player.workRefinesMagicStacks || 0) < 20) player.workRefinesMagicStacks = Math.min(20, (player.workRefinesMagicStacks || 0) + 2);
+  return undefined;
+});
+registerModifier("effect:work_refines", {
+  source: { kind: "effect", id: "work_refines" },
+  hook: "turn.start", order: 17, bucket: null, value: null, behavior: "workRefinesGrant", params: null,
+  when: (ctx) => ctx.holder.combat.player.actionCounter % 3 === 0, holders: ["player"], state: null,
+  notes: "Work Refines (Divine Regalia -- Ring of Endless Labor): every 3rd action, +2 Attack/+2 Magic, capped +20/+20 (10 triggers) -- the modulus is this entry's own condition (same shared actionCounter cadence as Heartwood Vitality/Lasting Foundation/Patient Current, per Tyler's own established ruling on the identical conflict). Silent: no flavor line.",
+});
+
+// ---- round.start: Unhurried Step -- an ordering effect (actsFirst),
+// not a stat/buff grant or a heal. Tyler's own flagged question (19
+// Nov §3 review) was whether round.start's registry shape needs a new
+// "ordering" variant for this -- resolved without one: the real site
+// (buildInitiativeOrder, combat.js) reads a single boolean straight into
+// a sort-key field, with no portable value/line a widened holder could
+// receive anyway, so this is the same "call site's own logic IS the
+// complete behavior" shape Perfect Recall/Feinting Edge used in 2e-3 --
+// presence-only (hasModifier) is correct, no behavior needed. ----
+registerModifier("effect:unhurried_step", {
+  source: { kind: "effect", id: "unhurried_step" },
+  hook: "round.start", order: 1, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Unhurried Step (Divine Regalia -- Sandals of the Unbroken Path): grants the player the same actsFirst status enemies/allies can already carry on their own creatureObj/ally record -- read directly into buildInitiativeOrder's own entries.push (combat.js), via hasModifier, in place of the raw hasEffect call. No new round.start 'ordering' variant needed -- see note above.",
+});
+
+// ---- applyAndReact.onStatusApplied (negation variant): Unshaken
+// Command. Dispatched BY KEY at tryApplyEnemyStun's own real position
+// (combat.js) -- a standalone, already-isolated function, NOT a fan-out
+// off an actual onStatusApplied event (it runs BEFORE a stun would be
+// applied, to negate it, not after a beneficial effect was granted).
+// hook name shared with Faithful Heart/Heartward Bond/Imperial
+// Authority purely for M1 bookkeeping -- Tyler's own flagged note (19
+// Nov §3 review) asked this be noted precisely in the entry itself.
+// Today's only real call site (js/data/actions.js, the Force element
+// ability, both branches) always passes the ENEMY creatureObj as
+// `creature` -- the function's own "wearer-neutral" framing is
+// forward-looking (no player/ally call site exists today), so holders
+// stays ["enemy"], matching what's actually reachable now. ----
+registerBehavior("unshakenCommandNegate", (ctx) => {
+  const holder = ctx.holder;
+  const charges = holder.unshakenCommandCharges != null ? holder.unshakenCommandCharges : 2;
+  if (charges <= 0) return undefined;
+  holder.unshakenCommandCharges = charges - 1;
+  return `Unshaken Command turns the Stun aside.`;
+});
+registerModifier("effect:dra_e02_unshaken_command", {
+  source: { kind: "effect", id: "dra_e02_unshaken_command" },
+  hook: "applyAndReact.onStatusApplied", order: 1, bucket: null, value: null, behavior: "unshakenCommandNegate", params: null,
+  when: null, holders: ["enemy"], state: null,
+  notes: "Unshaken Command (DRA-E02): a 2-charge-per-combat pool that blocks a Stun from landing on its wearer -- negates rather than reacts to a grant, the opposite direction of Faithful Heart/Heartward Bond on this same hook name. Dispatched by key at tryApplyEnemyStun's own body (combat.js), which already wraps this as a standalone, wearer-neutral function; holders scoped to today's only real call site (enemy).",
+});
+
+// ---- fight.start: Weaver's Insight, Unsettling, and Regalia of the
+// Endless Archive:2's own fight.start reveal half (Blessing of
+// Insight -- its SEPARATE stat.critChance half, already catalogued
+// under the bare "set:Regalia of the Endless Archive:2" key, is 2b/stat
+// territory, out of scope here). All three dispatched BY KEY at their
+// own exact startCombat positions (combat.js), in original order,
+// alongside Blessing of the Tide's existing fan-out (runReactionHook)
+// on the same hook name -- by-key dispatch means no double-fire risk
+// regardless of how many other entries share "fight.start". ----
+registerBehavior("weaversInsightReveal", (ctx) => {
+  const creature = ctx.creature;
+  const statusBits = [];
+  if (creature.element) statusBits.push(`${ELEMENTS[creature.element].name} affinity`);
+  if (creature.spawnRarity === "unique") statusBits.push("unique");
+  return `Weaver's Insight unravels the moment: ${withThe(creature.name, false)} has ${creature.hp} Health, ${creature.def} Defense, ${creature.atk} Attack` +
+    (statusBits.length ? ` (${statusBits.join(", ")})` : "") + ".";
+});
+registerModifier("effect:weavers_insight", {
+  source: { kind: "effect", id: "weavers_insight" },
+  hook: "fight.start", order: 20, bucket: null, value: null, behavior: "weaversInsightReveal", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Weaver's Insight (Divine Regalia -- Silver Thread of Veylana): reveals the enemy's remaining Health, Defense, Attack, and any active status at the start of combat. Its 'future bosses reveal hidden phases one turn earlier' clause is explicitly forward-looking -- nothing to build for that yet.",
+});
+registerBehavior("insightRevealWeakness", (ctx) => {
+  const creature = ctx.creature;
+  if (!creature.element) return undefined;
+  const counters = Object.entries(ELEMENT_MATCHUPS).filter(([, m]) => m.strongVs.includes(creature.element)).map(([el]) => ELEMENTS[el].name);
+  if (!counters.length) return undefined;
+  return `Blessing of Insight reveals a weakness: ${withThe(creature.name, false)} is exposed to ${counters.join(" and ")}.`;
+});
+registerModifier("set:Regalia of the Endless Archive:2:insight_reveal", {
+  source: { kind: "set", id: "Regalia of the Endless Archive:2", setName: "Regalia of the Endless Archive", tier: 2 },
+  hook: "fight.start", order: 25, bucket: null, value: null, behavior: "insightRevealWeakness", params: null,
+  when: null, holders: ["player"], state: null,
+  notes: "Blessing of Insight's fight.start half: reveals which elements the enemy is weak against, at the start of combat -- only meaningful against elemental creatures. This set tier's OTHER half (a +20% crit spell chance) is a separate, already-catalogued stat.critChance concern under the bare 'set:Regalia of the Endless Archive:2' key -- found while reading this batch's own real code (startCombat, combat.js), not previously flagged as its own row. Compound key, same convention as First Sword's Regalia:10:legacy.",
+});
+registerBehavior("unsettlingDebuff", (ctx) => {
+  if (Math.random() >= 0.2) return undefined;
+  activeEnemySlot(ctx.holder.combat).enemyAtkPenalty += 2;
+  return `Something about you unsettles it before the fight even starts — its guard is already down.`;
+});
+registerModifier("effect:unsettling", {
+  source: { kind: "effect", id: "unsettling" },
+  hook: "fight.start", order: 30, bucket: null, value: null, behavior: "unsettlingDebuff", params: null,
+  when: (ctx) => !ctx.creature.friendly, holders: ["player"], state: null,
+  notes: "Unsettling: a flat 20% chance the enemy starts the fight already weakened (+2 enemyAtkPenalty) -- rolled once at combat start rather than in playerAttack/etc, since it's a combat-start effect, not a per-action one.",
 });
