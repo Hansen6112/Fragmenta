@@ -4253,43 +4253,11 @@ function checkDeathPrevention(state) {
   // actually lethal.
   const arenaResult = maybeArenaNonLethalLoss(state);
   if (arenaResult) return arenaResult;
-  let msg = null;
-  if (hasSetTier(state, "Elder Bark", 6) && !combat.player.elderBarkSaveUsed) {
-    combat.player.elderBarkSaveUsed = true;
-    state.health = 1;
-    msg = `The oldest wood remembers you yet — you survive this at 1 Health.`;
-  } else if (hasEffect(state, "last_stand") && !combat.player.lastStandUsed) {
-    combat.player.lastStandUsed = true;
-    state.health = 1;
-    combat.player.lastStandAtkBonus = (combat.player.lastStandAtkBonus || 0) + 5;
-    // v0.11 PLAYER_STAT_SCALE: lastStandAtkBonus is a raw stat-point
-    // grant, folded into effectivePlayerAtk's flatStat()'d total.
-    msg = `Last Stand — you refuse to fall. 1 Health, and +${flatStat(5)} Attack for what's left of this fight.`;
-  } else if (hasEffect(state, "between_worlds") && !combat.player.betweenWorldsUsed) {
-    // Between Worlds (Divine Regalia — Veil of the Ferryman): the same
-    // "leaves you at 1 Health" cheat-death shape as Last Stand above, but
-    // deliberately without its +5 Attack — a plain reprieve, nothing more.
-    combat.player.betweenWorldsUsed = true;
-    state.health = 1;
-    msg = `Between Worlds — the Ferryman's veil catches you at the threshold. 1 Health, nothing more.`;
-  } else if (hasSetTier(state, "Regalia of the Woven Thread", 6) && combat.player.avatarOfFateTurns > 0 && !combat.player.avatarOfFateSaveUsed) {
-    // Avatar of Fate's (Regalia of the Woven Thread 6pc) "once during the
-    // effect" 1-HP save — only available while its 4-round window is
-    // active (see checkAvatarOfFate), on top of (not instead of) the
-    // once-per-fight saves above.
-    combat.player.avatarOfFateSaveUsed = true;
-    state.health = 1;
-    msg = `Avatar of Fate — fate itself refuses to let you fall. 1 Health.`;
-  }
-  // Avatar of Devotion (Regalia of the Eternal Heart 6pc): "if reduced to
-  // 1 Health during the effect, immediately restore 20% max Health
-  // (once)" — a follow-up to WHICHEVER cheat-death save above just fired,
-  // not a save of its own. Checked once, regardless of which branch set
-  // health to 1.
-  if (msg && hasSetTier(state, "Regalia of the Eternal Heart", 6) && combat.player.avatarOfDevotionTurns > 0 && !combat.player.avatarOfDevotionSaveUsed) {
-    combat.player.avatarOfDevotionSaveUsed = true;
-    const { healed, lines } = applyHeal(state, Math.ceil(state.maxHealth * 0.2));
-    if (healed > 0) msg += ` Avatar of Devotion answers in turn — mended for ${healed} health.${lines.length ? " " + lines.join(" ") : ""}`;
+  const cheatDeathHit = firstStop(runHook("cheatDeath", state, "player", { state, holder: state, role: "player" }));
+  let msg = cheatDeathHit ? cheatDeathHit.msg : null;
+  if (msg) {
+    const followup = runHookEntry("set:Regalia of the Eternal Heart:6:avatar_of_devotion_followup", state, "player", { state, holder: state, role: "player" });
+    if (followup.length) msg += " " + followup[0];
   }
   // The Mugamiir Safor's dungeon rescue USED to have its own unconditional
   // fallback branch right here, firing the instant a lethal hit landed
@@ -4876,7 +4844,7 @@ function tickEnemyPassives(state, e) {
 // wrapper; the actual roll/damage/kill now runs through
 // resolveRiposteCounterPlayer, steps 2-5.
 function maybeRiposte(state, creature) {
-  if (!hasEffect(state, "riposte")) return [];
+  if (!hasModifier(state, "player", "effect:riposte")) return [];
   if (!state.combat || activeEnemySlot(state.combat).hp <= 0) return [];
   return resolveRiposteCounterPlayer(state, creature);
 }
@@ -4922,7 +4890,7 @@ function markNonPlayerRiposteFired(wearer) {
 // pipeline.js. Eligibility/cap bookkeeping stays here, outside the
 // pipeline, matching every other reaction's own pre-check.
 function riposteCounterOnPlayer(state, creature) {
-  if (!hasEffect(creature, "riposte") || !state.combat || activeEnemySlot(state.combat).hp <= 0) return [];
+  if (!hasModifier(creature, "enemy", "effect:riposte") || !state.combat || activeEnemySlot(state.combat).hp <= 0) return [];
   if (!nonPlayerRiposteCapAllows(creature)) return [];
   markNonPlayerRiposteFired(creature);
   return resolveRiposteCounterOnPlayer(state, creature);
@@ -4979,7 +4947,7 @@ function arenaRiposteCounterOnPlayer(state, creature) {
 // ally -- resolveRiposteCounterByEnemyOnAlly, pipeline.js). Eligibility/
 // cap bookkeeping stays here, outside the pipeline.
 function riposteCounterByEnemyOnAlly(state, target, ally) {
-  if (!target || !target.alive || !hasEffect(target.creatureObj, "riposte")) return [];
+  if (!target || !target.alive || !hasModifier(target.creatureObj, "enemy", "effect:riposte")) return [];
   if (!nonPlayerRiposteCapAllows(target.creatureObj)) return [];
   markNonPlayerRiposteFired(target.creatureObj);
   return resolveRiposteCounterByEnemyOnAlly(state, target, ally);
@@ -4991,7 +4959,7 @@ function riposteCounterByEnemyOnAlly(state, target, ally) {
 // bookkeeping stays here, outside the pipeline, matching every other
 // reaction's own pre-check (maybeCompanionRetaliate's own shape).
 function riposteCounterByAllyOnEnemy(state, ally, enemySlot) {
-  if (!enemySlot || !enemySlot.alive || !hasEffect(ally, "riposte")) return [];
+  if (!enemySlot || !enemySlot.alive || !hasModifier(ally, "ally", "effect:riposte")) return [];
   if (!nonPlayerRiposteCapAllows(ally)) return [];
   markNonPlayerRiposteFired(ally);
   return resolveRiposteCounterByAllyOnEnemy(state, ally, enemySlot);

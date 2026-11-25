@@ -3810,3 +3810,101 @@ registerModifier("effect:unsettling", {
   when: (ctx) => !ctx.creature.friendly, holders: ["player"], state: null,
   notes: "Unsettling: a flat 20% chance the enemy starts the fight already weakened (+2 enemyAtkPenalty) -- rolled once at combat start rather than in playerAttack/etc, since it's a combat-start effect, not a per-action one.",
 });
+
+// ================= 2e-5 (25 Nov): saves (cheatDeath) + Riposte =================
+// cheatDeath is the first real dispatch of this hook (declared in
+// MOD_HOOKS, never dispatched before this task). checkDeathPrevention
+// (combat.js) is a strict if/else-if chain sharing ONE `msg` variable
+// and ONE "set health to 1" side effect -- the exact "first one that
+// fires wins, stop evaluating the rest" shape rollToHit.defender's own
+// miss chain already established (firstStop, below). Tyler's 24 Nov
+// ruling left last_stand alone specifically because migrating ONE
+// branch of this shared chain alone would risk the real mutual-
+// exclusivity ordering -- resolved now by migrating the WHOLE chain
+// together, in its own real order (Elder Bark:6 -> Last Stand ->
+// Between Worlds -> Avatar of Fate).
+registerBehavior("elderBarkSave", (ctx) => {
+  ctx.holder.combat.player.elderBarkSaveUsed = true;
+  ctx.holder.health = 1;
+  return { stop: true, msg: `The oldest wood remembers you yet — you survive this at 1 Health.` };
+});
+registerModifier("set:Elder Bark:6", {
+  source: { kind: "set", id: "Elder Bark:6", setName: "Elder Bark", tier: 6 },
+  hook: "cheatDeath", order: 10, bucket: null, value: null, behavior: "elderBarkSave", params: null,
+  when: (ctx) => !ctx.holder.combat.player.elderBarkSaveUsed, holders: ["player"], state: null,
+  notes: "Elder Bark:6: once per fight, a lethal hit instead leaves the player at 1 Health. First (highest-priority) branch of checkDeathPrevention's own if/else-if chain -- dispatched via runHook('cheatDeath',...)+firstStop, in order, so a later branch is never even evaluated once an earlier one fires (matching today's exact short-circuit).",
+});
+registerBehavior("lastStandSave", (ctx) => {
+  const player = ctx.holder.combat.player;
+  player.lastStandUsed = true;
+  ctx.holder.health = 1;
+  player.lastStandAtkBonus = (player.lastStandAtkBonus || 0) + 5;
+  return { stop: true, msg: `Last Stand — you refuse to fall. 1 Health, and +${flatStat(5)} Attack for what's left of this fight.` };
+});
+registerModifier("effect:last_stand", {
+  source: { kind: "effect", id: "last_stand" },
+  hook: "cheatDeath", order: 20, bucket: null, value: null, behavior: "lastStandSave", params: null,
+  when: (ctx) => !ctx.holder.combat.player.lastStandUsed, holders: ["player"], state: null,
+  notes: "Last Stand (Mythic): migrated (2e-5, 25 Nov) -- second branch of the same chain as Elder Bark:6 above; see that entry's own note for why the whole chain moved together. lastStandAtkBonus is a raw stat-point grant (v0.11 PLAYER_STAT_SCALE), folded into effectivePlayerAtk's own flatStat()'d total, untouched.",
+});
+registerBehavior("betweenWorldsSave", (ctx) => {
+  ctx.holder.combat.player.betweenWorldsUsed = true;
+  ctx.holder.health = 1;
+  return { stop: true, msg: `Between Worlds — the Ferryman's veil catches you at the threshold. 1 Health, nothing more.` };
+});
+registerModifier("effect:between_worlds", {
+  source: { kind: "effect", id: "between_worlds" },
+  hook: "cheatDeath", order: 30, bucket: null, value: null, behavior: "betweenWorldsSave", params: null,
+  when: (ctx) => !ctx.holder.combat.player.betweenWorldsUsed, holders: ["player"], state: null,
+  notes: "Between Worlds (Divine Regalia -- Veil of the Ferryman): the same 1-Health cheat-death shape as Last Stand, deliberately without its +5 Attack -- a plain reprieve. Third branch of the same chain.",
+});
+registerBehavior("avatarOfFateSave", (ctx) => {
+  ctx.holder.combat.player.avatarOfFateSaveUsed = true;
+  ctx.holder.health = 1;
+  return { stop: true, msg: `Avatar of Fate — fate itself refuses to let you fall. 1 Health.` };
+});
+registerModifier("set:Regalia of the Woven Thread:6:avatar_of_fate_save", {
+  source: { kind: "set", id: "Regalia of the Woven Thread:6", setName: "Regalia of the Woven Thread", tier: 6 },
+  hook: "cheatDeath", order: 40, bucket: null, value: null, behavior: "avatarOfFateSave", params: null,
+  when: (ctx) => ctx.holder.combat.player.avatarOfFateTurns > 0 && !ctx.holder.combat.player.avatarOfFateSaveUsed, holders: ["player"], state: null,
+  notes: "Avatar of Fate's 1-HP save half: only available while its own 4-round window is active (avatarOfFateTurns, granted by set:Regalia of the Woven Thread:6:avatar_of_fate_trigger's own onLowHealth entry), on top of (not instead of) the three once-per-fight saves above -- last branch of the chain. Keyed distinctly from both set:Regalia of the Woven Thread:6 (the crit-damage M1 placeholder) and :avatar_of_fate_trigger (the window-grant entry) -- same set tier, three unrelated dispatch points.",
+});
+// Avatar of Devotion's own FOLLOW-UP: not a branch of the chain itself
+// (it never sets health to 1 on its own) -- a reaction to WHICHEVER
+// save above just fired, dispatched separately, after firstStop, only
+// when one actually did. Checked once regardless of which branch fired.
+registerBehavior("avatarOfDevotionFollowup", (ctx) => {
+  const player = ctx.holder.combat.player;
+  player.avatarOfDevotionSaveUsed = true;
+  const { healed, lines } = applyHeal(ctx.holder, Math.ceil(ctx.holder.maxHealth * 0.2));
+  if (healed <= 0) return undefined;
+  return `Avatar of Devotion answers in turn — mended for ${healed} health.${lines.length ? " " + lines.join(" ") : ""}`;
+});
+registerModifier("set:Regalia of the Eternal Heart:6:avatar_of_devotion_followup", {
+  source: { kind: "set", id: "Regalia of the Eternal Heart:6", setName: "Regalia of the Eternal Heart", tier: 6 },
+  hook: "cheatDeath", order: 999, bucket: null, value: null, behavior: "avatarOfDevotionFollowup", params: null,
+  when: (ctx) => ctx.holder.combat.player.avatarOfDevotionTurns > 0 && !ctx.holder.combat.player.avatarOfDevotionSaveUsed, holders: ["player"], state: null,
+  notes: "Avatar of Devotion's follow-up heal half: 'if reduced to 1 Health during the effect, immediately restore 20% max Health (once)' -- a follow-up to whichever cheatDeath save fired above, not a save of its own. Dispatched by key, separately, only when checkDeathPrevention's own firstStop call actually returned a hit. Keyed distinctly from set:Regalia of the Eternal Heart:6 (the calculateDamage.incoming doubler) and :avatar_of_devotion_trigger (the window-grant entry) -- same set tier, three unrelated dispatch points.",
+});
+
+// ---- Riposte: 4 structurally-identical real call sites (player
+// wearer uncapped counters the enemy; enemy/ally wearer, each capped
+// via nonPlayerRiposteCapAllows/markNonPlayerRiposteFired, counters
+// whoever just missed them) -- all four are already clean, isolated,
+// single-hasEffect-check functions (combat.js: maybeRiposte,
+// riposteCounterOnPlayer, riposteCounterByEnemyOnAlly,
+// riposteCounterByAllyOnEnemy), with the real counter-strike execution
+// (resolveRiposteCounterPlayer/OnPlayer/ByEnemyOnAlly/ByAllyOnEnemy,
+// pipeline.js) staying completely untouched -- a multi-step action
+// resolution, not a grant/heal/stat shape any behavior would fit.
+// Presence-only (hasModifier) at all four, same "call site's own logic
+// IS the complete behavior" shape as Feinting Edge (2e-3). holders
+// widened to enemy/ally to match code that already exists today (a
+// catalogue correction, not R1/R2) -- the catalogue's own cited lines
+// (combat.js:5006/5052/5109) were simply stale/wrong.
+registerModifier("effect:riposte", {
+  source: { kind: "effect", id: "riposte" },
+  hook: "applyAndReact.onZeroDamage", order: 1, bucket: null, value: true, behavior: null,
+  when: null, holders: ["player", "enemy", "ally"], state: null,
+  notes: "Riposte: a free counter-strike when the wearer's own attacker misses them. Player (maybeRiposte) is uncapped; enemy/ally (riposteCounterOnPlayer/riposteCounterByEnemyOnAlly/riposteCounterByAllyOnEnemy) are capped via nonPlayerRiposteCapAllows (once/round, twice/combat) -- that cap logic is untouched, same as the resolve*/pipeline.js execution. hook name corrected from the catalogue's stale 'rollToHit.defender' guess -- the real signal is the same zero-damage-retaliation moment Every Choice Matters/Open Road already use (though dispatched by key here, not fan-out, since each of the 4 real call sites has its own cap/target wiring the shared hook name doesn't drive).",
+});
