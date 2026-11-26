@@ -2232,37 +2232,7 @@ function applyEnemyOnHitTakenPassives(state, creature, dmgDealt) {
   for (const id of creature.passives) {
     const ability = getEnemyAbility(id);
     if (!ability || ability.trigger !== "onHitTaken") continue;
-    if (ability.reflectPctOfAtk) {
-      const reflect = Math.max(0, Math.round((creature.atk || 0) * ability.reflectPctOfAtk));
-      // v0.11: routed through applyPlayerDamage (Temporary Health, NaN
-      // guard, on-damage-taken stacks) instead of writing state.health
-      // directly. Still silent — no message channel here.
-      if (reflect > 0) {
-        applyPlayerDamage(state, reflect);
-        // Injury System v0.2: no element info reaches this silent reflect
-        // — default to "physical" (judgment call per the implementation
-        // notes, consistent with every other no-element-available hit in
-        // this file, e.g. riposteCounterOnPlayer below).
-        if (state.combat) state.combat.player.playerLastHitType = "physical";
-      }
-    }
-    // Powdered Wings-style: the creature inflicts a status back on
-    // whoever just struck it (silent, like the reflect above — this
-    // function only returns a number, no message line to attach to).
-    if (ability.inflictStatusOnAttacker && state.combat) {
-      const spec = getStatusEffect(ability.inflictStatusOnAttacker);
-      if (spec) applyPlayerStatus(state, ability.inflictStatusOnAttacker, spec);
-    }
-    // Residual Memory (Lesser Voran-Daun): a CHANCE-based counter, unlike
-    // Barbed Hide's guaranteed reflect above — same silent damage-only
-    // path, no message line.
-    if (ability.counterChance && ability.counterPctOfAtk && Math.random() < ability.counterChance) {
-      const counter = Math.max(0, Math.round((creature.atk || 0) * ability.counterPctOfAtk));
-      if (counter > 0) {
-        applyPlayerDamage(state, counter); // v0.11: see reflect above
-        if (state.combat) state.combat.player.playerLastHitType = "physical"; // Injury System v0.2: see reflect above
-      }
-    }
+    runHookEntry(`passive:${id}`, creature, "enemy", { state, creature, holder: creature, role: "enemy" });
   }
 }
 
@@ -2340,10 +2310,15 @@ function checkCounteringGuard(state, creature) {
   const combat = state.combat;
   const enemy = combat.enemies[combat.activeIndex];
   if (!enemy || !enemy.alive || enemy.hp <= 0 || enemy.counterGuardUsedThisRound) return [];
-  const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnHit");
-  if (!passive) return [];
+  const pid = (creature.passives || []).find((id) => {
+    const p = getEnemyAbility(id);
+    return p && p.trigger === "counterOnHit";
+  });
+  if (!pid) return [];
+  const data = runHookEntryValue(`passive:${pid}`, creature, "enemy", { holder: creature, role: "enemy" });
+  if (!data) return [];
   enemy.counterGuardUsedThisRound = true;
-  const result = resolveEnemyAttackOnPlayer(state, creature, 2, 0, { name: passive.name, dmgMult: passive.dmgMult });
+  const result = resolveEnemyAttackOnPlayer(state, creature, 2, 0, data);
   return [`${withThe(creature.name, true)} reacts with a counter —`, ...result.lines];
 }
 
@@ -3162,8 +3137,10 @@ function firstAttackPassiveBonus(state, creature) {
   if (!enemy.firstActiveUsed) {
     for (const pid of creature.passives || []) {
       const p = getEnemyAbility(pid);
-      if (p && p.trigger === "firstAttack" && p.dmgMultBonus) dmgMultBonus *= p.dmgMultBonus;
-      if (p && p.trigger === "firstAttack" && p.accBonus) accBonus += p.accBonus;
+      if (!p || p.trigger !== "firstAttack") continue;
+      const v = runHookEntryValue(`passive:${pid}`, creature, "enemy", { holder: creature, role: "enemy" });
+      if (v && typeof v.dmgMultBonus === "number") dmgMultBonus *= v.dmgMultBonus;
+      if (v && typeof v.accBonus === "number") accBonus += v.accBonus;
     }
   }
   enemy.firstActiveUsed = true;
@@ -3389,7 +3366,8 @@ function resolveEnemyActiveAbility(state, creature) {
   for (const pid of creature.passives || []) {
     const p = getEnemyAbility(pid);
     if (p && p.trigger === "bonusVsHealthBelowPctAlways" && state.health <= state.maxHealth * p.pct) {
-      dmgMult *= p.mult;
+      const v = runHookEntryValue(`passive:${pid}`, creature, "enemy", { holder: creature, role: "enemy" });
+      if (typeof v === "number") dmgMult *= v;
     }
   }
   // H18 Adaptive Orders ("grant up to 3 other allies either +5 Defense or
@@ -4919,8 +4897,12 @@ function arenaRiposteCounterOnPlayer(state, creature) {
   if (cooldown > 0 || uses >= 2) return [];
   creature.arenaRiposteCooldown = 4;
   creature.arenaRiposteUsesThisCombat = uses + 1;
-  const passive = (creature.passives || []).map(getEnemyAbility).find((p) => p && p.trigger === "counterOnSuccessfulHit");
-  return resolveArenaRiposteCounterOnPlayer(state, creature, passive.mult || 0.8);
+  const pid = (creature.passives || []).find((id) => {
+    const p = getEnemyAbility(id);
+    return p && p.trigger === "counterOnSuccessfulHit";
+  });
+  const mult = runHookEntryValue(`passive:${pid}`, creature, "enemy", { holder: creature, role: "enemy" });
+  return resolveArenaRiposteCounterOnPlayer(state, creature, mult || 0.8);
 }
 // Wearer = the ENEMY an ally's attack just missed (target, not the ally) —
 // the enemy counters the ally. Called from rollToHitAllyActor's own miss

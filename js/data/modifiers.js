@@ -140,6 +140,56 @@ const MOD_HOOKS = [
   // misdescribe one side or the other even though by-key dispatch alone
   // would never actually collide.
   "applyAndReact.onSurvivedBelowPct",
+  // calculateDamage.firstAttack (2f batch 4, 26 Nov): Ambush/Patient
+  // Hunter/Prepared Opening and their siblings' own home
+  // (firstAttackPassiveBonus, combat.js) -- NOT "calculateDamage.outgoing":
+  // that hook's own early combinator (calculateOutgoingMultiplier) is
+  // never called with holderRole "enemy", but its LATE sibling
+  // (calculateLateOutgoingMultiplier) genuinely IS -- called with a
+  // variable `role` from applyOpeningReachBonus's own "player/ally/enemy
+  // alike" call site (combat.js:2296) -- so registering these 13 entries
+  // under the shared hook name risked a real fan-out collision the
+  // moment anyone added a future lateOutgoingPhase-filtered combinator
+  // without that filter, the same shape batch 1's flatDamageReduction
+  // bug took. By-key dispatch alone (firstAttackPassiveBonus never calls
+  // runHook/modifiersForHook) already made this safe today, but a
+  // dedicated hook removes the doubt for good rather than relying on
+  // every future caller getting the filter right. `bucket: "conditional"`
+  // on these entries is a LABEL only (M3 audit, avoiding the "no bucket"
+  // warning) -- firstAttackPassiveBonus dispatches every entry by its own
+  // explicit key, never through the bucket-summing combinator, same
+  // precedent as calculateDamage.enemyFlatReduction's own bucket field.
+  "calculateDamage.firstAttack",
+  // calculateDamage.bonusVsHealthBelowPctAlways (2f batch 4, 26 Nov):
+  // Apex Instinct's own home -- a flat multiplier the creature's own
+  // Active-ability damage picks up unconditionally whenever its own
+  // Health is below a threshold (resolveEnemyActiveAbility, combat.js),
+  // distinct from every once-per-combat/threshold-crossing trigger
+  // above (this one re-applies every time the Active fires, no
+  // once-flag). Same by-key-only reasoning as calculateDamage.firstAttack
+  // just above -- its own dedicated hook rather than calculateDamage.outgoing.
+  // `bucket: "conditional"` is the same label-only convention as that
+  // hook's own entries -- see its comment just above.
+  "calculateDamage.bonusVsHealthBelowPctAlways",
+  // applyAndReact.onHitTakenPassive (2f batch 4, 26 Nov): Barbed Hide/
+  // Quills/Powdered Wings/Crystal Hide/Residual Memory/Countering Guard/
+  // Arena Riposte/Arena Counter's own home -- deliberately NOT the
+  // pre-existing "applyAndReact.onHitTaken" hook, even though every
+  // call site this batch's own dispatch sites sit at (applyEnemyOnHitTakenPassives,
+  // checkCounteringGuard, arenaRiposteCounterOnPlayer, all combat.js) is
+  // by-key only. Caught during suite verification, not before: that
+  // existing hook has a THIRD fan-out call site this batch's own research
+  // missed entirely -- grantSureFoundationCharge (this file, above),
+  // called with a variable holderRole that IS "enemy" in real play
+  // (Sure Foundation's own holder, task 39) -- so these 8 entries'
+  // holders:['enemy'] would have fanned out there too, with a ctx shape
+  // (no ctx.creature) that crashed outright. The lesson restated: "both
+  // fan-out call sites hardcode player" is only ever true of the call
+  // sites actually found, and modifiers.js's OWN internal
+  // runReactionHook/runHook callers are exactly as real a fan-out site
+  // as anything in combat.js -- never just grep combat.js/pipeline.js
+  // for a hook name and stop there.
+  "applyAndReact.onHitTakenPassive",
 ];
 function statHook(key) { return `stat.${key}`; }
 function isKnownHook(hook) { return MOD_HOOKS.includes(hook) || /^stat\.\w+$/.test(hook); }
@@ -4386,4 +4436,212 @@ registerModifier("passive:corrupted_grove", {
   params: { pool: ["zombie", "skeleton"], count: 1, maxActive: 4, healPctIfMaxed: 0.05, capKey: "dreadroot_undead" },
   when: null, holders: ["enemy"], state: null,
   notes: "Corrupted Grove: every 3rd round, summons 1 zombie/skeleton against the shared dreadroot_undead cap (capped at 4 active, shared with Dreadroot's own Grave Bloom active), or heals 5% max HP if already at the cap. The every-3rd-round timing gate stays in tickEnemyPassives (combat.js); the maxActive-vs-heal branching moves here since nothing else shares it.",
+});
+
+// 2f batch 4 (26 Nov): firstAttack (13), onHitTaken (5), counterOnHit (1),
+// counterOnSuccessfulHit (2), bonusVsHealthBelowPctAlways (1), onKill (2
+// enemy-side) = 24 ids. Every outer GATE (firstActiveUsed consumption,
+// dmgDealt<=0 guard, counterGuardUsedThisRound, cooldown/uses caps, the
+// Health-threshold check, oncePerCombat/onKillUsed) stays exactly where
+// it already lived (combat.js/pipeline.js) -- only the "what happens"
+// moves here, same discipline as every earlier 2f batch.
+//
+// firstAttack: dead fields confirmed by direct grep (critChanceBonus,
+// opponentAccPenalty -- zero reads anywhere outside enemyabilities.js
+// itself) and deliberately NOT implemented; only dmgMultBonus/accBonus,
+// exactly what firstAttackPassiveBonus (combat.js) has ever read.
+registerBehavior("firstAttackBonusValue", (ctx, entry) => entry.params);
+registerModifier("passive:ambush_bonus", {
+  source: { kind: "passive", id: "ambush_bonus" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: {}, when: null, holders: ["enemy"], state: null,
+  notes: "Ambush: its only real field is critChanceBonus, a dead field (confirmed, zero reads anywhere outside enemyabilities.js) -- no dmgMultBonus/accBonus, so this contributes nothing today. Registered anyway for catalogue completeness/parity with its siblings.",
+});
+registerModifier("passive:forest_camouflage", {
+  source: { kind: "passive", id: "forest_camouflage" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: {}, when: null, holders: ["enemy"], state: null,
+  notes: "Forest Camouflage: its only real field is opponentAccPenalty, a dead field (confirmed, zero reads anywhere outside enemyabilities.js) -- no dmgMultBonus/accBonus, so this contributes nothing today. See passive:ambush_bonus's own note.",
+});
+registerModifier("passive:patient_hunter", {
+  source: { kind: "passive", id: "patient_hunter" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { dmgMultBonus: 1.2, accBonus: 10 }, when: null, holders: ["enemy"], state: null,
+  notes: "Patient Hunter: first attack this fight, +20% damage, +10 Accuracy.",
+});
+registerModifier("passive:silent_hunter", {
+  source: { kind: "passive", id: "silent_hunter" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { accBonus: 15 }, when: null, holders: ["enemy"], state: null,
+  notes: "Silent Hunter: first attack this fight, +15 Accuracy. Its own critChanceBonus is a dead field -- see passive:ambush_bonus's own note.",
+});
+registerModifier("passive:ambush_predator", {
+  source: { kind: "passive", id: "ambush_predator" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { dmgMultBonus: 1.2 }, when: null, holders: ["enemy"], state: null,
+  notes: "Ambush Predator: first attack this fight, +20% damage.",
+});
+registerModifier("passive:desert_predator", {
+  source: { kind: "passive", id: "desert_predator" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { dmgMultBonus: 1.1 }, when: null, holders: ["enemy"], state: null,
+  notes: "Desert Predator: first attack this fight, +10% damage.",
+});
+registerModifier("passive:burrow_ambush", {
+  source: { kind: "passive", id: "burrow_ambush" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { dmgMultBonus: 1.2 }, when: null, holders: ["enemy"], state: null,
+  notes: "Burrow Ambush: first attack this fight, +20% damage.",
+});
+registerModifier("passive:canopy_hunter", {
+  source: { kind: "passive", id: "canopy_hunter" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { dmgMultBonus: 1.15 }, when: null, holders: ["enemy"], state: null,
+  notes: "Canopy Hunter: first attack this fight, +15% damage. Its own critChanceBonus is a dead field -- see passive:ambush_bonus's own note.",
+});
+registerModifier("passive:prepared_opening", {
+  source: { kind: "passive", id: "prepared_opening" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { dmgMultBonus: 1.20, accBonus: 10 }, when: null, holders: ["enemy"], state: null,
+  notes: "Prepared Opening (H08): first attack this fight, +20% damage, +10 Accuracy.",
+});
+registerModifier("passive:range_calculation", {
+  source: { kind: "passive", id: "range_calculation" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { accBonus: 10 }, when: null, holders: ["enemy"], state: null,
+  notes: "Range Calculation: first attack this fight, +10 Accuracy, no damage bonus.",
+});
+registerModifier("passive:impact_discipline", {
+  source: { kind: "passive", id: "impact_discipline" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { dmgMultBonus: 1.15 }, when: null, holders: ["enemy"], state: null,
+  notes: "Impact Discipline: first attack this fight, +15% damage.",
+});
+registerModifier("passive:field_experience", {
+  source: { kind: "passive", id: "field_experience" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { accBonus: 5 }, when: null, holders: ["enemy"], state: null,
+  notes: "Field Experience: first attack this fight, +5 Accuracy, no damage bonus.",
+});
+registerModifier("passive:sang_iag_executioners_patience", {
+  source: { kind: "passive", id: "sang_iag_executioners_patience" },
+  hook: "calculateDamage.firstAttack", order: 1, bucket: "conditional", value: null, behavior: "firstAttackBonusValue",
+  params: { accBonus: 10 }, when: null, holders: ["enemy"], state: null,
+  notes: "Executioner's Patience (Sanguivorum IAG): first attack this fight, +10 Accuracy, no damage bonus.",
+});
+
+// onHitTaken: 3 independent effects per entry (reflectPctOfAtk,
+// inflictStatusOnAttacker, counterChance+counterPctOfAtk), replicated
+// exactly as applyEnemyOnHitTakenPassives's own former inline loop body
+// -- a silent side-effecting behavior (no message lines), dispatched via
+// runHookEntry (discarded return) from that same loop, now gated on
+// `ability.trigger === "onHitTaken"` same as before, by key per id.
+registerBehavior("onHitTakenApply", (ctx, entry) => {
+  const { state, creature } = ctx;
+  const p = entry.params;
+  if (p.reflectPctOfAtk) {
+    const reflect = Math.max(0, Math.round((creature.atk || 0) * p.reflectPctOfAtk));
+    if (reflect > 0) {
+      applyPlayerDamage(state, reflect);
+      if (state.combat) state.combat.player.playerLastHitType = "physical";
+    }
+  }
+  if (p.inflictStatusOnAttacker && state.combat) {
+    const spec = getStatusEffect(p.inflictStatusOnAttacker);
+    if (spec) applyPlayerStatus(state, p.inflictStatusOnAttacker, spec);
+  }
+  if (p.counterChance && p.counterPctOfAtk && Math.random() < p.counterChance) {
+    const counter = Math.max(0, Math.round((creature.atk || 0) * p.counterPctOfAtk));
+    if (counter > 0) {
+      applyPlayerDamage(state, counter);
+      if (state.combat) state.combat.player.playerLastHitType = "physical";
+    }
+  }
+});
+registerModifier("passive:barbed_hide", {
+  source: { kind: "passive", id: "barbed_hide" },
+  hook: "applyAndReact.onHitTakenPassive", order: 1, bucket: null, value: null, behavior: "onHitTakenApply",
+  params: { reflectPctOfAtk: 0.1 }, when: null, holders: ["enemy"], state: null,
+  notes: "Barbed Hide: reflects 10% of this creature's own Attack back at the player, silently, on every hit taken. Dispatched by key from applyEnemyOnHitTakenPassives's own loop (combat.js) -- a DEDICATED hook, not the pre-existing applyAndReact.onHitTaken (see this hook's own MOD_HOOKS comment for the real fan-out collision that forced this).",
+});
+registerModifier("passive:quills", {
+  source: { kind: "passive", id: "quills" },
+  hook: "applyAndReact.onHitTakenPassive", order: 1, bucket: null, value: null, behavior: "onHitTakenApply",
+  params: { reflectPctOfAtk: 0.15 }, when: null, holders: ["enemy"], state: null,
+  notes: "Quills: reflects 15% of this creature's own Attack back at the player, silently, on every hit taken. See passive:barbed_hide's own note.",
+});
+registerModifier("passive:powdered_wings", {
+  source: { kind: "passive", id: "powdered_wings" },
+  hook: "applyAndReact.onHitTakenPassive", order: 1, bucket: null, value: null, behavior: "onHitTakenApply",
+  params: { inflictStatusOnAttacker: "drowsy" }, when: null, holders: ["enemy"], state: null,
+  notes: "Powdered Wings: inflicts Drowsy on the player, silently, on every hit taken. See passive:barbed_hide's own note.",
+});
+registerModifier("passive:crystal_hide_reflect", {
+  source: { kind: "passive", id: "crystal_hide_reflect" },
+  hook: "applyAndReact.onHitTakenPassive", order: 1, bucket: null, value: null, behavior: "onHitTakenApply",
+  params: { reflectPctOfAtk: 0.1 }, when: null, holders: ["enemy"], state: null,
+  notes: "Crystal Hide (reflect variant): reflects 10% of this creature's own Attack back at the player, silently, on every hit taken. See passive:barbed_hide's own note.",
+});
+registerModifier("passive:residual_memory", {
+  source: { kind: "passive", id: "residual_memory" },
+  hook: "applyAndReact.onHitTakenPassive", order: 1, bucket: null, value: null, behavior: "onHitTakenApply",
+  params: { counterChance: 0.25, counterPctOfAtk: 1.0 }, when: null, holders: ["enemy"], state: null,
+  notes: "Residual Memory (Lesser Voran-Daun): 25% chance on every hit taken to counter for 100% of this creature's own Attack, silently. See passive:barbed_hide's own note.",
+});
+
+// counterOnHit (countering_guard, H06): checkCounteringGuard (combat.js)
+// used to find the ABILITY directly (.map(getEnemyAbility).find(...)),
+// losing the id; now finds the id first, dispatches by key for the
+// static {name, dmgMult} data checkCounteringGuard's own
+// resolveEnemyAttackOnPlayer call still consumes exactly as before.
+registerModifier("passive:countering_guard", {
+  source: { kind: "passive", id: "countering_guard" },
+  hook: "applyAndReact.onHitTakenPassive", order: 2, bucket: null, value: { name: "Countering Guard", dmgMult: 0.4 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Countering Guard (H06): static {name, dmgMult} checkCounteringGuard (combat.js) reads by key and passes straight into its own unchanged resolveEnemyAttackOnPlayer call. Shares applyAndReact.onHitTakenPassive's hook name with the reflect/status cluster above (a different dispatch SITE, checkCounteringGuard, not applyEnemyOnHitTakenPassives) -- by-key only either way.",
+});
+
+// counterOnSuccessfulHit (Arena Riposte / Arena Counter): same
+// id-losing-.find() shape as Countering Guard above, fixed the same
+// way. hasArenaRiposteAbility (combat.js) stays untouched -- it's a
+// pure presence check (any passive with this trigger), not a
+// per-id data read, and has exactly one call site.
+registerModifier("passive:sang_sec_arena_riposte", {
+  source: { kind: "passive", id: "sang_sec_arena_riposte" },
+  hook: "applyAndReact.onHitTakenPassive", order: 3, bucket: null, value: 0.8, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Riposte (Sanguivorum Security): static mult, read by key from arenaRiposteCounterOnPlayer (combat.js) in place of its own former passive.mult lookup. Shares applyAndReact.onHitTakenPassive's hook name -- same by-key-only safety as passive:countering_guard's own note just above.",
+});
+registerModifier("passive:sang_iag_arena_counter", {
+  source: { kind: "passive", id: "sang_iag_arena_counter" },
+  hook: "applyAndReact.onHitTakenPassive", order: 3, bucket: null, value: 0.7, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Counter (Sanguivorum IAG): static mult, read by key from arenaRiposteCounterOnPlayer (combat.js). See passive:sang_sec_arena_riposte's own note.",
+});
+
+// bonusVsHealthBelowPctAlways (Apex Instinct): the Health-threshold GATE
+// (state.health <= state.maxHealth * p.pct) stays inline in
+// resolveEnemyActiveAbility (combat.js); only the flat multiplier moves.
+registerModifier("passive:apex_instinct", {
+  source: { kind: "passive", id: "apex_instinct" },
+  hook: "calculateDamage.bonusVsHealthBelowPctAlways", order: 1, bucket: "conditional", value: 1.15, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Apex Instinct (Rau-Thauln): while below 50% Health, this creature's own Active-ability damage is always x1.15, re-checked on every Active use (no once-per-combat flag). The 50% threshold gate stays in resolveEnemyActiveAbility (combat.js); only the x1.15 moves here.",
+});
+
+// onKill (enemy-side, Predator's/Roadlord's Momentum): the
+// oncePerCombat+onKillUsed[pid] gate stays in pipeline.js's own
+// killAlly branch; only the selfBuff grant moves.
+registerBehavior("onKillSelfBuff", (ctx, entry) => applyEnemySelfModifier(ctx.combat, ctx.creature, entry.params.selfBuff));
+registerModifier("passive:predators_momentum", {
+  source: { kind: "passive", id: "predators_momentum" },
+  hook: "applyAndReact.onKill", order: 1, bucket: null, value: null, behavior: "onKillSelfBuff",
+  params: { selfBuff: { atkPct: 0.15, turns: 3 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Predator's Momentum: on killing an ally, +15% Attack for 3 turns, no once-per-combat cap. Dispatched by key from pipeline.js's own killAlly branch (the exact site the earlier onKill family -- task 38 -- already uses this same hook name from, holderRole 'enemy' there too; by-key dispatch, no fan-out collision).",
+});
+registerModifier("passive:roadlords_momentum", {
+  source: { kind: "passive", id: "roadlords_momentum" },
+  hook: "applyAndReact.onKill", order: 1, bucket: null, value: null, behavior: "onKillSelfBuff",
+  params: { selfBuff: { atkPct: 0.15, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Roadlord's Momentum (IA-30): on killing an ally, +15% Attack for 2 turns, once per combat (gate stays in pipeline.js). See passive:predators_momentum's own note.",
 });

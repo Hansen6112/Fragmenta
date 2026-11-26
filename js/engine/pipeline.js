@@ -594,7 +594,7 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
           if (creature.onKillUsed[pid]) continue;
           creature.onKillUsed[pid] = true;
         }
-        applyEnemySelfModifier(state.combat, creature, p.selfBuff);
+        runHookEntry(`passive:${pid}`, creature, "enemy", { combat: state.combat, creature, holder: creature, role: "enemy" });
       }
     }
     return { lines, damage: null };
