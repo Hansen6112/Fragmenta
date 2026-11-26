@@ -1,0 +1,152 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "calculateDamage.firstAttack",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "calculateDamage.bonusVsHealthBelowPctAlways",
+  "type": "member added"
+ },
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onHitTakenPassive",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "firstAttackBonusValue",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "onHitTakenApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "onKillSelfBuff",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ambush_bonus",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:forest_camouflage",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:patient_hunter",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:silent_hunter",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ambush_predator",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:desert_predator",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:burrow_ambush",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:canopy_hunter",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:prepared_opening",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:range_calculation",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:impact_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:field_experience",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_executioners_patience",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:barbed_hide",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:quills",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:powdered_wings",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:crystal_hide_reflect",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:residual_memory",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:countering_guard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_arena_riposte",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_arena_counter",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:apex_instinct",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:predators_momentum",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:roadlords_momentum",
+  "type": "added"
+ }
+]

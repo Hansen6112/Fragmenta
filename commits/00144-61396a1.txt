@@ -1,0 +1,43 @@
+range: c83463561b0b37bc9ed7d331751464ad6cb63b47..61396a11662b0e71ccff42d82a02f5db6a4465b7
+=== 61396a11662b0e71ccff42d82a02f5db6a4465b7 2026-11-26 13:54:20 +0000
+2f batch 4: enemy passives -- firstAttack (13), onHitTaken (5), counterOnHit (1), counterOnSuccessfulHit (2), bonusVsHealthBelowPctAlways (1), onKill (2)
+24 ids total. All outer gates (firstActiveUsed consumption, dmgDealt<=0
+guard, counterGuardUsedThisRound, cooldown/uses caps, the Health
+threshold, oncePerCombat/onKillUsed) stay in their original call sites
+(combat.js/pipeline.js); only the "what happens" moves into the registry.
+
+Two new dedicated hooks (calculateDamage.firstAttack,
+calculateDamage.bonusVsHealthBelowPctAlways) avoid calculateDamage.outgoing's
+own late-multiplier combinator, which can be called with a variable
+holderRole including "enemy".
+
+A third dedicated hook (applyAndReact.onHitTakenPassive) was added after
+the suite caught a real fan-out collision this batch's own research
+missed: the pre-existing applyAndReact.onHitTaken hook has a fan-out
+call site inside modifiers.js itself (grantSureFoundationCharge, Sure
+Foundation) that reaches holderRole "enemy" in play, not just the two
+hardcoded-"player" call sites in combat.js. The new entries' holders:
+['enemy'] fanned out there too, crashing on a ctx shape that never
+carried ctx.creature.
+
+checkCounteringGuard and arenaRiposteCounterOnPlayer both used to find
+the ability object directly (.map(getEnemyAbility).find(...)), losing
+the id; both now find the id first and dispatch by key.
+
+Dead fields (critChanceBonus, opponentAccPenalty on firstAttack
+entries) confirmed via direct grep -- zero reads anywhere outside
+enemyabilities.js -- and deliberately not implemented.
+
+Suite 651/651, audit 0 errors (148->134 warnings, -24 exactly once the
+new calculateDamage.* hooks were given a bucket: "conditional" label
+matching the calculateDamage.enemyFlatReduction precedent).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 258 ++++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         |  60 ++++-------
+ js/engine/pipeline.js       |   2 +-
+ tools/modifier_catalogue.md |  12 +--
+ 4 files changed, 286 insertions(+), 46 deletions(-)
