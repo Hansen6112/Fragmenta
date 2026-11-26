@@ -1,0 +1,62 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "combatStartDebuffApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "combatStartSelfBuffApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "preparedWarhoundSummon",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "corruptedGroveTick",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:draconic_presence",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:predators_presence",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:haunting_presence",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:smugglers_caution",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:rapid_reconnaissance",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_watchful_approach",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:prepared_warhound",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:corrupted_grove",
+  "type": "added"
+ }
+]
