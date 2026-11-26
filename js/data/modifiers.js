@@ -4301,3 +4301,89 @@ registerModifier("passive:resolute_command", {
   params: { packAuraBuff: { acc: 5, turns: 2, maxTargets: 3 } }, when: null, holders: ["enemy"], state: null,
   notes: "Resolute Command (H15): once per combat, survives a hit at/below 50% Health, grants nearby same-group allies (up to 3) +5 Accuracy for 2 turns via applyPackAuraBuff. No selfBuff of its own -- packAuraBuff only, matching the original code's independent if-checks.",
 });
+
+// ================= 2f (26 Nov): enemy passives, batch 3 =================
+// combatStartDebuff (3), combatStartSelfBuff (3), combatStartSummon (1):
+// all three dispatched by key from startCombat's own per-enemy loop
+// (combat.js) -- fires exactly once, the instant combat begins, for
+// EVERY enemy present (not just the active one), rather than through
+// tickEnemyPassives' per-round dispatch. Reused the existing "fight.start"
+// hook purely for documentation -- it's never fanned out for holderRole
+// "enemy" (runReactionHook("fight.start", ...) has exactly one call site,
+// combat.js, always with holder=state/holderRole="player"; modifiersForHook
+// filters by holders before an entry is ever reached), so there is no
+// shared-combinator risk the way calculateDamage.incoming had in batch 1.
+// periodicSummon (1, Corrupted Grove) is dispatched from tickEnemyPassives
+// instead (hook: turn.start, same as batch 1/2's other tickEnemyPassives
+// entries) -- its own timing gate (every Nth round) stays in that loop;
+// the maxActive-vs-heal branching moves into the behavior below since
+// nothing else shares it.
+registerBehavior("combatStartDebuffApply", (ctx, entry) => applyPlayerStatus(ctx.state, ctx.statusId, { debuff: entry.params.debuff, turns: entry.params.turns }, ctx.creature.name));
+registerModifier("passive:draconic_presence", {
+  source: { kind: "passive", id: "draconic_presence" },
+  hook: "fight.start", order: 1, bucket: null, value: null, behavior: "combatStartDebuffApply",
+  params: { debuff: { acc: -5, spd: -5 }, turns: 3 }, when: null, holders: ["enemy"], state: null,
+  notes: "Draconic Presence: at combat start, debuffs the player -5 Accuracy/-5 Speed for 3 turns. Dispatched once per enemy present from startCombat's own loop (combat.js), not tickEnemyPassives.",
+});
+registerModifier("passive:predators_presence", {
+  source: { kind: "passive", id: "predators_presence" },
+  hook: "fight.start", order: 1, bucket: null, value: null, behavior: "combatStartDebuffApply",
+  params: { debuff: { atkPct: -0.1, acc: -8, spd: -5 }, turns: 2 }, when: null, holders: ["enemy"], state: null,
+  notes: "Predator's Presence: at combat start, debuffs the player -10% Attack/-8 Accuracy/-5 Speed for 2 turns. See passive:draconic_presence's own note.",
+});
+registerModifier("passive:haunting_presence", {
+  source: { kind: "passive", id: "haunting_presence" },
+  hook: "fight.start", order: 1, bucket: null, value: null, behavior: "combatStartDebuffApply",
+  params: { debuff: { acc: -5 }, turns: 3 }, when: null, holders: ["enemy"], state: null,
+  notes: "Haunting Presence: at combat start, debuffs the player -5 Accuracy for 3 turns. See passive:draconic_presence's own note.",
+});
+
+registerBehavior("combatStartSelfBuffApply", (ctx, entry) => { applyEnemySelfModifier(ctx.combat, ctx.creature, entry.params.selfBuff); });
+registerModifier("passive:smugglers_caution", {
+  source: { kind: "passive", id: "smugglers_caution" },
+  hook: "fight.start", order: 2, bucket: null, value: null, behavior: "combatStartSelfBuffApply",
+  params: { selfBuff: { def: 5, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Smuggler's Caution (IA-13): at combat start, +5 Defense for 2 turns, silently (no printed line, matching the original code's bare applyEnemySelfModifier call with no lines.push). Dispatched once per enemy present from startCombat's own loop.",
+});
+registerModifier("passive:rapid_reconnaissance", {
+  source: { kind: "passive", id: "rapid_reconnaissance" },
+  hook: "fight.start", order: 2, bucket: null, value: null, behavior: "combatStartSelfBuffApply",
+  params: { selfBuff: { spd: 8, turns: 1 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Rapid Reconnaissance: at combat start, +8 Speed for 1 turn, silently. See passive:smugglers_caution's own note.",
+});
+registerModifier("passive:sang_iag_watchful_approach", {
+  source: { kind: "passive", id: "sang_iag_watchful_approach" },
+  hook: "fight.start", order: 2, bucket: null, value: null, behavior: "combatStartSelfBuffApply",
+  params: { selfBuff: { spd: 8, turns: 1 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Watchful Approach (Sanguivorum IAG): at combat start, +8 Speed for 1 turn, silently. See passive:smugglers_caution's own note.",
+});
+
+registerBehavior("preparedWarhoundSummon", (ctx, entry) => resolveEnemySummon(ctx.state, ctx.creature.level, entry.params.summon, "prepared_warhound", ctx.creature.name, ctx.creature));
+registerModifier("passive:prepared_warhound", {
+  source: { kind: "passive", id: "prepared_warhound" },
+  hook: "fight.start", order: 3, bucket: null, value: null, behavior: "preparedWarhoundSummon",
+  params: { summon: { pool: ["legion_hound"], count: 1, capKey: "deploy_legion_hounds", maxActive: 3, maxLifetime: 5, noArrivalAttack: true, groupOverride: "sang_mil_legion_hounds" } },
+  when: null, holders: ["enemy"], state: null,
+  notes: "Prepared Warhound (Legion Houndmaster): starts combat with 1 Legion Hound already active, sharing Deploy Legion Hounds' own capKey/maxActive/maxLifetime pool. Dispatched once per enemy present from startCombat's own loop, via the same resolveEnemySummon path tickEnemyPassives' periodicSummon entries use.",
+});
+
+registerBehavior("corruptedGroveTick", (ctx, entry) => {
+  const e = ctx.enemySlot, creature = ctx.creature;
+  const capKey = entry.params.capKey;
+  const alreadyActive = ctx.state.combat.enemies.filter((x) => x.alive && x.summonSourceKey === capKey).length;
+  if (entry.params.maxActive != null && alreadyActive >= entry.params.maxActive) {
+    if (!entry.params.healPctIfMaxed) return undefined;
+    const heal = Math.max(1, Math.round(e.maxHp * entry.params.healPctIfMaxed));
+    const healed = applyHealing(makeEnemyCombatant(ctx.state, e, ctx.state.combat.enemies.indexOf(e)), heal, "enemy_regen", { state: ctx.state });
+    if (healed <= 0) return undefined;
+    return `${withThe(creature.name, true)} recovers ${healed} health, its grove already at full strength.`;
+  }
+  return resolveEnemySummon(ctx.state, creature.level, entry.params, "corrupted_grove", creature.name, creature);
+});
+registerModifier("passive:corrupted_grove", {
+  source: { kind: "passive", id: "corrupted_grove" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "corruptedGroveTick",
+  params: { pool: ["zombie", "skeleton"], count: 1, maxActive: 4, healPctIfMaxed: 0.05, capKey: "dreadroot_undead" },
+  when: null, holders: ["enemy"], state: null,
+  notes: "Corrupted Grove: every 3rd round, summons 1 zombie/skeleton against the shared dreadroot_undead cap (capped at 4 active, shared with Dreadroot's own Grave Bloom active), or heals 5% max HP if already at the cap. The every-3rd-round timing gate stays in tickEnemyPassives (combat.js); the maxActive-vs-heal branching moves here since nothing else shares it.",
+});

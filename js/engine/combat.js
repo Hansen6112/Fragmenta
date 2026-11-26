@@ -4755,17 +4755,7 @@ function tickEnemyPassives(state, e) {
       const turns = (e.passiveOnceFlags[counterKey] || 0) + 1;
       e.passiveOnceFlags[counterKey] = turns;
       if (turns % p.everyNTurns === 0) {
-        const capKey = p.capKey || pid;
-        const alreadyActive = state.combat.enemies.filter((x) => x.alive && x.summonSourceKey === capKey).length;
-        if (p.maxActive != null && alreadyActive >= p.maxActive) {
-          if (p.healPctIfMaxed) {
-            const heal = Math.max(1, Math.round(e.maxHp * p.healPctIfMaxed));
-            const healed = applyHealing(makeEnemyCombatant(state, e, state.combat.enemies.indexOf(e)), heal, "enemy_regen", { state });
-            if (healed > 0) lines.push(`${withThe(creature.name, true)} recovers ${healed} health, its grove already at full strength.`);
-          }
-        } else {
-          lines.push(...resolveEnemySummon(state, creature.level, p, pid, creature.name, creature));
-        }
+        lines.push(...runHookEntry(`passive:${pid}`, creature, "enemy", { state, holder: creature, role: "enemy", enemySlot: e, creature }));
       }
     }
   }
@@ -5737,7 +5727,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
     for (const pid of e.creatureObj.passives || []) {
       const p = getEnemyAbility(pid);
       if (p && p.trigger === "combatStartDebuff" && p.debuff) {
-        lines.push(...applyPlayerStatus(state, pid, { debuff: p.debuff, turns: p.turns || 2 }, e.creatureObj.name));
+        lines.push(...runHookEntry(`passive:${pid}`, e.creatureObj, "enemy", { state, holder: e.creatureObj, role: "enemy", enemySlot: e, creature: e.creatureObj, statusId: pid }));
       }
       // Smuggler's Caution (Sanguivorum Criminal Underworld, IA-13): the
       // self-buff sibling of Draconic Presence's own self-debuff-on-player
@@ -5748,7 +5738,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
       // startCombat (assigned above), so applyEnemySelfModifier's own
       // combat.enemies lookup resolves correctly.
       if (p && p.trigger === "combatStartSelfBuff" && p.selfBuff) {
-        applyEnemySelfModifier(state.combat, e.creatureObj, p.selfBuff);
+        runHookEntry(`passive:${pid}`, e.creatureObj, "enemy", { state, holder: e.creatureObj, role: "enemy", enemySlot: e, creature: e.creatureObj, combat: state.combat });
       }
       // Prepared Warhound (Legion Houndmaster, Sanguivorum Imperial
       // Military): "start combat with 1 approved Legion Hound already
@@ -5761,7 +5751,7 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
       // exists by this point (assigned above), so resolveEnemySummon's
       // own combat.enemies bookkeeping resolves correctly.
       if (p && p.trigger === "combatStartSummon" && p.summon) {
-        lines.push(...resolveEnemySummon(state, e.creatureObj.level, p.summon, pid, e.creatureObj.name, e.creatureObj));
+        lines.push(...runHookEntry(`passive:${pid}`, e.creatureObj, "enemy", { state, holder: e.creatureObj, role: "enemy", enemySlot: e, creature: e.creatureObj }));
       }
     }
   }
