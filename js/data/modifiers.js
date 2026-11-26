@@ -4813,3 +4813,23 @@ registerModifier("passive:sang_iag_militia_authority", {
   params: null, when: null, holders: ["enemy"], state: null,
   notes: "Militia Authority (Sanguivorum IAG): +5 Attack while another alive enemy shares this creature's own `family` tag (scope 'family'). See passive:marine_discipline's own note.",
 });
+
+// 2g: Flowing Discipline (First Sword's Regalia 6pc, exclusive to
+// Dregnar) -- resolveDregnarAttempt's own Barrier branch (combat.js)
+// used to call hasSetTier(creatureObj, ...) directly. Dispatched by KEY
+// (runHookEntry), not fan-out: applyAndReact.onActionUsed has a real
+// fan-out call site with holderRole "enemy" (combat.js:2700, Brace's own
+// "appliesBraceDefense" tag check) -- by-key dispatch sidesteps that
+// entirely, same precedent as Endless Study/Wanderer's Reward/Perfect
+// Memory/Ever Forward on this same hook name (see effect:endless_study's
+// own note above for the fuller rationale).
+registerBehavior("flowingDisciplineGrant", (ctx) => {
+  ctx.creature.flowingDisciplinePending = true;
+  ctx.creature.flowingDisciplineTurnsLeft = 2;
+});
+registerModifier("set:First Sword's Regalia:6", {
+  source: { kind: "set", id: "First Sword's Regalia:6", setName: "First Sword's Regalia", tier: 6 },
+  hook: "applyAndReact.onActionUsed", order: 10, bucket: null, value: null, behavior: "flowingDisciplineGrant",
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Flowing Discipline: Dregnar's only 'no-damage defensive action' in Stage A (casting Barrier) grants a flag read elsewhere (flowingDisciplinePending/flowingDisciplineTurnsLeft) -- kept generic on the wearer (hasSetTier-equivalent via sourceActiveOn, not hardcoded to Dregnar specifically), same as the original inline check's own intent. Dispatched by key from resolveDregnarAttempt's own Barrier branch (combat.js), which stays the real call site/gate.",
+});
