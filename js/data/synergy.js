@@ -117,7 +117,10 @@ const GENERIC_SYNERGY_MULTIPLIER = 1.25;
 // bonus from 25% to 40% — curated named combos (SYNERGY_COMBOS) are
 // untouched, since each of those already has its own hand-picked value.
 function genericSynergyMultiplier(state) {
-  return hasSetTier(state, "Pre-Kabal", 6) ? 1.4 : GENERIC_SYNERGY_MULTIPLIER;
+  // 2g: no registry entry wraps this -- called directly from pipeline.js's
+  // useElementAbility (via getSynergy/genericSynergy below). Swapped the
+  // raw hasSetTier for sourceActiveOn, same primitive.
+  return sourceActiveOn(state, { kind: "set", setName: "Pre-Kabal", tier: 6 }) ? 1.4 : GENERIC_SYNERGY_MULTIPLIER;
 }
 
 function genericSynergy(state, elementA, elementB) {
@@ -145,7 +148,10 @@ function getSynergy(state, elementKey) {
   // whichever OTHER known element exists, so the very first cast of the
   // fight (no lastElementUsed yet) and an immediate same-element repeat
   // both still resolve a real (curated or generic) combo.
-  if (hasEffect(state, "river_harmony") && (!prev || prev === elementKey)) {
+  // 2g: no registry entry wraps this -- called directly from
+  // pipeline.js's useElementAbility. Swapped the raw hasEffect for
+  // sourceActiveOn, same primitive.
+  if (sourceActiveOn(state, { kind: "effect", id: "river_harmony" }) && (!prev || prev === elementKey)) {
     prev = known.find((e) => e !== elementKey) || null;
   }
   if (!prev || prev === elementKey) return null;

@@ -14,7 +14,7 @@
  * effects, this table documents what each one is and at what threshold;
  * the mechanic itself is hardcoded at its point of use in engine/
  * combat.js / engine/parser.js / engine/jobs.js / data/synergy.js /
- * data/matchups.js, gated by hasSetTier(state, setName, tier).
+ * data/matchups.js, gated by this file's own set-tier presence check.
  *
  * MANY sets independently push the same underlying number (e.g. four
  * different sets all read "Spell Ward becomes 20%"). Rather than have
@@ -628,7 +628,10 @@ function trailwiseMultiplier(state) {
 // home (2d increment 3) -- staged as registry data now per Rule 1, ahead
 // of that hook's own combinator existing.
 function spellWardMultiplier(state, holderRole) {
-  const hasBase = hasEffect(state, "spell_ward") || hasSetTier(state, "Leviathan", 4);
+  // 2g: dispatched unconditionally (source:{kind:"always"}) from
+  // modifiers.js's own effect:spell_ward entry -- the real gate lives
+  // here, by design. Swapped the raw hasEffect/hasSetTier for sourceActiveOn.
+  const hasBase = sourceActiveOn(state, { kind: "effect", id: "spell_ward" }) || sourceActiveOn(state, { kind: "set", setName: "Leviathan", tier: 4 });
   if (!hasBase) return 1;
   return resolveUpgradedValue("effect:spell_ward", 0.9, state, holderRole || "player", "min");
 }
@@ -674,7 +677,9 @@ function surgingConduitCharges(state, holderRole) {
 // true under Math.max since 1.7 beats both 1.4 and 1.55). Tag
 // "effect:ambush".
 function ambushMultiplier(state, holderRole) {
-  const base = hasEffect(state, "ambush_mastery") ? 1.55 : 1.4;
+  // 2g: only called from modifiers.js's own value fn for effect:ambush --
+  // already gated on source presence. Swapped the raw hasEffect for sourceActiveOn.
+  const base = sourceActiveOn(state, { kind: "effect", id: "ambush_mastery" }) ? 1.55 : 1.4;
   return resolveUpgradedValue("effect:ambush", base, state, holderRole || "player", "max");
 }
 
@@ -690,27 +695,37 @@ function feintMultiplier(state, holderRole) {
 // Armor Crack's flat Defense ignored: base 2 (only relevant with the item
 // effect equipped); Siege Corps 4pc doubles it to 4.
 function armorCrackAmount(state) {
-  if (!hasEffect(state, "armor_crack")) return 0;
-  return hasSetTier(state, "Siege Corps", 4) ? 4 : 2;
+  // 2g: called directly from combat.js/pipeline.js (the flat-Defense-
+  // ignore call sites, unchanged) and from modifiers.js's own value fn
+  // -- swapped the raw hasEffect/hasSetTier for sourceActiveOn, same primitive.
+  if (!sourceActiveOn(state, { kind: "effect", id: "armor_crack" })) return 0;
+  return sourceActiveOn(state, { kind: "set", setName: "Siege Corps", tier: 4 }) ? 4 : 2;
 }
 
 // Riposte's damage multiplier: base 0.5x; White Watch 4pc raises it to 0.75x.
 function riposteMultiplier(state) {
-  return hasSetTier(state, "White Watch", 4) ? 0.75 : 0.5;
+  // 2g: no registry entry wraps this -- called directly from
+  // data/actions.js's own Clash of Steel. Swapped the raw hasSetTier
+  // for sourceActiveOn, same primitive.
+  return sourceActiveOn(state, { kind: "set", setName: "White Watch", tier: 4 }) ? 0.75 : 0.5;
 }
 
 // Regrowth's heal percentage: base 5%; Vaeloris/Heartwood/Elder Bark 4pc
 // all raise it to 10%.
 function regrowthHealPct(state) {
-  if (hasSetTier(state, "Vaeloris", 4) || hasSetTier(state, "Heartwood", 4) || hasSetTier(state, "Elder Bark", 4)) return 0.1;
+  // 2g: only called from modifiers.js's own behavior (Regrowth's heal) --
+  // swapped the raw hasSetTier for sourceActiveOn, same primitive.
+  if (sourceActiveOn(state, { kind: "set", setName: "Vaeloris", tier: 4 }) || sourceActiveOn(state, { kind: "set", setName: "Heartwood", tier: 4 }) || sourceActiveOn(state, { kind: "set", setName: "Elder Bark", tier: 4 })) return 0.1;
   return 0.05;
 }
 
 // Deep Cut's proc chance: base 20% (only relevant with the item effect
 // equipped); Bonecaller 4pc raises it to 35%.
 function deepCutChance(state) {
-  if (!hasEffect(state, "deep_cut")) return 0;
-  return hasSetTier(state, "Bonecaller", 4) ? 0.35 : 0.2;
+  // 2g: called directly from combat.js's applyPhysicalOnHitEffects --
+  // swapped the raw hasEffect/hasSetTier for sourceActiveOn, same primitive.
+  if (!sourceActiveOn(state, { kind: "effect", id: "deep_cut" })) return 0;
+  return sourceActiveOn(state, { kind: "set", setName: "Bonecaller", tier: 4 }) ? 0.35 : 0.2;
 }
 
 // Job/contract gold reward multiplier — several sets stack additively
@@ -731,7 +746,9 @@ function jobGoldMultiplier(state, job) {
 // Coldproof's +2 Defense vs Water-elemental attacks, grantable outright
 // by Leviathan 4pc without needing the item effect equipped.
 function hasColdproof(state) {
-  return hasEffect(state, "coldproof") || hasSetTier(state, "Leviathan", 4);
+  // 2g: called directly from data/actions.js's own water-cast bonus --
+  // swapped the raw hasEffect/hasSetTier for sourceActiveOn, same primitive.
+  return sourceActiveOn(state, { kind: "effect", id: "coldproof" }) || sourceActiveOn(state, { kind: "set", setName: "Leviathan", tier: 4 });
 }
 
 // Torrent (Water)'s self-heal percentage of damage dealt: base 50%;

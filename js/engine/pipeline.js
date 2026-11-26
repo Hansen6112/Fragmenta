@@ -307,7 +307,7 @@ function rollToHit(actor, target, action, ctx) {
     // Amendment 1 (Phase 2 step 2c follow-up): Duelist's Measure/
     // Calculated Aim/Concealed Edge/Measured Aim dispatched via the
     // registry (rollToHit.attacker, holders: ["enemy"]) instead of
-    // inline hasEffect() calls -- the unconditional resets below (the
+    // inline presence checks -- the unconditional resets below (the
     // pending-target clear, the banked-prep zeroing) stay inline exactly
     // where they were, since today's code runs them regardless of
     // whether the creature has any of these effects at all.
@@ -346,7 +346,7 @@ function rollToHit(actor, target, action, ctx) {
   // Amendment 1 (Phase 2 step 2c follow-up): Duelist's Measure/
   // Calculated Aim/Concealed Edge/Measured Aim dispatched via the
   // registry (rollToHit.attacker, holders: ["enemy"]) instead of inline
-  // hasEffect() calls -- the unconditional resets below stay inline
+  // presence checks -- the unconditional resets below stay inline
   // exactly where they were (see the ally branch's own comment above).
   const bankedPrepBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackAccBonus || 0) : 0;
   const bankedPrepDmgMultBonus = (creature.bankedAttackAccBonusTurnsLeft || 0) > 0 ? (creature.bankedAttackDmgMultBonus || 0) : 0;
@@ -363,7 +363,7 @@ function rollToHit(actor, target, action, ctx) {
   // Amendment 1 (Phase 2 step 2c rework): Timeless Guard/Guardian
   // Spirit/Guided Footsteps/Never Where Expected/Blessing of Freedom
   // are now ONE dispatch through the registry (behaviors, not 5
-  // separate hasEffect()/hasModifier() checks) -- in `order`, so the
+  // separate presence checks) -- in `order`, so the
   // Math.random() call sequence matches exactly, and the first one that
   // fires stops the rest from even being evaluated, same as today's
   // sequential if/return chain.
@@ -530,7 +530,9 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
     const ally = target.ref;
     if (!abilityCtx && edmg > 0) runReactionHook("applyAndReact.onHitDealt", creature, "enemy", { state, holder: creature, role: "enemy" });
     const sangAllyLines = [];
-    if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+    // 2g: no registry entry wraps this -- swapped the raw hasEffect for
+    // sourceActiveOn, same primitive.
+    if (edmg > 0 && !creature.serratedOpeningUsed && sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie003_serrated_opening" })) {
       creature.serratedOpeningUsed = true;
       if (!(ally.statuses && ally.statuses.bleed)) {
         sangAllyLines.push(...applyAbilityInflictOnAlly(ally, { status: "bleed", chance: 1 }, creature.name));
@@ -541,7 +543,10 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
     // default) gates this ally-target site specifically -- see this
     // function's own read/consume in rollToHit's ally branch.
     runHookEntry("effect:sang_cu_ie002_marked_target", creature, "enemy", { state, holder: creature, role: "enemy", targetKind: "ally", edmg });
-    if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
+    // 2g: swapped the raw hasEffect for sourceActiveOn -- this grant site
+    // is distinct from effect:sang_cu_ie007_duelists_measure's own
+    // registry entry (rollToHit.attacker, the ACC-consumption side).
+    if (edmg > 0 && sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie007_duelists_measure" }) && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
       creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
       creature.duelistMeasurePendingTarget = ally.name;
     }
@@ -570,7 +575,10 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
     if (abilityCtx && abilityCtx.inflict) {
       const inflictLinesAlly = applyAbilityInflictOnAlly(ally, abilityCtx.inflict, creature.name);
       lines.push(...inflictLinesAlly);
-      if (inflictLinesAlly.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
+      // 2g: swapped the raw hasEffect for sourceActiveOn -- this grant
+      // site is distinct from effect:dra_e09_black_ice_reserve's own
+      // registry entry (calculateDamage.outgoing, the consumption side).
+      if (inflictLinesAlly.length && abilityCtx.inflict.status === "chilled" && sourceActiveOn(creature, { kind: "effect", id: "dra_e09_black_ice_reserve" })) {
         creature.blackIceReservePending = true;
         creature.blackIceReserveTurnsLeft = 2;
       }
@@ -629,7 +637,8 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   }
   if (!abilityCtx && edmg > 0) runReactionHook("applyAndReact.onHitDealt", creature, "enemy", { state, holder: creature, role: "enemy" });
   const sangLines = [];
-  if (edmg > 0 && !creature.serratedOpeningUsed && hasEffect(creature, "sang_cu_ie003_serrated_opening")) {
+  // 2g: see the ally-target sibling's own note above (no registry entry).
+  if (edmg > 0 && !creature.serratedOpeningUsed && sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie003_serrated_opening" })) {
     creature.serratedOpeningUsed = true;
     if (!(combat.player.playerStatuses && combat.player.playerStatuses.bleed)) {
       sangLines.push(...applyAbilityInflict(state, { status: "bleed", chance: 1 }, creature.name));
@@ -640,7 +649,8 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   // here (no U3a gate) -- see this function's own read/consume in
   // rollToHit's player branch.
   runHookEntry("effect:sang_cu_ie002_marked_target", creature, "enemy", { state, holder: creature, role: "enemy", targetKind: "player", edmg });
-  if (edmg > 0 && hasEffect(creature, "sang_cu_ie007_duelists_measure") && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
+  // 2g: see the ally-target sibling's own note above (distinct grant site).
+  if (edmg > 0 && sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie007_duelists_measure" }) && (creature.duelistMeasureUsesThisCombat || 0) < 2) {
     creature.duelistMeasureUsesThisCombat = (creature.duelistMeasureUsesThisCombat || 0) + 1;
     creature.duelistMeasurePendingTarget = "player";
   }
@@ -649,7 +659,8 @@ function applyAndReact(actor, target, dmgInfo, ctx, action) {
   if (abilityCtx) {
     if (abilityCtx.inflict) {
       const inflictLines = applyAbilityInflict(state, abilityCtx.inflict, creature.name);
-      if (inflictLines.length && abilityCtx.inflict.status === "chilled" && hasEffect(creature, "dra_e09_black_ice_reserve")) {
+      // 2g: see the ally-target sibling's own note above (distinct grant site).
+      if (inflictLines.length && abilityCtx.inflict.status === "chilled" && sourceActiveOn(creature, { kind: "effect", id: "dra_e09_black_ice_reserve" })) {
         creature.blackIceReservePending = true;
         creature.blackIceReserveTurnsLeft = 2;
       }
@@ -1733,19 +1744,21 @@ function rollPlayerDamageCoreForPipeline(actor, target, ctx, activeElement, acti
       state.combat.player.avatarOfCreationAtkStacks = (state.combat.player.avatarOfCreationAtkStacks || 0) + 2;
     }
   }
-  if (hasEffect(state, "tempered_steel")) {
+  // 2g: swapped each raw hasEffect/hasSetTier for sourceActiveOn below --
+  // same stack-growth shape as combat.js's own identical block (rollPlayerDamage).
+  if (sourceActiveOn(state, { kind: "effect", id: "tempered_steel" })) {
     state.combat.player.temperedSteelStacks = Math.min(15, (state.combat.player.temperedSteelStacks || 0) + 1);
   }
   state.combat.player.threadsOfConsequencePending = false;
   state.combat.enemyActedFirstThisRound = false;
-  if (hasEffect(state, "momentum")) {
+  if (sourceActiveOn(state, { kind: "effect", id: "momentum" })) {
     state.combat.player.momentumStacks = Math.min(5, (state.combat.player.momentumStacks || 0) + 1);
   }
-  if (hasEffect(state, "worthy_challenge")) {
+  if (sourceActiveOn(state, { kind: "effect", id: "worthy_challenge" })) {
     state.combat.player.worthyChallengeStacks = Math.min(10, (state.combat.player.worthyChallengeStacks || 0) + 1);
   }
   if ((outgoing.byKey[CRIT_MODIFIER_KEY] || 1) > 1) {
-    if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
+    if (sourceActiveOn(state, { kind: "set", setName: "Regalia of the Laughing Gale", tier: 2 })) {
       state.combat.player.blessingOfFortuneCritStacks = Math.min(5, (state.combat.player.blessingOfFortuneCritStacks || 0) + 1);
     }
     if (state.combat.player.avatarOfChaosTurns > 0) {
@@ -1911,7 +1924,9 @@ function applyAndReactPlayerActor(actor, target, dmgInfo, ctx, action) {
     // arenaRiposteCounterOnPlayer, only playerAttackLegacy does.
     // Preserved exactly.
     lines.push(...applyPhysicalOnHitEffects(state, creature));
-    if (action.evasiveReleaseCheck && hasEffect(state, "evasive_release")) {
+    // 2g: no registry entry wraps this -- swapped the raw hasEffect for
+    // sourceActiveOn, same primitive.
+    if (action.evasiveReleaseCheck && sourceActiveOn(state, { kind: "effect", id: "evasive_release" })) {
       state.combat.player.evasionCharges += 1;
       lines.push(`You're already moving again — the next counter aimed at you will have to find you first.`);
     }
@@ -2326,7 +2341,9 @@ function useElementAbility(state, elementKey) {
   if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight.`];
   let creature = getCombatCreature(state);
   if (creature.friendly) return [`${withThe(creature.name, true)} isn't fighting you. Save it.`];
-  const worldWalkerBypass = elementKey === "transportation" && hasEffect(state, "world_walker");
+  // 2g: no registry entry wraps this -- swapped the raw hasEffect for
+  // sourceActiveOn, same primitive.
+  const worldWalkerBypass = elementKey === "transportation" && sourceActiveOn(state, { kind: "effect", id: "world_walker" });
   const elementalBypass = activationRestrictionsBypassed(state);
   if (!worldWalkerBypass && !elementalBypass && elementKey !== state.primaryElement && elementKey !== state.secondaryElement && elementKey !== state.tertiaryElement) {
     return [`You haven't opened yourself to ${ELEMENTS[elementKey].name}.`];
@@ -2450,7 +2467,7 @@ function useElementAbility(state, elementKey) {
     // 2e §3 follow-up (20 Nov): Siege Corps:6, dispatched via the
     // registry (applyAndReact.onActionUsed, "appliesBraceDefense" tag) --
     // same call as useFeint's own, matching today's exact pair of
-    // conditions (the entry's own behavior still checks hasEffect(holder,"brace")).
+    // conditions (the entry's own behavior still checks Brace's own presence on the holder).
     // Passes only ["appliesBraceDefense"] here (not the full earth tags
     // array, which also carries "elementAbility" -- Seedbearer's own
     // dispatch already ran once, earlier, right after resolveSpeedInitiative;
@@ -2488,7 +2505,9 @@ function useElementAbility(state, elementKey) {
   }
 
   const spellEchoChance = masterOfArmsDoubles(state, "spell_echo") ? 0.4 : 0.2;
-  if (activeEnemySlot(state.combat).hp > 0 && castDamageDealt > 0 && hasEffect(state, "spell_echo") && Math.random() < spellEchoChance) {
+  // 2g: no registry entry wraps this -- swapped the raw hasEffect for
+  // sourceActiveOn, same primitive.
+  if (activeEnemySlot(state.combat).hp > 0 && castDamageDealt > 0 && sourceActiveOn(state, { kind: "effect", id: "spell_echo" }) && Math.random() < spellEchoChance) {
     out.push(...resolveSpellEchoOnEnemy(state, creature, castDamageDealt, elementKey));
   }
 
