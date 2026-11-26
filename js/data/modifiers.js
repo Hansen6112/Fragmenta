@@ -4645,3 +4645,81 @@ registerModifier("passive:roadlords_momentum", {
   params: { selfBuff: { atkPct: 0.15, turns: 2 } }, when: null, holders: ["enemy"], state: null,
   notes: "Roadlord's Momentum (IA-30): on killing an ally, +15% Attack for 2 turns, once per combat (gate stays in pipeline.js). See passive:predators_momentum's own note.",
 });
+
+// flatStatBonus (2f, 26 Nov): 10 ids, each a constant stat bonus applied
+// ONCE at creature-build time (buildFightCreature, combat.js), the same
+// place equipment bonuses are folded in -- never re-applied or double-
+// counted, no trigger/cooldown/expiry of any kind. The outer `p.stat`
+// read (which FIELD to add to) stays in combat.js, same routing-vs-value
+// split as every other 2f entry; only the flat `amount` moves here.
+// Reusing "fight.start" rather than any stat.<key> hook -- stat.<key>'s
+// OWN fan-out (applyStatDefFloor, this file, runHook(statHook("def"), ...))
+// is called with holderRole "enemy" for real (combatant.js:206, stat()'s
+// own enemy "def" case) and does not filter by statBonus/statMultiplier
+// until AFTER collecting results -- registering these as plain-number
+// entries there would have been silently returned as an override of the
+// enemy's ENTIRE effective Defense on every stat() read, not added to
+// it. "fight.start" has exactly one fan-out call site (combat.js:5754,
+// runReactionHook, hardcoded holderRole "player") -- same by-key safety
+// already established for combatStartDebuff/combatStartSelfBuff/
+// prepared_warhound (2f batch 3) on this same hook name.
+registerModifier("passive:mil_veteran_discipline", {
+  source: { kind: "passive", id: "mil_veteran_discipline" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Veteran Discipline (Ferratum Veteran, Sanguivorum Imperial Military): constant +5 Defense while alive, applied once at creature-build time.",
+});
+registerModifier("passive:sang_sec_veteran_watch_discipline", {
+  source: { kind: "passive", id: "sang_sec_veteran_watch_discipline" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Veteran Watch Discipline (Sanguivorum Security): constant +5 Defense. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_sec_gatekeepers_discipline", {
+  source: { kind: "passive", id: "sang_sec_gatekeepers_discipline" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Gatekeeper's Discipline (Sanguivorum Security): constant +5 Defense. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_sec_analytical_discipline", {
+  source: { kind: "passive", id: "sang_sec_analytical_discipline" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Analytical Discipline (Sanguivorum Security): constant +5 Accuracy. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_sec_arena_veterans_discipline_acc", {
+  source: { kind: "passive", id: "sang_sec_arena_veterans_discipline_acc" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Veteran's Discipline (Sanguivorum Security, Accuracy variant): constant +5 Accuracy. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_sec_arena_veterans_discipline_def", {
+  source: { kind: "passive", id: "sang_sec_arena_veterans_discipline_def" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Veteran's Discipline (Sanguivorum Security, Defense variant): constant +5 Defense. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_iag_rough_fighter", {
+  source: { kind: "passive", id: "sang_iag_rough_fighter" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Rough Fighter (Sanguivorum IAG): constant +5 Attack. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_iag_professional_guard", {
+  source: { kind: "passive", id: "sang_iag_professional_guard" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Professional Guard (Sanguivorum IAG): constant +5 Defense. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_iag_arena_training", {
+  source: { kind: "passive", id: "sang_iag_arena_training" },
+  hook: "fight.start", order: 1, bucket: null, value: 5, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Training (Sanguivorum IAG): constant +5 Accuracy. See passive:mil_veteran_discipline's own note.",
+});
+registerModifier("passive:sang_iag_champions_discipline", {
+  source: { kind: "passive", id: "sang_iag_champions_discipline" },
+  hook: "fight.start", order: 1, bucket: null, value: 8, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Champion's Discipline (Sanguivorum IAG): constant +8 Accuracy. See passive:mil_veteran_discipline's own note.",
+});

@@ -5317,7 +5317,8 @@ function buildFightCreature(template, level, dangerClassOverride, bestiaryId, lo
   for (const pid of creature.passives || []) {
     const p = getEnemyAbility(pid);
     if (p && p.trigger === "flatStatBonus" && p.stat) {
-      creature[p.stat] = (creature[p.stat] || 0) + (p.amount || 0);
+      const v = runHookEntryValue(`passive:${pid}`, creature, "enemy", { holder: creature, role: "enemy" });
+      creature[p.stat] = (creature[p.stat] || 0) + (typeof v === "number" ? v : 0);
     }
   }
   // Damage Types spec v1.0 step 2 follow-ups, A5 (off by default): a
