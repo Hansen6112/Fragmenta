@@ -1,0 +1,292 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index f48893f..d94ee8a 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -253,8 +253,11 @@ function mainhandGrants(state, effectId) {
+ // sites. Every existing call site is unchanged; only this function's
+ // own internals now consult the registry's data.
+ function masterOfArmsDoubles(state, effectId) {
++  // 2g: swapped the raw hasEffect for sourceActiveOn -- this function is
++  // itself the shared presence-check helper every one of its 9 call
++  // sites goes through, so the check genuinely needs to stay here.
+   const entry = MODIFIERS["effect:master_of_arms"];
+-  return hasEffect(state, "master_of_arms") && entry.amplifies.includes(effectId) && mainhandGrants(state, effectId);
++  return sourceActiveOn(state, { kind: "effect", id: "master_of_arms" }) && entry.amplifies.includes(effectId) && mainhandGrants(state, effectId);
+ }
+ 
+ // Creature names that are already articled ("The Turned") or proper nouns
+@@ -898,7 +901,10 @@ function checkMercyOfTheVeil(state) {
+ // character's raw stats, not already-boosted combat values, so the bonus
+ // can't recursively push itself in or out of range.
+ function perfectBalanceBonus(state) {
+-  if (!hasEffect(state, "perfect_balance")) return 0;
++  // 2g: only called from modifiers.js's own value fns for
++  // effect:perfect_balance (statHook atk/def) -- already gated on source
++  // presence, via calculateStatBonus, which is only ever invoked with
++  // holderRole "player" today.
+   return Math.abs(state.atk - state.def) <= flatStat(2) ? 2 : 0; // v0.11: threshold on scaled stats; the +2 itself is scaled by the caller's flatStat
+ }
+ 
+@@ -912,7 +918,9 @@ function perfectBalanceBonus(state) {
+ // Knowledge input here, the same deliberate scope limit as before
+ // (this formula only, not every knowledgeReq gate in the codebase).
+ function expandingMindMagicBonus(state) {
+-  if (!hasEffect(state, "expanding_mind")) return 0;
++  // 2g: only called from modifiers.js's own value fn for
++  // effect:expanding_mind (statHook magic) -- already gated on source
++  // presence, same reasoning as perfectBalanceBonus's own note above.
+   const combat = state.combat;
+   const effectiveKnowledgeForExpandingMind = state.knowledge + ((combat && combat.player.knowledgeBuffAmount) || 0) + ((combat && combat.player.windsOfChangeKnowledge) || 0) + ((combat && combat.player.avatarOfChaosKnowledgeBonus) || 0) + ((combat && combat.player.perfectMemoryKnowledgeBonus) || 0);
+   return Math.floor(Math.max(0, effectiveKnowledgeForExpandingMind - 50) / 5);
+@@ -922,8 +930,14 @@ function expandingMindMagicBonus(state) {
+ // creatures — now a direct read of the real Danger Class/Spawn Rarity
+ // tags (see data/creaturetags.js isNotableCreature) instead of the old
+ // tier>=4-or-unique proxy.
++// 2g: this whole cluster (Kingslayer/Hunter's Instinct/Momentum/Master
++// Duelist/Arcane Overflow/Execution Protocol/Temporal Echo) is each only
++// called from its own modifiers.js value/behavior function, already
++// gated on source presence (sourceActiveOn) before invocation -- the
++// hasEffect check that used to open each function was always true by
++// the time it ran. Removed as dead code, same precedent as
++// applyShieldWall's own note (2g's first batch).
+ function kingslayerMultiplier(state, creature) {
+-  if (!hasEffect(state, "kingslayer")) return 1;
+   const bonus = masterOfArmsDoubles(state, "kingslayer") ? 1.5 : 1.25;
+   return isNotableCreature(creature) ? bonus : 1;
+ }
+@@ -933,7 +947,6 @@ function kingslayerMultiplier(state, creature) {
+ // any damage roll happens, so a value of 1 here means "this is the first
+ // action that's executed this fight."
+ function huntersInstinctMultiplier(state) {
+-  if (!hasEffect(state, "hunters_instinct")) return 1;
+   const bonus = masterOfArmsDoubles(state, "hunters_instinct") ? 1.6 : 1.3;
+   return state.combat && state.combat.player.actionCounter === 1 ? bonus : 1;
+ }
+@@ -944,7 +957,6 @@ function huntersInstinctMultiplier(state) {
+ // elemental abilities, and Riposte all build the same stack. Reset by
+ // startCombat.
+ function momentumMultiplier(state) {
+-  if (!hasEffect(state, "momentum")) return 1;
+   const stacks = (state.combat && state.combat.player.momentumStacks) || 0;
+   return 1 + Math.min(stacks, 5) * 0.1;
+ }
+@@ -953,7 +965,6 @@ function momentumMultiplier(state) {
+ // elemental) deal 25% less damage — applied alongside Shield Wall at
+ // every point the player actually takes retaliation damage.
+ function applyMasterDuelist(state, dmg) {
+-  if (!hasEffect(state, "master_duelist")) return dmg;
+   return Math.round(dmg * 0.75);
+ }
+ 
+@@ -961,7 +972,6 @@ function applyMasterDuelist(state, dmg) {
+ // additional flat 1.5x — mage-only, folded into rollPlayerDamage's magic
+ // branch alongside the other multipliers.
+ function arcaneOverflowMultiplier(state) {
+-  if (!hasEffect(state, "arcane_overflow")) return 1;
+   return masterOfArmsDoubles(state, "arcane_overflow") ? 2.0 : 1.5;
+ }
+ 
+@@ -969,7 +979,7 @@ function arcaneOverflowMultiplier(state) {
+ // 2x damage (not 1.2x) at 20% Health (not 30/40%). Stacks multiplicatively
+ // with Executioner if a character somehow has both.
+ function executionProtocolMultiplier(state) {
+-  if (!hasEffect(state, "execution_protocol") || !state.combat) return 1;
++  if (!state.combat) return 1;
+   const mult = masterOfArmsDoubles(state, "execution_protocol") ? 3 : 2;
+   return activeEnemySlot(state.combat).hp <= activeEnemySlot(state.combat).maxHp * 0.2 ? mult : 1;
+ }
+@@ -980,7 +990,7 @@ function executionProtocolMultiplier(state) {
+ // multiplication chain as Momentum/Hunter's Instinct rather than needing
+ // its own "replay the action" logic.
+ function temporalEchoMultiplier(state) {
+-  if (!hasEffect(state, "temporal_echo") || !state.combat) return 1;
++  if (!state.combat) return 1;
+   const mult = masterOfArmsDoubles(state, "temporal_echo") ? 3 : 2;
+   return state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 5 === 0 ? mult : 1;
+ }
+@@ -1477,7 +1487,9 @@ function peekSiegeCorpsAtkCharge(state) {
+ // already true — the player's own attacks in this engine always deal at
+ // least 1 damage, with no miss/failure state to bypass.
+ function foreseenStrikeDefMultiplier(state) {
+-  return hasEffect(state, "foreseen_strike") && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 3 === 0 ? 0.5 : 1;
++  // 2g: only called from modifiers.js's own value fn for effect:foreseen_strike
++  // -- already gated on source presence.
++  return state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 3 === 0 ? 0.5 : 1;
+ }
+ 
+ // Minimal player-side critical hit system (Divine Regalia — Blessing of
+@@ -1531,7 +1543,9 @@ function critMultiplier(state, isSpell) {
+ // leech already set for roll-time side effects with no narration channel
+ // of their own.
+ function loadedDiceMultiplier(state) {
+-  if (!hasEffect(state, "loaded_dice") || !state.combat) return 1;
++  // 2g: only called from modifiers.js's own registerBehavior for
++  // effect:loaded_dice -- already gated on source presence.
++  if (!state.combat) return 1;
+   if (Math.random() >= 0.2) return 1;
+   if (Math.random() < 0.5) {
+     runReactionHook("applyAndReact.onFavorableRoll", state, "player", { state, holder: state, role: "player" });
+@@ -1552,7 +1566,9 @@ function avatarOfChaosDamageMultiplier(state) {
+ // no separate "Magic Resistance" stat — creature.def is the same field
+ // both branches of rollPlayerDamage already read).
+ function precisionFormulaMultiplier(state) {
+-  return hasEffect(state, "precision_formula") ? 0.7 : 1;
++  // 2g: only called from modifiers.js's own value fn for
++  // effect:precision_formula -- already gated on source presence.
++  return 0.7;
+ }
+ 
+ // Avatar of Knowledge (Regalia of the Endless Archive 6pc): for its
+@@ -1576,7 +1592,11 @@ function avatarOfKnowledgeMatchupOverride(state, matchup) {
+ // (playerAttack, useFeint/useDecoy/useAmbush/useDisarm, useElementAbility)
+ // with its own distinguishing key.
+ function applyEndlessStudy(state, actionKey) {
+-  if (!hasEffect(state, "endless_study") || !state.combat) return [];
++  // 2g: the hasEffect gate was redundant -- runHookEntry below already
++  // checks source presence (sourceActiveOn) before dispatching, via the
++  // registry's own effect:endless_study entry. !state.combat stays, since
++  // state.combat.player is read unconditionally right after.
++  if (!state.combat) return [];
+   if (!state.combat.player.endlessStudyKeys) state.combat.player.endlessStudyKeys = [];
+   // Migrated (task 40, 24 Nov) -- see modifiers.js's own
+   // effect:endless_study/endlessStudyGrant, dispatched BY KEY at this
+@@ -1590,7 +1610,9 @@ function applyEndlessStudy(state, actionKey) {
+ // trivially true from the SECOND enemy retaliation onward — reduces that
+ // and every later hit by 25%.
+ function preparedResponseMultiplier(state) {
+-  if (!hasEffect(state, "prepared_response") || !state.combat) return 1;
++  // 2g: only called from modifiers.js's own registerBehavior for
++  // effect:prepared_response -- already gated on source presence.
++  if (!state.combat) return 1;
+   const combat = state.combat;
+   if (!combat.player.preparedResponseWitnessed) {
+     combat.player.preparedResponseWitnessed = true;
+@@ -1604,7 +1626,9 @@ function preparedResponseMultiplier(state) {
+ // specific hit by 40%. A one-shot magnitude-triggered reduction, checked
+ // against the RAW incoming damage before this multiplier applies.
+ function sharedBurdenMultiplier(state, dmg) {
+-  if (!hasEffect(state, "shared_burden") || !state.combat) return 1;
++  // 2g: only called from modifiers.js's own registerBehavior for
++  // effect:shared_burden -- already gated on source presence.
++  if (!state.combat) return 1;
+   const combat = state.combat;
+   if (combat.player.sharedBurdenUsed || dmg <= state.maxHealth * 0.3) return 1;
+   combat.player.sharedBurdenUsed = true;
+@@ -1663,11 +1687,14 @@ function avatarOfRenewalDamageMultiplier(state) {
+ // ever grow it). Stacks grow in resolveEnemyAttackOnPlayer, right after each
+ // branch's damage is finalized.
+ function adaptiveTidePhysicalMultiplier(state) {
+-  if (!hasEffect(state, "adaptive_tide") || !state.combat) return 1;
++  // 2g: only called from modifiers.js's own value fn for effect:adaptive_tide
++  // (kind-gated .physical entry) -- already gated on source presence.
++  if (!state.combat) return 1;
+   return 1 - Math.min(state.combat.player.adaptiveTidePhysicalStacks || 0, 5) * 0.05;
+ }
+ function adaptiveTideMagicMultiplier(state) {
+-  if (!hasEffect(state, "adaptive_tide") || !state.combat) return 1;
++  // 2g: see adaptiveTidePhysicalMultiplier's own note just above (.magic entry).
++  if (!state.combat) return 1;
+   return 1 - Math.min(state.combat.player.adaptiveTideMagicStacks || 0, 5) * 0.05;
+ }
+ 
+@@ -1677,7 +1704,9 @@ function adaptiveTideMagicMultiplier(state) {
+ // damage-value cap rather than a percentage multiplier, so it's applied
+ // as the very last step in the chain, on the fully-mitigated damage value.
+ function applyUnyieldingWall(state, dmg) {
+-  if (!hasEffect(state, "unyielding_wall") || !state.combat) return dmg;
++  // 2g: only called from modifiers.js's own registerBehavior for
++  // effect:unyielding_wall -- already gated on source presence.
++  if (!state.combat) return dmg;
+   const combat = state.combat;
+   if ((combat.player.unyieldingWallCooldown || 0) > 0) return dmg;
+   const cap = Math.round(state.maxHealth * 0.25);
+@@ -1694,7 +1723,9 @@ function applyUnyieldingWall(state, dmg) {
+ // rest of the fight once gained), so it's approximated the same way for
+ // consistency. Stacks are grown in applyActionTypeTracking below.
+ function momentumUnboundMultiplier(state) {
+-  if (!hasEffect(state, "momentum_unbound") || !state.combat) return 1;
++  // 2g: only called from modifiers.js's own value fn for
++  // effect:momentum_unbound -- already gated on source presence.
++  if (!state.combat) return 1;
+   return 1 + Math.min(state.combat.player.momentumUnboundStacks || 0, 6) * 0.05;
+ }
+ 
+@@ -1771,7 +1802,9 @@ function applyActionTypeTracking(state, actionType) {
+   if (!state.combat) return [];
+   const combat = state.combat;
+   const lines = [];
+-  if (hasEffect(state, "momentum_unbound") && combat.player.lastActionType && combat.player.lastActionType !== actionType && (combat.player.momentumUnboundStacks || 0) < 6) {
++  // 2g: swapped the raw hasEffect for sourceActiveOn, same stack-growth
++  // shape as tempered_steel/momentum/worthy_challenge (see that note).
++  if (sourceActiveOn(state, { kind: "effect", id: "momentum_unbound" }) && combat.player.lastActionType && combat.player.lastActionType !== actionType && (combat.player.momentumUnboundStacks || 0) < 6) {
+     combat.player.momentumUnboundStacks = (combat.player.momentumUnboundStacks || 0) + 1;
+     lines.push(`Momentum Unbound builds — the shift in rhythm adds +5% damage (now +${combat.player.momentumUnboundStacks * 5}%).`);
+   }
+@@ -1795,7 +1828,11 @@ function applyActionTypeTracking(state, actionType) {
+ // "previous" use. "An ability" is read to include the plain Attack too —
+ // the same generic actionKey Endless Study already treats uniformly.
+ function applyWanderersReward(state, actionKey) {
+-  if (!hasEffect(state, "wanderers_reward") || !state.combat) return [];
++  // 2g: swapped the raw hasEffect for sourceActiveOn -- kept explicit
++  // (not just relying on runHookEntry's own internal gate below) since
++  // the recentActionKeys tracking after it should stay gated exactly as
++  // today, not run unconditionally.
++  if (!sourceActiveOn(state, { kind: "effect", id: "wanderers_reward" }) || !state.combat) return [];
+   // Migrated (task 40, 24 Nov) -- see modifiers.js's own
+   // effect:wanderers_reward/wanderersRewardGrant, dispatched BY KEY at
+   // this function's own 8 real call sites (unchanged). The grant check
+@@ -1817,7 +1854,8 @@ function applyWanderersReward(state, actionKey) {
+ // combat.player.endlessStudyKeys. Called only from the tactic/elemental-ability
+ // action functions, never from playerAttack.
+ function applyPerfectMemory(state, actionKey) {
+-  if (!hasEffect(state, "perfect_memory") || !state.combat) return [];
++  // 2g: see applyWanderersReward's own note just above.
++  if (!sourceActiveOn(state, { kind: "effect", id: "perfect_memory" }) || !state.combat) return [];
+   if (!state.combat.player.perfectMemoryKeys) state.combat.player.perfectMemoryKeys = [];
+   // Migrated (task 40, 24 Nov) -- see modifiers.js's own
+   // effect:perfect_memory/perfectMemoryGrant, dispatched BY KEY at this
+@@ -4024,7 +4062,10 @@ function beginTurn(state) {
+   // nonzero at a time, rather than an independent per-stack timer. Its
+   // re-roll always favors the player (there's no "no bonus" outcome), so
+   // it also counts as "a random effect favors you" for Twist of Fate.
+-  if (hasEffect(state, "winds_of_change")) {
++  // 2g: swapped the raw hasEffect for sourceActiveOn -- still needed here
++  // even though runHookEntry below has its own internal gate, since the
++  // onFavorableRoll fan-out on the next line has no gate of its own.
++  if (sourceActiveOn(state, { kind: "effect", id: "winds_of_change" })) {
+     lines.push(...runHookEntry("effect:winds_of_change", state, "player", { state, holder: state, role: "player" }));
+     lines.push(...runReactionHook("applyAndReact.onFavorableRoll", state, "player", { state, holder: state, role: "player" }));
+   }
+@@ -4527,7 +4568,9 @@ function applyPlayerDamage(state, dmg) {
+ // consumes Temporary Health, mirroring where Shield Wall/Master Duelist
+ // already sit in the existing damage-reduction chain.
+ function applyUnbrokenLine(state, dmg) {
+-  if (!state.combat || !hasEffect(state, "unbroken_line")) return dmg;
++  // 2g: only called from modifiers.js's own registerBehavior for
++  // effect:unbroken_line -- already gated on source presence.
++  if (!state.combat) return dmg;
+   const combat = state.combat;
+   const reduced = combat.player.damageReductionTurns > 0 ? Math.round(dmg * 0.75) : dmg;
+   if (dmg > 0) {
+@@ -5893,7 +5936,9 @@ function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
+   edmg = calculateIncomingDamage(state, "player", { state, holder: state, role: "player", kind, edmg }).edmg;
+   edmg = applyDamageCap(state, "player", { state, holder: state, role: "player", edmg });
+   const absorbLines = applyPlayerDamage(state, edmg);
+-  if (edmg > 0 && hasEffect(state, "adaptive_tide")) {
++  // 2g: swapped the raw hasEffect for sourceActiveOn, same stack-growth
++  // shape as momentum_unbound/tempered_steel above.
++  if (edmg > 0 && sourceActiveOn(state, { kind: "effect", id: "adaptive_tide" })) {
+     const key = kind === "magic" ? "adaptiveTideMagicStacks" : "adaptiveTidePhysicalStacks";
+     combat[key] = Math.min(5, (combat[key] || 0) + 1);
+   }
+@@ -6745,7 +6790,9 @@ function useApothecaryAbility(state, key, targetArg) {
+   if (!state.combat) return [`Nothing to ${a.name.toLowerCase()} outside a fight. Try 'explore' if you're looking for one.`];
+   if (!classHasApothecary(state)) return [`${a.name} isn't something your training covers. Try your class's own ability instead.`];
+   if (state.knowledge < a.knowledgeReq && !activationRestrictionsBypassed(state)) return [`You don't know that yet. (needs Knowledge ${a.knowledgeReq}+)`];
+-  if ((state.combat.cooldowns[key] || 0) > 0 && !hasEffect(state, "perfect_recall")) return [`${a.name} is still recovering — ${state.combat.cooldowns[key]} more turn(s).`];
++  // 2g: swapped the raw hasEffect for hasModifier, same registry-aware
++  // presence check Feint's own cooldown gate (useFeint, above) already uses.
++  if ((state.combat.cooldowns[key] || 0) > 0 && !hasModifier(state, "player", "effect:perfect_recall")) return [`${a.name} is still recovering — ${state.combat.cooldowns[key]} more turn(s).`];
+ 
+   const onMatch = (targetArg || "").trim().match(/^on\s+(.+)$/i);
+   let ally = null;

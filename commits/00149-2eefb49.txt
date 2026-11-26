@@ -1,0 +1,44 @@
+range: 9a23b7a3a5b06fa2d197436a59ce18f994a5b5df..2eefb49387f5cca14116c5c91e79461de0d78242
+=== 2eefb49387f5cca14116c5c91e79461de0d78242 2026-11-26 21:58:27 +0000
+2g: eliminate Bucket A hasEffect calls in combat.js (68 -> 34)
+Closes out task #52 of Phase 2g. ~26 ids/functions, each independently
+verified against real source. Same three shapes as the set-tier batch:
+
+1. Dead checks inside functions ONLY ever called from their own
+   modifiers.js value/behavior function (already gated on source
+   presence): kingslayerMultiplier, huntersInstinctMultiplier,
+   momentumMultiplier, applyMasterDuelist, arcaneOverflowMultiplier,
+   executionProtocolMultiplier, temporalEchoMultiplier,
+   foreseenStrikeDefMultiplier, loadedDiceMultiplier,
+   precisionFormulaMultiplier, preparedResponseMultiplier,
+   sharedBurdenMultiplier, adaptiveTidePhysicalMultiplier,
+   adaptiveTideMagicMultiplier, applyUnyieldingWall,
+   momentumUnboundMultiplier, applyUnbrokenLine, perfectBalanceBonus,
+   expandingMindMagicBonus, applyEndlessStudy -- checks removed outright.
+
+2. sourceActiveOn swaps where a side effect after the check needs to
+   stay gated (applyWanderersReward/applyPerfectMemory's own
+   recentActionKeys/perfectMemoryKeys tracking; winds_of_change's
+   ungated onFavorableRoll fan-out; masterOfArmsDoubles, the shared
+   presence-check helper 9 other call sites go through).
+
+3. Stack-growth gates with no wrapping registry entry: the crit-chance
+   composite roll's Woven Thread:2/Endless Archive:2/Laughing Gale:2
+   clauses (previous commit); tempered_steel/momentum/worthy_challenge/
+   Blessing of Fortune stack increments (previous commit);
+   momentum_unbound's own stack growth (applyActionTypeTracking);
+   adaptive_tide's own stack growth (mitigateAndApplyHitOnPlayer).
+
+One hasModifier swap: perfect_recall's apothecary-ability cooldown
+check now uses the same registry-aware hasModifier() Feint's own
+identical check (useFeint, above) already used, instead of the raw
+hasEffect primitive.
+
+Suite 651/651, audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 101 ++++++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 74 insertions(+), 27 deletions(-)
