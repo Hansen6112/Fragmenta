@@ -1,0 +1,63 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 8a5c15f..5307d25 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -1403,7 +1403,13 @@ function hasUsableConsumable(state) {
+ // every point the player actually takes damage (both branches of
+ // resolveEnemyAttackOnPlayer, and attemptFlee's failed-flee hit).
+ function applyShieldWall(state, dmg) {
+-  if (!hasSetTier(state, "Legion", 4)) return dmg;
++  // 2g: the set-tier gate used to live here directly, but this function
++  // is reached ONLY through modifiers.js's own
++  // registerBehavior("shieldWallApply", ...), which the registry already
++  // gates on source presence (sourceActiveOn, set:Legion:4) and holder
++  // role before ever calling this -- so the check here was always true
++  // by the time execution reached it. Confirmed via grep: no other
++  // caller exists anywhere in the codebase.
+   return Math.round(dmg * 0.9);
+ }
+ 
+@@ -1425,7 +1431,10 @@ function applyShieldWall(state, dmg) {
+ // branches below rather than folded into either one's own math.
+ function dragonslayerMultiplier(state, creature) {
+   if (creature.monsterTag !== "draven") return 1;
+-  return hasSetTier(state, "Drake Hunter", 6) ? 1.2 : 1;
++  // 2g: see applyShieldWall's own note just above -- only called from
++  // modifiers.js's own value fn for set:Drake Hunter:6, already gated
++  // on source presence before this ever runs.
++  return 1.2;
+ }
+ 
+ // Bleed Exploitation (Bonecaller 6pc): +20% damage while the TARGET is
+@@ -1433,7 +1442,10 @@ function dragonslayerMultiplier(state, creature) {
+ // already inflicted on it).
+ function bleedExploitationMultiplier(state) {
+   if (!state.combat || !activeEnemySlot(state.combat).bleed) return 1;
+-  return hasSetTier(state, "Bonecaller", 6) ? 1.2 : 1;
++  // 2g: see applyShieldWall's own note above -- only called from
++  // modifiers.js's own value fn for set:Bonecaller:6, already gated on
++  // source presence before this ever runs.
++  return 1.2;
+ }
+ 
+ // Siege Corps's 6pc set bonus grants a one-shot +2 Attack "next turn"
+@@ -6507,9 +6519,17 @@ function attemptFlee(state) {
+   // v0.11: shared ratio mitigation — see mitigate().
+   const fleeAtk = effectiveEnemyAtk(state, creature);
+   let edmg = creature.atk === 0 ? 0 : Math.max(1, Math.round(mitigate(randInt(Math.max(1, fleeAtk - 1), fleeAtk + 1), effectivePlayerDef(state))));
++  // 2g: dispatches through the registry's own always:stonewarden_first_hit
++  // entry (modifiers.js, firstHitTakenRatio) instead of a raw hasSetTier
++  // check -- same flag (combat.player.firstHitTakenUsed), same ratio
++  // (0.75 if Stonewarden:6 worn, else a no-op 1), same single rounding
++  // step. Consuming the flag here first means mitigateAndApplyHitOnPlayer's
++  // own later dispatch of the SAME entry (below) sees it already used and
++  // skips, exactly as today -- firstHitTakenRatio's own `ctx.edmg <= 0 ||
++  // host.firstHitTakenUsed` guard already matches this outer condition.
+   if (edmg > 0 && !combat.player.firstHitTakenUsed) {
+-    combat.player.firstHitTakenUsed = true;
+-    if (hasSetTier(state, "Stonewarden", 6)) edmg = Math.round(edmg * 0.75);
++    const ratio = runHookEntryValue("always:stonewarden_first_hit", state, "player", { state, holder: state, role: "player", edmg });
++    if (typeof ratio === "number") edmg = Math.round(edmg * ratio);
+   }
+   const fleeHit = mitigateAndApplyHitOnPlayer(state, edmg, "physical");
+   edmg = fleeHit.edmg;

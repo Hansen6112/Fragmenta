@@ -1,0 +1,30 @@
+range: dd8ba311e19c87ec21adfe1b6e80979a22a6899f..ff6041ca82442cd663da8c22f5e0398442ae114e
+=== ff6041ca82442cd663da8c22f5e0398442ae114e 2026-11-26 21:44:15 +0000
+2g: eliminate redundant/dead hasSetTier calls -- Legion:4, Drake Hunter:6, Bonecaller:6, Stonewarden:6
+First 2g batch (Phase 2 close-out: zero hasEffect/hasSetTier calls left
+in combat code). Four call sites, each independently verified against
+real source before touching:
+
+- applyShieldWall/dragonslayerMultiplier/bleedExploitationMultiplier
+  (Legion:4/Drake Hunter:6/Bonecaller:6): each is called ONLY from its
+  own modifiers.js value function, which the registry already gates
+  on source presence (sourceActiveOn) before ever invoking -- confirmed
+  via grep, no other caller exists anywhere. The hasSetTier check
+  inside each was always true by the time it ran; removed as dead code.
+
+- Stonewarden:6's flee-path hit (combat.js, attemptFlee's failed-flee
+  branch): a genuine third call site duplicating the registry's own
+  always:stonewarden_first_hit entry (firstHitTakenRatio) by hand. Now
+  dispatches through runHookEntryValue instead -- same flag
+  (combat.player.firstHitTakenUsed), same ratio, same single rounding
+  step, so mitigateAndApplyHitOnPlayer's own later dispatch of the same
+  entry still correctly no-ops (flag already consumed).
+
+Suite 651/651, audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 30 +++++++++++++++++++++++++-----
+ 1 file changed, 25 insertions(+), 5 deletions(-)
