@@ -1,0 +1,35 @@
+range: d80c7bfa335fd1e6e97ef6bc6a317b63581f9906..61af2e04f6c201388adfd3d975d95393858d3e43
+=== 61af2e04f6c201388adfd3d975d95393858d3e43 2026-11-26 22:26:04 +0000
+2g: test-strike proof -- one new gear effect, one new set bonus, data only
+Per the spec's own 2g deliverable: "one new gear effect and one new set
+bonus, written as data only, working for a player, an ally and an
+enemy holder (with R1 and R2 forced on in the test)."
+
+Two brand-new entries (effect:test_strike_2g_gear, set:Test Strike
+Proof:2), each authored directly with holders: ['player', 'ally',
+'enemy'] from the start -- "R1 and R2 forced on" for this proof means
+exactly that: there's no existing player-only entry to widen (unlike
+the Amendment 1 proof), so the new entries are simply written with the
+widened holders set from day one. Both registered at runtime inside
+the test's own page.evaluate (same disposable-registration convention
+test_strike, step 1e's own proof, used for PLAYER_ACTION_DEFS) --
+never written to modifiers.js/items.js/sets.js on disk.
+
+13/13 assertions pass: for each of player/ally/enemy, confirms the
+entry is absent from calculateOutgoingMultiplier's own byKey before
+the holder "has" it (mocked window.hasEffect/hasSetTier, by strict
+object identity so no other real entry is ever accidentally
+triggered), then present with the exact expected factor once it does
+-- proving dispatch through the EXISTING calculateDamage.outgoing
+fan-out (generalized for all three roles since task #2) reaches a
+genuinely new mechanic with zero engine code added.
+
+Suite 664/664 (651 + 13 new), audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/tests/phase2_2g_test_strike_proof_ledger.js | 131 ++++++++++++++++++++++
+ tools/tests/run_all.js                            |   1 +
+ 2 files changed, 132 insertions(+)
