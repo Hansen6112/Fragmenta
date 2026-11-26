@@ -1,0 +1,46 @@
+range: 2eefb49387f5cca14116c5c91e79461de0d78242..4f389d63f30b9194ce91e2f17e70dec086b7a3e6
+=== 4f389d63f30b9194ce91e2f17e70dec086b7a3e6 2026-11-26 22:07:07 +0000
+2g: combat.js reaches zero hasEffect/hasSetTier calls
+Closes out tasks #53/#54/#55 of Phase 2g. The fork's earlier "inert"
+categorization for several ids (immutable, fortunes_favor,
+natures_persistence, ordered_mind, blessing_of_acceptance, unbreakable,
+corrosionproof) was wrong -- applyPlayerStatus's whole defensive block
+is live, reachable code; it's simply unexercised by current content
+(no enemy ability yet inflicts a negative status on the player), which
+is a different thing from dead code. All 7 ids needed the same
+sourceActiveOn swap as everything else, not special handling.
+
+Remaining ids resolved, all via the same two patterns already
+established in this batch's two prior commits:
+
+- sourceActiveOn swap, no registry entry needed (nothing here is
+  hook-dispatched): cleansing_current/calm_waters (applyStatusCleanseOnHeal),
+  mercy_of_the_veil (checkMercyOfTheVeil), trailblazer (activationRestrictionsBypassed/
+  consumeTrailblazer), unlikely_outcome (applyLaughingGaleMissBonuses),
+  soul_ledger (applySoulLedger), deep_cut/hamstring (applyPhysicalOnHitEffects),
+  endless_bloom (an Events.on("combat.started") listener), borrowed_seconds
+  (shared helper, 2 real callers), tempered_steel (dead, 1 caller).
+
+- sourceActiveOn swap where the check is the real gate behind an
+  unconditional (source:{kind:"always"}) registry dispatch: the three
+  generic Sanguivorum mitigation id-lists (ONE_HIT_MITIGATION_EFFECT_IDS/
+  REPEATABLE_MITIGATION_EFFECT_IDS/ALLY_PROTECTION_EFFECT_IDS, each
+  wrapping a .some() check), sangCuDefenderMitigation (Smuggler's
+  Guard/Commander's Poise), and two more tickEnemyPassives-direct
+  checks (Handler's Resilience/Conqueror's Resolve) that had no
+  registry entry at all but are called from only one place.
+
+Also cleaned up 6 stale prose comments that referenced "hasEffect(" as
+literal text, inflating the audit's own grep-based count after earlier
+edits added new ones.
+
+combat.js's own M2 count: 68 hasEffect + 26 hasSetTier (94 total) at
+the start of 2g -> 0 + 0. Suite 651/651, audit 0 errors (110->109
+warnings).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js | 118 ++++++++++++++++++++++++++++++++++++----------------
+ 1 file changed, 81 insertions(+), 37 deletions(-)

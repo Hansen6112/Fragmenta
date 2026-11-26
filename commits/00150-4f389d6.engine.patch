@@ -1,0 +1,313 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index d94ee8a..cae4b0a 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -239,8 +239,8 @@ function combatOngoing(state) {
+ 
+ // Master of Arms (Artifact): whether the given effect id is specifically
+ // on the equipped Main Hand item (not just equipped somewhere), so its
+-// "doubles if applicable" clause can target only that source. hasEffect()
+-// itself is a pure presence check across all gear and can't answer this.
++// "doubles if applicable" clause can target only that source. A general
++// presence check across all gear can't answer this.
+ function mainhandGrants(state, effectId) {
+   const item = state.equipment.mainhand;
+   const def = item && ITEM_DEFS[item];
+@@ -611,33 +611,40 @@ function applyPlayerStatus(state, key, spec, sourceName) {
+   if (DAMAGE_TYPES_V2 && isStatusImmune(state, key)) {
+     return [`You're immune to ${label}.`];
+   }
+-  if (hasEffect(state, "immutable")) {
++  // 2g: this whole block is live, reachable protective logic -- the
++  // fork's own earlier survey mistook "no current content exercises it"
++  // for "dead code." None of these 7 ids had a registry entry at all;
++  // each hasEffect swapped for sourceActiveOn below, same primitive, no
++  // behavior change, no new registry entries needed since nothing here
++  // is hook-dispatched (every check is a sequential, early-returning
++  // presence test already, not a fan-out).
++  if (sourceActiveOn(state, { kind: "effect", id: "immutable" })) {
+     return [`Immutable turns ${label} aside completely.`];
+   }
+-  if (hasEffect(state, "fortunes_favor") && Math.random() < 0.35) {
++  if (sourceActiveOn(state, { kind: "effect", id: "fortunes_favor" }) && Math.random() < 0.35) {
+     combat.player.orderedMindDefStacks = Math.min(12, (combat.player.orderedMindDefStacks || 0) + 2);
+     return [`Fortune's Favor lets ${label} simply fail to take hold.`];
+   }
+   const isCrowdControl = !!spec.debuff && !spec.dot;
+-  if (isCrowdControl && hasEffect(state, "natures_persistence") && !combat.player.naturesPersistenceUsed) {
++  if (isCrowdControl && sourceActiveOn(state, { kind: "effect", id: "natures_persistence" }) && !combat.player.naturesPersistenceUsed) {
+     combat.player.naturesPersistenceUsed = true;
+-    if (hasEffect(state, "ordered_mind")) combat.player.orderedMindDefStacks = Math.min(12, (combat.player.orderedMindDefStacks || 0) + 2);
++    if (sourceActiveOn(state, { kind: "effect", id: "ordered_mind" })) combat.player.orderedMindDefStacks = Math.min(12, (combat.player.orderedMindDefStacks || 0) + 2);
+     return [`Nature's Persistence shrugs off ${label} entirely.`];
+   }
+   let turns = spec.turns != null ? spec.turns : 2;
+   // Blessing of Acceptance (Regalia of the Final Veil 2pc): every negative
+   // status lands with 1 fewer round of duration (never below 1).
+-  if (hasEffect(state, "blessing_of_acceptance")) turns = Math.max(1, turns - 1);
++  if (sourceActiveOn(state, { kind: "effect", id: "blessing_of_acceptance" })) turns = Math.max(1, turns - 1);
+   let debuff = spec.debuff;
+-  if (debuff && debuff.def && (hasEffect(state, "unbreakable") || hasEffect(state, "corrosionproof"))) {
++  if (debuff && debuff.def && (sourceActiveOn(state, { kind: "effect", id: "unbreakable" }) || sourceActiveOn(state, { kind: "effect", id: "corrosionproof" }))) {
+     // Unbreakable (Legendary): the FIRST Defense reduction each fight is
+     // ignored outright. Corrosionproof (defensive utility): every
+     // Defense-reducing status lands 2 points softer, floored at 0.
+-    if (hasEffect(state, "unbreakable") && !combat.player.unbreakableUsed) {
++    if (sourceActiveOn(state, { kind: "effect", id: "unbreakable" }) && !combat.player.unbreakableUsed) {
+       combat.player.unbreakableUsed = true;
+       return [`Unbreakable ignores the Defense loss from ${label} entirely.`];
+     }
+-    if (hasEffect(state, "corrosionproof")) {
++    if (sourceActiveOn(state, { kind: "effect", id: "corrosionproof" })) {
+       debuff = { ...debuff, def: Math.min(0, debuff.def + 2) };
+     }
+   }
+@@ -688,7 +695,7 @@ function applyAbilityInflict(state, inflict, sourceName) {
+ // player-only defensive interceptors applyPlayerStatus checks first
+ // (Immutable, Fortune's Favor, Nature's Persistence, Unbreakable/
+ // Corrosionproof, Blessing of Acceptance all key off the PLAYER's own
+-// equipped Divine Regalia/Legendary gear via hasEffect(state, ...) — no
++// equipped Divine Regalia/Legendary gear via the player's own state — no
+ // ally has an equivalent gear-immunity system today, so applying one of
+ // those checks to an ally would be inventing a mechanic, not wiring an
+ // existing one). Lazy-initialized like ally.buffs, so a save from before
+@@ -855,7 +862,9 @@ function tickPlayerStatuses(state) {
+ // actually cleared something, Calm Waters grants a temporary Defense/Magic
+ // bonus on top. Called from applyHeal.
+ function applyStatusCleanseOnHeal(state) {
+-  if (!hasEffect(state, "cleansing_current")) return [];
++  // 2g: no registry entry wraps this -- called directly from applyHeal.
++  // Swapped the raw hasEffect for sourceActiveOn, same primitive.
++  if (!sourceActiveOn(state, { kind: "effect", id: "cleansing_current" })) return [];
+   const combat = state.combat;
+   if (!combat || !combat.player.playerStatuses) return [];
+   const keys = Object.keys(combat.player.playerStatuses);
+@@ -864,7 +873,7 @@ function applyStatusCleanseOnHeal(state) {
+   const cleared = combat.player.playerStatuses[key];
+   delete combat.player.playerStatuses[key];
+   const lines = [`Cleansing Current washes away ${cleared.name}.`];
+-  if (hasEffect(state, "calm_waters")) {
++  if (sourceActiveOn(state, { kind: "effect", id: "calm_waters" })) {
+     combat.player.calmWatersDefBonus = Math.min(12, (combat.player.calmWatersDefBonus || 0) + 4);
+     combat.player.calmWatersMagicBonus = Math.min(12, (combat.player.calmWatersMagicBonus || 0) + 4);
+     combat.player.calmWatersTurns = 2;
+@@ -884,7 +893,9 @@ function applyStatusCleanseOnHeal(state) {
+ // the same reactive-safety-net pattern Hold the Line/Rooted Resolve use.
+ function checkMercyOfTheVeil(state) {
+   const combat = state.combat;
+-  if (!combat || !hasEffect(state, "mercy_of_the_veil") || combat.player.mercyOfTheVeilUsed) return [];
++  // 2g: no registry entry wraps this -- called directly from pipeline.js.
++  // Swapped the raw hasEffect for sourceActiveOn, same primitive.
++  if (!combat || !sourceActiveOn(state, { kind: "effect", id: "mercy_of_the_veil" }) || combat.player.mercyOfTheVeilUsed) return [];
+   if (state.health > state.maxHealth * 0.4) return [];
+   combat.player.mercyOfTheVeilUsed = true;
+   const hadAny = Object.keys(combat.player.playerStatuses || {}).length > 0;
+@@ -1736,7 +1747,9 @@ function momentumUnboundMultiplier(state) {
+ // the rest of the fight, capped at +30% (15 stacks). Stacks grow after
+ // the roll, at the bottom of rollPlayerDamage.
+ function temperedSteelMultiplier(state) {
+-  if (!hasEffect(state, "tempered_steel") || !state.combat) return 1;
++  // 2g: only called from modifiers.js's own value fn for
++  // effect:tempered_steel -- already gated on source presence.
++  if (!state.combat) return 1;
+   return 1 + Math.min(state.combat.player.temperedSteelStacks || 0, 15) * 0.02;
+ }
+ 
+@@ -1758,7 +1771,11 @@ function masterCraftsmanMultiplier(atk, creature) {
+ // self-gating via the modulus, the same shape Calming Presence/Work
+ // Refines already use.
+ function borrowedSecondsActive(state) {
+-  return hasEffect(state, "borrowed_seconds") && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 4 === 0;
++  // 2g: this shared helper has 2 real callers (modifiers.js's own value
++  // fn for the damage-bonus branch, and combat.js's own cooldown-refund
++  // branch below) -- swapped the raw hasEffect for sourceActiveOn, same
++  // primitive, check stays since both callers need it.
++  return sourceActiveOn(state, { kind: "effect", id: "borrowed_seconds" }) && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 4 === 0;
+ }
+ 
+ // Timeless Guard (Divine Regalia — Chronal Dial): the first incoming
+@@ -1768,8 +1785,8 @@ function borrowedSecondsActive(state) {
+ // step 2c rework): folded into the registry's "effect:timeless_guard"
+ // entry (cooldownGatedBlock behavior), dispatched alongside Guardian
+ // Spirit/Guided Footsteps/etc. in pipeline.js's rollToHit instead of
+-// being its own standalone function with its own direct hasEffect()
+-// call. Its cooldown is still ticked once per round -- see beginTurn's
++// being its own standalone function with its own direct presence check.
++// Its cooldown is still ticked once per round -- see beginTurn's
+ // tickModifierCooldown call, in place of the old
+ // combat.player.timelessGuardCooldown decrement.
+ 
+@@ -1878,7 +1895,9 @@ function activationRestrictionsBypassed(state) {
+   const combat = state.combat;
+   if (!combat) return false;
+   if (combat.player.avatarOfFreedomTurns > 0) return true;
+-  return hasEffect(state, "trailblazer") && !combat.player.trailblazerUsed;
++  // 2g: no registry entry wraps this -- swapped the raw hasEffect for
++  // sourceActiveOn, same primitive.
++  return sourceActiveOn(state, { kind: "effect", id: "trailblazer" }) && !combat.player.trailblazerUsed;
+ }
+ 
+ // Consumes Trailblazer's one-time bypass, unconditionally, the moment any
+@@ -1886,7 +1905,7 @@ function activationRestrictionsBypassed(state) {
+ // actually needed for that particular use, the same "first use, no matter
+ // what" consumption Perfect Timing (Mythic) already established.
+ function consumeTrailblazer(state) {
+-  if (state.combat && hasEffect(state, "trailblazer") && !state.combat.player.trailblazerUsed) {
++  if (state.combat && sourceActiveOn(state, { kind: "effect", id: "trailblazer" }) && !state.combat.player.trailblazerUsed) {
+     state.combat.player.trailblazerUsed = true;
+   }
+ }
+@@ -2000,7 +2019,12 @@ function applyBeneficialEffectBonuses(state, duration) {
+ // final damage x0.90, once/combat") — a fourth id on the same mechanism.
+ const ONE_HIT_MITIGATION_EFFECT_IDS = ["sang_mil_ie001_hardened_formation", "sang_mil_ie007_officers_bearing", "sang_sec_ie004_watchmans_resilience", "sang_iag_ie002_contractors_endurance"];
+ function hasOneHitMitigationEffect(carrier) {
+-  return ONE_HIT_MITIGATION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
++  // 2g: dispatched unconditionally (source:{kind:"always"}) from
++  // modifiers.js's own always:sang_one_hit_mitigation entry -- the real
++  // gate lives here, by design (the once-per-combat flag consumption
++  // must happen regardless, same reasoning as Storm Barrier/Stonewarden).
++  // Swapped the raw hasEffect for sourceActiveOn.
++  return ONE_HIT_MITIGATION_EFFECT_IDS.some((id) => sourceActiveOn(carrier, { kind: "effect", id }));
+ }
+ function enemyOneHitMitigationMultiplier(creature) {
+   if (!creature.enemyFirstHitTakenUsed && hasOneHitMitigationEffect(creature)) {
+@@ -2033,7 +2057,8 @@ function enemyOneHitMitigationMultiplier(creature) {
+ // further action.
+ const REPEATABLE_MITIGATION_EFFECT_IDS = ["sang_sec_ie007_duelists_bulwark", "sang_iag_ie006_champions_poise"];
+ function hasRepeatableMitigationEffect(carrier) {
+-  return REPEATABLE_MITIGATION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
++  // 2g: see hasOneHitMitigationEffect's own note above (always:sang_repeatable_mitigation).
++  return REPEATABLE_MITIGATION_EFFECT_IDS.some((id) => sourceActiveOn(carrier, { kind: "effect", id }));
+ }
+ function enemyRepeatableMitigationMultiplier(creature) {
+   if (!hasRepeatableMitigationEffect(creature)) return 1;
+@@ -2347,11 +2372,14 @@ function applyOpeningReachForActor(actor, dmg, role) {
+ function applyPhysicalOnHitEffects(state, creature) {
+   const lines = [];
+   const combat = state.combat;
+-  if (hasEffect(state, "deep_cut") && Math.random() < deepCutChance(state)) {
++  // 2g: no registry entry wraps either of these -- called directly from
++  // playerAttack/Decoy/Ambush/Disarm. Swapped the raw hasEffect for
++  // sourceActiveOn, same primitive.
++  if (sourceActiveOn(state, { kind: "effect", id: "deep_cut" }) && Math.random() < deepCutChance(state)) {
+     activeEnemySlot(combat).bleed = { turnsLeft: 3, dmgPerTurn: Math.max(1, Math.round(state.atk / 6)) };
+     lines.push(`${withThe(creature.name, true)} is left bleeding.`);
+   }
+-  if (hasEffect(state, "hamstring") && !activeEnemySlot(combat).hamstringApplied) {
++  if (sourceActiveOn(state, { kind: "effect", id: "hamstring" }) && !activeEnemySlot(combat).hamstringApplied) {
+     activeEnemySlot(combat).hamstringApplied = true;
+     activeEnemySlot(combat).enemyAtkPenalty = (activeEnemySlot(combat).enemyAtkPenalty || 0) + 1;
+     lines.push(`Your strike catches the tendon — ${withThe(creature.name, false)}'s attacks are weaker for the rest of this fight.`);
+@@ -3749,7 +3777,8 @@ function applyPackAuraBuff(combat, creature, spec) {
+ // charge available, only one fires, and only that one consumes a charge.
+ const ALLY_PROTECTION_EFFECT_IDS = ["sang_sec_ie005_gatekeepers_stand", "sang_sec_ie010_protective_intercession", "sang_cu_ie010_officers_intercession"];
+ function hasAllyProtectionEffect(carrier) {
+-  return ALLY_PROTECTION_EFFECT_IDS.some((id) => hasEffect(carrier, id));
++  // 2g: see hasOneHitMitigationEffect's own note above (always:sang_ally_protection).
++  return ALLY_PROTECTION_EFFECT_IDS.some((id) => sourceActiveOn(carrier, { kind: "effect", id }));
+ }
+ // Enemy-side mirror of the reaction above: the player-side version only
+ // ever fires from resolveEnemyAttackOnAlly (an ENEMY hitting a PLAYER
+@@ -3891,12 +3920,17 @@ Events.on("ally.died", ({ ally, state }) => {
+ // way). Shared by rollPlayerDamage and allyAggressiveAction — the two
+ // places something else's damage against an enemy creature is computed.
+ function sangCuDefenderMitigation(creature) {
++  // 2g: dispatched unconditionally (source:{kind:"always"}) from
++  // modifiers.js's own always:sang_cu_defender_mitigation entry -- the
++  // real gate lives here, by design (both ids' own cooldown/once-flag
++  // consumption must happen regardless, same reasoning as Storm
++  // Barrier/Stonewarden). Swapped the raw hasEffect for sourceActiveOn.
+   let mult = 1;
+-  if (hasEffect(creature, "sang_cu_ie006_smugglers_guard") && !(creature.smugglersGuardCooldown > 0)) {
++  if (sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie006_smugglers_guard" }) && !(creature.smugglersGuardCooldown > 0)) {
+     creature.smugglersGuardCooldown = 4;
+     mult *= 0.9;
+   }
+-  if (hasEffect(creature, "sang_cu_ie011_commanders_poise") && !creature.commandersPoiseUsed) {
++  if (sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie011_commanders_poise" }) && !creature.commandersPoiseUsed) {
+     creature.commandersPoiseUsed = true;
+     mult *= 0.9;
+   }
+@@ -4826,7 +4860,7 @@ function tickEnemyPassives(state, e) {
+   }
+   // ---- Sanguivorum Criminal Underworld item effects: per-round cooldown
+   // ticks and HP-threshold reactions. Unlike the passives loop above,
+-  // these key off hasEffect(creature, ...) directly (an equipped item, not
++  // these key off the wearer's own equipped-item presence directly (not
+   // a creature.passives entry) — same wearer-neutral convention as
+   // guarded_strike/brace already use elsewhere in this file.
+   if (creature.smugglersGuardCooldown > 0) creature.smugglersGuardCooldown -= 1;
+@@ -4860,12 +4894,15 @@ function tickEnemyPassives(state, e) {
+     // single countdown, not a separate one.
+     creature.bankedAttackDmgMultBonus = 0;
+   }
+-  if (hasEffect(creature, "sang_cu_ie008_handlers_resilience") && !creature.handlersResilienceUsed && e.hp / e.maxHp <= 0.5) {
++  // 2g: no registry entry wraps either of these -- called directly from
++  // tickEnemyPassives' own per-round tick. Swapped the raw hasEffect for
++  // sourceActiveOn, same primitive.
++  if (sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie008_handlers_resilience" }) && !creature.handlersResilienceUsed && e.hp / e.maxHp <= 0.5) {
+     creature.handlersResilienceUsed = true;
+     applyEnemySelfModifier(state.combat, creature, { def: 5, turns: 2 });
+     lines.push(`${withThe(creature.name, true)} grits through the pain, armor tightening.`);
+   }
+-  if (hasEffect(creature, "sang_cu_ie013_conquerors_resolve") && !creature.conquerorsResolveUsed && e.hp / e.maxHp <= 0.35) {
++  if (sourceActiveOn(creature, { kind: "effect", id: "sang_cu_ie013_conquerors_resolve" }) && !creature.conquerorsResolveUsed && e.hp / e.maxHp <= 0.35) {
+     creature.conquerorsResolveUsed = true;
+     applyEnemySelfModifier(state.combat, creature, { atkPct: 0.10, turns: 2 });
+     lines.push(`${withThe(creature.name, true)} fights on, all the harder for the wound.`);
+@@ -4959,8 +4996,8 @@ function riposteCounterOnPlayer(state, creature) {
+ // both. Arena Riposte is an INTRINSIC ability (creature.passives), not an
+ // item effect, so it's gated the same way checkCounteringGuard's own
+ // "counterOnHit" passive lookup is (creature.passives.map(getEnemyAbility)
+-// .find(...)), NOT via hasEffect() (which only ever reads *equipped item*
+-// effects — see hasEffect's own definition in data/effects.js). "No
++// .find(...)), NOT via an equipped-item presence check (which only ever
++// reads *equipped item* effects, never an intrinsic passive). "No
+ // recursive reactions" holds for free from where this is called
+ // (playerAttack's own successful-hit branch, never re-entered by anything
+ // this function itself does): the counter-strike below only ever calls
+@@ -5064,7 +5101,9 @@ function applyLaughingGaleMissBonuses(state) {
+   if (!state.combat) return [];
+   const combat = state.combat;
+   const lines = [];
+-  if (hasEffect(state, "unlikely_outcome") && !combat.player.unlikelyOutcomeGuaranteedCrit) {
++  // 2g: no registry entry wraps this -- swapped the raw hasEffect for
++  // sourceActiveOn, same primitive.
++  if (sourceActiveOn(state, { kind: "effect", id: "unlikely_outcome" }) && !combat.player.unlikelyOutcomeGuaranteedCrit) {
+     combat.player.unlikelyOutcomeGuaranteedCrit = true;
+     lines.push(`Unlikely Outcome — the miss steadies your hand; your next strike is a guaranteed critical hit.`);
+   }
+@@ -5336,8 +5375,8 @@ function buildCombatMenu(state, stage) {
+ // effects (Brace, Riposte, Feinting Edge, Heatproof, Stalwart,
+ // Surefooted, Guarded Strike, Opening Reach, Merchant's Eye, Tactical
+ // Memory, Executioner, ...) are NOT applied — every one of those effects
+-// is currently checked via hasEffect(state, id) against the PLAYER's own
+-// equipment only; there's no engine hook for an enemy to carry one. Left
++// is currently checked against the PLAYER's own equipment only; there's
++// no engine hook for an enemy to carry one. Left
+ // declared-but-inert, consistent with this codebase's existing
+ // inert-effect convention, pending that future engine work.
+ function resolveEnemyEquipment(template, level) {
+@@ -5865,7 +5904,10 @@ Events.on("combat.started", ({ state }) => {
+   // Endless Bloom (Divine Regalia — Seed of First Dawn): a 5-round
+   // Regeneration HoT set up at the moment any fight begins, ticked in
+   // beginTurn the same way burn/bleed are.
+-  if (hasEffect(state, "endless_bloom")) {
++  // 2g: no registry entry wraps this -- an Events.on("combat.started")
++  // listener, not the modifier registry's own fight.start hook. Swapped
++  // the raw hasEffect for sourceActiveOn, same primitive.
++  if (sourceActiveOn(state, { kind: "effect", id: "endless_bloom" })) {
+     const healPerTurn = Math.ceil(state.maxHealth * 0.05);
+     if (healPerTurn > 0) state.combat.player.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
+   }
+@@ -6280,7 +6322,9 @@ function applyRegrowth(state) {
+ // a one-time permanent +1 Health/Magic/Defense choice — see cmdChoose in
+ // engine/parser.js for the "choose health/magic/defense" resolution.
+ function applySoulLedger(state, creature) {
+-  if (!hasEffect(state, "soul_ledger")) return [];
++  // 2g: no registry entry wraps this -- swapped the raw hasEffect for
++  // sourceActiveOn, same primitive.
++  if (!sourceActiveOn(state, { kind: "effect", id: "soul_ledger" })) return [];
+   state.soulLedgerCount = (state.soulLedgerCount || 0) + 1;
+   if (state.soulLedgerCount % 100 === 0) {
+     state.flags.pendingSoulLedgerChoice = true;
