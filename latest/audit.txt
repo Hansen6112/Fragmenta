@@ -1,5 +1,5 @@
 
-WARNINGS (109)
+WARNINGS (106)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -103,16 +103,13 @@ WARNINGS (109)
   [modifiers] SETS.Regalia of the Eternal Forge tier 4 ("perfected_craft") has no registry entry yet (M1)
   [modifiers] SETS.First Sword's Regalia tier 8 ("winters_verdict") has no registry entry yet (M1)
   [modifiers] SETS.First Sword's Regalia tier 10 ("first_swords_legacy,elemental_sovereignty") has no registry entry yet (M1)
-  [modifiers] js/engine/pipeline.js still has 18 hasEffect() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/engine/pipeline.js still has 1 hasSetTier() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/data/sets.js still has 6 hasEffect() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/data/sets.js still has 20 hasSetTier() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/data/synergy.js still has 1 hasEffect() call(s) not yet migrated to the registry (M2)
-  [modifiers] js/data/synergy.js still has 1 hasSetTier() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/engine/pipeline.js still has 2 hasEffect() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/data/sets.js still has 1 hasEffect() call(s) not yet migrated to the registry (M2)
+  [modifiers] js/data/sets.js still has 11 hasSetTier() call(s) not yet migrated to the registry (M2)
 
 [items] live-reachable: 1368/1865; reserved: 497 ({"contract":263,"faction":70,"world_boss (unworn)":20,"hidden_dungeon":3,"quest":11,"exploration":10,"ancient_vault":14,"secret_quest":6,"dungeon":7,"hidden_quest":3,"hidden_temple":6,"ancient_temple":2,"hidden_vault":1,"ancient_titan":1,"forgotten_library":1,"lost_capital":1,"ancient_fortress":1,"hidden_river_shrine":1,"legendary_quest":1,"puzzle_dungeon":1,"hidden_archive":1,"secret_encounter":1,"devotion_quest":72}); R2 violations: 0
 [actions] P4 action-identity checks found: 0 (must be 0)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 109 warning(s) across 53 scripts.
+0 error(s), 106 warning(s) across 53 scripts.

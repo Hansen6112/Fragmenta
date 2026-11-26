@@ -1,0 +1,50 @@
+range: 4f389d63f30b9194ce91e2f17e70dec086b7a3e6..dd2072322ef366b307f3fbb0c940498744c0ba86
+=== dd2072322ef366b307f3fbb0c940498744c0ba86 2026-11-26 22:18:37 +0000
+2g: eliminate hasEffect/hasSetTier calls in pipeline.js, sets.js, synergy.js
+Closes out tasks #56/#57/#58 of Phase 2g. Same sourceActiveOn-swap
+discipline as the two prior commits, independently verified per site:
+
+pipeline.js (18 hasEffect + 1 hasSetTier -> 2 hasEffect, both
+deliberate exceptions): Smuggler's Guard/Commander's Poise-adjacent
+grant sites (sang_cu_ie003_serrated_opening, sang_cu_ie007_duelists_measure,
+dra_e09_black_ice_reserve, each duplicated across the ally-target and
+player-target damage-resolution functions), the tempered_steel/momentum/
+worthy_challenge/Blessing of Fortune stack-growth block (exact duplicate
+of combat.js's own, in the pipeline's own rollPlayerDamageCoreForPipeline),
+evasive_release, world_walker, spell_echo. Left untouched: mirror_soul
+(Tyler's 24 Nov ruling, "stays untouched, inline... final decision") and
+guarded_strike's own Disarm retaliation-defense read (Tyler's 23 Nov
+ruling, "stays its own untouched inline hasEffect(state,'guarded_strike')
+read... genuinely unconditional even on a miss") -- both permanent,
+deliberate exceptions, not gaps.
+
+sets.js (6 hasEffect + 20 hasSetTier -> 1 hasEffect + 11 hasSetTier):
+seven real combat mechanics fixed (spellWardMultiplier, ambushMultiplier,
+armorCrackAmount, riposteMultiplier, regrowthHealPct, deepCutChance,
+hasColdproof -- each independently traced to its real caller in
+combat.js/pipeline.js/data/actions.js/modifiers.js before touching).
+Two functions confirmed genuinely non-combat by tracing their ONLY
+callers to parser.js/jobs.js (already-allowlisted non-combat files):
+trailwiseMultiplier (travel-encounter mechanic) and jobGoldMultiplier
+(contract gold rewards) -- left as-is, pending task #60's own allowlist
+mechanism. describeSetProgress (the `equipment` command's set-progress
+display) genuinely can't migrate to a single dispatch -- it iterates
+every set's every tier generically to render [ACTIVE] tags -- also
+pending #60. hasSetTier's own function declaration in this file
+(sets.js is where the primitive lives) will always match a blind
+text-count; also #60's concern.
+
+synergy.js (1 hasEffect + 1 hasSetTier -> 0 + 0): genericSynergyMultiplier/
+river_harmony, both real combat mechanics called directly from
+pipeline.js's useElementAbility, no registry entry existed for either.
+
+Suite 651/651, audit 0 errors (108->106 warnings).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/sets.js       | 37 +++++++++++++++++++++++++----------
+ js/data/synergy.js    | 10 ++++++++--
+ js/engine/pipeline.js | 53 ++++++++++++++++++++++++++++++++++-----------------
+ 3 files changed, 71 insertions(+), 29 deletions(-)
