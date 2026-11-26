@@ -1,0 +1,172 @@
+[
+ {
+  "reg": "MOD_HOOKS",
+  "id": "applyAndReact.onSurvivedBelowPct",
+  "type": "member added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "healthBelowPctSelfBuff",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "unyieldingStagedBuff",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "everyPctHealthLostStackingApply",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "survivedBelowPctBuff",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:cornered",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:apex_predator",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ancient_apex",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:shed_skin",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ancient_majesty",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:territorial_apex",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:rage_unbound",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:endless_mourning",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:runic_core",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:perfect_construction",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:arena_ferocity",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:veterans_guard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:battle_hardened",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:commanders_resolve",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_veteran_enforcement",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_battle_tested",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_arena_resolve",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_warleaders_resolve",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:unyielding",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:kings_fury",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sky_sovereign",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ancient_predator",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:royal_instinct",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:dominance",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:adaptive_carapace",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:primal_core",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:veteran_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:last_stand",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:resolute_command",
+  "type": "added"
+ }
+]

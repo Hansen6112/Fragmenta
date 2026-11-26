@@ -1,0 +1,36 @@
+range: 012d2e03243452a6d4762f321290fdb5d0fefc03..c4e0d08dd0c09ad48c0730c5d28e2a1f3ffbbc5b
+=== c4e0d08dd0c09ad48c0730c5d28e2a1f3ffbbc5b 2026-11-26 05:36:59 +0000
+2f batch 2: enemy passives -- healthBelowPct (18), healthStagedBuff (1), everyPctHealthLostStacking (7), survivedBelowPct (3)
+All four trigger-type families moved onto registry entries, dispatched
+by key from their existing call sites -- tickEnemyPassives's own
+threshold/stage/stack-count gates (combat.js) for the first three
+(hook: turn.start, same as batch 1's regenPerTurn entries, never fanned
+out), and checkEnemyLowHealthTriggers's own oncePerCombat/pct gate for
+survivedBelowPct, which fires immediately after a hit lands rather than
+on a round cadence -- given its own dedicated hook,
+applyAndReact.onSurvivedBelowPct, rather than reusing the player-side
+applyAndReact.onLowHealth (different cadence) or risking a shared-hook
+fan-out collision like the one caught in batch 1.
+
+Every id's threshold/pct/stages/selfBuff/packAuraBuff value read
+directly from enemyabilities.js, not from a recon summary. Shed Skin's
+own cleanseSelf field confirmed dead code (grepped combat.js directly:
+read nowhere) and deliberately not implemented, matching the file's own
+documented stance on similarly dead fields elsewhere (Ancient
+Instinct's cleanseOne/shield-on-trigger). passive:last_stand (an enemy
+ability, H20) does not collide with the player's own effect:last_stand
+(2e-5) -- separate registry namespaces.
+
+Suite 651/651, audit 0 errors (166 warnings, down from 195 -- exactly
+the 29 ids migrated this batch). Harness verification (plus3_run +
+boss_sweep, both switch states, explicit seed) to follow in background,
+confirmed in a follow-up.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 239 ++++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         |  17 +---
+ tools/modifier_catalogue.md |   8 +-
+ 3 files changed, 247 insertions(+), 17 deletions(-)
