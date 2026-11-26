@@ -1,5 +1,5 @@
 
-WARNINGS (124)
+WARNINGS (112)
   [race] human stat mods sum to 11, RACE_BUDGET says 9
   [race] dragonkin stat mods sum to 11, RACE_BUDGET says 9
   [race] lizardfolk stat mods sum to 12, RACE_BUDGET says 9
@@ -104,18 +104,6 @@ WARNINGS (124)
   [modifiers] SETS.First Sword's Regalia tier 6 ("flowing_discipline") has no registry entry yet (M1)
   [modifiers] SETS.First Sword's Regalia tier 8 ("winters_verdict") has no registry entry yet (M1)
   [modifiers] SETS.First Sword's Regalia tier 10 ("first_swords_legacy,elemental_sovereignty") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.pack_discipline (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.criminal_command (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.ruthless_authority (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.marine_discipline (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.section_discipline (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.command_discipline (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.combined_arms_authority (passive, trigger "whileAlliesDiverse") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.handlers_discipline (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.sang_sec_captains_authority (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.sang_iag_mercenary_authority (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.sang_iag_arena_handler (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
-  [modifiers] ENEMY_ABILITIES.sang_iag_militia_authority (passive, trigger "whileAllyAlive") has no registry entry yet (M1)
   [modifiers] js/engine/combat.js still has 68 hasEffect() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/combat.js still has 26 hasSetTier() call(s) not yet migrated to the registry (M2)
   [modifiers] js/engine/pipeline.js still has 18 hasEffect() call(s) not yet migrated to the registry (M2)
@@ -130,4 +118,4 @@ WARNINGS (124)
 [combat] P1 HP-writes-outside-applyAndReact found: 0 (must be 0)
 [combat] P3 alias/proxy-regression hits found: 0 (must be 0)
 
-0 error(s), 124 warning(s) across 53 scripts.
+0 error(s), 112 warning(s) across 53 scripts.

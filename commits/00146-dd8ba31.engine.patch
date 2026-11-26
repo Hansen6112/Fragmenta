@@ -1,0 +1,60 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 50b2ace..8a5c15f 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -4675,14 +4675,19 @@ function tickEnemyPassives(state, e) {
+         ? state.combat.enemies.some((x) => x.alive && x !== e && creature.family && x.creatureObj.family === creature.family)
+         : state.combat.enemies.some((x) => x.alive && x !== e && !x.creatureObj.friendly);
+       const wasActive = !!e.passiveOnceFlags[flagKey];
+-      if (matches && !wasActive) {
+-        e.passiveOnceFlags[flagKey] = true;
+-        applyPermanentSelfBuff(creature, p.selfBuff);
+-      } else if (!matches && wasActive) {
+-        e.passiveOnceFlags[flagKey] = false;
+-        const negated = {};
+-        for (const [stat, amount] of Object.entries(p.selfBuff)) negated[stat] = -amount;
+-        applyPermanentSelfBuff(creature, negated);
++      if (matches !== wasActive) {
++        const selfBuff = runHookEntryValue(`passive:${pid}`, creature, "enemy", { holder: creature, role: "enemy" });
++        if (selfBuff) {
++          if (matches) {
++            e.passiveOnceFlags[flagKey] = true;
++            applyPermanentSelfBuff(creature, selfBuff);
++          } else {
++            e.passiveOnceFlags[flagKey] = false;
++            const negated = {};
++            for (const [stat, amount] of Object.entries(selfBuff)) negated[stat] = -amount;
++            applyPermanentSelfBuff(creature, negated);
++          }
++        }
+       }
+     } else if (p.trigger === "whileAlliesDiverse") {
+       // Combined-Arms Authority (Arbitarius Commander, Sanguivorum
+@@ -4698,14 +4703,19 @@ function tickEnemyPassives(state, e) {
+       );
+       const matches = distinctFamilies.size >= (p.minDistinct || 2);
+       const wasActive = !!e.passiveOnceFlags[flagKey];
+-      if (matches && !wasActive) {
+-        e.passiveOnceFlags[flagKey] = true;
+-        applyPermanentSelfBuff(creature, p.selfBuff);
+-      } else if (!matches && wasActive) {
+-        e.passiveOnceFlags[flagKey] = false;
+-        const negated = {};
+-        for (const [stat, amount] of Object.entries(p.selfBuff)) negated[stat] = -amount;
+-        applyPermanentSelfBuff(creature, negated);
++      if (matches !== wasActive) {
++        const selfBuff = runHookEntryValue(`passive:${pid}`, creature, "enemy", { holder: creature, role: "enemy" });
++        if (selfBuff) {
++          if (matches) {
++            e.passiveOnceFlags[flagKey] = true;
++            applyPermanentSelfBuff(creature, selfBuff);
++          } else {
++            e.passiveOnceFlags[flagKey] = false;
++            const negated = {};
++            for (const [stat, amount] of Object.entries(selfBuff)) negated[stat] = -amount;
++            applyPermanentSelfBuff(creature, negated);
++          }
++        }
+       }
+     } else if (p.trigger === "healthStagedBuff") {
+       const flagKey = pid + ":stage";

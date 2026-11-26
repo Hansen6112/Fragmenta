@@ -1,0 +1,62 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:pack_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:criminal_command",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:ruthless_authority",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:marine_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:section_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:command_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:combined_arms_authority",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:handlers_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_captains_authority",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_mercenary_authority",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_arena_handler",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_militia_authority",
+  "type": "added"
+ }
+]

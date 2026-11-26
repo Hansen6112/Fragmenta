@@ -1,0 +1,32 @@
+range: 5e1b844f280d417b2bab59e934e8f456164bb8f5..dd8ba311e19c87ec21adfe1b6e80979a22a6899f
+=== dd8ba311e19c87ec21adfe1b6e80979a22a6899f 2026-11-26 14:01:20 +0000
+2f: enemy passives -- whileAllyAlive (11), whileAlliesDiverse (1)
+12 ids total, the last two isolated 2f trigger families. Both are a
+continuous, reversible conditional self-buff toggled on/off each round
+as a live condition changes (an ally/summon alive, or a division's
+family diversity) -- unlike every once-per-combat trigger elsewhere in
+this batch. The scope match itself (p.scope/p.summonKey/p.minDistinct,
+the division/family alive-check) stays read directly off the data in
+tickEnemyPassives (combat.js); only the selfBuff object being applied/
+negated moves into the registry as a static value, dispatched by key.
+
+`matches !== wasActive` now gates the dispatch itself, logically
+identical to the original `(matches && !wasActive) || (!matches &&
+wasActive)` pair of conditions, just restructured to skip the lookup
+on a steady-state round.
+
+Reused "turn.start" -- the same hook batch 1/2's regenPerTurn/
+healthBelowPct entries already use safely for holders:['enemy']
+by-key dispatch from this exact function.
+
+This closes out every isolated 2f trigger-type batch. Suite 651/651,
+audit 0 errors (124->112 warnings, -12).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 90 +++++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         | 42 +++++++++++++--------
+ tools/modifier_catalogue.md |  4 +-
+ 3 files changed, 118 insertions(+), 18 deletions(-)
