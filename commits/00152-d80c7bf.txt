@@ -1,0 +1,34 @@
+range: dd2072322ef366b307f3fbb0c940498744c0ba86..d80c7bfa335fd1e6e97ef6bc6a317b63581f9906
+=== d80c7bfa335fd1e6e97ef6bc6a317b63581f9906 2026-11-26 22:21:47 +0000
+2g close-out: M2 becomes a hard error, not a soft count
+Per the spec's own 2g target ("zero hasEffect/hasSetTier calls left in
+combat code... M2 becomes an error"). Converts M2 from a blind
+per-file regex count (warn) to a real check (err) that finds every
+actual hasEffect(holder, "id")/hasSetTier(holder, "set", tier) CALL in
+each scoped file -- distinguishing a real call from hasSetTier's own
+function declaration (sets.js is where the primitive is defined, so a
+blind count could never reach zero there) -- and flags only the ones
+not covered by a documented, individually-verified exception:
+
+- Exact-call exceptions (pipeline.js: mirror_soul, guarded_strike;
+  sets.js: trailwise + its 5 set-tier upgrades, jobGoldMultiplier's 4
+  set tiers) -- each a permanent, Tyler-ruled-on or independently
+  source-verified exception, not a migration gap. See the new
+  M2_EXACT_EXCEPTIONS comment block for the full reasoning per entry.
+- Whole-function exemptions (sets.js: hasSetTier's own declaration,
+  describeSetProgress's generic all-sets progress display) -- neither
+  can structurally resolve to a single effect/set dispatch.
+
+Result: 0 errors. Every one of these exceptions was independently
+re-verified against real source during 2g (traced each one's actual
+callers), not inherited from any earlier summary or prior pass.
+
+Suite 651/651, audit 0 errors (106->103 warnings -- M2's own 8
+per-file warnings replaced by a single hard check that now passes).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/audit.js | 139 +++++++++++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 106 insertions(+), 33 deletions(-)
