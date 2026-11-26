@@ -1,0 +1,27 @@
+range: 61396a11662b0e71ccff42d82a02f5db6a4465b7..5e1b844f280d417b2bab59e934e8f456164bb8f5
+=== 5e1b844f280d417b2bab59e934e8f456164bb8f5 2026-11-26 13:58:37 +0000
+2f: enemy passives -- flatStatBonus (10)
+10 ids, each a constant stat bonus applied once at creature-build time
+(buildFightCreature, combat.js). The field to add to (p.stat) stays
+read directly off the data; only the flat amount moves into the
+registry, dispatched by key.
+
+Deliberately reused "fight.start" rather than any stat.<key> hook:
+stat.<key>'s own fan-out (applyStatDefFloor, modifiers.js) genuinely
+reaches holderRole "enemy" via combatant.js's stat() "def" case, and
+collects results before filtering by statBonus/statMultiplier -- a
+plain-number entry there would have silently overridden the enemy's
+entire effective Defense on every read instead of adding to it.
+fight.start's one fan-out call site hardcodes holderRole "player",
+same precedent as combatStartDebuff/combatStartSelfBuff (2f batch 3).
+
+Suite 651/651, audit 0 errors (134->124 warnings, -10).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js        | 78 +++++++++++++++++++++++++++++++++++++++++++++
+ js/engine/combat.js         |  3 +-
+ tools/modifier_catalogue.md |  2 +-
+ 3 files changed, 81 insertions(+), 2 deletions(-)

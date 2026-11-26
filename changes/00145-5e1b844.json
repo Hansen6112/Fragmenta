@@ -1,0 +1,52 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:mil_veteran_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_veteran_watch_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_gatekeepers_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_analytical_discipline",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_arena_veterans_discipline_acc",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_sec_arena_veterans_discipline_def",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_rough_fighter",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_professional_guard",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_arena_training",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "passive:sang_iag_champions_discipline",
+  "type": "added"
+ }
+]
