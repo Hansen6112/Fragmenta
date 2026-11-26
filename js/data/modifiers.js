@@ -4723,3 +4723,93 @@ registerModifier("passive:sang_iag_champions_discipline", {
   params: null, when: null, holders: ["enemy"], state: null,
   notes: "Champion's Discipline (Sanguivorum IAG): constant +8 Accuracy. See passive:mil_veteran_discipline's own note.",
 });
+
+// whileAllyAlive (11) / whileAlliesDiverse (1) (2f, 26 Nov): a
+// continuous, reversible conditional self-buff, toggled on/off each
+// round as its own live condition (an ally/summon alive, or a
+// division's family diversity) changes -- unlike every once-per-combat
+// trigger elsewhere in this file. The scope match itself (p.scope/
+// p.summonKey/p.minDistinct, the division/family alive-check) stays
+// read directly off the data in tickEnemyPassives (combat.js) -- a
+// routing/gate concern, same split as p.stat for flatStatBonus just
+// above; only the `selfBuff` object being applied/negated moves here,
+// as a static value, dispatched by key exactly once per round when the
+// toggle state actually flips (not on every tick -- `matches !==
+// wasActive` now gates the dispatch itself, logically identical to the
+// original `(matches && !wasActive) || (!matches && wasActive)` pair of
+// conditions, just restructured to avoid a pointless lookup on the
+// steady-state round). Reuses "turn.start" -- the same hook batch 1/2's
+// regenPerTurn/healthBelowPct entries already use safely for
+// holders:['enemy'] by-key dispatch from this exact function.
+registerModifier("passive:pack_discipline", {
+  source: { kind: "passive", id: "pack_discipline" },
+  hook: "turn.start", order: 2, bucket: null, value: { def: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Pack Discipline (IA-20): +5 Defense while the Call Outlaw Hounds summon is alive (scope 'summon', summonKey 'call_outlaw_hounds' -- gate stays in combat.js).",
+});
+registerModifier("passive:criminal_command", {
+  source: { kind: "passive", id: "criminal_command" },
+  hook: "turn.start", order: 2, bucket: null, value: { acc: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Criminal Command (IA-24): +5 Accuracy while any other alive, non-friendly enemy lives (default scope -- gate stays in combat.js).",
+});
+registerModifier("passive:ruthless_authority", {
+  source: { kind: "passive", id: "ruthless_authority" },
+  hook: "turn.start", order: 2, bucket: null, value: { def: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Ruthless Authority (IA-29): +5 Defense while any other alive, non-friendly enemy lives (default scope). See passive:criminal_command's own note.",
+});
+registerModifier("passive:marine_discipline", {
+  source: { kind: "passive", id: "marine_discipline" },
+  hook: "turn.start", order: 2, bucket: null, value: { acc: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Marine Discipline: +5 Accuracy while another alive enemy shares this creature's own `family` tag (scope 'family' -- gate stays in combat.js).",
+});
+registerModifier("passive:section_discipline", {
+  source: { kind: "passive", id: "section_discipline" },
+  hook: "turn.start", order: 2, bucket: null, value: { acc: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Section Discipline: +5 Accuracy while another alive enemy shares this creature's own `division` tag (scope 'division' -- gate stays in combat.js).",
+});
+registerModifier("passive:command_discipline", {
+  source: { kind: "passive", id: "command_discipline" },
+  hook: "turn.start", order: 2, bucket: null, value: { def: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Command Discipline: +5 Defense while another alive enemy shares this creature's own `division` tag (scope 'division'). See passive:section_discipline's own note.",
+});
+registerModifier("passive:combined_arms_authority", {
+  source: { kind: "passive", id: "combined_arms_authority" },
+  hook: "turn.start", order: 3, bucket: null, value: { acc: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Combined-Arms Authority (Arbitarius Commander): +5 Accuracy while at least `minDistinct` (2) distinct `family` values are alive within this creature's own `division` (whileAlliesDiverse, the only id with this trigger) -- gate stays in combat.js.",
+});
+registerModifier("passive:handlers_discipline", {
+  source: { kind: "passive", id: "handlers_discipline" },
+  hook: "turn.start", order: 2, bucket: null, value: { def: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Handler's Discipline: +5 Defense while the Deploy Legion Hounds summon is alive (scope 'summon', summonKey 'deploy_legion_hounds'). See passive:pack_discipline's own note.",
+});
+registerModifier("passive:sang_sec_captains_authority", {
+  source: { kind: "passive", id: "sang_sec_captains_authority" },
+  hook: "turn.start", order: 2, bucket: null, value: { def: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Captain's Authority (Sanguivorum Security): +5 Defense while another alive enemy shares this creature's own `division` tag (scope 'division'). See passive:section_discipline's own note.",
+});
+registerModifier("passive:sang_iag_mercenary_authority", {
+  source: { kind: "passive", id: "sang_iag_mercenary_authority" },
+  hook: "turn.start", order: 2, bucket: null, value: { acc: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Mercenary Authority (Sanguivorum IAG): +5 Accuracy while another alive enemy shares this creature's own `family` tag (scope 'family'). See passive:marine_discipline's own note.",
+});
+registerModifier("passive:sang_iag_arena_handler", {
+  source: { kind: "passive", id: "sang_iag_arena_handler" },
+  hook: "turn.start", order: 2, bucket: null, value: { def: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Handler (Sanguivorum IAG): +5 Defense while the Release the Beasts summon is alive (scope 'summon', summonKey 'sang_iag_release_the_beasts'). See passive:pack_discipline's own note.",
+});
+registerModifier("passive:sang_iag_militia_authority", {
+  source: { kind: "passive", id: "sang_iag_militia_authority" },
+  hook: "turn.start", order: 2, bucket: null, value: { atk: 5 }, behavior: null,
+  params: null, when: null, holders: ["enemy"], state: null,
+  notes: "Militia Authority (Sanguivorum IAG): +5 Attack while another alive enemy shares this creature's own `family` tag (scope 'family'). See passive:marine_discipline's own note.",
+});
