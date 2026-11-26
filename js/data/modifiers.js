@@ -128,6 +128,18 @@ const MOD_HOOKS = [
   // ticks, not a damage-roll multiplier, so it's its own hook rather than
   // calculateDamage.incoming. Reserved here; not dispatched yet.
   "statusTick.incoming",
+  // applyAndReact.onSurvivedBelowPct (2f batch 2, 26 Nov): Veteran
+  // Discipline/Last Stand/Resolute Command's own home (checkEnemyLowHealthTriggers,
+  // combat.js) -- fires for the ENEMY the same round a hit against it
+  // lands and it survives, checked immediately, not on a round cadence
+  // like turn.start (tickEnemyPassives' own healthBelowPct/healthStagedBuff/
+  // everyPctHealthLostStacking siblings just below, which ARE turn.start).
+  // A deliberately separate hook from the player's own "applyAndReact.onLowHealth"
+  // (checked once per round, not immediately after a hit) -- same
+  // underlying idea, different cadence, so sharing one hook name would
+  // misdescribe one side or the other even though by-key dispatch alone
+  // would never actually collide.
+  "applyAndReact.onSurvivedBelowPct",
 ];
 function statHook(key) { return `stat.${key}`; }
 function isKnownHook(hook) { return MOD_HOOKS.includes(hook) || /^stat\.\w+$/.test(hook); }
@@ -4061,4 +4073,231 @@ registerModifier("passive:living_timber", {
   hook: "turn.start", order: 2, bucket: null, value: null, behavior: "enemyRegenPerTurnHeal",
   params: { pct: 0.03 }, when: null, holders: ["enemy"], state: null,
   notes: "Living Timber: regenerates 3% max Health per round. See passive:ancient_resilience's own note.",
+});
+
+// ================= 2f (26 Nov): enemy passives, batch 2 =================
+// healthBelowPct (18 ids), healthStagedBuff (1: Unyielding),
+// everyPctHealthLostStacking (7 ids): all three dispatched by key from
+// tickEnemyPassives' own per-passive-id loop (combat.js), same hook
+// ("turn.start") and same shape regenPerTurn's own batch-1 entries
+// already used there -- the threshold/stage/stack-count GATE (whether
+// this id fires at all, and how many times) stays in that loop exactly
+// as before; only the "what happens when it fires" (apply the self-buff)
+// moves into a dispatched behavior. survivedBelowPct (3 ids) is
+// dispatched by key from a DIFFERENT function, checkEnemyLowHealthTriggers
+// (combat.js) -- its own dedicated hook, applyAndReact.onSurvivedBelowPct
+// (added just above), since it fires immediately after a hit lands, not
+// on tickEnemyPassives' round cadence. Every id's threshold/pct/stages/
+// selfBuff/packAuraBuff value below is read directly from its own
+// enemyabilities.js entry, not from a recon summary -- Shed Skin's own
+// `cleanseSelf: true` field is deliberately NOT implemented here: grepped
+// combat.js directly and confirmed it is read nowhere, exactly like
+// Ancient Instinct's own cleanseOne/shield-on-trigger fields the data
+// file's own comment already documents as dropped ("no engine hook").
+registerBehavior("healthBelowPctSelfBuff", (ctx, entry) => {
+  const selfBuff = entry.params.selfBuff;
+  if (selfBuff && selfBuff.turns) applyEnemySelfModifier(ctx.combat, ctx.creature, selfBuff);
+  else applyPermanentSelfBuff(ctx.creature, selfBuff);
+});
+registerModifier("passive:cornered", {
+  source: { kind: "passive", id: "cornered" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Cornered: once per combat, at/below 50% Health, permanently +20% Attack for the fight. Gate (threshold/oncePerCombat) and the generic \"is hurt, and hits back harder for it\" line both stay in tickEnemyPassives (combat.js) -- dispatched by key for the self-buff application only.",
+});
+registerModifier("passive:apex_predator", {
+  source: { kind: "passive", id: "apex_predator" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.15, acc: 10, agi: 10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Apex Predator: once per combat, at/below 50% Health, +15% Attack/+10 Accuracy/+10 Agility for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:ancient_apex", {
+  source: { kind: "passive", id: "ancient_apex" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.2, def: 10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Ancient Apex: once per combat, at/below 50% Health, +20% Attack/+10 Defense for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:shed_skin", {
+  source: { kind: "passive", id: "shed_skin" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { agi: 10, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Shed Skin: once per combat, at/below 30% Health, +10 Agility for 2 turns (via applyEnemySelfModifier, since its own selfBuff carries `turns`). Its own `cleanseSelf: true` field is confirmed dead code (grepped combat.js: read nowhere) -- not implemented, same as the original inline code never implemented it. See passive:cornered's own note.",
+});
+registerModifier("passive:ancient_majesty", {
+  source: { kind: "passive", id: "ancient_majesty" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { spd: 10, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Ancient Majesty: once per combat, at/below 25% Health, +10 Speed for 2 turns. See passive:cornered's own note.",
+});
+registerModifier("passive:territorial_apex", {
+  source: { kind: "passive", id: "territorial_apex" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atk: 10, acc: 10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Territorial Apex: once per combat, at/below 50% Health, +10 Attack/+10 Accuracy for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:rage_unbound", {
+  source: { kind: "passive", id: "rage_unbound" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atk: 20, spd: 10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Rage Unbound: once per combat, at/below 50% Health, +20 Attack/+10 Speed for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:endless_mourning", {
+  source: { kind: "passive", id: "endless_mourning" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { acc: 15, agi: 15 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Endless Mourning: once per combat, at/below 50% Health, +15 Accuracy/+15 Agility for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:runic_core", {
+  source: { kind: "passive", id: "runic_core" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.15, acc: 10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Runic Core: once per combat, at/below 50% Health, +15% Attack/+10 Accuracy for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:perfect_construction", {
+  source: { kind: "passive", id: "perfect_construction" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atk: 10, def: 10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Perfect Construction: once per combat, at/below 50% Health, +10 Attack/+10 Defense for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:arena_ferocity", {
+  source: { kind: "passive", id: "arena_ferocity" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.1, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Ferocity (IA-17): once per combat, at/below 50% Health, +10% Attack for 2 turns. See passive:shed_skin's own note on the `turns`-carrying selfBuff routing through applyEnemySelfModifier.",
+});
+registerModifier("passive:veterans_guard", {
+  source: { kind: "passive", id: "veterans_guard" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { def: 8, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Veteran's Guard (IA-25): once per combat, at/below 50% Health, +8 Defense for 2 turns. See passive:shed_skin's own note.",
+});
+registerModifier("passive:battle_hardened", {
+  source: { kind: "passive", id: "battle_hardened" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { def: 8, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Battle-Hardened: once per combat, at/below 50% Health, +8 Defense for 2 turns. See passive:shed_skin's own note.",
+});
+registerModifier("passive:commanders_resolve", {
+  source: { kind: "passive", id: "commanders_resolve" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Commander's Resolve: once per combat, at/below 40% Health, +10% Attack for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:sang_sec_veteran_enforcement", {
+  source: { kind: "passive", id: "sang_sec_veteran_enforcement" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { def: 8, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Veteran Enforcement (Sanguivorum Security): once per combat, at/below 50% Health, +8 Defense for 2 turns. See passive:shed_skin's own note.",
+});
+registerModifier("passive:sang_iag_battle_tested", {
+  source: { kind: "passive", id: "sang_iag_battle_tested" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { def: 8, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Battle-Tested (Sanguivorum IAG): once per combat, at/below 50% Health, +8 Defense for 2 turns. See passive:shed_skin's own note.",
+});
+registerModifier("passive:sang_iag_arena_resolve", {
+  source: { kind: "passive", id: "sang_iag_arena_resolve" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Arena Resolve (Sanguivorum IAG): once per combat, at/below 40% Health, +10% Attack for the fight. See passive:cornered's own note.",
+});
+registerModifier("passive:sang_iag_warleaders_resolve", {
+  source: { kind: "passive", id: "sang_iag_warleaders_resolve" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "healthBelowPctSelfBuff",
+  params: { selfBuff: { atkPct: 0.10 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Warleader's Resolve (Sanguivorum IAG): once per combat, at/below 40% Health, +10% Attack for the fight. See passive:cornered's own note.",
+});
+
+// healthStagedBuff -- a single id (Unyielding); `stagesToApply` (how many
+// NEW stages were just crossed this tick) is computed by the surrounding
+// gate in tickEnemyPassives and passed in ctx, same division of labor as
+// every entry above.
+registerBehavior("unyieldingStagedBuff", (ctx, entry) => {
+  for (let n = 0; n < ctx.stagesToApply; n++) applyPermanentSelfBuff(ctx.creature, entry.params.selfBuff);
+});
+registerModifier("passive:unyielding", {
+  source: { kind: "passive", id: "unyielding" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "unyieldingStagedBuff",
+  params: { selfBuff: { def: 5 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Unyielding: permanently +5 Defense for each of 3 Health stages (75%/50%/25%) crossed, applied once per stage. Stage-crossing count (stagesToApply) and the generic \"grows steadier under punishment\" line both stay in tickEnemyPassives (combat.js).",
+});
+
+// everyPctHealthLostStacking (7 ids): `stacksToApply` (how many NEW
+// stacks were just crossed this tick) is computed by the surrounding
+// gate in tickEnemyPassives and passed in ctx -- e.healthLostStacks is a
+// single counter on the per-fight enemy SLOT (not keyed by passive id),
+// unchanged from the original inline code.
+registerBehavior("everyPctHealthLostStackingApply", (ctx, entry) => {
+  for (let n = 0; n < ctx.stacksToApply; n++) applyPermanentSelfBuff(ctx.creature, entry.params.selfBuff);
+});
+registerModifier("passive:kings_fury", {
+  source: { kind: "passive", id: "kings_fury" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "everyPctHealthLostStackingApply",
+  params: { selfBuff: { atk: 5, acc: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "King's Fury: permanently +5 Attack/+2 Accuracy for every 20% of max Health lost, stacking. Stack-count gate and the generic \"grows more dangerous as the fight wears on\" line both stay in tickEnemyPassives (combat.js).",
+});
+registerModifier("passive:sky_sovereign", {
+  source: { kind: "passive", id: "sky_sovereign" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "everyPctHealthLostStackingApply",
+  params: { selfBuff: { acc: 5, agi: 5 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Sky Sovereign: permanently +5 Accuracy/+5 Agility for every 25% of max Health lost, stacking. See passive:kings_fury's own note.",
+});
+registerModifier("passive:ancient_predator", {
+  source: { kind: "passive", id: "ancient_predator" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "everyPctHealthLostStackingApply",
+  params: { selfBuff: { atk: 5, acc: 5 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Ancient Predator: permanently +5 Attack/+5 Accuracy for every 25% of max Health lost, stacking. See passive:kings_fury's own note.",
+});
+registerModifier("passive:royal_instinct", {
+  source: { kind: "passive", id: "royal_instinct" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "everyPctHealthLostStackingApply",
+  params: { selfBuff: { atk: 5, def: 5 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Royal Instinct: permanently +5 Attack/+5 Defense for every 25% of max Health lost, stacking. See passive:kings_fury's own note.",
+});
+registerModifier("passive:dominance", {
+  source: { kind: "passive", id: "dominance" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "everyPctHealthLostStackingApply",
+  params: { selfBuff: { atk: 3, acc: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Dominance: permanently +3 Attack/+2 Accuracy for every 20% of max Health lost, stacking. See passive:kings_fury's own note. (Ancient Instinct's own watchFor:\"dominance\" reaction to this id gaining a stack has no engine hook of its own -- enemyabilities.js's own comment already documents it as unwired; untouched here.)",
+});
+registerModifier("passive:adaptive_carapace", {
+  source: { kind: "passive", id: "adaptive_carapace" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "everyPctHealthLostStackingApply",
+  params: { selfBuff: { spd: 5, acc: 5 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Adaptive Carapace: permanently +5 Speed/+5 Accuracy for every 25% of max Health lost, stacking. See passive:kings_fury's own note.",
+});
+registerModifier("passive:primal_core", {
+  source: { kind: "passive", id: "primal_core" },
+  hook: "turn.start", order: 3, bucket: null, value: null, behavior: "everyPctHealthLostStackingApply",
+  params: { selfBuff: { atk: 5, def: 5 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Primal Core: permanently +5 Attack/+5 Defense for every 25% of max Health lost, stacking. See passive:kings_fury's own note.",
+});
+
+// survivedBelowPct (3 ids): dispatched from checkEnemyLowHealthTriggers
+// (combat.js), NOT tickEnemyPassives -- fires immediately after a hit
+// against this creature lands and it survives. oncePerCombat/pct gate
+// and the generic "grits through the pain -- <name> takes hold" line
+// (which reads p.name directly, not from the registry) both stay there;
+// only the self-buff/pack-aura-buff application moves here.
+registerBehavior("survivedBelowPctBuff", (ctx, entry) => {
+  if (entry.params.selfBuff) applyEnemySelfModifier(ctx.combat, ctx.creature, entry.params.selfBuff);
+  if (entry.params.packAuraBuff) applyPackAuraBuff(ctx.combat, ctx.creature, entry.params.packAuraBuff);
+});
+registerModifier("passive:veteran_discipline", {
+  source: { kind: "passive", id: "veteran_discipline" },
+  hook: "applyAndReact.onSurvivedBelowPct", order: 1, bucket: null, value: null, behavior: "survivedBelowPctBuff",
+  params: { selfBuff: { def: 5, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Veteran Discipline (H07): once per combat, survives a hit at/below 50% Health, +5 Defense for 2 turns.",
+});
+registerModifier("passive:last_stand", {
+  source: { kind: "passive", id: "last_stand" },
+  hook: "applyAndReact.onSurvivedBelowPct", order: 1, bucket: null, value: null, behavior: "survivedBelowPctBuff",
+  params: { selfBuff: { dmgReduction: 0.15, turns: 2 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Last Stand (H20, enemy passive): once per combat, survives a hit at/below 25% Health, +15% damage reduction for 2 turns. Registry key is \"passive:last_stand\" -- a different namespace from the player's own \"effect:last_stand\" (2e-5), no collision.",
+});
+registerModifier("passive:resolute_command", {
+  source: { kind: "passive", id: "resolute_command" },
+  hook: "applyAndReact.onSurvivedBelowPct", order: 1, bucket: null, value: null, behavior: "survivedBelowPctBuff",
+  params: { packAuraBuff: { acc: 5, turns: 2, maxTargets: 3 } }, when: null, holders: ["enemy"], state: null,
+  notes: "Resolute Command (H15): once per combat, survives a hit at/below 50% Health, grants nearby same-group allies (up to 3) +5 Accuracy for 2 turns via applyPackAuraBuff. No selfBuff of its own -- packAuraBuff only, matching the original code's independent if-checks.",
 });

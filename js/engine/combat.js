@@ -2377,8 +2377,7 @@ function checkEnemyLowHealthTriggers(state, creature) {
     if (p.oncePerCombat && enemy.passiveOnceFlags[pid]) continue;
     if (enemy.hp > enemy.maxHp * p.pct) continue;
     if (p.oncePerCombat) enemy.passiveOnceFlags[pid] = true;
-    if (p.selfBuff) applyEnemySelfModifier(combat, creature, p.selfBuff);
-    if (p.packAuraBuff) applyPackAuraBuff(combat, creature, p.packAuraBuff);
+    runHookEntry(`passive:${pid}`, creature, "enemy", { state, holder: creature, role: "enemy", enemySlot: enemy, creature, combat });
     lines.push(`${withThe(creature.name, true)} grits through the pain — ${p.name} takes hold.`);
   }
   return lines;
@@ -4670,15 +4669,7 @@ function tickEnemyPassives(state, e) {
       lines.push(...runHookEntry(`passive:${pid}`, creature, "enemy", { state, holder: creature, role: "enemy", enemySlot: e, creature }));
     } else if (p.trigger === "healthBelowPct" && !e.passiveOnceFlags[pid] && e.hp / e.maxHp <= p.threshold) {
       e.passiveOnceFlags[pid] = true;
-      // Arena Ferocity/Veteran's Guard (Sanguivorum Criminal Underworld):
-      // phrase their selfBuff as "for 2 turns" rather than the permanent
-      // "for the encounter" every PRE-EXISTING healthBelowPct entry
-      // (Cornered, Apex Predator, ...) uses — those omit `turns` entirely,
-      // so they still resolve through applyPermanentSelfBuff exactly as
-      // before; only a selfBuff carrying its own `turns` routes through
-      // the reversible bookkeeping instead.
-      if (p.selfBuff && p.selfBuff.turns) applyEnemySelfModifier(state.combat, creature, p.selfBuff);
-      else applyPermanentSelfBuff(creature, p.selfBuff);
+      runHookEntry(`passive:${pid}`, creature, "enemy", { state, holder: creature, role: "enemy", enemySlot: e, creature, combat: state.combat });
       lines.push(`${withThe(creature.name, true)} is hurt, and hits back harder for it.`);
     } else if (p.trigger === "whileAllyAlive") {
       // Pack Discipline/Criminal Command/Ruthless Authority (Sanguivorum
@@ -4743,7 +4734,7 @@ function tickEnemyPassives(state, e) {
       const reached = (p.stages || []).filter((s) => e.hp / e.maxHp <= s).length;
       const already = e.passiveOnceFlags[flagKey] || 0;
       if (reached > already) {
-        for (let n = already; n < reached; n++) applyPermanentSelfBuff(creature, p.selfBuff);
+        runHookEntry(`passive:${pid}`, creature, "enemy", { state, holder: creature, role: "enemy", enemySlot: e, creature, stagesToApply: reached - already });
         e.passiveOnceFlags[flagKey] = reached;
         lines.push(`${withThe(creature.name, true)} grows steadier under punishment.`);
       }
@@ -4751,7 +4742,7 @@ function tickEnemyPassives(state, e) {
       const lostFraction = 1 - e.hp / e.maxHp;
       const stacks = Math.floor(lostFraction / p.pct);
       if (stacks > e.healthLostStacks) {
-        for (let n = e.healthLostStacks; n < stacks; n++) applyPermanentSelfBuff(creature, p.selfBuff);
+        runHookEntry(`passive:${pid}`, creature, "enemy", { state, holder: creature, role: "enemy", enemySlot: e, creature, stacksToApply: stacks - e.healthLostStacks });
         e.healthLostStacks = stacks;
         lines.push(`${withThe(creature.name, true)} grows more dangerous as the fight wears on.`);
       }
