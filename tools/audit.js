@@ -862,14 +862,13 @@ for (const [id, a] of Object.entries(ENEMY_ABILITIES_TABLE)) {
   if (!MODIFIERS_TABLE[`passive:${id}`]) warn("modifiers", `ENEMY_ABILITIES.${id} (passive, trigger "${a.trigger}") has no registry entry yet (M1)`);
 }
 
-// M2: no hasEffect()/hasSetTier() calls left in the combat-relevant
-// engine/data files once migration finishes (becomes an ERROR at step
-// 2g's close-out, M2's own target). For now, a per-file count so the
-// remaining surface is visible and shrinks measurably each step.
-// companion.js/parser.js/state.js are allowlisted here — their calls
-// are non-combat (travel/jobs/save-load), exactly §2-P2-6's "out" list.
-// Widened 16 Nov: js/data/sets.js/synergy.js/matchups.js hold the
-// shared resolver functions the catalogue's §6 worklist found (e.g.
+// M2 close-out (2g, 26 Nov): zero hasEffect()/hasSetTier() calls left in
+// the combat-relevant engine/data files is now a hard ERROR, per the
+// spec's own 2g target -- not a soft count. companion.js/parser.js/
+// state.js/jobs.js are allowlisted here — their calls are non-combat
+// (travel/jobs/save-load), exactly §2-P2-6's "out" list. Widened 16 Nov:
+// js/data/sets.js/synergy.js/matchups.js hold the shared resolver
+// functions the catalogue's §6 worklist found (e.g.
 // crushingImpactMultiplier, spellWardMultiplier) — combat-relevant
 // dispatch that lives in a data file, not an engine file, so M2's own
 // "no hasEffect/hasSetTier left" target has to cover them too.
@@ -880,33 +879,107 @@ const M2_SCOPED_FILES = [
   "js/engine/combat.js", "js/engine/pipeline.js", "js/engine/resolver.js",
   "js/data/sets.js", "js/data/synergy.js", "js/data/matchups.js",
 ];
-// M2 allowlist: effect/set ids whose hasEffect()/hasSetTier() call is a
-// deliberate, PERMANENT exception, named here so 2g's close-out (M2
-// as a hard zero, not a count) doesn't choke on a call that will
-// never move to the registry.
-//   elemental_sovereignty (First Sword's Regalia 10pc, exclusive):
-//   Tyler's 24 Nov ruling -- the live, turn-counted +15% buff it grants
-//   is structurally incompatible with the stat.*/recomputeStats-based
-//   registry mechanism (which bakes in a PERMANENT base stat on gear
-//   change, not a decaying combat buff), so it stays inline; the
-//   catalogue was corrected instead of the code. Its grant site is
-//   js/data/actions.js's water-cast heal action
-//   (hasSetTier(h.state, "First Sword's Regalia", 10)) -- not currently
-//   inside M2_SCOPED_FILES, so this entry isn't subtracted from any
-//   count below yet; it's named here in advance so the exception is on
-//   record if 2f/2g ever widen M2's scope to js/data/actions.js. The
-//   decay (combat.js, beginTurn) and the +15% multiplier (combat.js
-//   line ~385) read combat.player.sovereigntyTurnsLeft directly, with
-//   no hasEffect()/hasSetTier() call at either site.
-const M2_ALLOWLISTED_EFFECT_IDS = new Set([
-  "elemental_sovereignty",
-]);
+// Exact-call exceptions: a specific file's specific hasEffect(id) or
+// hasSetTier(setName, tier) call, individually ruled on and verified
+// against real source during 2g (26 Nov) -- not carried over from any
+// earlier summary. Each is a PERMANENT exception, not a migration gap.
+//   pipeline.js:
+//     mirror_soul -- Tyler's ruling (24 Nov): "stays untouched, inline
+//       ... this is the final decision" (a control-flow substitution,
+//       not a fan-out-able reaction; the only holder is the player; no
+//       Rule 1 upgrade exists for it; no catalogue-accuracy need either).
+//     guarded_strike -- Tyler's ruling (23 Nov), Disarm's own
+//       retaliation-defense read specifically: "stays its own untouched
+//       inline hasEffect(state,'guarded_strike') read ... genuinely
+//       unconditional even on a miss." Every OTHER guarded_strike
+//       dispatch already runs through the registry
+//       (effect:guarded_strike / effect:guarded_strike:player_retaliation);
+//       only this one read is excepted.
+//   sets.js:
+//     trailwise, and set tiers Sandstrider:4/Sahrimor:4/Scout Corps:4/
+//       Courier:4/Courier:6 -- trailwiseMultiplier is a travel-encounter
+//       mechanic; its only caller is engine/parser.js (confirmed by
+//       direct grep during 2g), already out of Phase 2 combat-rebuild
+//       scope per spec P2-6's own "travel/jobs/save-load" exclusion --
+//       the same reason parser.js itself is a whole-file exemption above.
+//     Sahrimor:6/Tide Merchant:6/Mugamiir Safor:6/Sandstrider:6 --
+//       jobGoldMultiplier is a contract-gold-reward economy mechanic;
+//       its only caller is engine/jobs.js (confirmed by direct grep),
+//       same out-of-scope reasoning.
+//   elemental_sovereignty (First Sword's Regalia 10pc, exclusive): not
+//   actually inside any M2_SCOPED_FILES call site today (its grant site
+//   is js/data/actions.js's water-cast heal action, hasSetTier(h.state,
+//   "First Sword's Regalia", 10)) -- named here in advance, per Tyler's
+//   24 Nov ruling (the live, turn-counted +15% buff it grants is
+//   structurally incompatible with the stat.*/recomputeStats-based
+//   registry mechanism), so this prose documents the exception in
+//   advance -- add "js/data/actions.js": { hasSetTier: new Set(["First
+//   Sword's Regalia:10"]) } below if M2's scope ever widens there.
+const M2_EXACT_EXCEPTIONS = {
+  "js/engine/pipeline.js": { hasEffect: new Set(["mirror_soul", "guarded_strike"]) },
+  "js/data/sets.js": {
+    hasEffect: new Set(["trailwise"]),
+    hasSetTier: new Set(["Sandstrider:4", "Sahrimor:4", "Scout Corps:4", "Courier:4", "Courier:6", "Sahrimor:6", "Tide Merchant:6", "Mugamiir Safor:6", "Sandstrider:6"]),
+  },
+};
+// Whole-function exemptions: the function's ENTIRE body is excluded --
+// each is structurally unable to resolve to a single effect/set
+// dispatch, not an oversight. Top-level-function-boundary based (this
+// codebase's own convention: one function per top-level `function NAME(`
+// declaration, no nested top-level declarations), so each span runs
+// from its own declaration line to the next top-level declaration.
+//   sets.js:
+//     hasSetTier -- its own declaration; this file is where the
+//       primitive itself is defined, so the name will always match a
+//       blind text search for itself.
+//     describeSetProgress -- the `equipment` command's text UI,
+//       deliberately iterating EVERY set's EVERY tier to render an
+//       [ACTIVE]/[superseded]/[needs N more] progress line; there is no
+//       single effect/set id for a generic progress display to dispatch
+//       through.
+const M2_EXEMPT_FUNCTIONS = {
+  "js/data/sets.js": new Set(["hasSetTier", "describeSetProgress"]),
+};
+function stripExemptFunctions(text, exemptNames) {
+  if (!exemptNames || !exemptNames.size) return text;
+  const lines = text.split("\n");
+  const starts = [];
+  const re = /^function\s+(\w+)\s*\(/;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(re);
+    if (m) starts.push({ line: i, name: m[1] });
+  }
+  for (let i = 0; i < starts.length; i++) {
+    if (!exemptNames.has(starts[i].name)) continue;
+    const from = starts[i].line;
+    const to = i + 1 < starts.length ? starts[i + 1].line : lines.length;
+    for (let j = from; j < to; j++) lines[j] = "";
+  }
+  return lines.join("\n");
+}
+// Finds every real hasEffect(holder, "id") / hasSetTier(holder, "set", tier)
+// CALL (not a function declaration) in `text`, and returns the ones not
+// covered by `exceptions` (a {hasEffect: Set<id>, hasSetTier: Set<"set:tier">}).
+function findUnexpectedCalls(text, exceptions) {
+  const unexpected = [];
+  const callRe = /\b(hasEffect|hasSetTier)\(\s*[^",()]+\s*,\s*"([^"]+)"\s*(?:,\s*(\d+)\s*)?\)/g;
+  let m;
+  while ((m = callRe.exec(text))) {
+    const precedingText = text.slice(Math.max(0, m.index - 12), m.index);
+    if (/function\s*$/.test(precedingText)) continue; // the declaration itself, e.g. "function hasSetTier("
+    const [, fnName, arg1, arg2] = m;
+    const key = fnName === "hasSetTier" ? `${arg1}:${arg2}` : arg1;
+    const exceptionSet = exceptions && exceptions[fnName];
+    if (exceptionSet && exceptionSet.has(key)) continue;
+    unexpected.push(m[0]);
+  }
+  return unexpected;
+}
 for (const file of M2_SCOPED_FILES) {
   if (!sources[file]) continue;
-  const hasEffectCount = (sources[file].match(/\bhasEffect\(/g) || []).length;
-  const hasSetTierCount = (sources[file].match(/\bhasSetTier\(/g) || []).length;
-  if (hasEffectCount) warn("modifiers", `${file} still has ${hasEffectCount} hasEffect() call(s) not yet migrated to the registry (M2)`);
-  if (hasSetTierCount) warn("modifiers", `${file} still has ${hasSetTierCount} hasSetTier() call(s) not yet migrated to the registry (M2)`);
+  const text = stripExemptFunctions(sources[file], M2_EXEMPT_FUNCTIONS[file]);
+  const unexpected = findUnexpectedCalls(text, M2_EXACT_EXCEPTIONS[file]);
+  if (unexpected.length) err("modifiers", `${file} has ${unexpected.length} hasEffect()/hasSetTier() call(s) not covered by a documented M2 exception (2g close-out): ${unexpected.join(", ")}`);
 }
 
 // M3: every registry entry declares hook + holders; every damage/
