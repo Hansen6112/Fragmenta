@@ -1,0 +1,303 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index 5307d25..f48893f 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -1501,14 +1501,19 @@ function critMultiplier(state, isSpell) {
+     combat.player.unlikelyOutcomeGuaranteedCrit = false;
+     return combat.player.avatarOfFateTurns > 0 ? 2.0 : 1.5;
+   }
++  // 2g: swapped each raw hasSetTier for sourceActiveOn -- same primitive,
++  // no behavior change. This composite crit-chance roll has no single
++  // registry source of its own to gate on (modifiers.js's own
++  // sourceActiveOn comment explains why), so each clause still checks
++  // its own set individually, just through the registry's own check now.
+   let chance = 0;
+-  if (hasSetTier(state, "Regalia of the Woven Thread", 2) && combat.player.actionCounter === 1) chance += 0.25;
+-  if (isSpell && hasSetTier(state, "Regalia of the Endless Archive", 2)) chance += 0.2;
++  if (sourceActiveOn(state, { kind: "set", setName: "Regalia of the Woven Thread", tier: 2 }) && combat.player.actionCounter === 1) chance += 0.25;
++  if (isSpell && sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Archive", tier: 2 })) chance += 0.2;
+   // Blessing of Fortune (Regalia of the Laughing Gale 2pc): +5% Critical
+   // Chance per successful crit this fight, capped at +25% (5 stacks) — the
+   // stack itself grows in rollPlayerDamage, right after this function's
+   // result is read for the current hit.
+-  if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) chance += Math.min(combat.player.blessingOfFortuneCritStacks || 0, 5) * 0.05;
++  if (sourceActiveOn(state, { kind: "set", setName: "Regalia of the Laughing Gale", tier: 2 })) chance += Math.min(combat.player.blessingOfFortuneCritStacks || 0, 5) * 0.05;
+   // Avatar of Chaos (Regalia of the Laughing Gale 6pc): doubles whatever
+   // crit chance is on offer for its 4-round window.
+   if (combat.player.avatarOfChaosTurns > 0) chance *= 2;
+@@ -1610,7 +1615,9 @@ function sharedBurdenMultiplier(state, dmg) {
+ // 10% less damage during the first three rounds of combat — reuses the
+ // shared combat.player.actionCounter (already incremented once per action).
+ function calmingPresenceMultiplier(state) {
+-  return hasEffect(state, "calming_presence") && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter <= 3 ? 0.9 : 1;
++  // 2g: only called from modifiers.js's own value fn for
++  // effect:calming_presence -- already gated on source presence.
++  return state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter <= 3 ? 0.9 : 1;
+ }
+ 
+ // Avatar of Devotion (Regalia of the Eternal Heart 6pc): a flat 35% cut
+@@ -1627,7 +1634,9 @@ function avatarOfDevotionDamageMultiplier(state) {
+ // once-per-fight or stacking effect), layered into the same chain as
+ // Avatar of Devotion above.
+ function blessingOfStoneMultiplier(state) {
+-  return hasSetTier(state, "Regalia of the Eternal Bastion", 2) && state.health > state.maxHealth * 0.5 ? 0.85 : 1;
++  // 2g: only called from modifiers.js's own value fn for
++  // set:Regalia of the Eternal Bastion:2 -- already gated on source presence.
++  return state.health > state.maxHealth * 0.5 ? 0.85 : 1;
+ }
+ 
+ // Avatar of Endurance (Regalia of the Eternal Bastion 6pc): a flat 50% cut
+@@ -1869,7 +1878,11 @@ function applyEndlessHorizonEvasionBonuses(state) {
+ // +50% (10 stacks). Reads the stack BEFORE this hit (Momentum's own
+ // pattern), incremented after the roll below.
+ function worthyChallengeMultiplier(state) {
+-  if (!hasEffect(state, "worthy_challenge") || !state.combat) return 1;
++  // 2g: only called from modifiers.js's own value fn for effect:worthy_challenge
++  // -- already gated on source presence before this ever runs. (A separate
++  // pipeline.js call site gates the STACK-INCREMENT, not this multiplier;
++  // handled on its own, see that file's own 2g batch.)
++  if (!state.combat) return 1;
+   return 1 + Math.min(state.combat.player.worthyChallengeStacks || 0, 10) * 0.05;
+ }
+ 
+@@ -1879,7 +1892,10 @@ function worthyChallengeMultiplier(state) {
+ // defeats the target" clause lives in resolveKill instead, since only
+ // resolveKill knows the hit was lethal.
+ function blessingOfValorMultiplier(state) {
+-  return hasSetTier(state, "Regalia of the Crimson Vanguard", 2) && state.combat && state.combat.player.actionCounter === 1 ? 1.3 : 1;
++  // 2g: only called from modifiers.js's own value fn for
++  // set:Regalia of the Crimson Vanguard:2 -- already gated on source
++  // presence before this ever runs.
++  return state.combat && state.combat.player.actionCounter === 1 ? 1.3 : 1;
+ }
+ 
+ // Commanding Presence (Regalia of the Crimson Vanguard 4pc): every 3rd
+@@ -1890,7 +1906,10 @@ function blessingOfValorMultiplier(state) {
+ // trivially already true, the same reasoning as Foreseen Strike/Avatar of
+ // Fate's equivalent clauses.
+ function commandingPresenceDefMultiplier(state) {
+-  return hasSetTier(state, "Regalia of the Crimson Vanguard", 4) && state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 3 === 0 ? 0 : 1;
++  // 2g: only called from modifiers.js's own value fn for
++  // set:Regalia of the Crimson Vanguard:4 -- already gated on source
++  // presence before this ever runs.
++  return state.combat && state.combat.player.actionCounter > 0 && state.combat.player.actionCounter % 3 === 0 ? 0 : 1;
+ }
+ 
+ // Faithful Heart (Divine Regalia — Ring of Sacred Vows) and Heartward
+@@ -1920,8 +1939,8 @@ function applyBeneficialEffectBonuses(state, duration) {
+ // mechanical pattern...not a second mechanical effect" merge note: two
+ // distinct effect ids (so each item declares its own) resolving through
+ // ONE shared, wearer-neutral mechanism. This generalizes the player-only
+-// Stonewarden 6pc precedent (combat.player.firstHitTakenUsed/hasSetTier(state,
+-// "Stonewarden", 6), resolveEnemyAttackOnPlayer/attemptFlee below) the same
++// Stonewarden 6pc precedent (combat.player.firstHitTakenUsed, set-tier
++// gated, resolveEnemyAttackOnPlayer/attemptFlee below) the same
+ // way Ally Protection Reaction was generalized from its own
+ // Hadrian-specific precedent — but mirrored to the other side of the
+ // exchange: this fires on the WEARER's first incoming hit from the
+@@ -2147,15 +2166,18 @@ function rollPlayerDamage(state, creature, activeElement) {
+   // grows its own stack for the NEXT hit, capped at 15 (+30%) — the same
+   // "read the stack before this roll, grow it after" ordering Momentum/
+   // Worthy Challenge use above.
+-  if (hasEffect(state, "tempered_steel")) {
++  // 2g: swapped each raw hasEffect/hasSetTier for sourceActiveOn below --
++  // same primitive, no behavior change. These are stack-growth gates, not
++  // hook-dispatched -- no registry entry wraps this specific increment.
++  if (sourceActiveOn(state, { kind: "effect", id: "tempered_steel" })) {
+     state.combat.player.temperedSteelStacks = Math.min(15, (state.combat.player.temperedSteelStacks || 0) + 1);
+   }
+   state.combat.player.threadsOfConsequencePending = false;
+   state.combat.enemyActedFirstThisRound = false;
+-  if (hasEffect(state, "momentum")) {
++  if (sourceActiveOn(state, { kind: "effect", id: "momentum" })) {
+     state.combat.player.momentumStacks = Math.min(5, (state.combat.player.momentumStacks || 0) + 1);
+   }
+-  if (hasEffect(state, "worthy_challenge")) {
++  if (sourceActiveOn(state, { kind: "effect", id: "worthy_challenge" })) {
+     state.combat.player.worthyChallengeStacks = Math.min(10, (state.combat.player.worthyChallengeStacks || 0) + 1);
+   }
+   // Blessing of Fortune (Regalia of the Laughing Gale 2pc) and Avatar of
+@@ -2166,7 +2188,9 @@ function rollPlayerDamage(state, creature, activeElement) {
+   // same "read the stack before this roll, grow it after" ordering
+   // Momentum/Worthy Challenge use, and just as silent (no line) as those.
+   if ((outgoing.byKey[CRIT_MODIFIER_KEY] || 1) > 1) {
+-    if (hasSetTier(state, "Regalia of the Laughing Gale", 2)) {
++    // 2g: see the tempered_steel/momentum/worthy_challenge note above --
++    // same sourceActiveOn swap, same stack-growth shape.
++    if (sourceActiveOn(state, { kind: "set", setName: "Regalia of the Laughing Gale", tier: 2 })) {
+       state.combat.player.blessingOfFortuneCritStacks = Math.min(5, (state.combat.player.blessingOfFortuneCritStacks || 0) + 1);
+     }
+     if (state.combat.player.avatarOfChaosTurns > 0) {
+@@ -2843,13 +2867,11 @@ function resolveDregnarAttempt(state, e, creatureObj, abilityId, atkSpread, extr
+     e.draPendingAccTurnsLeft = 2;
+     // Flowing Discipline (First Sword's Regalia 6pc, exclusive): Barrier
+     // is Dregnar's only "no-damage defensive action" in Stage A, so this
+-    // is the one real trigger — kept generic (hasSetTier on the wearer,
+-    // not hardcoded to Dregnar) so a future defensive-action source on
+-    // another wearer would grant it the same way.
+-    if (hasSetTier(creatureObj, "First Sword's Regalia", 6)) {
+-      creatureObj.flowingDisciplinePending = true;
+-      creatureObj.flowingDisciplineTurnsLeft = 2;
+-    }
++    // is the one real trigger -- dispatched by key through the registry's
++    // own set:First Sword's Regalia:6 entry (modifiers.js, 2g), kept
++    // generic on the wearer (not hardcoded to Dregnar) so a future
++    // defensive-action source on another wearer would grant it the same way.
++    runHookEntry("set:First Sword's Regalia:6", creatureObj, "enemy", { creature: creatureObj, holder: creatureObj, role: "enemy" });
+     return { lines: [`${withThe(creatureObj.name, true)} raises a shifting water barrier, turning aside the next blow aimed at it.`], damage: null };
+   }
+   const abilityCtx = { id: abilityId, name: ability.name, dmgMult: ability.dmgMult, inflict: ability.inflict };
+@@ -4964,7 +4986,10 @@ function applyDodgeBlockNegateBonuses(state) {
+   // dispatched before this task). Fan-out is safe here -- nothing else
+   // is registered on this hook.
+   lines.push(...runReactionHook("applyAndReact.onZeroDamage", state, "player", { state, holder: state, role: "player" }));
+-  if (hasSetTier(state, "Regalia of the Woven Thread", 4) && !combat.player.threadsOfConsequencePending) {
++  // 2g: swapped the raw hasSetTier for sourceActiveOn, same set:Regalia
++  // of the Woven Thread:4 presence check the registry's own entry
++  // (modifiers.js) already gates the consumption side on.
++  if (sourceActiveOn(state, { kind: "set", setName: "Regalia of the Woven Thread", tier: 4 }) && !combat.player.threadsOfConsequencePending) {
+     combat.player.threadsOfConsequencePending = true;
+     lines.push(`Threads of Consequence — your next strike will land harder for it.`);
+   }
+@@ -5878,7 +5903,10 @@ function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
+ 
+ function checkHoldTheLine(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.holdTheLineUsed || !hasSetTier(state, "Legion", 8)) return [];
++  // 2g: dispatched unconditionally (source:{kind:"always"}) from
++  // modifiers.js's own set:Legion:8 entry -- sourceActiveOn replaces the
++  // raw hasSetTier here, same primitive, no behavior change.
++  if (!combat || combat.player.holdTheLineUsed || !sourceActiveOn(state, { kind: "set", setName: "Legion", tier: 8 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.3) return [];
+   combat.player.holdTheLineUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 2);
+@@ -5893,7 +5921,8 @@ function checkHoldTheLine(state) {
+ // effect instead of a set tier, and checked at the same call sites.
+ function checkRootedResolve(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.rootedResolveUsed || !hasEffect(state, "rooted_resolve")) return [];
++  // 2g: see checkHoldTheLine's own note just above.
++  if (!combat || combat.player.rootedResolveUsed || !sourceActiveOn(state, { kind: "effect", id: "rooted_resolve" })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
+   combat.player.rootedResolveUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 3);
+@@ -5913,7 +5942,8 @@ function checkRootedResolve(state) {
+ // same composition Avatar of Bloom already uses.
+ function checkRallyTheLine(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.rallyTheLineUsed || !hasEffect(state, "rally_the_line")) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.rallyTheLineUsed || !sourceActiveOn(state, { kind: "effect", id: "rally_the_line" })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
+   combat.player.rallyTheLineUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+@@ -5940,7 +5970,8 @@ function checkRallyTheLine(state) {
+ // magic that could ever target the player in the first place.
+ function checkAvatarOfPassing(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfPassingUsed || !hasSetTier(state, "Regalia of the Final Veil", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfPassingUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Final Veil", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfPassingUsed = true;
+   combat.player.avatarOfPassingTurns = applyBeneficialEffectBonuses(state, 4);
+@@ -5958,7 +5989,8 @@ function checkAvatarOfPassing(state) {
+ // first place.
+ function checkAvatarOfFate(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfFateUsed || !hasSetTier(state, "Regalia of the Woven Thread", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfFateUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Woven Thread", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfFateUsed = true;
+   combat.player.avatarOfFateTurns = applyBeneficialEffectBonuses(state, 4);
+@@ -5979,7 +6011,8 @@ function checkAvatarOfFate(state) {
+ // so there's no next enemy for the extra attack to land on.
+ function checkAvatarOfWar(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfWarUsed || !hasSetTier(state, "Regalia of the Crimson Vanguard", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfWarUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Crimson Vanguard", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfWarUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+@@ -6001,7 +6034,8 @@ function checkAvatarOfWar(state) {
+ // rather than repeated on every subsequent attack.
+ function checkAvatarOfKnowledge(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfKnowledgeUsed || !hasSetTier(state, "Regalia of the Endless Archive", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfKnowledgeUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Archive", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfKnowledgeUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+@@ -6023,7 +6057,8 @@ function checkAvatarOfKnowledge(state) {
+ // trivially already true — no such mechanics exist on the player side.
+ function checkAvatarOfDevotion(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfDevotionUsed || !hasSetTier(state, "Regalia of the Eternal Heart", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfDevotionUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Heart", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfDevotionUsed = true;
+   combat.player.avatarOfDevotionTurns = applyBeneficialEffectBonuses(state, 4);
+@@ -6046,7 +6081,8 @@ function checkAvatarOfDevotion(state) {
+ // status mechanic exists on the player side yet.
+ function checkAvatarOfChaos(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfChaosUsed || !hasSetTier(state, "Regalia of the Laughing Gale", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfChaosUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Laughing Gale", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfChaosUsed = true;
+   combat.player.avatarOfChaosTurns = applyBeneficialEffectBonuses(state, 4);
+@@ -6064,7 +6100,8 @@ function checkAvatarOfChaos(state) {
+ // Grounded below: no such mechanics exist on the player side yet.
+ function checkAvatarOfEndurance(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfEnduranceUsed || !hasSetTier(state, "Regalia of the Eternal Bastion", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfEnduranceUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Bastion", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfEnduranceUsed = true;
+   combat.player.avatarOfEnduranceTurns = applyBeneficialEffectBonuses(state, 4);
+@@ -6087,7 +6124,8 @@ function checkAvatarOfEndurance(state) {
+ // to act on.
+ function checkAvatarOfFreedom(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfFreedomUsed || !hasSetTier(state, "Regalia of the Endless Horizon", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfFreedomUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Horizon", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfFreedomUsed = true;
+   combat.player.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, 4);
+@@ -6109,7 +6147,8 @@ function checkAvatarOfFreedom(state) {
+ // Intertwined (Regalia of the Woven Thread) already established.
+ function checkAvatarOfCreation(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfCreationUsed || !hasSetTier(state, "Regalia of the Eternal Forge", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfCreationUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Forge", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfCreationUsed = true;
+   const dur = applyBeneficialEffectBonuses(state, 4);
+@@ -6136,7 +6175,8 @@ function checkAvatarOfCreation(state) {
+ // Flowing Waters/Blessing of the Tide/Living Forge already cite.
+ function checkAvatarOfRenewal(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfRenewalUsed || !hasSetTier(state, "Regalia of the Endless Tide", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfRenewalUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Tide", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfRenewalUsed = true;
+   combat.player.avatarOfRenewalTurns = applyBeneficialEffectBonuses(state, 4);
+@@ -6161,7 +6201,8 @@ function checkAvatarOfRenewal(state) {
+ // beginTurn for why.
+ function checkAvatarOfTime(state) {
+   const combat = state.combat;
+-  if (!combat || combat.player.avatarOfTimeUsed || !hasSetTier(state, "Regalia of the Eternal Hour", 6)) return [];
++  // 2g: see checkHoldTheLine's own note above.
++  if (!combat || combat.player.avatarOfTimeUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Hour", tier: 6 })) return [];
+   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+   combat.player.avatarOfTimeUsed = true;
+   combat.player.avatarOfTimeTurns = applyBeneficialEffectBonuses(state, 3);

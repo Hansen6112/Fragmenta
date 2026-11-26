@@ -1,0 +1,12 @@
+[
+ {
+  "reg": "MODIFIER_BEHAVIORS",
+  "id": "flowingDisciplineGrant",
+  "type": "added"
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:First Sword's Regalia:6",
+  "type": "added"
+ }
+]

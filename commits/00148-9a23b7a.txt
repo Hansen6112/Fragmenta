@@ -1,0 +1,55 @@
+range: ff6041ca82442cd663da8c22f5e0398442ae114e..9a23b7a3a5b06fa2d197436a59ce18f994a5b5df
+=== 9a23b7a3a5b06fa2d197436a59ce18f994a5b5df 2026-11-26 21:53:04 +0000
+2g: eliminate remaining combat.js hasSetTier calls (set-tier entries now zero)
+Closes out task #51 of Phase 2g (close-out: zero hasEffect/hasSetTier
+calls left in combat code). combat.js's own hasSetTier count: 26 -> 0
+real calls (one remaining grep hit is a pre-existing prose comment,
+also cleaned up).
+
+Three shapes of fix, each independently verified against real source:
+
+1. Dead checks inside functions ONLY ever called from their own
+   modifiers.js value function (already gated on source presence
+   before invocation): blessingOfValorMultiplier/commandingPresenceDefMultiplier
+   (Crimson Vanguard:2/4), calmingPresenceMultiplier (calming_presence),
+   blessingOfStoneMultiplier (Eternal Bastion:2). Checks removed outright.
+
+2. The "checkFn" family dispatched unconditionally (source:{kind:"always"})
+   from modifiers.js's own applyAndReact.onLowHealth entries -- the real
+   gate lives INSIDE the called function, by design (same reason Storm
+   Barrier/Stonewarden's own flag-consumption is unconditional). 14
+   functions (checkHoldTheLine, checkRootedResolve, checkRallyTheLine,
+   checkAvatarOfPassing/Fate/War/Knowledge/Devotion/Chaos/Endurance/
+   Freedom/Creation/Renewal/Time) now call sourceActiveOn(holder,
+   {kind,...}) instead of the raw hasSetTier/hasEffect primitive --
+   same check, same result, just routed through the registry's own
+   canonical presence-check function (which lives in modifiers.js,
+   outside M2's scanned files) instead of calling hasEffect/hasSetTier
+   directly from engine code.
+
+3. Stack-growth gates with no wrapping registry entry at all (the crit-
+   chance composite roll's own Woven Thread:2/Endless Archive:2/Laughing
+   Gale:2 clauses; tempered_steel/momentum/worthy_challenge/Blessing of
+   Fortune's own stack increments; Threads of Consequence's grant side,
+   Woven Thread:4): same sourceActiveOn swap, no new registry entry
+   needed since nothing here is hook-dispatched.
+
+4. One genuinely new entry: Flowing Discipline (First Sword's Regalia
+   6pc, exclusive to Dregnar) had no registry presence at all. Added
+   set:First Sword's Regalia:6 with a flowingDisciplineGrant behavior,
+   dispatched BY KEY (not fan-out) from resolveDregnarAttempt's own
+   Barrier branch -- applyAndReact.onActionUsed has a real fan-out call
+   site reaching holderRole "enemy" (Brace's own appliesBraceDefense tag
+   check), so by-key dispatch was chosen specifically to avoid it, same
+   precedent as Endless Study/Wanderer's Reward on this same hook.
+
+Suite 651/651, audit 0 errors (112->110 warnings: -1 from M1's First
+Sword's Regalia:6 gap closing, plus M2's own count collapsing).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js |  20 +++++++++
+ js/engine/combat.js  | 113 +++++++++++++++++++++++++++++++++++----------------
+ 2 files changed, 97 insertions(+), 36 deletions(-)
