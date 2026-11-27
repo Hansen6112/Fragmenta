@@ -3549,9 +3549,9 @@ registerModifier("set:Regalia of the Eternal Bastion:6:avatar_of_endurance_trigg
 registerModifier("set:Regalia of the Endless Horizon:6", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 130, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfFreedom(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Freedom: buff-only (faster cooldowns, bypassed restrictions, its own evasion roll, no heal, combat.js:6368) -- 2e-2 territory.",
+  params: { checkFn: (holder, role) => checkAvatarOfFreedom(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Freedom: buff-only (faster cooldowns, bypassed restrictions, its own evasion roll, no heal, combat.js:6368) -- 2e-2 territory. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfFreedom generalized (combat.js). Only the trigger and the independent evasion roll (rollToHit's own ally branch, pipeline.js) generalize; faster-cooldown-recovery and the activation-restriction bypass stay player-only (moot for an ally in practice -- no ally action is cooldown-gated or Knowledge-restricted the way Tactics/Abilities are).",
 });
 registerModifier("set:Regalia of the Eternal Forge:6", {
   source: { kind: "always" },

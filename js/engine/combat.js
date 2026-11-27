@@ -4210,6 +4210,7 @@ function beginTurn(state) {
     if (ally.avatarOfEnduranceTurns > 0) ally.avatarOfEnduranceTurns -= 1;
     if (ally.avatarOfRenewalTurns > 0) ally.avatarOfRenewalTurns -= 1;
     if (ally.avatarOfChaosTurns > 0) ally.avatarOfChaosTurns -= 1;
+    if (ally.avatarOfFreedomTurns > 0) ally.avatarOfFreedomTurns -= 1;
     lines.push(...tickAllyStatuses(state, ally));
   });
   // tickAllyStatuses' own DOT tick can call killAlly, whose party-wipe
@@ -6276,13 +6277,24 @@ function checkAvatarOfEndurance(holder, holderRole) {
 // attacks in this engine always deal at least 1 damage, with no miss/
 // failure state on the player's side for a reroll to ever have anything
 // to act on.
-function checkAvatarOfFreedom(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see checkAvatarOfDevotion's
+// own note (2g close-out section) for the exact reasoning. Avatar of
+// Freedom's own faster-cooldown-recovery (beginTurn's cooldownDecrement)
+// and activation-restriction bypass (activationRestrictionsBypassed)
+// stay player-only and untouched -- both are moot for an ally in
+// practice (no ally action is cooldown-gated the way Tactics/Abilities
+// are, and no ally action has a Knowledge-based unlock restriction to
+// bypass), so there's no ally-side consumer to wire up for either. Only
+// the trigger and the independent 50% evasion roll (rollToHit's own
+// ally branch, pipeline.js) generalize this slice.
+function checkAvatarOfFreedom(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.avatarOfFreedomUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Horizon", tier: 6 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
-  combat.player.avatarOfFreedomUsed = true;
-  combat.player.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, "player", 4);
+  if (host.avatarOfFreedomUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Endless Horizon", tier: 6 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
+  host.avatarOfFreedomUsed = true;
+  host.avatarOfFreedomTurns = applyBeneficialEffectBonuses(holder, holderRole, 4);
   return [`Avatar of Freedom awakens — for 4 rounds, nothing can hold you.`];
 }
 

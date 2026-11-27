@@ -335,6 +335,19 @@ function rollToHit(actor, target, action, ctx) {
     if (allyMissChain) {
       return { hit: false, result: { lines: [allyMissChain.miss], damage: 0 } };
     }
+    // R1b (27 Nov): Avatar of Freedom's own independent 50% evasion roll
+    // -- the ally-side twin of the player branch's own inline check,
+    // below. Not part of the registry's rollToHit.defender fan-out
+    // above (same reasoning as the player's own copy: it's a SEPARATE
+    // roll layered on top of an already-successful hit, not a "miss
+    // chain" member), so it's gated directly on COMBAT_UNIFY.R1 here --
+    // ally.avatarOfFreedomTurns is only ever set by checkAvatarOfFreedom,
+    // itself already gated the same way, but the explicit check keeps
+    // this site correct even if that ever changes.
+    if (COMBAT_UNIFY.R1 && ally.avatarOfFreedomTurns > 0 && Math.random() < 0.5) {
+      const evadeLinesAlly = runReactionHook("applyAndReact.onEvade", ally, "ally", { state, holder: ally, role: "ally" });
+      return { hit: false, result: { lines: [`Avatar of Freedom carries ${ally.name} beyond its reach entirely.`, ...evadeLinesAlly], damage: 0 } };
+    }
     return { hit: true, accBonus, bankedPrepDmgMultBonus: bankedPrepDmgMultBonusAlly };
   }
 
