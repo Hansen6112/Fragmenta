@@ -1,0 +1,47 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index d8fed00..20dffd2 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -5964,6 +5964,15 @@ Events.on("combat.started", ({ state }) => {
+ function lowHealthTriggerChecks(state) {
+   return runReactionHook("applyAndReact.onLowHealth", state, "player", { state, holder: state, role: "player" });
+ }
++// R1b (27 Nov): the ally-side sibling -- a SEPARATE function, not a
++// generalized lowHealthTriggerChecks(holder, holderRole), so none of
++// the player's own 11 existing call sites (each `lowHealthTriggerChecks(state)`,
++// unchanged) need touching at all. Called from pipeline.js's
++// resolveEnemyAttackOnAlly, the one shared choke point every enemy
++// attack on an ally goes through.
++function lowHealthTriggerChecksForAlly(state, ally) {
++  return runReactionHook("applyAndReact.onLowHealth", ally, "ally", { state, holder: ally, role: "ally" });
++}
+ 
+ // The incoming-damage mitigation pipeline for a hit on the PLAYER, shared
+ // by all three places that used to carry their own copy (enemy-mage
+diff --git a/js/engine/pipeline.js b/js/engine/pipeline.js
+index 8a83778..c24eb7d 100644
+--- a/js/engine/pipeline.js
++++ b/js/engine/pipeline.js
+@@ -732,7 +732,21 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
+   const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
+   if (dmgInfo.shortCircuit) return dmgInfo.result;
+ 
+-  return applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
++  // R1b (27 Nov): the applyAndReact.onLowHealth hook (Avatar of X and
++  // siblings) was only ever dispatched for the player, at combat.js's
++  // own lowHealthTriggerChecks(state) -- 11 scattered call sites, one
++  // per player ACTION that can provoke a retaliation. An enemy's attack
++  // on an ally is far more centralized: every single-target attempt
++  // goes through resolveEnemySingleTargetAttempt -> here, and the only
++  // other two call sites (the AOE loop, the flee-attempt retaliation)
++  // both call this same function too -- so one check here covers all
++  // three, the ally-side equivalent of the player's own
++  // `if (state.health > 0) out.push(...lowHealthTriggerChecks(state))`.
++  // `ally.alive` guards the already-dead case the same way `killAlly`
++  // just above already left it (dead allies don't get a second kick).
++  if (ally.alive && ally.health > 0) result.lines.push(...lowHealthTriggerChecksForAlly(state, ally));
++  return result;
+ }
+ 
+ /*

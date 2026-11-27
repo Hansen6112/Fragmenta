@@ -1,0 +1,41 @@
+range: fb19ae8dc2d5a060869715fc9a6e6ce7fe223275..b0b9db80308c022735665d0498df195c3cab8048
+=== b0b9db80308c022735665d0498df195c3cab8048 2026-11-27 21:14:24 +0000
+R1b slice 1: wire applyAndReact.onLowHealth for allies (prerequisite for the Avatar-of-X cluster)
+Task #49 (R1b, the ally-tick build Tyler approved). The entire
+Avatar-of-X cluster (14 registry entries) triggers through
+applyAndReact.onLowHealth, which was only ever dispatched for the
+player -- 11 scattered call sites (one per player action that can
+provoke a retaliation), none touched here. An enemy's attack on an
+ally turned out to be far more centralized: every single-target
+attempt, the AOE loop, and the flee-retaliation case all funnel
+through resolveEnemyAttackOnAlly (pipeline.js), so one new check there
+covers all three real call sites -- much smaller than the player's own
+11-site shape suggested.
+
+- combat.js: new lowHealthTriggerChecksForAlly(state, ally), a
+  SEPARATE function from the player's own lowHealthTriggerChecks(state)
+  -- zero edits to any of the player's 11 existing call sites.
+- pipeline.js: resolveEnemyAttackOnAlly calls it right after
+  applyAndReact, guarded on ally.alive && ally.health > 0 (an
+  already-dead ally doesn't get a second kick, same as killAlly's own
+  branch just above).
+- New proof ledger (phase2_r1b_lowhealth_ally_proof_ledger.js): a
+  disposable, holders:["ally"] test-only entry confirms the dispatch
+  reaches an ally that crosses below a Health threshold, fires exactly
+  once, never fires on a hit that doesn't cross it, never fires for the
+  player's own separate dispatch (role isolation), and is correctly
+  skipped when the hit kills the ally outright.
+
+Pure plumbing -- no registry entry has "ally" in its own holders for
+this hook yet, so this is inert until the Avatar-of-X entries
+themselves are migrated next. Suite 668/668, audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/engine/combat.js                                |   9 ++
+ js/engine/pipeline.js                              |  16 ++-
+ .../phase2_r1b_lowhealth_ally_proof_ledger.js      | 110 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 4 files changed, 135 insertions(+), 1 deletion(-)
