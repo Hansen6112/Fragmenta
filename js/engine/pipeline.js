@@ -732,7 +732,21 @@ function resolveEnemyAttackOnAlly(state, creature, ally, abilityCtx, basicFirstB
   const dmgInfo = calculateDamage(actor, targets[0], chosen, ctx, hitInfo);
   if (dmgInfo.shortCircuit) return dmgInfo.result;
 
-  return applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+  const result = applyAndReact(actor, targets[0], dmgInfo, ctx, chosen);
+  // R1b (27 Nov): the applyAndReact.onLowHealth hook (Avatar of X and
+  // siblings) was only ever dispatched for the player, at combat.js's
+  // own lowHealthTriggerChecks(state) -- 11 scattered call sites, one
+  // per player ACTION that can provoke a retaliation. An enemy's attack
+  // on an ally is far more centralized: every single-target attempt
+  // goes through resolveEnemySingleTargetAttempt -> here, and the only
+  // other two call sites (the AOE loop, the flee-attempt retaliation)
+  // both call this same function too -- so one check here covers all
+  // three, the ally-side equivalent of the player's own
+  // `if (state.health > 0) out.push(...lowHealthTriggerChecks(state))`.
+  // `ally.alive` guards the already-dead case the same way `killAlly`
+  // just above already left it (dead allies don't get a second kick).
+  if (ally.alive && ally.health > 0) result.lines.push(...lowHealthTriggerChecksForAlly(state, ally));
+  return result;
 }
 
 /*

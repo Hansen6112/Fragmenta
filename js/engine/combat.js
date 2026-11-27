@@ -5964,6 +5964,15 @@ Events.on("combat.started", ({ state }) => {
 function lowHealthTriggerChecks(state) {
   return runReactionHook("applyAndReact.onLowHealth", state, "player", { state, holder: state, role: "player" });
 }
+// R1b (27 Nov): the ally-side sibling -- a SEPARATE function, not a
+// generalized lowHealthTriggerChecks(holder, holderRole), so none of
+// the player's own 11 existing call sites (each `lowHealthTriggerChecks(state)`,
+// unchanged) need touching at all. Called from pipeline.js's
+// resolveEnemyAttackOnAlly, the one shared choke point every enemy
+// attack on an ally goes through.
+function lowHealthTriggerChecksForAlly(state, ally) {
+  return runReactionHook("applyAndReact.onLowHealth", ally, "ally", { state, holder: ally, role: "ally" });
+}
 
 // The incoming-damage mitigation pipeline for a hit on the PLAYER, shared
 // by all three places that used to carry their own copy (enemy-mage
