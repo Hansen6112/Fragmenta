@@ -1,0 +1,62 @@
+range: e82d3b97ea373cebc349d8b6a2eeccf149fdcdac..9aa48fc0c92a85e89832eba0fd2c75e70c372d8e
+=== 9aa48fc0c92a85e89832eba0fd2c75e70c372d8e 2026-11-27 22:18:58 +0000
+R1b slice 4: generalize Hold the Line/Rooted Resolve/Rally the Line via shared ally buff reuse
+Task #49 (R1b). The first members routed through a stat-buff grant
+instead of a dedicated field: Hold the Line (+6 Defense, 2 turns, below
+30% Health), Rooted Resolve (+8 Defense, 3 turns, below 50%), Rally the
+Line (+10 Attack/+10 Defense, 4 turns, below 50%).
+
+- combat.js: new grantTemporaryStatBuff(holder, holderRole, statKey,
+  amount, turns) -- player: writes the existing dedicated
+  combat.player.<stat>BuffTurns/<stat>BuffAmount fields (today's exact
+  shape, just moved the Math.max inside one shared function). Ally/
+  enemy: writes holder.buffs[statKey], companion.js's OWN EXISTING
+  crafted-potion-buff system -- already read by effectiveAllyAtk/
+  effectiveAllyDef and already ticked down every round by
+  tickAllyBuffs (beginTurn's own per-ally loop already calls it), so no
+  new ally-side storage or decrement code was needed for the buff
+  itself, only each trigger's own "used" flag (modifierStateHost, same
+  pattern as every prior slice).
+- Real bug caught and fixed while wiring this up:
+  applyBlessingOfCreationBonus hardcoded holderRole "player" inside its
+  own resolveUpgradedValue call -- calling it with an ally holder would
+  have let sourceActiveOn(ally, ...) correctly detect the ally's own
+  gear while the holders check passed on a tautology (the hardcoded
+  "player" trivially matches the upgrade entry's own unwidened
+  holders:["player"]), incorrectly granting the magnitude boost based
+  on whether the ally wears Eternal Forge:2, regardless of role. Fixed
+  by adding an explicit holderRole param (9 existing call sites updated
+  to pass "player" -- zero behavior change for any of them).
+- checkHoldTheLine/checkRootedResolve/checkRallyTheLine generalized to
+  (holder, holderRole), same modifierStateHost pattern as every prior
+  slice.
+- modifiers.js: the 3 trigger entries' own checkFn closures updated to
+  forward role through; holders widened to ["player","ally"] and gated
+  behind COMBAT_UNIFY.R1, off by default. 8 other, untouched
+  applyBeneficialEffectBonuses/applyBlessingOfCreationBonus call sites
+  in this file (Endless Current, Wanderer's Reward, Faithful Heart,
+  and others still entirely player-only) updated to the new required
+  signatures with "player" explicit -- pure mechanical fix, caught by
+  the regression suite itself (apothecary_action_tracking_ledger.js
+  briefly regressed to 4/5, "undefined rounds" in Wanderer's Reward's
+  own line, before this fix).
+
+New proof ledger (phase2_r1b_shared_buff_slice_proof_ledger.js, 6/6):
+confirms no ally-side effect with R1 off, each trigger granting the
+right buff amount/duration with R1 on (raising effectiveAllyAtk/Def by
+exactly the right amount), the buff expiring through the EXISTING
+tickAllyBuffs with no new decrement code, and the player's own path
+staying byte-identical (still writes combat.player.atkBuffTurns/
+Amount directly, never touches ally.buffs).
+
+Suite 694/694 (3 consecutive clean runs), audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               |  42 +++---
+ js/engine/combat.js                                | 122 +++++++++++-----
+ .../phase2_r1b_shared_buff_slice_proof_ledger.js   | 161 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 4 files changed, 269 insertions(+), 57 deletions(-)

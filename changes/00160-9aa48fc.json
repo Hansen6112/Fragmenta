@@ -1,0 +1,83 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Legion:8",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Hold the Line: buff-only (checkHoldTheLine grants +6 Defense for 2 turns below 30% HP, no heal) -- 2e-2 territory for any further generalization; this entry only relocates its dispatch.",
+    "new": "Hold the Line: buff-only (checkHoldTheLine grants +6 Defense for 2 turns below 30% HP, no heal). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkHoldTheLine generalized (combat.js), its Defense buff now routed through grantTemporaryStatBuff, which writes an ally's own holder.buffs.def (companion.js's existing crafted-potion-buff system, already read by effectiveAllyDef and ticked by tickAllyBuffs) instead of the player's dedicated defBuffTurns/defBuffAmount fields."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:rooted_resolve",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Rooted Resolve: buff-only (checkRootedResolve grants +8 Defense for 3 turns below 50% HP, no heal, combat.js:6141) -- 2e-2 territory.",
+    "new": "Rooted Resolve: buff-only (checkRootedResolve grants +8 Defense for 3 turns below 50% HP, no heal). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same grantTemporaryStatBuff routing as set:Legion:8's own note above."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:rally_the_line",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Rally the Line: buff-only (+10 Attack/+10 Defense for 4 rounds below 50% HP, no heal, combat.js:6174) -- 2e-2 territory.",
+    "new": "Rally the Line: buff-only (+10 Attack/+10 Defense for 4 rounds below 50% HP, no heal). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same grantTemporaryStatBuff routing as set:Legion:8's own note above, both stats this time."
+   }
+  ]
+ }
+]
