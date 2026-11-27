@@ -133,6 +133,42 @@ function buildSandbox(switchOn) {
   );
   function setForceVariant(id) { ctx.__forceVariantId = id || null; }
 
+  // ---- harness-only forced-presence hook (R1 measurement, 27 Nov) --
+  // same "lives only in this file, never touches js/" discipline as the
+  // variant-pin hook just above. gearFor/gearForTierOffset's own "best
+  // raw stat per slot" scoring never happens to select any of R1's
+  // touched kind-B/set items (confirmed by direct inspection across all
+  // 5 classes, all 3 gear tiers, and a wide level range -- see this
+  // step's own writeup), so neither existing harness can measure R1's
+  // real impact at all: dispatch never even reaches these entries. This
+  // hook forces hasEffect/hasSetTier to report present for ONE chosen
+  // holder (by strict object identity, same as the Amendment 1 proof's
+  // own withMockedPresence helper) and a fixed list of effect ids /
+  // "setName:tier" keys, regardless of that holder's real equipped
+  // items -- letting a fight be run as if that holder genuinely wore
+  // all of them, without needing matching ITEM_DEFS entries to exist.
+  vm.runInContext(
+    `var __origHasEffect = hasEffect;
+     var __origHasSetTier = hasSetTier;
+     var __forcedHolder = null;
+     var __forcedEffectIds = null;
+     var __forcedSetTierKeys = null;
+     hasEffect = function (obj, id) {
+       if (__forcedHolder && obj === __forcedHolder && __forcedEffectIds && __forcedEffectIds.indexOf(id) !== -1) return true;
+       return __origHasEffect(obj, id);
+     };
+     hasSetTier = function (obj, setName, tier) {
+       if (__forcedHolder && obj === __forcedHolder && __forcedSetTierKeys && __forcedSetTierKeys.indexOf(setName + ":" + tier) !== -1) return true;
+       return __origHasSetTier(obj, setName, tier);
+     };`,
+    ctx
+  );
+  function setForcedPresence(holder, effectIds, setTierKeys) {
+    ctx.__forcedHolder = holder || null;
+    ctx.__forcedEffectIds = effectIds || null;
+    ctx.__forcedSetTierKeys = setTierKeys || null;
+  }
+
   const origRollEncounterGroup = G("rollEncounterGroup");
   function setSpawnMode(mode) {
     // "alone": force a group of exactly the anchor creature, no escort --
@@ -258,11 +294,20 @@ function buildSandbox(switchOn) {
   // already drive every ally's and every enemy's turn inside that single call
   // (confirmed by reading js/engine/pipeline.js's own playerAttack body).
   function runFight(opts) {
-    const { cls, L, spawn, party, forceVariant, spawnMode, maxRounds } = opts;
+    const { cls, L, spawn, party, forceVariant, spawnMode, maxRounds, afterParty } = opts;
     setSpawnMode(spawnMode || "asSpawned");
     const s = makePlayer(cls, L);
     equipPlayer(s, L, opts.gearFn || gearFor);
-    if (party) buildLegalParty(s, L, opts.gearFn || gearFor);
+    if (party) {
+      buildLegalParty(s, L, opts.gearFn || gearFor);
+      // Optional per-fight hook (R1 measurement, 27 Nov): runs right
+      // after this fight's OWN freshly-recruited party exists, so a
+      // caller can arm setForcedPresence (or similar) on this fight's
+      // real Kessa/Hadrian/merc objects -- buildLegalParty rebuilds the
+      // whole party from scratch every call, so there's no party object
+      // from a previous fight to reuse or patch ahead of time.
+      if (afterParty) afterParty(s);
+    }
     setForceVariant(forceVariant || null);
     G("startCombat")(s, spawn, L);
     setForceVariant(null);
@@ -306,7 +351,7 @@ function buildSandbox(switchOn) {
   return {
     G, BESTIARY, CLASS_IDS, gearFor, gearForTierOffset, gearTier, makePlayer, equipPlayer,
     buildLegalParty, runFight, injuryGroupsOf, spawnEnemyMage, setForceVariant, setSpawnMode,
-    seedRandom,
+    seedRandom, setForcedPresence,
   };
 }
 
