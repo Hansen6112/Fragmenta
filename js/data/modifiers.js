@@ -308,6 +308,19 @@ function modifiersFor(holder, holderRole) {
 // each entry's own `when` (if any), sorted by `order`. The list form
 // behind runHook() below.
 function modifiersForHook(holder, holderRole, hook, ctx) {
+  // R1 (27 Nov): ctx.role is set here, unconditionally, from the
+  // `holderRole` this function already receives -- several call sites
+  // across combat.js/pipeline.js build their own ctx literal without a
+  // `role` field at all (rollToHit.defender's own "evasion"-phase and
+  // ally-"miss"-phase dispatches, calculateDamage.tags's {damageType,
+  // tag}, ...), which a `when` clause reading ctx.role would otherwise
+  // silently misread as undefined. No existing `when` ever wants a
+  // DIFFERENT role than the one it was actually dispatched under (see
+  // Unquenched Focus's own note distinguishing ctx.targetRole from
+  // ctx.role, "always the dispatch HOLDER's own role"), so overwriting
+  // unconditionally is safe and makes every `when` clause's ctx.role
+  // reliable regardless of what the call site itself remembered to set.
+  ctx.role = holderRole;
   return modifiersFor(holder, holderRole)
     .filter((entry) => entry.hook === hook && (typeof entry.when !== "function" || entry.when(ctx)))
     .sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -863,6 +876,12 @@ function resolveUpgradedValue(tag, base, holder, holderRole, direction) {
     if (entry.upgrades !== tag) continue;
     if (!entry.holders.includes(holderRole) && !(holder && entry.holders.includes(holder.id))) continue;
     if (!sourceActiveOn(holder, entry.source)) continue;
+    // R1 (27 Nov): an upgrade-tier entry can now also carry a `when`
+    // gate (e.g. COMBAT_UNIFY.R1) -- this loop is the only dispatch path
+    // these entries ever go through (never modifiersForHook's own fan-
+    // out), so `when` has to be checked here explicitly or it's silently
+    // never consulted at all.
+    if (typeof entry.when === "function" && !entry.when({ holder, role: holderRole })) continue;
     const v = typeof entry.value === "function" ? entry.value({ holder, role: holderRole }) : entry.value;
     best = direction === "min" ? Math.min(best, v) : Math.max(best, v);
   }
@@ -1078,7 +1097,12 @@ registerBehavior("openingReachRatio", (ctx) => {
   if (host.firstPhysicalAttackDone) return 1;
   host.firstPhysicalAttackDone = true;
   if (!hasEffect(ctx.holder, "opening_reach")) return 1;
-  return ctx.role === "player" ? resolveUpgradedValue("effect:opening_reach", 1.15, ctx.holder, ctx.role, "max") : 1.15;
+  // R1 (27 Nov): the role==="player" ternary removed -- resolveUpgradedValue's
+  // own `entry.holders.includes(holderRole)` AND `entry.when` checks
+  // (this file, above) are now the only gates, so Norrvael:6's upgrade
+  // reaches ally once COMBAT_UNIFY.R1 is on (its own holders/when, below)
+  // and stays flat 1.15x for enemy until R2 widens Norrvael:6 further.
+  return resolveUpgradedValue("effect:opening_reach", 1.15, ctx.holder, ctx.role, "max");
 });
 // calculateDamage.outgoing, late phase, enemy-holder (2d close-out): the
 // dra_e0X/Tyrant's Edge chain inside enemyCore. Each wraps today's exact
@@ -1217,43 +1241,43 @@ registerModifier("effect:guardian_spirit", {
   source: { kind: "effect", id: "guardian_spirit" }, hook: "rollToHit.defender", order: 20,
   bucket: null, value: null, behavior: "blockFirstHitOncePerFight",
   params: { line: "Guardian Spirit turns the first blow aside completely." },
-  when: (ctx) => ctx.phase === "miss", holders: ["player"], state: { used: false },
-  notes: "Guardian Spirit.",
+  when: (ctx) => ctx.phase === "miss" && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: { used: false },
+  notes: "Guardian Spirit. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) same discipline as healingReceivedPct/Ashen Lungs -- per-holder modifierState (state.used), Amendment 1's own worked example for this exact entry. startCombat's own per-fight ally reset (combat.js) deletes a.modifierState fresh each fight, same as combat.player's own full rebuild.",
 });
 registerModifier("effect:guided_footsteps", {
   source: { kind: "effect", id: "guided_footsteps" }, hook: "rollToHit.defender", order: 30,
   bucket: null, value: null, behavior: "blockChanceOncePerFight",
   params: { chance: 0.75, line: "Guided Footsteps — you're already a step from where it lands." },
-  when: (ctx) => ctx.phase === "miss", holders: ["player"], state: { used: false },
-  notes: "Guided Footsteps.",
+  when: (ctx) => ctx.phase === "miss" && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: { used: false },
+  notes: "Guided Footsteps. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- per-holder modifierState (state.used), same shape as Guardian Spirit.",
 });
 registerModifier("effect:never_where_expected", {
   source: { kind: "effect", id: "never_where_expected" }, hook: "rollToHit.defender", order: 40,
   bucket: null, value: null, behavior: "blockFlatChance",
   params: { chance: 0.15, line: "Never Where Expected — it swings, and finds nothing there." },
-  when: (ctx) => ctx.phase === "miss", holders: ["player"], state: null,
-  notes: "Never Where Expected. Flat chance every hit, no once-per-fight gate. Corrected in the 2a catalogue's REVIEW pass: previously miscatalogued as rollToHit.attacker.",
+  when: (ctx) => ctx.phase === "miss" && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: null,
+  notes: "Never Where Expected. Flat chance every hit, no once-per-fight gate. Corrected in the 2a catalogue's REVIEW pass: previously miscatalogued as rollToHit.attacker. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- stateless chance roll, no holder-state touched.",
 });
 registerModifier("set:Regalia of the Endless Horizon:2", {
   source: { kind: "set", id: "Regalia of the Endless Horizon:2", setName: "Regalia of the Endless Horizon", tier: 2 },
   hook: "rollToHit.defender", order: 50, bucket: null, value: null, behavior: "blessingOfFreedomEvade",
   params: { chance: 0.15, line: "Blessing of Freedom carries you clear of the blow." },
-  when: (ctx) => ctx.phase === "miss", holders: ["player"], state: null,
-  notes: "Blessing of Freedom's own 15% Evasion chance. 2e-2 bug fix (20 Nov): behavior changed from the shared blockFlatChance to blessingOfFreedomEvade (same roll/shape) so a success also dispatches applyAndReact.onEvade for the heal -- see set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal, right below.",
+  when: (ctx) => ctx.phase === "miss" && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: null,
+  notes: "Blessing of Freedom's own 15% Evasion chance. 2e-2 bug fix (20 Nov): behavior changed from the shared blockFlatChance to blessingOfFreedomEvade (same roll/shape) so a success also dispatches applyAndReact.onEvade for the heal -- see set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal, right below. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- blessingOfFreedomEvade is fully ctx.holder/ctx.role generic.",
 });
 registerModifier("effect:evasive_guard", {
   source: { kind: "effect", id: "evasive_guard" }, hook: "rollToHit.defender", order: 60,
   bucket: null, value: null, behavior: "grantStatStackOnEvasion",
   params: { statKey: "def", amount: 1, max: 3 },
-  when: (ctx) => ctx.phase === "evasion", holders: ["player"], state: { stacks: 0 },
-  notes: "Evasive Guard (kind B, asymmetry register). Fires only once an evasion has already succeeded; grants +1 Defense per success, capped +3. effectivePlayerDef reads this entry's own state.stacks instead of the old combat.player.evasiveGuardBonus field.",
+  when: (ctx) => ctx.phase === "evasion" && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: { stacks: 0 },
+  notes: "Evasive Guard (kind B, asymmetry register). Fires only once an evasion has already succeeded; grants +1 Defense per success, capped +3. effectivePlayerDef reads this entry's own state.stacks instead of the old combat.player.evasiveGuardBonus field. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- per-holder modifierState, generic; startCombat resets it fresh each fight.",
 });
 registerModifier("set:River Warden:6", {
   source: { kind: "set", id: "River Warden:6", setName: "River Warden", tier: 6 },
   hook: "rollToHit.defender", order: 70, bucket: null, value: null, behavior: "grantStatStackOnEvasion",
   params: { statKey: "magic", amount: 2, max: 8 },
-  when: (ctx) => ctx.phase === "evasion" && !!(ctx.creature && ctx.creature.element), holders: ["player"], state: { stacks: 0 },
-  notes: "River Warden 6pc. Same behavior as Evasive Guard, gated additionally on the incoming hit being magical. Grants +2 Magic per success, capped +8. The player's own Magic total reads this entry's own state.stacks instead of the old combat.player.riverWardenMagicBonus field.",
+  when: (ctx) => ctx.phase === "evasion" && !!(ctx.creature && ctx.creature.element) && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: { stacks: 0 },
+  notes: "River Warden 6pc. Same behavior as Evasive Guard, gated additionally on the incoming hit being magical. Grants +2 Magic per success, capped +8. The player's own Magic total reads this entry's own state.stacks instead of the old combat.player.riverWardenMagicBonus field. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- per-holder modifierState, generic; startCombat resets it fresh each fight.",
 });
 
 // ---- 2c (missed in the first pass): rollToHit (attacker side), enemy-
@@ -1331,8 +1355,8 @@ registerModifier("set:Fragmenta:6", {
   source: { kind: "set", id: "Fragmenta:6", setName: "Fragmenta", tier: 6 },
   hook: "calculateDamage.tags", order: 10, bucket: null, value: null,
   behavior: "tagValueOverride", params: { weak: 1.75, resist: 0.75, nonPhysicalOnly: true },
-  when: null, holders: ["player"], state: null,
-  notes: "Fragmenta 6pc. Outside the buckets (Rule 3) -- see this file's own tagValueOverride behavior header. R1 widens holders later, like every other set bonus.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Fragmenta 6pc. Outside the buckets (Rule 3) -- see this file's own tagValueOverride behavior header. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- tagValueOverride reads only ctx.tag/ctx.damageType, no holder-state.",
 });
 
 // ---- 2d, increment 1: calculateDamage.outgoing -- the player's own
@@ -1385,8 +1409,8 @@ registerModifier("set:Drake Hunter:6", {
   source: { kind: "set", id: "Drake Hunter:6", setName: "Drake Hunter", tier: 6 },
   hook: "calculateDamage.outgoing", order: 20, bucket: "conditional",
   value: (ctx) => dragonslayerMultiplier(ctx.holder, ctx.creature) - 1, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Dragonslayer. Value delegates to dragonslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close); byte-identical for today's player-only holders.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Dragonslayer. Value delegates to dragonslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- confirmed dragonslayerMultiplier reads only creature.monsterTag, no combat.player reference.",
 });
 registerModifier("set:Bonecaller:6", {
   source: { kind: "set", id: "Bonecaller:6", setName: "Bonecaller", tier: 6 },
@@ -1470,8 +1494,8 @@ registerModifier("always:crit", {
 registerModifier("set:Regalia of the Woven Thread:6", {
   source: { kind: "set", id: "Regalia of the Woven Thread:6", setName: "Regalia of the Woven Thread", tier: 6 },
   hook: "calculateDamage.outgoing", order: 999, bucket: "crit", value: 1, behavior: null,
-  when: () => false, holders: ["player"], state: null,
-  notes: "M1 placeholder only -- the crit-damage double is already live inside critMultiplier's own ternary (always:crit above); the 1 HP save half is cheatDeath, 2e-5.",
+  when: () => false, holders: ["player", "ally"], state: null,
+  notes: "M1 placeholder only -- the crit-damage double is already live inside critMultiplier's own ternary (always:crit above); the 1 HP save half is cheatDeath, 2e-5. R1 (27 Nov): holders widened for consistency, but when:()=>false means this never fires regardless, zero behavior change.",
 });
 registerModifier("set:Regalia of the Woven Thread:4", {
   source: { kind: "set", id: "Regalia of the Woven Thread:4", setName: "Regalia of the Woven Thread", tier: 4 },
@@ -1643,29 +1667,29 @@ registerModifier("set:Drake Hunter:4", {
   source: { kind: "set", id: "Drake Hunter:4", setName: "Drake Hunter", tier: 4 },
   upgrades: "effect:executioner.threshold",
   hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Executioner threshold upgrade: 30% -> 40% HP. Virtual tag (not effect:executioner itself -- that entry's own value is the 1.2x damage number; this is the HP% gate read by executionerThreshold via resolveUpgradedValue).",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP. Virtual tag (not effect:executioner itself -- that entry's own value is the 1.2x damage number; this is the HP% gate read by executionerThreshold via resolveUpgradedValue). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- executionerThreshold(state, holderRole) already passes holderRole through generically, no ternary gate; resolveUpgradedValue's own new `when` check is what makes this reversal possible.",
 });
 registerModifier("set:Regalia of the Crimson Vanguard:6", {
   source: { kind: "set", id: "Regalia of the Crimson Vanguard:6", setName: "Regalia of the Crimson Vanguard", tier: 6 },
   upgrades: "effect:executioner.threshold",
   hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Executioner threshold upgrade: 30% -> 40% HP.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same reasoning as set:Drake Hunter:4 above.",
 });
 registerModifier("set:Contract Hunter:4", {
   source: { kind: "set", id: "Contract Hunter:4", setName: "Contract Hunter", tier: 4 },
   upgrades: "effect:executioner.threshold",
   hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Executioner threshold upgrade: 30% -> 40% HP.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same reasoning as set:Drake Hunter:4 above.",
 });
 registerModifier("set:Vanguard:6", {
   source: { kind: "set", id: "Vanguard:6", setName: "Vanguard", tier: 6 },
   upgrades: "effect:executioner.threshold",
   hook: "calculateDamage.outgoing", order: 10, bucket: null, value: 0.4, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Executioner threshold upgrade: 30% -> 40% HP (vanguard_executioner_40). Genuinely missing before 2d close-out, same as set:Vanguard:4 above -- see that entry's note.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Executioner threshold upgrade: 30% -> 40% HP (vanguard_executioner_40). Genuinely missing before 2d close-out, same as set:Vanguard:4 above -- see that entry's note. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same reasoning as set:Drake Hunter:4 above.",
 });
 registerModifier("set:Scout Corps:6", {
   source: { kind: "set", id: "Scout Corps:6", setName: "Scout Corps", tier: 6 },
@@ -1678,15 +1702,15 @@ registerModifier("set:Conduit Master:6", {
   source: { kind: "set", id: "Conduit Master:6", setName: "Conduit Master", tier: 6 },
   upgrades: "effect:surging_conduit_charges",
   hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 2, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Surging Conduit charge-count upgrade: 1 -> 2 per fight. A charge COUNT, not a multiplier -- surgingConduitCharges itself isn't dispatched through any hook yet (Surging Conduit's own damage bonus is still unmigrated), so this is pure Rule 1 data ahead of that.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Surging Conduit charge-count upgrade: 1 -> 2 per fight. A charge COUNT, not a multiplier -- surgingConduitCharges itself isn't dispatched through any hook yet (Surging Conduit's own damage bonus is still unmigrated), so this is pure Rule 1 data ahead of that. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (via resolveUpgradedValue's own new `when` check) for consistency; inert either way until surgingConduitCharges itself is migrated.",
 });
 registerModifier("set:Fragmenta:4", {
   source: { kind: "set", id: "Fragmenta:4", setName: "Fragmenta", tier: 4 },
   upgrades: "effect:surging_conduit_charges",
   hook: "calculateDamage.outgoing", order: 999, bucket: null, value: 2, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Surging Conduit charge-count upgrade: 1 -> 2 per fight (not 3, if somehow both this and Conduit Master:6 are active -- resolveUpgradedValue's Math.max already gives that, same as the old inline OR).",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Surging Conduit charge-count upgrade: 1 -> 2 per fight (not 3, if somehow both this and Conduit Master:6 are active -- resolveUpgradedValue's Math.max already gives that, same as the old inline OR). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 for consistency; inert either way until surgingConduitCharges itself is migrated.",
 });
 registerModifier("set:Novitiate:4", {
   source: { kind: "set", id: "Novitiate:4", setName: "Novitiate", tier: 4 },
@@ -1745,8 +1769,8 @@ registerModifier("set:Legion:4", {
   source: { kind: "set", id: "Legion:4", setName: "Legion", tier: 4 },
   hook: "calculateDamage.incoming", order: 10, bucket: "incomingMitigation", value: null,
   behavior: "shieldWallApply", directApply: true, params: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Shield Wall. directApply -- wraps applyShieldWall(holder, edmg) unchanged, which already does its own Math.round(dmg * 0.9).",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Shield Wall. directApply -- wraps applyShieldWall(holder, edmg) unchanged, which already does its own Math.round(dmg * 0.9). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- applyShieldWall(holder, edmg) is already holder-generic. modifiersForHook checks `when` regardless of directApply (threadIncomingEntries only walks entries it already passed), same precedent as Toxic Preparation's own COMBAT_UNIFY.U3d gate on a directApply entry.",
 });
 registerModifier("effect:master_duelist", {
   source: { kind: "effect", id: "master_duelist" },
@@ -1787,8 +1811,8 @@ registerModifier("set:Regalia of the Eternal Bastion:2", {
   source: { kind: "set", id: "Regalia of the Eternal Bastion:2", setName: "Regalia of the Eternal Bastion", tier: 2 },
   hook: "calculateDamage.incoming", order: 70, bucket: "incomingMitigation",
   value: (ctx) => blessingOfStoneMultiplier(ctx.holder), behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Blessing of Stone. Pure read of current Health vs. 50% max -- live, not a once-per-fight gate.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Blessing of Stone. Pure read of current Health vs. 50% max -- live, not a once-per-fight gate. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- blessingOfStoneMultiplier(ctx.holder) reads only holder.health/maxHealth, generic.",
 });
 registerModifier("set:Regalia of the Eternal Bastion:6", {
   source: { kind: "set", id: "Regalia of the Eternal Bastion:6", setName: "Regalia of the Eternal Bastion", tier: 6 },
@@ -1973,8 +1997,8 @@ registerModifier("set:Stonewarden:6", {
 registerModifier("set:Leviathan:4", {
   source: { kind: "set", id: "Leviathan:4", setName: "Leviathan", tier: 4 },
   hook: "calculateDamage.incoming", order: 999, bucket: "incomingMitigation", value: 1, behavior: null,
-  when: () => false, holders: ["player"], state: null,
-  notes: "M1 placeholder only -- grants Spell Ward's base outright (spellWardMultiplier's own hasBase check already covers this); the Coldproof half of this tier is an unrelated flat stat.def grant, outside calculateDamage entirely.",
+  when: () => false, holders: ["player", "ally"], state: null,
+  notes: "M1 placeholder only -- grants Spell Ward's base outright (spellWardMultiplier's own hasBase check already covers this); the Coldproof half of this tier is an unrelated flat stat.def grant, outside calculateDamage entirely. R1 (27 Nov): holders widened for consistency, but when:()=>false means this never fires regardless, zero behavior change.",
 });
 // Leviathan:6: a Rule 1 upgrade of Water's own base self-heal % (2e-2,
 // 22 Nov, Tyler) -- 50% -> 75%, same shape as Patient Aim's own upgrade
@@ -2023,14 +2047,14 @@ registerModifier("effect:opening_reach", {
   hook: "calculateDamage.outgoing", order: 200, bucket: "conditional", lateOutgoingPhase: "openingReach",
   value: null, behavior: "openingReachRatio", params: null,
   when: null, holders: ["player", "ally", "enemy"], state: null,
-  notes: "Opening Reach. Keyed effect:opening_reach (M1 matches EFFECT_DEFS ids by this exact key) even though `source.kind` is 'always', not 'effect' -- firstPhysicalAttackDone is consumed on the first qualifying hit regardless of gear, same reasoning as Storm Barrier/Stonewarden (increment 3c), so the SOURCE can't be a plain hasEffect gate; the key still names which EFFECT_DEFS id this is. Norrvael 6pc's upgrade (1.15x -> 1.3x) applies to the player only, via resolveUpgradedValue; ally/enemy stay flat 1.15x, matching applyOpeningReachForActor's own comment ('no Norrvael 6pc widening, that's a player-only set') exactly.",
+  notes: "Opening Reach. Keyed effect:opening_reach (M1 matches EFFECT_DEFS ids by this exact key) even though `source.kind` is 'always', not 'effect' -- firstPhysicalAttackDone is consumed on the first qualifying hit regardless of gear, same reasoning as Storm Barrier/Stonewarden (increment 3c), so the SOURCE can't be a plain hasEffect gate; the key still names which EFFECT_DEFS id this is. R1 (27 Nov, reversing the prior ruling quoted below): openingReachRatio's own role==='player' ternary is removed; Norrvael 6pc's upgrade (1.15x -> 1.3x) now reaches ally too, gated behind COMBAT_UNIFY.R1 via resolveUpgradedValue's own holders+when check (its own entry, below) -- enemy stays flat 1.15x until R2.",
 });
 registerModifier("set:Norrvael:6", {
   source: { kind: "set", id: "Norrvael:6", setName: "Norrvael", tier: 6 },
   upgrades: "effect:opening_reach",
   hook: "calculateDamage.outgoing", order: 200, bucket: null, value: 1.3, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Opening Reach upgrade: 1.15x -> 1.3x, player only.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Opening Reach upgrade: 1.15x -> 1.3x. R1 (27 Nov, reversing the prior player-only ruling): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- openingReachRatio's own role==='player' ternary removed to match (above); enemy still gets the flat 1.15x only, until R2.",
 });
 registerModifier("effect:clash_of_steel", {
   source: { kind: "effect", id: "clash_of_steel" },
@@ -2580,8 +2604,8 @@ registerBehavior("siegeCorpsChargeGrant", (ctx, entry, holderState) => {
 registerModifier("set:Siege Corps:6", {
   source: { kind: "set", id: "Siege Corps:6", setName: "Siege Corps", tier: 6 },
   hook: "applyAndReact.onActionUsed", order: 11, bucket: null, value: null, behavior: "siegeCorpsChargeGrant", params: null,
-  when: (ctx) => ctx.actionTags.includes("appliesBraceDefense"), holders: ["player"], state: { charge: 0 },
-  notes: "Siege Corps 6pc. Matches Feint and Earth (the only two actions whose retaliation-defense step includes Brace's own bonus) via the 'appliesBraceDefense' tag; still gated on hasEffect(holder, 'brace') inside the behavior itself, exactly matching today's `hasEffect(state,'brace') && hasSetTier(state,'Siege Corps',6)` pair.",
+  when: (ctx) => ctx.actionTags.includes("appliesBraceDefense") && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: { charge: 0 },
+  notes: "Siege Corps 6pc. Matches Feint and Earth (the only two actions whose retaliation-defense step includes Brace's own bonus) via the 'appliesBraceDefense' tag; still gated on hasEffect(holder, 'brace') inside the behavior itself, exactly matching today's `hasEffect(state,'brace') && hasSetTier(state,'Siege Corps',6)` pair. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- siegeCorpsChargeGrant writes via holderState, the registry's own per-holder state host, generic; startCombat resets it fresh each fight.",
 });
 
 // ---- Guarded Strike / Brace / Legion:6 / Stonewarden:4 (2e-2, 23 Nov,
@@ -2611,7 +2635,13 @@ registerModifier("effect:guarded_strike:player_retaliation", {
   notes: "Guarded Strike (player). Stateless -- grant and consume happen in the same synchronous call (basic attack, resolver.js's generic kit path), so this is a plain summed value, not banked state. Disarm's own retaliation-defense check stays its own untouched inline `hasEffect(state,'guarded_strike')` read (Tyler's own ruling, 23 Nov) -- genuinely unconditional even on a miss, unlike this hook's own isPhysicalHit gate, which the two real dispatch sites keep inline rather than folding into `when`.",
 });
 registerBehavior("braceGrant", (ctx) => {
-  modifierStateHost(ctx.holder, ctx.role).braceBonusDef = ctx.role === "player" ? resolveUpgradedValue("effect:brace", 3, ctx.state, "player", "max") : 3;
+  // R1 (27 Nov): the role==="player" ternary removed, and the ctx.state
+  // (always the player's own GameState) argument fixed to ctx.holder --
+  // resolveUpgradedValue's own `entry.holders.includes(holderRole)` AND
+  // `entry.when` checks are now the only gates, so Stonewarden:4's
+  // upgrade reaches ally once COMBAT_UNIFY.R1 is on (its own holders/
+  // when, below) and stays flat 3 for enemy until R2 widens it further.
+  modifierStateHost(ctx.holder, ctx.role).braceBonusDef = resolveUpgradedValue("effect:brace", 3, ctx.holder, ctx.role, "max");
   return undefined;
 });
 registerModifier("effect:brace", {
@@ -2624,8 +2654,8 @@ registerModifier("set:Stonewarden:4", {
   source: { kind: "set", id: "Stonewarden:4", setName: "Stonewarden", tier: 4 },
   upgrades: "effect:brace",
   hook: "applyAndReact.onActionUsed", order: 999, bucket: null, value: 5, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Stonewarden 4pc. Rule 1 upgrade of Brace's own base value (3 -> 5), player only -- matches js/data/sets.js's old braceDefBonus(state) exactly (that function is now dead code, deleted; braceGrant's own behavior, modifiers.js, calls resolveUpgradedValue directly); never applied to the enemy's or an ally's own flat-3 Brace grant, same as today (hasSetTier always reads the PLAYER's own gear).",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Stonewarden 4pc. Rule 1 upgrade of Brace's own base value (3 -> 5) -- matches js/data/sets.js's old braceDefBonus(state) exactly (that function is now dead code, deleted; braceGrant's own behavior, modifiers.js, calls resolveUpgradedValue directly). R1 (27 Nov, reversing the prior player-only ruling): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- braceGrant's own role==='player' ternary removed to match (above), and resolveUpgradedValue's own new `when` check is what makes the gate possible; enemy still gets the flat-3 Brace grant only, until R2.",
 });
 registerBehavior("legion6Grant", (ctx) => {
   modifierStateHost(ctx.holder, ctx.role).legion6BonusDef = 3;
@@ -2634,7 +2664,7 @@ registerBehavior("legion6Grant", (ctx) => {
 registerModifier("set:Legion:6", {
   source: { kind: "set", id: "Legion:6", setName: "Legion", tier: 6 },
   hook: "applyAndReact.onActionUsed", order: 1, bucket: null, value: null, behavior: "legion6Grant", params: null,
-  when: (ctx) => ctx.actionId === "feint", holders: ["player"], state: null,
+  when: (ctx) => ctx.actionId === "feint" && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: null,
   notes: "Legion 6pc (Disciplined Formation): a flat, ADDITIVE +3 Defense against Feint's own retaliation -- functionally identical to Brace, and stacks with it if somehow both are active (combat.js's own comment), NOT a magnitude upgrade of Brace's value (unlike Stonewarden:4, which genuinely is one). Feint-only, unlike Brace (which also applies to Earth) -- `actionId` is a new ctx field only Feint's own dispatch call sets, added specifically so this entry doesn't also fire on Earth's cast (Earth passes the same bare ['appliesBraceDefense'] actionTags array Feint does, so actionTags alone can't tell them apart). order:1 so its own flavor line keeps printing before Siege Corps:6's own (silent) effect, matching today's exact output order (Legion:6's own check ran before the original runOnActionUsed call existed at all).",
 });
 registerBehavior("sureFoundationGrant", (ctx) => {
@@ -2696,8 +2726,8 @@ registerModifier("effect:flourishing_soul", {
 registerModifier("set:Regalia of the Eternal Heart:2", {
   source: { kind: "set", id: "Regalia of the Eternal Heart:2", setName: "Regalia of the Eternal Heart", tier: 2 },
   hook: "heal.incoming", order: 20, bucket: null, value: 1.25, behavior: null, params: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Blessing of Compassion: +25% healing received, stacking multiplicatively with Flourishing Soul. The 'removes one minor negative status effect' clause is a pre-existing no-op (nothing in this engine inflicts one on the player) -- untouched, not this entry's concern.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Blessing of Compassion: +25% healing received, stacking multiplicatively with Flourishing Soul. The 'removes one minor negative status effect' clause is a pre-existing no-op (nothing in this engine inflicts one on the player) -- untouched, not this entry's concern. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- plain value:1.25, no state.",
 });
 // Avatar of Devotion/Avatar of Endurance: both read a turn-counter
 // window (avatarOfDevotionTurns/avatarOfEnduranceTurns) GRANTED by the
@@ -2922,8 +2952,8 @@ registerModifier("set:Regalia of the Eternal Hour:4", {
     basis: "maxHp", pct: 0.1, round: "ceil", target: "self",
     message: (healed) => `Keeper of History mends you for ${healed} health.`,
   },
-  when: (ctx) => ctx.holder.health < ctx.holder.maxHealth, holders: ["player"], state: null,
-  notes: "Keeper of History: heals 10% max Health on a kill. `when` reproduces today's own `heal > 0 && state.health < state.maxHealth` skip (heal is always >0 here, so only the health check matters) -- same reasoning as Soul Leech/Blood Debt's own `when`.",
+  when: (ctx) => ctx.holder.health < ctx.holder.maxHealth && (ctx.role === "player" || COMBAT_UNIFY.R1), holders: ["player", "ally"], state: null,
+  notes: "Keeper of History: heals 10% max Health on a kill. `when` reproduces today's own `heal > 0 && state.health < state.maxHealth` skip (heal is always >0 here, so only the health check matters) -- same reasoning as Soul Leech/Blood Debt's own `when`. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default).",
 });
 // Archive Eternal / Battle Scholar / Living Legacy / Victor's Momentum
 // (2e-2, 23 Nov): catalogue-overstated rows -- the hook column already
@@ -3184,8 +3214,8 @@ registerModifier("set:Regalia of the Endless Tide:2", {
     basis: "maxHp", pct: 0.1, round: "ceil", target: "self",
     message: (healed) => `Blessing of the Tide mends you for ${healed} health.`,
   },
-  when: null, holders: ["player"], state: null,
-  notes: "Blessing of the Tide: a one-time 10% max Health heal the moment any fight begins. Renamed from the source text's own 'Blessing of Renewal' -- that name (and a different, per-round, mechanic) is already Regalia of the First Bloom's own 2pc effect, below.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Blessing of the Tide: a one-time 10% max Health heal the moment any fight begins. Renamed from the source text's own 'Blessing of Renewal' -- that name (and a different, per-round, mechanic) is already Regalia of the First Bloom's own 2pc effect, below. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- healOnEvent.",
 });
 
 // ---- fight.end (2e-1): Regrowth, a flat post-combat heal (5%/10% via
@@ -3236,8 +3266,8 @@ registerModifier("set:Regalia of the First Bloom:2", {
     basis: "maxHp", pct: 0.03, round: "ceil", target: "self",
     message: (healed) => `Blessing of Renewal mends you for ${healed} health.`,
   },
-  when: null, holders: ["player"], state: null,
-  notes: "Blessing of Renewal: an unconditional 3% max Health heal at the start of every round, for as long as the set bonus is active -- no duration or once-per-fight gate, unlike Endless Bloom.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Blessing of Renewal: an unconditional 3% max Health heal at the start of every round, for as long as the set bonus is active -- no duration or once-per-fight gate, unlike Endless Bloom. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- healOnEvent.",
 });
 registerModifier("set:Heartwood:6", {
   source: { kind: "set", id: "Heartwood:6", setName: "Heartwood", tier: 6 },
@@ -3380,8 +3410,8 @@ registerModifier("set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal"
     basis: "maxHp", pct: 0.05, round: "ceil", target: "self", heal: true, maxPerTrigger: 0.05,
     message: (healed) => `Blessing of Freedom mends you for ${healed} health.`,
   },
-  when: null, holders: ["player"], state: null,
-  notes: "Blessing of Freedom: restore 5% max Health whenever you evade an attack, from any source.",
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Blessing of Freedom: restore 5% max Health whenever you evade an attack, from any source. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- healOnEvent + healFighter, generic.",
 });
 
 // ================= 2e-1 close-out: applyAndReact.onLowHealth =================

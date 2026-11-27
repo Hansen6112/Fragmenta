@@ -41,18 +41,30 @@ const { seedPageRandom } = require('./seed_rng');
     }
 
     // ---- Guardian Spirit, widened to ally ----
-    record('P2A1-TESTSTRIKE-GUARDIANSPIRIT-BEFORE', 'Baseline: an ally "wearing" Guardian Spirit still takes the hit normally -- holders is ["player"] only, unwidened', () => {
+    // R1 (27 Nov) permanently widened effect:guardian_spirit's own
+    // holders to include "ally" (it's one of the 9 kind-B mechanics R1
+    // covers), so this proof no longer has a committed-default unwidened
+    // example to start from. Both cases now explicitly set holders to
+    // ["player"] / ["player","ally"] and restore the real value in a
+    // `finally`, the same save/restore shape CALCULATEDAIM already used
+    // below -- the proof's point (widening holders is a pure data change)
+    // no longer depends on what today's shipped default happens to be.
+    record('P2A1-TESTSTRIKE-GUARDIANSPIRIT-BEFORE', 'Baseline: an ally "wearing" Guardian Spirit still takes the hit normally when holders is forced back to ["player"] only, unwidened', () => {
       const { s, ally } = makeWarriorWithAlly();
       const creature = s.combat.enemies[0].creatureObj;
       const origHasEffect = window.hasEffect;
       const origConnects = window.attackConnects;
+      const entry = MODIFIERS['effect:guardian_spirit'];
+      const origHolders = entry.holders.slice();
       window.hasEffect = (obj, id) => id === 'guardian_spirit';
       window.attackConnects = () => true;
+      entry.holders = ['player'];
       try {
         const result = resolveEnemyAttackOnAlly(s, creature, ally, null, null);
         const blocked = result.lines.some((l) => l.includes('Guardian Spirit'));
         return { pass: !blocked, lines: result.lines };
       } finally {
+        entry.holders = origHolders;
         window.hasEffect = origHasEffect;
         window.attackConnects = origConnects;
       }
@@ -64,9 +76,15 @@ const { seedPageRandom } = require('./seed_rng');
       const origConnects = window.attackConnects;
       const entry = MODIFIERS['effect:guardian_spirit'];
       const origHolders = entry.holders.slice();
+      const origR1 = COMBAT_UNIFY.R1;
       window.hasEffect = (obj, id) => id === 'guardian_spirit';
       window.attackConnects = () => true;
-      entry.holders = origHolders.concat(['ally']);
+      entry.holders = ['player', 'ally'];
+      // Guardian Spirit's own `when` also requires COMBAT_UNIFY.R1 for a
+      // non-player role (27 Nov) -- holders alone is structural, R1 is
+      // the real on/off switch (same pattern Ashen Lungs already used),
+      // so this proof has to flip both to demonstrate the real widening.
+      COMBAT_UNIFY.R1 = true;
       try {
         const result = resolveEnemyAttackOnAlly(s, creature, ally, null, null);
         const used = ally.modifierState && ally.modifierState['effect:guardian_spirit'] && ally.modifierState['effect:guardian_spirit'].used;
@@ -74,6 +92,7 @@ const { seedPageRandom } = require('./seed_rng');
         return { pass: blocked && used === true, used, lines: result.lines };
       } finally {
         entry.holders = origHolders;
+        COMBAT_UNIFY.R1 = origR1;
         window.hasEffect = origHasEffect;
         window.attackConnects = origConnects;
       }
