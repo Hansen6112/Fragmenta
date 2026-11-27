@@ -3506,9 +3506,9 @@ registerModifier("set:Regalia of the Woven Thread:6:avatar_of_fate_trigger", {
 registerModifier("set:Regalia of the Crimson Vanguard:6:avatar_of_war_trigger", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 70, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfWar(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of War's own window-GRANT trigger: buff-only (grants avatarOfWarTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). Keyed distinctly from set:Regalia of the Crimson Vanguard:6 (the Executioner-threshold upgrade entry) -- same set tier, unrelated mechanic.",
+  params: { checkFn: (holder, role) => checkAvatarOfWar(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of War's own window-GRANT trigger: buff-only (grants avatarOfWarTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). Keyed distinctly from set:Regalia of the Crimson Vanguard:6 (the Executioner-threshold upgrade entry) -- same set tier, unrelated mechanic. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfWar generalized (combat.js), the Attack buff routed through grantTemporaryStatBuff (ally.buffs.atk); avatarOfWarTurns's own Riposte-eligibility read (maybeRiposte) stays player-only, not part of this slice.",
 });
 registerModifier("set:Regalia of the Endless Archive:6", {
   source: { kind: "always" },
@@ -3556,9 +3556,9 @@ registerModifier("set:Regalia of the Endless Horizon:6", {
 registerModifier("set:Regalia of the Eternal Forge:6", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 140, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfCreation(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Creation: buff-only (Attack/Magic buffs, faster cooldowns, permanent per-hit growth, no heal, combat.js:6390) -- 2e-2 territory.",
+  params: { checkFn: (holder, role) => checkAvatarOfCreation(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Creation: buff-only (Attack/Magic buffs, faster cooldowns, permanent per-hit growth, no heal, combat.js:6390). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfCreation generalized (combat.js), the Attack/Magic buffs routed through grantTemporaryStatBuff (magic currently inert for an ally, no effectiveAllyMagic reader exists); faster cooldowns (moot for an ally, same as Avatar of Freedom) and the permanent per-hit growth (rollPlayerDamage, deeply player-specific) stay untouched, not part of this slice.",
 });
 registerModifier("set:Regalia of the Endless Tide:6:avatar_of_renewal_trigger", {
   source: { kind: "always" },

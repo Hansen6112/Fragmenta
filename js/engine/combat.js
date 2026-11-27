@@ -4224,6 +4224,8 @@ function beginTurn(state) {
     if (ally.avatarOfRenewalTurns > 0) ally.avatarOfRenewalTurns -= 1;
     if (ally.avatarOfChaosTurns > 0) ally.avatarOfChaosTurns -= 1;
     if (ally.avatarOfFreedomTurns > 0) ally.avatarOfFreedomTurns -= 1;
+    if (ally.avatarOfWarTurns > 0) ally.avatarOfWarTurns -= 1;
+    if (ally.avatarOfCreationTurns > 0) ally.avatarOfCreationTurns -= 1;
     lines.push(...tickAllyStatuses(state, ally));
   });
   // tickAllyStatuses' own DOT tick can call killAlly, whose party-wipe
@@ -6192,16 +6194,26 @@ function checkAvatarOfFate(state) {
 // immediately grants another attack" is inert for the same reason Second
 // Wind (Mythic) is: a kill always ends this engine's single-enemy fight,
 // so there's no next enemy for the extra attack to land on.
-function checkAvatarOfWar(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- same
+// modifierStateHost/grantTemporaryStatBuff pattern as Hold the Line/
+// Rooted Resolve/Rally the Line above. avatarOfWarTurns's OWN read
+// site (maybeRiposte's Riposte-eligibility check in the player's own
+// miss-handling tail) stays player-only and untouched -- it's tied
+// into the player-specific Riposte-on-miss mechanic, a separate design
+// question from "does the ally get the Attack buff," so avatarOfWarTurns
+// is still generalized here (and decremented in beginTurn's per-ally
+// loop, below) for consistency, even though nothing yet reads it for
+// an ally.
+function checkAvatarOfWar(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.avatarOfWarUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Crimson Vanguard", tier: 6 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
-  combat.player.avatarOfWarUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, "player", 4);
-  combat.player.avatarOfWarTurns = dur;
-  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.atk * 0.5)));
+  if (host.avatarOfWarUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Crimson Vanguard", tier: 6 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
+  host.avatarOfWarUsed = true;
+  const dur = applyBeneficialEffectBonuses(holder, holderRole, 4);
+  host.avatarOfWarTurns = dur;
+  grantTemporaryStatBuff(holder, holderRole, "atk", applyBlessingOfCreationBonus(holder, holderRole, Math.round(holder.atk * 0.5)), dur);
   return [`Avatar of War awakens — for 4 rounds, you fight like the battle itself.`];
 }
 
@@ -6361,18 +6373,27 @@ function checkAvatarOfFreedom(holder, holderRole) {
 // generic "a passive just activated" event exists to hook a blanket
 // effectiveness multiplier into, the identical limitation Threads
 // Intertwined (Regalia of the Woven Thread) already established.
-function checkAvatarOfCreation(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- same pattern as
+// Avatar of War above. The magic-buff half is generalized for parity
+// but currently inert for an ally (no effectiveAllyMagic reader
+// exists -- same standing limitation as Trailwise/job-gold). The
+// PERMANENT per-hit Attack/Magic growth this effect also grants
+// (rollPlayerDamage's own inline stacking, deeply player-specific) and
+// avatarOfCreationTurns's own cooldown-recovery-speed read (beginTurn,
+// already confirmed moot for an ally alongside Avatar of Freedom's
+// identical case) stay untouched -- only the trigger and the temporary
+// atk/magic buff generalize this slice.
+function checkAvatarOfCreation(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.avatarOfCreationUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Forge", tier: 6 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
-  combat.player.avatarOfCreationUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, "player", 4);
-  combat.player.avatarOfCreationTurns = dur;
-  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.atk * 0.4)));
-  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.magic * 0.4)));
+  if (host.avatarOfCreationUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Eternal Forge", tier: 6 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
+  host.avatarOfCreationUsed = true;
+  const dur = applyBeneficialEffectBonuses(holder, holderRole, 4);
+  host.avatarOfCreationTurns = dur;
+  grantTemporaryStatBuff(holder, holderRole, "atk", applyBlessingOfCreationBonus(holder, holderRole, Math.round(holder.atk * 0.4)), dur);
+  grantTemporaryStatBuff(holder, holderRole, "magic", applyBlessingOfCreationBonus(holder, holderRole, Math.round(holder.magic * 0.4)), dur);
   return [`Avatar of Creation awakens — for 4 rounds, every strike and every cast reforges you anew.`];
 }
 
