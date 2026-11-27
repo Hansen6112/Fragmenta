@@ -1,0 +1,48 @@
+range: b0b9db80308c022735665d0498df195c3cab8048..188826232033d87d9de47494416e0e8c11cf339f
+=== 188826232033d87d9de47494416e0e8c11cf339f 2026-11-27 21:37:14 +0000
+R1b slice 2: generalize Avatar of Devotion/Endurance/Renewal/Chaos to ally
+Task #49 (R1b). The first uniform batch of the 14-member Avatar-of-X
+cluster: Devotion, Endurance, Renewal (all three: a below-25%-Health
+once-per-fight trigger granting an N-round incoming-damage-multiplier
+window) and Chaos (same trigger shape, but an outgoing damage-variance
+roll instead of an incoming reduction).
+
+- combat.js: checkAvatarOfDevotion/Endurance/Renewal/Chaos generalized
+  to (holder, holderRole) -- modifierStateHost resolves to
+  holder.combat.player for the player (today's exact object) or bare
+  holder for an ally. applyBeneficialEffectBonuses gained an explicit
+  holderRole param (all 16 existing call sites updated to pass
+  "player" -- zero behavior change for any of them). The 4
+  avatarOfXDamageMultiplier reader functions generalized the same way.
+  beginTurn's own per-ally loop now decrements these 4 fields directly
+  on the ally record each round (the ally-side equivalent of
+  combat.player's own decrements a few lines above).
+- modifiers.js: lowHealthReactionWrap forwards ctx.role/ctx.state as
+  new trailing args (every untouched checkFn still only declares one
+  param, so it keeps working unchanged); the 4 trigger entries' own
+  checkFn closures updated to forward role through; holders widened to
+  ["player","ally"] and gated behind COMBAT_UNIFY.R1 on all 8 touched
+  entries (4 triggers + 4 damage-multiplier readers), off by default.
+- Each member's OWN secondary mechanic (Chaos's crit-triggered stat
+  grants, Endurance's per-hit stat grants, Renewal's per-round heal,
+  Devotion's doubled-healing-received -- already live) stays
+  player-only; only the trigger + primary damage multiplier/variance
+  generalize this slice.
+- New proof ledger (phase2_r1b_avatar_cluster_slice1_proof_ledger.js,
+  15/15): for each of the 4 members, confirms no ally-side effect with
+  R1 off, the trigger firing exactly once crossing below 25% Health
+  with R1 on, the damage multiplier/variance actually applying through
+  calculateIncomingDamage/calculateOutgoingMultiplier, and the window
+  decrementing at the next beginTurn.
+
+Suite 683/683 (3 consecutive clean runs), audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               |  57 ++++----
+ js/engine/combat.js                                | 149 +++++++++++++------
+ ...hase2_r1b_avatar_cluster_slice1_proof_ledger.js | 157 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 4 files changed, 293 insertions(+), 71 deletions(-)
