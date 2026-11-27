@@ -1,0 +1,396 @@
+{
+  "generatedAt": "2026-11-27T06:30:12.573Z",
+  "switch": "off",
+  "n": 1000,
+  "seed": 777,
+  "results": {
+    "dregnar_ashvein:undergeared:warrior": {
+      "n": 1000,
+      "winRate": 0.707,
+      "allyDeathsPerFight": 1.532,
+      "injuryTotals": {
+        "trauma": 480
+      },
+      "meanRounds": 10.846,
+      "meanPlayerHpPct": 24.828409889029366,
+      "meanAllyHpPct": 20.832527332824817,
+      "seed": 4001770103,
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:scout": {
+      "n": 1000,
+      "winRate": 0.644,
+      "allyDeathsPerFight": 1.684,
+      "injuryTotals": {
+        "trauma": 468
+      },
+      "meanRounds": 11.491,
+      "meanPlayerHpPct": 19.417007672634252,
+      "meanAllyHpPct": 18.84477752351894,
+      "seed": 801523534,
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.628,
+      "allyDeathsPerFight": 1.755,
+      "injuryTotals": {
+        "trauma": 499
+      },
+      "meanRounds": 11.691,
+      "meanPlayerHpPct": 19.739898989898922,
+      "meanAllyHpPct": 16.663890160183062,
+      "seed": 241802718,
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:mage": {
+      "n": 1000,
+      "winRate": 0.899,
+      "allyDeathsPerFight": 0.797,
+      "injuryTotals": {
+        "trauma": 447
+      },
+      "meanRounds": 8.903,
+      "meanPlayerHpPct": 30.044888888888842,
+      "meanAllyHpPct": 39.69922705314011,
+      "seed": 1967288592,
+      "L": 30
+    },
+    "dregnar_ashvein:undergeared:bruise": {
+      "n": 1000,
+      "winRate": 0.822,
+      "allyDeathsPerFight": 1.071,
+      "injuryTotals": {
+        "trauma": 504
+      },
+      "meanRounds": 9.607,
+      "meanPlayerHpPct": 27.37052411873836,
+      "meanAllyHpPct": 31.837672260361067,
+      "seed": 3289775937,
+      "L": 30
+    },
+    "dregnar_ashvein:normal:warrior": {
+      "n": 1000,
+      "winRate": 0.982,
+      "allyDeathsPerFight": 0.393,
+      "injuryTotals": {
+        "trauma": 494
+      },
+      "meanRounds": 8.107,
+      "meanPlayerHpPct": 39.731194483403904,
+      "meanAllyHpPct": 50.670562450080666,
+      "seed": 1892344314,
+      "L": 30
+    },
+    "dregnar_ashvein:normal:scout": {
+      "n": 1000,
+      "winRate": 0.987,
+      "allyDeathsPerFight": 0.46,
+      "injuryTotals": {
+        "trauma": 572
+      },
+      "meanRounds": 8.533,
+      "meanPlayerHpPct": 38.21991994549457,
+      "meanAllyHpPct": 47.10572805996352,
+      "seed": 4031922170,
+      "L": 30
+    },
+    "dregnar_ashvein:normal:apothecary": {
+      "n": 1000,
+      "winRate": 0.982,
+      "allyDeathsPerFight": 0.499,
+      "injuryTotals": {
+        "trauma": 590
+      },
+      "meanRounds": 8.647,
+      "meanPlayerHpPct": 37.91380029806296,
+      "meanAllyHpPct": 46.001409374670324,
+      "seed": 2190618092,
+      "L": 30
+    },
+    "dregnar_ashvein:normal:mage": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0.21,
+      "injuryTotals": {
+        "trauma": 291
+      },
+      "meanRounds": 6.215,
+      "meanPlayerHpPct": 43.95040664780771,
+      "meanAllyHpPct": 63.08945732615497,
+      "seed": 1730194137,
+      "L": 30
+    },
+    "dregnar_ashvein:normal:bruise": {
+      "n": 1000,
+      "winRate": 0.997,
+      "allyDeathsPerFight": 0.181,
+      "injuryTotals": {
+        "trauma": 286
+      },
+      "meanRounds": 6.45,
+      "meanPlayerHpPct": 40.571010101010074,
+      "meanAllyHpPct": 63.521304600494275,
+      "seed": 897765845,
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:warrior": {
+      "n": 1000,
+      "winRate": 0.99,
+      "allyDeathsPerFight": 0.406,
+      "injuryTotals": {
+        "trauma": 473
+      },
+      "meanRounds": 8.086,
+      "meanPlayerHpPct": 41.12445067788739,
+      "meanAllyHpPct": 50.44630973371314,
+      "seed": 785921414,
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:scout": {
+      "n": 1000,
+      "winRate": 0.977,
+      "allyDeathsPerFight": 0.513,
+      "injuryTotals": {
+        "trauma": 576
+      },
+      "meanRounds": 8.63,
+      "meanPlayerHpPct": 38.040095384091074,
+      "meanAllyHpPct": 45.51605546827512,
+      "seed": 3313101410,
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.979,
+      "allyDeathsPerFight": 0.543,
+      "injuryTotals": {
+        "trauma": 599
+      },
+      "meanRounds": 8.72,
+      "meanPlayerHpPct": 37.011222056632235,
+      "meanAllyHpPct": 45.17622256946024,
+      "seed": 2407531384,
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:mage": {
+      "n": 1000,
+      "winRate": 0.999,
+      "allyDeathsPerFight": 0.176,
+      "injuryTotals": {
+        "trauma": 261
+      },
+      "meanRounds": 6.151,
+      "meanPlayerHpPct": 40.96647807637914,
+      "meanAllyHpPct": 65.31152552041736,
+      "seed": 2318009630,
+      "L": 30
+    },
+    "dregnar_ashvein:overgeared:bruise": {
+      "n": 1000,
+      "winRate": 0.996,
+      "allyDeathsPerFight": 0.181,
+      "injuryTotals": {
+        "trauma": 298
+      },
+      "meanRounds": 6.513,
+      "meanPlayerHpPct": 41.54424242424238,
+      "meanAllyHpPct": 63.53928096005951,
+      "seed": 3537587717,
+      "L": 30
+    },
+    "arbitarius_commander:undergeared:warrior": {
+      "n": 1000,
+      "winRate": 0.001,
+      "allyDeathsPerFight": 2.999,
+      "injuryTotals": {
+        "trauma": 1
+      },
+      "meanRounds": 18.291,
+      "meanPlayerHpPct": 0.027678571428571427,
+      "meanAllyHpPct": 0.008765432098765432,
+      "seed": 228011048,
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:scout": {
+      "n": 1000,
+      "winRate": 0.003,
+      "allyDeathsPerFight": 2.997,
+      "injuryTotals": {
+        "trauma": 3
+      },
+      "meanRounds": 18.24,
+      "meanPlayerHpPct": 0.07777777777777778,
+      "meanAllyHpPct": 0.01975308641975309,
+      "seed": 2867392464,
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.001,
+      "allyDeathsPerFight": 2.999,
+      "injuryTotals": {},
+      "meanRounds": 18.054,
+      "meanPlayerHpPct": 0.1,
+      "meanAllyHpPct": 0.013456790123456791,
+      "seed": 2479920499,
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:mage": {
+      "n": 1000,
+      "winRate": 0.004,
+      "allyDeathsPerFight": 2.994,
+      "injuryTotals": {
+        "trauma": 3
+      },
+      "meanRounds": 17.703,
+      "meanPlayerHpPct": 0.09591836734693877,
+      "meanAllyHpPct": 0.03640780565511748,
+      "seed": 2638123722,
+      "L": 29
+    },
+    "arbitarius_commander:undergeared:bruise": {
+      "n": 1000,
+      "winRate": 0.003,
+      "allyDeathsPerFight": 2.996,
+      "injuryTotals": {
+        "trauma": 3
+      },
+      "meanRounds": 17.868,
+      "meanPlayerHpPct": 0.07790697674418606,
+      "meanAllyHpPct": 0.032389486260454,
+      "seed": 1869461854,
+      "L": 29
+    },
+    "arbitarius_commander:normal:warrior": {
+      "n": 1000,
+      "winRate": 0.054,
+      "allyDeathsPerFight": 2.914,
+      "injuryTotals": {
+        "trauma": 18
+      },
+      "meanRounds": 20.164,
+      "meanPlayerHpPct": 2.631183702989392,
+      "meanAllyHpPct": 1.199934182248012,
+      "seed": 3701367170,
+      "L": 29
+    },
+    "arbitarius_commander:normal:scout": {
+      "n": 1000,
+      "winRate": 0.05,
+      "allyDeathsPerFight": 2.917,
+      "injuryTotals": {
+        "trauma": 26
+      },
+      "meanRounds": 19.933,
+      "meanPlayerHpPct": 2.2932107496463936,
+      "meanAllyHpPct": 1.1458122895622893,
+      "seed": 1311901417,
+      "L": 29
+    },
+    "arbitarius_commander:normal:apothecary": {
+      "n": 1000,
+      "winRate": 0.041,
+      "allyDeathsPerFight": 2.938,
+      "injuryTotals": {
+        "trauma": 22
+      },
+      "meanRounds": 20.335,
+      "meanPlayerHpPct": 1.8369444444444452,
+      "meanAllyHpPct": 0.7464534529694102,
+      "seed": 2320369569,
+      "L": 29
+    },
+    "arbitarius_commander:normal:mage": {
+      "n": 1000,
+      "winRate": 0.092,
+      "allyDeathsPerFight": 2.841,
+      "injuryTotals": {
+        "trauma": 37
+      },
+      "meanRounds": 19.158,
+      "meanPlayerHpPct": 4.054040404040406,
+      "meanAllyHpPct": 2.022562952217208,
+      "seed": 251536607,
+      "L": 29
+    },
+    "arbitarius_commander:normal:bruise": {
+      "n": 1000,
+      "winRate": 0.071,
+      "allyDeathsPerFight": 2.867,
+      "injuryTotals": {
+        "trauma": 30
+      },
+      "meanRounds": 19.573,
+      "meanPlayerHpPct": 3.6265559373806786,
+      "meanAllyHpPct": 1.8395757217565727,
+      "seed": 2917488990,
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:warrior": {
+      "n": 1000,
+      "winRate": 0.071,
+      "allyDeathsPerFight": 2.882,
+      "injuryTotals": {
+        "trauma": 39
+      },
+      "meanRounds": 20.205,
+      "meanPlayerHpPct": 2.7703109932497587,
+      "meanAllyHpPct": 1.4588392793180032,
+      "seed": 125745628,
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:scout": {
+      "n": 1000,
+      "winRate": 0.05,
+      "allyDeathsPerFight": 2.914,
+      "injuryTotals": {
+        "trauma": 23
+      },
+      "meanRounds": 19.97,
+      "meanPlayerHpPct": 2.4735236916548797,
+      "meanAllyHpPct": 1.221457034887886,
+      "seed": 3244575031,
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:apothecary": {
+      "n": 1000,
+      "winRate": 0.047,
+      "allyDeathsPerFight": 2.911,
+      "injuryTotals": {
+        "trauma": 26
+      },
+      "meanRounds": 20.035,
+      "meanPlayerHpPct": 1.8388888888888892,
+      "meanAllyHpPct": 1.2805242137688946,
+      "seed": 1970478545,
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:mage": {
+      "n": 1000,
+      "winRate": 0.087,
+      "allyDeathsPerFight": 2.846,
+      "injuryTotals": {
+        "trauma": 39
+      },
+      "meanRounds": 19.321,
+      "meanPlayerHpPct": 3.7495959595959585,
+      "meanAllyHpPct": 1.9568974317644527,
+      "seed": 3612825206,
+      "L": 29
+    },
+    "arbitarius_commander:overgeared:bruise": {
+      "n": 1000,
+      "winRate": 0.074,
+      "allyDeathsPerFight": 2.871,
+      "injuryTotals": {
+        "trauma": 37
+      },
+      "meanRounds": 19.57,
+      "meanPlayerHpPct": 3.0559564719358527,
+      "meanAllyHpPct": 1.6093761193495228,
+      "seed": 1403564318,
+      "L": 29
+    }
+  }
+}

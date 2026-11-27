@@ -1,0 +1,124 @@
+{
+  "generatedAt": "2026-11-27T14:28:49.699Z",
+  "n": 1000,
+  "seed": 777,
+  "target": {
+    "spawn": "dregnar_ashvein",
+    "L": 30
+  },
+  "forcedEffectIds": [
+    "guardian_spirit",
+    "guided_footsteps",
+    "never_where_expected",
+    "evasive_guard"
+  ],
+  "forcedSetTierKeys": [
+    "River Warden:6",
+    "Regalia of the Endless Horizon:2",
+    "Regalia of the Eternal Heart:2",
+    "Regalia of the Eternal Bastion:2",
+    "Legion:4"
+  ],
+  "results": {
+    "warrior": {
+      "before": {
+        "n": 1000,
+        "winRate": 0.73,
+        "allyDeathsPerFight": 1.51,
+        "meanRounds": 10.855,
+        "meanPlayerHpPct": 24.949115044247787,
+        "meanAllyHpPct": 21.011498855835242
+      },
+      "after": {
+        "n": 1000,
+        "winRate": 0.869,
+        "allyDeathsPerFight": 1.055,
+        "meanRounds": 10.997,
+        "meanPlayerHpPct": 29.140806293018713,
+        "meanAllyHpPct": 38.60420544113905
+      },
+      "wrDeltaPoints": 13.900000000000002,
+      "flagged": true
+    },
+    "scout": {
+      "before": {
+        "n": 1000,
+        "winRate": 0.662,
+        "allyDeathsPerFight": 1.61,
+        "meanRounds": 11.307,
+        "meanPlayerHpPct": 19.99364876385336,
+        "meanAllyHpPct": 19.93561276379355
+      },
+      "after": {
+        "n": 1000,
+        "winRate": 0.845,
+        "allyDeathsPerFight": 1.171,
+        "meanRounds": 11.566,
+        "meanPlayerHpPct": 25.934654731457783,
+        "meanAllyHpPct": 35.03505085176712
+      },
+      "wrDeltaPoints": 18.299999999999994,
+      "flagged": true
+    },
+    "apothecary": {
+      "before": {
+        "n": 1000,
+        "winRate": 0.609,
+        "allyDeathsPerFight": 1.764,
+        "meanRounds": 11.602,
+        "meanPlayerHpPct": 19.09929292929287,
+        "meanAllyHpPct": 17.195720823798638
+      },
+      "after": {
+        "n": 1000,
+        "winRate": 0.82,
+        "allyDeathsPerFight": 1.227,
+        "meanRounds": 11.809,
+        "meanPlayerHpPct": 24.154646464646408,
+        "meanAllyHpPct": 33.53172387490464
+      },
+      "wrDeltaPoints": 21.099999999999998,
+      "flagged": true
+    },
+    "mage": {
+      "before": {
+        "n": 1000,
+        "winRate": 0.892,
+        "allyDeathsPerFight": 0.824,
+        "meanRounds": 8.991,
+        "meanPlayerHpPct": 31.43833333333324,
+        "meanAllyHpPct": 38.48698830409356
+      },
+      "after": {
+        "n": 1000,
+        "winRate": 0.941,
+        "allyDeathsPerFight": 0.623,
+        "meanRounds": 9.068,
+        "meanPlayerHpPct": 31.884222222222146,
+        "meanAllyHpPct": 51.51386219171117
+      },
+      "wrDeltaPoints": 4.899999999999993,
+      "flagged": false
+    },
+    "bruise": {
+      "before": {
+        "n": 1000,
+        "winRate": 0.851,
+        "allyDeathsPerFight": 0.992,
+        "meanRounds": 9.51,
+        "meanPlayerHpPct": 28.709415584415588,
+        "meanAllyHpPct": 33.68281973048563
+      },
+      "after": {
+        "n": 1000,
+        "winRate": 0.922,
+        "allyDeathsPerFight": 0.72,
+        "meanRounds": 9.575,
+        "meanPlayerHpPct": 30.37066326530612,
+        "meanAllyHpPct": 48.63196033562171
+      },
+      "wrDeltaPoints": 7.100000000000007,
+      "flagged": false
+    }
+  }
+}
