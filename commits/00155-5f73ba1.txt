@@ -1,0 +1,45 @@
+range: cbaee4d7bddff1d2d8047cd3c5f4aa0506b22a4e..5f73ba10929fb885d804d904d64a0e38245e1002
+=== 5f73ba10929fb885d804d904d64a0e38245e1002 2026-11-27 14:18:22 +0000
+R1 measurement: forced-equip harness, since neither existing sim can exercise R1's touched gear
+Task #49 follow-up. Confirmed by direct inspection (all 5 classes, all
+3 gear tiers, a wide level range): gearFor/gearForTierOffset's own
+"best raw stat per slot" scoring never once selects any of R1a's 20
+touched kind-B/set items, for the player or any ally -- so plus3_run.js
+and boss_sweep.js can't measure R1's real impact at all; dispatch never
+even reaches these entries either way. Confirmed directly: a plus3_run
+comparison (R1 off vs on, both DAMAGE_TYPES_V2 states, n=1000, seed 777)
+came back exactly byte-identical on every metric in every cell, which
+is what "the harness never touches this content" looks like, not "R1
+has no effect."
+
+Same discipline the spec itself calls for on R3 ("the harness can't
+see this, use forced test cases instead"), applied here to R1:
+
+- sim_common.js: a new setForcedPresence(holder, effectIds, setTierKeys)
+  harness-only hook (lives only here, never touches js/, same pattern
+  as the existing variant-pin hook) overrides hasEffect/hasSetTier to
+  report present for one holder by strict object identity, regardless
+  of that holder's real equipped items. runFight also gains an optional
+  `afterParty` callback, run right after each fight's own freshly-
+  recruited party exists, so a caller can re-arm the forced holder on
+  that fight's real Kessa object (buildLegalParty rebuilds the whole
+  party from scratch every fight).
+- r1_forced_measure.js: forces Kessa to carry the 4 effect ids + 5 set
+  tiers whose dispatch is guaranteed to fire just from existing and
+  taking hits (rollToHit.defender's miss/evasion chain, Blessing of
+  Stone/Shield Wall) -- not the other 11 R1a entries, which depend on
+  Kessa's own action/kill pattern or the enemy's own tags and aren't
+  reliably exercised by this harness's existing AI; their dispatch
+  correctness is already proven by this engagement's own test-strike/
+  Amendment-1-style proofs. Uses the "undergeared" gear tier (same
+  reconstruction choice plus3_run.js already made) after a smoke test
+  at the plain tier showed win rate already saturated near 100% with
+  no R1-touched gear at all, leaving no room to see any delta.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ tools/sim/r1_forced_measure.js | 132 +++++++++++++++++++++++++++++++++++++++++
+ tools/sim/sim_common.js        |  51 +++++++++++++++-
+ 2 files changed, 180 insertions(+), 3 deletions(-)
