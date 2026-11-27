@@ -1,0 +1,50 @@
+range: 188826232033d87d9de47494416e0e8c11cf339f..e82d3b97ea373cebc349d8b6a2eeccf149fdcdac
+=== e82d3b97ea373cebc349d8b6a2eeccf149fdcdac 2026-11-27 21:47:49 +0000
+R1b slice 3: generalize Avatar of Freedom to ally
+Task #49 (R1b). Avatar of Freedom has three real consuming sites
+(faster cooldown recovery, activation-restriction bypass, an
+independent 50% evasion roll), unlike slice 2's four members (a single
+damage-multiplier reader each). Only the trigger and the evasion roll
+generalize this slice; the other two are confirmed moot for an ally:
+
+- Faster cooldown recovery (beginTurn's cooldownDecrement) speeds up
+  combat.player.cooldowns, the player's own Tactics/Abilities cooldown
+  dict -- no ally action is cooldown-gated that way.
+- activationRestrictionsBypassed bypasses Knowledge-based unlock
+  requirements on Tactics/Abilities -- confirmed by reading every one
+  of its 9 call sites, all hardcoded to the player's own Feint/Disarm/
+  Ambush/elemental-ability knowledge gates; no ally action has an
+  equivalent restriction to bypass.
+
+- combat.js: checkAvatarOfFreedom generalized to (holder, holderRole),
+  same modifierStateHost pattern as slice 2. beginTurn's per-ally loop
+  gains the avatarOfFreedomTurns decrement.
+- pipeline.js: rollToHit's own ally branch (already shared with the
+  player branch for the registry's rollToHit.defender fan-out) gains
+  the ally-side twin of the evasion roll, gated directly on
+  COMBAT_UNIFY.R1 -- it's a separate roll layered on top of an
+  already-successful hit, not a registry-dispatched "miss chain"
+  member, same shape as the player's own untouched copy.
+- modifiers.js: set:Regalia of the Endless Horizon:6 holders widened to
+  ["player","ally"], gated behind COMBAT_UNIFY.R1 (off by default).
+
+New proof ledger (phase2_r1b_avatar_freedom_proof_ledger.js, 5/5):
+confirms no ally-side effect with R1 off (both the trigger AND the
+evasion roll site itself, the latter tested by forcing
+avatarOfFreedomTurns directly to rule out the trigger alone being the
+only gate), the trigger firing once crossing below 25% Health with R1
+on, the evasion roll actually converting a hit into a miss and
+dispatching onEvade, and the window decrementing at the next beginTurn.
+
+Suite 688/688 (3 consecutive clean runs), audit 0 errors.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               |   6 +-
+ js/engine/combat.js                                |  24 +++-
+ js/engine/pipeline.js                              |  13 ++
+ .../phase2_r1b_avatar_freedom_proof_ledger.js      | 131 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 5 files changed, 166 insertions(+), 9 deletions(-)
