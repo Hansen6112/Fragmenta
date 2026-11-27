@@ -1,0 +1,56 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:6:avatar_of_war_trigger",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Avatar of War's own window-GRANT trigger: buff-only (grants avatarOfWarTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). Keyed distinctly from set:Regalia of the Crimson Vanguard:6 (the Executioner-threshold upgrade entry) -- same set tier, unrelated mechanic.",
+    "new": "Avatar of War's own window-GRANT trigger: buff-only (grants avatarOfWarTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). Keyed distinctly from set:Regalia of the Crimson Vanguard:6 (the Executioner-threshold upgrade entry) -- same set tier, unrelated mechanic. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfWar generalized (combat.js), the Attack buff routed through grantTemporaryStatBuff (ally.buffs.atk); avatarOfWarTurns's own Riposte-eligibility read (maybeRiposte) stays player-only, not part of this slice."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Forge:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Avatar of Creation: buff-only (Attack/Magic buffs, faster cooldowns, permanent per-hit growth, no heal, combat.js:6390) -- 2e-2 territory.",
+    "new": "Avatar of Creation: buff-only (Attack/Magic buffs, faster cooldowns, permanent per-hit growth, no heal, combat.js:6390). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfCreation generalized (combat.js), the Attack/Magic buffs routed through grantTemporaryStatBuff (magic currently inert for an ally, no effectiveAllyMagic reader exists); faster cooldowns (moot for an ally, same as Avatar of Freedom) and the permanent per-hit growth (rollPlayerDamage, deeply player-specific) stay untouched, not part of this slice."
+   }
+  ]
+ }
+]

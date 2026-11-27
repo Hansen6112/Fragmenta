@@ -1,0 +1,44 @@
+range: 9aa48fc0c92a85e89832eba0fd2c75e70c372d8e..98436233bc90cdc97a30773ab88ba65a44741fbd
+=== 98436233bc90cdc97a30773ab88ba65a44741fbd 2026-11-27 22:31:26 +0000
+R1b slice 5: generalize Avatar of War and Avatar of Creation to ally
+The last 2 of the 5 members the shared buff-stacking system (slice 4)
+was built to unblock. Both checkFns generalized (holder, holderRole);
+their temporary Attack (and Creation's Magic) buff now routed through
+slice 4's grantTemporaryStatBuff, reusing the existing ally.buffs
+system (tickAllyBuffs) -- no new ally-side storage or decrement code
+needed for the buffs themselves, only each trigger's own "used" flag
+via modifierStateHost and the avatarOfWarTurns/avatarOfCreationTurns
+window field, both decremented in beginTurn's per-ally loop.
+
+Deliberately left player-only/untouched, same reasoning as the rest of
+this cluster: avatarOfWarTurns's own Riposte-eligibility read
+(maybeRiposte), avatarOfCreationTurns's own cooldown-recovery-speed
+read (beginTurn, confirmed moot for an ally alongside Avatar of
+Freedom's identical case), and Creation's permanent per-hit Attack/
+Magic growth (rollPlayerDamage's own inline stacking). Creation's Magic
+buff half is generalized for parity but is currently inert for an
+ally -- no effectiveAllyMagic reader exists, the same standing
+limitation as Trailwise/job-gold.
+
+New proof ledger (8/8): both triggers fire once crossing below 25%
+Health with R1 on and stay silent with R1 off, the granted buff(s)
+raise effectiveAllyAtk by the right amount, both decrement/expire via
+the existing tickAllyBuffs, and the player's own combat.player.*
+BuffTurns/BuffAmount fields are confirmed untouched. Full suite clean
+at 702/702 (one of three runs showed the same pre-existing single-
+point transient flake with no FAIL line, consistent with prior runs
+unrelated to this change).
+
+R1b Avatar-of-X cluster: 12 of 14 members done. Remaining: Fate,
+Passing, Knowledge, Time (each individually bespoke, previously
+identified as needing separate design treatment).
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               |  12 +-
+ js/engine/combat.js                                |  61 ++++---
+ .../phase2_r1b_avatar_war_creation_proof_ledger.js | 179 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 4 files changed, 227 insertions(+), 26 deletions(-)
