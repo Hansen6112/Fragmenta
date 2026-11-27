@@ -1568,8 +1568,11 @@ function loadedDiceMultiplier(state) {
 // Avatar of Chaos (Regalia of the Laughing Gale 6pc): for its 4-round
 // window, every hit's damage is randomized between 75% and 175% —
 // independent of, and stacking with, Loaded Dice's own occasional swing.
-function avatarOfChaosDamageMultiplier(state) {
-  return state.combat && state.combat.player.avatarOfChaosTurns > 0 ? 0.75 + Math.random() : 1;
+// R1b (27 Nov): generalized to (holder, holderRole) -- modifierStateHost
+// already resolves to holder.combat.player for the player (today's
+// exact object, byte-identical) or bare holder for an ally.
+function avatarOfChaosDamageMultiplier(holder, holderRole) {
+  return modifierStateHost(holder, holderRole).avatarOfChaosTurns > 0 ? 0.75 + Math.random() : 1;
 }
 
 // Precision Formula (Divine Regalia — Gloves of Careful Script): magic
@@ -1659,8 +1662,10 @@ function calmingPresenceMultiplier(state) {
 // to all incoming damage for its 4-round window, layered into the same
 // chain as Shield Wall/Master Duelist/Unbroken Line/Prepared Response/
 // Calming Presence above.
-function avatarOfDevotionDamageMultiplier(state) {
-  return state.combat && state.combat.player.avatarOfDevotionTurns > 0 ? 0.65 : 1;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see avatarOfChaosDamageMultiplier's
+// own note above.
+function avatarOfDevotionDamageMultiplier(holder, holderRole) {
+  return modifierStateHost(holder, holderRole).avatarOfDevotionTurns > 0 ? 0.65 : 1;
 }
 
 // Blessing of Stone (Regalia of the Eternal Bastion 2pc): 15% Damage
@@ -1678,15 +1683,19 @@ function blessingOfStoneMultiplier(state) {
 // to all incoming damage for its 4-round window — the strongest of the
 // eight "Avatar of X" damage-reduction effects, fitting for the most
 // defensively-themed god's own capstone.
-function avatarOfEnduranceDamageMultiplier(state) {
-  return state.combat && state.combat.player.avatarOfEnduranceTurns > 0 ? 0.5 : 1;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see avatarOfChaosDamageMultiplier's
+// own note above.
+function avatarOfEnduranceDamageMultiplier(holder, holderRole) {
+  return modifierStateHost(holder, holderRole).avatarOfEnduranceTurns > 0 ? 0.5 : 1;
 }
 
 // Avatar of Renewal (Regalia of the Endless Tide 6pc): a flat 30% cut to
 // all incoming damage for its 4-round window, layered into the same
 // chain as the other "Avatar of X" damage-reduction effects.
-function avatarOfRenewalDamageMultiplier(state) {
-  return state.combat && state.combat.player.avatarOfRenewalTurns > 0 ? 0.7 : 1;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see avatarOfChaosDamageMultiplier's
+// own note above.
+function avatarOfRenewalDamageMultiplier(holder, holderRole) {
+  return modifierStateHost(holder, holderRole).avatarOfRenewalTurns > 0 ? 0.7 : 1;
 }
 
 // Adaptive Tide (Divine Regalia — Vestments of the Endless Sea): -5% to a
@@ -1987,8 +1996,15 @@ function commandingPresenceDefMultiplier(state) {
 // verbatim -- Faithful Heart still extends the duration by 1, Heartward
 // Bond still grants +2 Attack/Magic/Defense for that same duration, same
 // order as today.
-function applyBeneficialEffectBonuses(state, duration) {
-  return threadStatusAppliedDuration(state, "player", { state, beneficial: true, status: null }, duration);
+// R1b (27 Nov): holderRole added as an explicit, required 2nd param
+// (every one of the 16 existing call sites below updated to pass
+// "player" -- zero behavior change for any of them, same object as
+// `holder` either way) so the 4 Avatar-of-X members this slice
+// generalizes can pass "ally" instead. threadStatusAppliedDuration
+// (modifiers.js) is already fully holder-generic; this was the only
+// hardcode in the chain.
+function applyBeneficialEffectBonuses(holder, holderRole, duration) {
+  return threadStatusAppliedDuration(holder, holderRole, { state: holder, beneficial: true, status: null }, duration);
 }
 
 // Hardened Formation (MIL-IE001, Veteran Tower Shield V1-V3) / Officer's
@@ -4182,6 +4198,18 @@ function beginTurn(state) {
   aliveAllies(state).forEach((ally) => {
     tickAllyBuffs(ally);
     if ((ally.allyProtectionCooldown || 0) > 0) ally.allyProtectionCooldown -= 1;
+    // R1b (27 Nov): the Avatar of Devotion/Chaos/Endurance/Renewal window
+    // fields this slice generalized live directly on the ally record
+    // (modifierStateHost's own bare-holder resolution for a non-player
+    // role) -- decremented here, the ally-side equivalent of beginTurn's
+    // own combat.player.avatarOfXTurns decrements a few lines above this
+    // function's own start. Only these 4 fields: the other ~10 Avatar-of-X
+    // members (and every other combat.player.*Turns field) stay
+    // player-only until a later R1b slice generalizes them too.
+    if (ally.avatarOfDevotionTurns > 0) ally.avatarOfDevotionTurns -= 1;
+    if (ally.avatarOfEnduranceTurns > 0) ally.avatarOfEnduranceTurns -= 1;
+    if (ally.avatarOfRenewalTurns > 0) ally.avatarOfRenewalTurns -= 1;
+    if (ally.avatarOfChaosTurns > 0) ally.avatarOfChaosTurns -= 1;
     lines.push(...tickAllyStatuses(state, ally));
   });
   // tickAllyStatuses' own DOT tick can call killAlly, whose party-wipe
@@ -4611,7 +4639,7 @@ function applyUnbrokenLine(state, dmg) {
     combat.player.unbrokenLineHitCount = (combat.player.unbrokenLineHitCount || 0) + 1;
     if (combat.player.unbrokenLineHitCount >= 3) {
       combat.player.unbrokenLineHitCount = 0;
-      combat.player.damageReductionTurns = applyBeneficialEffectBonuses(state, 2);
+      combat.player.damageReductionTurns = applyBeneficialEffectBonuses(state, "player", 2);
     }
   }
   return reduced;
@@ -5917,7 +5945,7 @@ Events.on("combat.started", ({ state }) => {
   // the raw hasEffect for sourceActiveOn, same primitive.
   if (sourceActiveOn(state, { kind: "effect", id: "endless_bloom" })) {
     const healPerTurn = Math.ceil(state.maxHealth * 0.05);
-    if (healPerTurn > 0) state.combat.player.regen = { turnsLeft: applyBeneficialEffectBonuses(state, 5), healPerTurn };
+    if (healPerTurn > 0) state.combat.player.regen = { turnsLeft: applyBeneficialEffectBonuses(state, "player", 5), healPerTurn };
   }
 });
 Events.on("combat.started", ({ state }) => {
@@ -6013,7 +6041,7 @@ function checkHoldTheLine(state) {
   if (!combat || combat.player.holdTheLineUsed || !sourceActiveOn(state, { kind: "set", setName: "Legion", tier: 8 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.3) return [];
   combat.player.holdTheLineUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, 2);
+  const dur = applyBeneficialEffectBonuses(state, "player", 2);
   combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
   combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(6)));
   return [`Hold the Line — your training snaps into place as your Health falls; +${flatStat(6)} Defense for 2 turns.`];
@@ -6029,7 +6057,7 @@ function checkRootedResolve(state) {
   if (!combat || combat.player.rootedResolveUsed || !sourceActiveOn(state, { kind: "effect", id: "rooted_resolve" })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
   combat.player.rootedResolveUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, 3);
+  const dur = applyBeneficialEffectBonuses(state, "player", 3);
   combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
   combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(8)));
   return [`Rooted Resolve — you plant yourself as your Health falls; +${flatStat(8)} Defense for 3 turns.`];
@@ -6050,7 +6078,7 @@ function checkRallyTheLine(state) {
   if (!combat || combat.player.rallyTheLineUsed || !sourceActiveOn(state, { kind: "effect", id: "rally_the_line" })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
   combat.player.rallyTheLineUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, 4);
+  const dur = applyBeneficialEffectBonuses(state, "player", 4);
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
   combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
   combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
@@ -6078,7 +6106,7 @@ function checkAvatarOfPassing(state) {
   if (!combat || combat.player.avatarOfPassingUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Final Veil", tier: 6 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.player.avatarOfPassingUsed = true;
-  combat.player.avatarOfPassingTurns = applyBeneficialEffectBonuses(state, 4);
+  combat.player.avatarOfPassingTurns = applyBeneficialEffectBonuses(state, "player", 4);
   return [`Avatar of Passing awakens — for 4 rounds, the damage you deal returns to you as life.`];
 }
 
@@ -6097,7 +6125,7 @@ function checkAvatarOfFate(state) {
   if (!combat || combat.player.avatarOfFateUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Woven Thread", tier: 6 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.player.avatarOfFateUsed = true;
-  combat.player.avatarOfFateTurns = applyBeneficialEffectBonuses(state, 4);
+  combat.player.avatarOfFateTurns = applyBeneficialEffectBonuses(state, "player", 4);
   return [`Avatar of Fate awakens — for 4 rounds, fate bends further in your favor.`];
 }
 
@@ -6119,7 +6147,7 @@ function checkAvatarOfWar(state) {
   if (!combat || combat.player.avatarOfWarUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Crimson Vanguard", tier: 6 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.player.avatarOfWarUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, 4);
+  const dur = applyBeneficialEffectBonuses(state, "player", 4);
   combat.player.avatarOfWarTurns = dur;
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
   combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.5)));
@@ -6142,7 +6170,7 @@ function checkAvatarOfKnowledge(state) {
   if (!combat || combat.player.avatarOfKnowledgeUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Archive", tier: 6 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.player.avatarOfKnowledgeUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, 4);
+  const dur = applyBeneficialEffectBonuses(state, "player", 4);
   combat.player.avatarOfKnowledgeTurns = dur;
   combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
   combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.5)));
@@ -6159,13 +6187,23 @@ function checkAvatarOfKnowledge(state) {
 // cheat-death save brings Health to 1 (see checkDeathPrevention). Its
 // "cannot be Charmed, Feared, or emotionally manipulated" clause is
 // trivially already true — no such mechanics exist on the player side.
-function checkAvatarOfDevotion(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- `holderRole === "player"
+// && !holder.combat` reproduces the old `!combat` bail-out exactly
+// (nothing else changes for the player: modifierStateHost(holder,
+// "player") resolves to holder.combat.player, the same object the old
+// inline `combat.player.*` always meant). For an ally, holder has no
+// `.combat` at all, so that bail-out doesn't apply -- the ally-side
+// dispatch (pipeline.js's lowHealthTriggerChecksForAlly) only ever
+// fires while ally.alive && ally.health > 0, which already implies the
+// fight is ongoing.
+function checkAvatarOfDevotion(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.avatarOfDevotionUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Heart", tier: 6 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
-  combat.player.avatarOfDevotionUsed = true;
-  combat.player.avatarOfDevotionTurns = applyBeneficialEffectBonuses(state, 4);
+  if (host.avatarOfDevotionUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Eternal Heart", tier: 6 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
+  host.avatarOfDevotionUsed = true;
+  host.avatarOfDevotionTurns = applyBeneficialEffectBonuses(holder, holderRole, 4);
   return [`Avatar of Devotion awakens — for 4 rounds, your heart shields you as much as your steel does.`];
 }
 
@@ -6183,13 +6221,20 @@ function checkAvatarOfDevotion(state) {
 // have a 50% chance to fail" clause is inert — the same reason as
 // Fortune's Favor (Divine Regalia — Coincatcher's Buckler): no negative-
 // status mechanic exists on the player side yet.
-function checkAvatarOfChaos(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see checkAvatarOfDevotion's
+// own note above for the exact reasoning. Only the "awakens" trigger
+// generalizes here; Avatar of Chaos's own +10 Attack/Defense/Magic/
+// Knowledge-on-crit stacking bonus (rollPlayerDamage) stays player-only
+// for now, same as every other member of the shared buff-stacking
+// system this slice doesn't touch.
+function checkAvatarOfChaos(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.avatarOfChaosUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Laughing Gale", tier: 6 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
-  combat.player.avatarOfChaosUsed = true;
-  combat.player.avatarOfChaosTurns = applyBeneficialEffectBonuses(state, 4);
+  if (host.avatarOfChaosUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Laughing Gale", tier: 6 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
+  host.avatarOfChaosUsed = true;
+  host.avatarOfChaosTurns = applyBeneficialEffectBonuses(holder, holderRole, 4);
   return [`Avatar of Chaos awakens — for 4 rounds, fortune bends entirely to your whims.`];
 }
 
@@ -6202,13 +6247,18 @@ function checkAvatarOfChaos(state) {
 // reduction" and "immune to forced movement/knockback/displacement"
 // clauses are trivially already true — the same reason as Bedrock/
 // Grounded below: no such mechanics exist on the player side yet.
-function checkAvatarOfEndurance(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see checkAvatarOfDevotion's
+// own note above. Avatar of Endurance's own +2/+2 Attack/Defense-per-
+// hit-taken stacking bonus (applyPlayerDamage) stays player-only for
+// now, same reasoning as Avatar of Chaos's own stacking half.
+function checkAvatarOfEndurance(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.avatarOfEnduranceUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Bastion", tier: 6 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
-  combat.player.avatarOfEnduranceUsed = true;
-  combat.player.avatarOfEnduranceTurns = applyBeneficialEffectBonuses(state, 4);
+  if (host.avatarOfEnduranceUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Eternal Bastion", tier: 6 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
+  host.avatarOfEnduranceUsed = true;
+  host.avatarOfEnduranceTurns = applyBeneficialEffectBonuses(holder, holderRole, 4);
   return [`Avatar of Endurance awakens — for 4 rounds, you become an unmoving wall.`];
 }
 
@@ -6232,7 +6282,7 @@ function checkAvatarOfFreedom(state) {
   if (!combat || combat.player.avatarOfFreedomUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Horizon", tier: 6 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.player.avatarOfFreedomUsed = true;
-  combat.player.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, 4);
+  combat.player.avatarOfFreedomTurns = applyBeneficialEffectBonuses(state, "player", 4);
   return [`Avatar of Freedom awakens — for 4 rounds, nothing can hold you.`];
 }
 
@@ -6255,7 +6305,7 @@ function checkAvatarOfCreation(state) {
   if (!combat || combat.player.avatarOfCreationUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Forge", tier: 6 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.player.avatarOfCreationUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, 4);
+  const dur = applyBeneficialEffectBonuses(state, "player", 4);
   combat.player.avatarOfCreationTurns = dur;
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
   combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.4)));
@@ -6277,13 +6327,20 @@ function checkAvatarOfCreation(state) {
 // Its "every healing effect also restores an equal amount of Mana"
 // clause is a no-op — no Mana resource exists, the same limitation
 // Flowing Waters/Blessing of the Tide/Living Forge already cite.
-function checkAvatarOfRenewal(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see checkAvatarOfDevotion's
+// own note above. Avatar of Renewal's own per-round 10% max-Health heal
+// (always:avatar_of_renewal_heal, dispatched from beginTurn) stays
+// player-only for now -- only the incoming-damage-mult window
+// (avatarOfRenewalDamageMultiplier, below) and this trigger generalize
+// this slice.
+function checkAvatarOfRenewal(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.avatarOfRenewalUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Tide", tier: 6 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
-  combat.player.avatarOfRenewalUsed = true;
-  combat.player.avatarOfRenewalTurns = applyBeneficialEffectBonuses(state, 4);
+  if (host.avatarOfRenewalUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Endless Tide", tier: 6 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
+  host.avatarOfRenewalUsed = true;
+  host.avatarOfRenewalTurns = applyBeneficialEffectBonuses(holder, holderRole, 4);
   return [`Avatar of Renewal awakens — for 4 rounds, the tide itself mends you.`];
 }
 
@@ -6309,7 +6366,7 @@ function checkAvatarOfTime(state) {
   if (!combat || combat.player.avatarOfTimeUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Hour", tier: 6 })) return [];
   if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
   combat.player.avatarOfTimeUsed = true;
-  combat.player.avatarOfTimeTurns = applyBeneficialEffectBonuses(state, 3);
+  combat.player.avatarOfTimeTurns = applyBeneficialEffectBonuses(state, "player", 3);
   for (const key of Object.keys(combat.cooldowns)) combat.cooldowns[key] = 0;
   return [`Avatar of Time awakens — for 3 rounds, every clock in the world bends to yours.`];
 }

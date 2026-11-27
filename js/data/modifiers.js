@@ -1528,9 +1528,9 @@ registerModifier("effect:loaded_dice", {
 registerModifier("set:Regalia of the Laughing Gale:6", {
   source: { kind: "set", id: "Regalia of the Laughing Gale:6", setName: "Regalia of the Laughing Gale", tier: 6 },
   hook: "calculateDamage.outgoing", order: 150, bucket: "variance",
-  value: (ctx) => avatarOfChaosDamageMultiplier(ctx.state), behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Chaos's damage randomization. Value delegates to avatarOfChaosDamageMultiplier(state) unchanged -- a pure RNG read (0.75 + Math.random()), no state write. 'variance' bucket, raw multiplier (not a delta) -- see loaded_dice's own note.",
+  value: (ctx) => avatarOfChaosDamageMultiplier(ctx.holder, ctx.role), behavior: null,
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Chaos's damage randomization. Value delegates to avatarOfChaosDamageMultiplier(holder, role) -- a pure RNG read (0.75 + Math.random()), no state write. 'variance' bucket, raw multiplier (not a delta) -- see loaded_dice's own note. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- avatarOfChaosDamageMultiplier generalized to modifierStateHost(holder, role); checkAvatarOfChaos (combat.js) generalized the same way, through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1).",
 });
 registerModifier("effect:momentum_unbound", {
   source: { kind: "effect", id: "momentum_unbound" },
@@ -1803,9 +1803,9 @@ registerModifier("effect:calming_presence", {
 registerModifier("set:Regalia of the Eternal Heart:6", {
   source: { kind: "set", id: "Regalia of the Eternal Heart:6", setName: "Regalia of the Eternal Heart", tier: 6 },
   hook: "calculateDamage.incoming", order: 60, bucket: "incomingMitigation",
-  value: (ctx) => avatarOfDevotionDamageMultiplier(ctx.holder), behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Devotion. Pure read of combat.player.avatarOfDevotionTurns.",
+  value: (ctx) => avatarOfDevotionDamageMultiplier(ctx.holder, ctx.role), behavior: null,
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Devotion. Pure read of modifierStateHost(holder, role).avatarOfDevotionTurns. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- avatarOfDevotionDamageMultiplier generalized; checkAvatarOfDevotion (combat.js) generalized the same way, through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1).",
 });
 registerModifier("set:Regalia of the Eternal Bastion:2", {
   source: { kind: "set", id: "Regalia of the Eternal Bastion:2", setName: "Regalia of the Eternal Bastion", tier: 2 },
@@ -1817,16 +1817,16 @@ registerModifier("set:Regalia of the Eternal Bastion:2", {
 registerModifier("set:Regalia of the Eternal Bastion:6", {
   source: { kind: "set", id: "Regalia of the Eternal Bastion:6", setName: "Regalia of the Eternal Bastion", tier: 6 },
   hook: "calculateDamage.incoming", order: 80, bucket: "incomingMitigation",
-  value: (ctx) => avatarOfEnduranceDamageMultiplier(ctx.holder), behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Endurance. Pure read of combat.player.avatarOfEnduranceTurns.",
+  value: (ctx) => avatarOfEnduranceDamageMultiplier(ctx.holder, ctx.role), behavior: null,
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Endurance. Pure read of modifierStateHost(holder, role).avatarOfEnduranceTurns. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- avatarOfEnduranceDamageMultiplier generalized; checkAvatarOfEndurance (combat.js) generalized the same way, through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1).",
 });
 registerModifier("set:Regalia of the Endless Tide:6", {
   source: { kind: "set", id: "Regalia of the Endless Tide:6", setName: "Regalia of the Endless Tide", tier: 6 },
   hook: "calculateDamage.incoming", order: 90, bucket: "incomingMitigation",
-  value: (ctx) => avatarOfRenewalDamageMultiplier(ctx.holder), behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Renewal. Pure read of combat.player.avatarOfRenewalTurns.",
+  value: (ctx) => avatarOfRenewalDamageMultiplier(ctx.holder, ctx.role), behavior: null,
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Renewal. Pure read of modifierStateHost(holder, role).avatarOfRenewalTurns. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- avatarOfRenewalDamageMultiplier generalized; checkAvatarOfRenewal (combat.js) generalized the same way, through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1). Avatar of Renewal's own per-round 10% heal (always:avatar_of_renewal_heal) stays player-only -- not part of this slice.",
 });
 registerModifier("effect:adaptive_tide.physical", {
   source: { kind: "effect", id: "adaptive_tide" },
@@ -3436,7 +3436,14 @@ registerModifier("set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal"
 // 2e-1 heal goes through) -- everything else in each (the once-per-fight
 // flag, the buff grant) stays exactly as today, inline.
 registerBehavior("lowHealthReactionWrap", (ctx, entry) => {
-  const lines = entry.params.checkFn(ctx.holder);
+  // R1b (27 Nov): ctx.role/ctx.state added as new trailing args -- every
+  // checkFn not yet generalized still only declares one parameter
+  // (today's own `state`), so it silently ignores both and keeps
+  // reading ctx.holder positionally exactly as before (ctx.holder IS
+  // state for a player dispatch, unchanged). Only the checkFns this
+  // slice actually converts (checkAvatarOfDevotion/Chaos/Endurance/
+  // Renewal) read the 2nd/3rd args.
+  const lines = entry.params.checkFn(ctx.holder, ctx.role, ctx.state);
   return lines && lines.length ? lines : undefined;
 });
 registerBehavior("loveEnduresHeal", (ctx) => {
@@ -3521,23 +3528,23 @@ registerModifier("effect:love_endures", {
 registerModifier("set:Regalia of the Eternal Heart:6:avatar_of_devotion_trigger", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 100, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfDevotion(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Devotion's own window-GRANT trigger: buff-only (grants avatarOfDevotionTurns, no heal of its own -- its real effect is doubled healing RECEIVED, already a heal.incoming entry above). Keyed distinctly from set:Regalia of the Eternal Heart:6 (the calculateDamage.incoming doubler) -- same set tier, unrelated dispatch point.",
+  params: { checkFn: (holder, role) => checkAvatarOfDevotion(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Devotion's own window-GRANT trigger: buff-only (grants avatarOfDevotionTurns, no heal of its own -- its real effect is doubled healing RECEIVED, already a heal.incoming entry above). Keyed distinctly from set:Regalia of the Eternal Heart:6 (the calculateDamage.incoming doubler) -- same set tier, unrelated dispatch point. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfDevotion generalized (combat.js), dispatched for an ally through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1); checkFn's own wrapper closure now forwards role too.",
 });
 registerModifier("set:Regalia of the Laughing Gale:6:avatar_of_chaos_trigger", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 110, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfChaos(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Chaos: buff-only (damage swing + doubled crit chance + per-crit stat grants, no heal, combat.js:6327) -- 2e-2 territory. Keyed distinctly from set:Regalia of the Laughing Gale:6 (the calculateDamage.outgoing variance entry) -- same set tier, unrelated mechanic.",
+  params: { checkFn: (holder, role) => checkAvatarOfChaos(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Chaos: buff-only (damage swing + doubled crit chance + per-crit stat grants, no heal, combat.js:6327) -- 2e-2 territory. Keyed distinctly from set:Regalia of the Laughing Gale:6 (the calculateDamage.outgoing variance entry) -- same set tier, unrelated mechanic. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfChaos generalized (combat.js), through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1); the crit-triggered stat-grant half stays player-only (not part of this slice).",
 });
 registerModifier("set:Regalia of the Eternal Bastion:6:avatar_of_endurance_trigger", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 120, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfEndurance(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Endurance's own window-GRANT trigger: buff-only (grants avatarOfEnduranceTurns, no heal of its own -- its real effect is +50% healing RECEIVED, already a heal.incoming entry above). Keyed distinctly from set:Regalia of the Eternal Bastion:6 (the calculateDamage.incoming doubler) -- same set tier, unrelated dispatch point.",
+  params: { checkFn: (holder, role) => checkAvatarOfEndurance(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Endurance's own window-GRANT trigger: buff-only (grants avatarOfEnduranceTurns, no heal of its own -- its real effect is +50% healing RECEIVED, already a heal.incoming entry above). Keyed distinctly from set:Regalia of the Eternal Bastion:6 (the calculateDamage.incoming doubler) -- same set tier, unrelated dispatch point. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfEndurance generalized (combat.js), through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1); the per-hit stat-grant half stays player-only (not part of this slice).",
 });
 registerModifier("set:Regalia of the Endless Horizon:6", {
   source: { kind: "always" },
@@ -3556,9 +3563,9 @@ registerModifier("set:Regalia of the Eternal Forge:6", {
 registerModifier("set:Regalia of the Endless Tide:6:avatar_of_renewal_trigger", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 150, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfRenewal(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Renewal's own window-GRANT trigger: buff-only (grants avatarOfRenewalTurns, no heal of its own -- its real per-round heal is already a turn.start entry above, and its incoming-damage cut is already a calculateDamage.incoming entry). Keyed distinctly from set:Regalia of the Endless Tide:6 -- same set tier, unrelated dispatch point.",
+  params: { checkFn: (holder, role) => checkAvatarOfRenewal(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Renewal's own window-GRANT trigger: buff-only (grants avatarOfRenewalTurns, no heal of its own -- its real per-round heal is already a turn.start entry above, and its incoming-damage cut is already a calculateDamage.incoming entry). Keyed distinctly from set:Regalia of the Endless Tide:6 -- same set tier, unrelated dispatch point. R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkAvatarOfRenewal generalized (combat.js), through the new applyAndReact.onLowHealth ally dispatch (R1b slice 1); the per-round heal stays player-only (not part of this slice).",
 });
 registerModifier("effect:rally_the_line", {
   source: { kind: "always" },
