@@ -1,0 +1,21 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index cae4b0a..d8fed00 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -5529,7 +5529,15 @@ function startCombat(state, creatureIdOrObject, preRolledLevel) {
+   // non-player trigger cap) are new; tacticalMemoryUsed (companion.js's
+   // Hadrian-kit cooldown hook) already existed and had exactly this gap —
+   // fixed here too, since it's the identical bug, not a separate one.
+-  (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; a.unshakenCommandCharges = null; a.allyProtectionCooldown = 0; a.allyProtectionUsesThisCombat = 0; });
++  (state.party || []).forEach((a) => { a.riposteUsedThisRound = false; a.riposteUsesThisCombat = 0; a.tacticalMemoryUsed = false; a.unshakenCommandCharges = null; a.allyProtectionCooldown = 0; a.allyProtectionUsesThisCombat = 0; delete a.modifierState; });
++  // R1 (27 Nov): the delete above is the fix modifiers.js's own
++  // modifierStateHost comment anticipated ("an ally's modifierState
++  // would need an explicit per-fight clear once R1 actually widens
++  // holders to include 'ally' for a stateful entry") -- now that R1
++  // does exactly that (Guardian Spirit/Guided Footsteps/Evasive Guard/
++  // River Warden:6/Siege Corps:6's own state), wiping the whole
++  // container fresh each fight matches combat.player's own full rebuild
++  // every fight exactly, with no per-entry special-casing needed.
+   state.unshakenCommandCharges = null; // Unshaken Command (DRA-E02): a future player wearer gets the same fresh-2-per-combat reset an enemy's freshly-built creatureObj gets implicitly
+   state.allyProtectionCooldown = 0; // Ally Protection Reaction (Sanguivorum Gatekeeper's Stand/Protective Intercession/Officer's Intercession): same fresh-combat reset for a future player wearer
+   state.allyProtectionUsesThisCombat = 0;

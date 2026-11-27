@@ -1,0 +1,683 @@
+[
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guardian_spirit",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Guardian Spirit.",
+    "new": "Guardian Spirit. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) same discipline as healingReceivedPct/Ashen Lungs -- per-holder modifierState (state.used), Amendment 1's own worked example for this exact entry. startCombat's own per-fight ally reset (combat.js) deletes a.modifierState fresh each fight, same as combat.player's own full rebuild."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:guided_footsteps",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Guided Footsteps.",
+    "new": "Guided Footsteps. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- per-holder modifierState (state.used), same shape as Guardian Spirit."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:never_where_expected",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Never Where Expected. Flat chance every hit, no once-per-fight gate. Corrected in the 2a catalogue's REVIEW pass: previously miscatalogued as rollToHit.attacker.",
+    "new": "Never Where Expected. Flat chance every hit, no once-per-fight gate. Corrected in the 2a catalogue's REVIEW pass: previously miscatalogued as rollToHit.attacker. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- stateless chance roll, no holder-state touched."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of Freedom's own 15% Evasion chance. 2e-2 bug fix (20 Nov): behavior changed from the shared blockFlatChance to blessingOfFreedomEvade (same roll/shape) so a success also dispatches applyAndReact.onEvade for the heal -- see set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal, right below.",
+    "new": "Blessing of Freedom's own 15% Evasion chance. 2e-2 bug fix (20 Nov): behavior changed from the shared blockFlatChance to blessingOfFreedomEvade (same roll/shape) so a success also dispatches applyAndReact.onEvade for the heal -- see set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal, right below. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- blessingOfFreedomEvade is fully ctx.holder/ctx.role generic."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:evasive_guard",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Evasive Guard (kind B, asymmetry register). Fires only once an evasion has already succeeded; grants +1 Defense per success, capped +3. effectivePlayerDef reads this entry's own state.stacks instead of the old combat.player.evasiveGuardBonus field.",
+    "new": "Evasive Guard (kind B, asymmetry register). Fires only once an evasion has already succeeded; grants +1 Defense per success, capped +3. effectivePlayerDef reads this entry's own state.stacks instead of the old combat.player.evasiveGuardBonus field. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- per-holder modifierState, generic; startCombat resets it fresh each fight."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:River Warden:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "River Warden 6pc. Same behavior as Evasive Guard, gated additionally on the incoming hit being magical. Grants +2 Magic per success, capped +8. The player's own Magic total reads this entry's own state.stacks instead of the old combat.player.riverWardenMagicBonus field.",
+    "new": "River Warden 6pc. Same behavior as Evasive Guard, gated additionally on the incoming hit being magical. Grants +2 Magic per success, capped +8. The player's own Magic total reads this entry's own state.stacks instead of the old combat.player.riverWardenMagicBonus field. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- per-holder modifierState, generic; startCombat resets it fresh each fight."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Fragmenta:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Fragmenta 6pc. Outside the buckets (Rule 3) -- see this file's own tagValueOverride behavior header. R1 widens holders later, like every other set bonus.",
+    "new": "Fragmenta 6pc. Outside the buckets (Rule 3) -- see this file's own tagValueOverride behavior header. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- tagValueOverride reads only ctx.tag/ctx.damageType, no holder-state."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Drake Hunter:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Dragonslayer. Value delegates to dragonslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close); byte-identical for today's player-only holders.",
+    "new": "Dragonslayer. Value delegates to dragonslayerMultiplier(holder, creature) -- reads ctx.holder, not ctx.state (Amendment 1 gap close). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- confirmed dragonslayerMultiplier reads only creature.monsterTag, no combat.player reference."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Woven Thread:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "M1 placeholder only -- the crit-damage double is already live inside critMultiplier's own ternary (always:crit above); the 1 HP save half is cheatDeath, 2e-5.",
+    "new": "M1 placeholder only -- the crit-damage double is already live inside critMultiplier's own ternary (always:crit above); the 1 HP save half is cheatDeath, 2e-5. R1 (27 Nov): holders widened for consistency, but when:()=>false means this never fires regardless, zero behavior change."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Drake Hunter:4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Executioner threshold upgrade: 30% -> 40% HP. Virtual tag (not effect:executioner itself -- that entry's own value is the 1.2x damage number; this is the HP% gate read by executionerThreshold via resolveUpgradedValue).",
+    "new": "Executioner threshold upgrade: 30% -> 40% HP. Virtual tag (not effect:executioner itself -- that entry's own value is the 1.2x damage number; this is the HP% gate read by executionerThreshold via resolveUpgradedValue). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- executionerThreshold(state, holderRole) already passes holderRole through generically, no ternary gate; resolveUpgradedValue's own new `when` check is what makes this reversal possible."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Crimson Vanguard:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Executioner threshold upgrade: 30% -> 40% HP.",
+    "new": "Executioner threshold upgrade: 30% -> 40% HP. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same reasoning as set:Drake Hunter:4 above."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Contract Hunter:4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Executioner threshold upgrade: 30% -> 40% HP.",
+    "new": "Executioner threshold upgrade: 30% -> 40% HP. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same reasoning as set:Drake Hunter:4 above."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Vanguard:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Executioner threshold upgrade: 30% -> 40% HP (vanguard_executioner_40). Genuinely missing before 2d close-out, same as set:Vanguard:4 above -- see that entry's note.",
+    "new": "Executioner threshold upgrade: 30% -> 40% HP (vanguard_executioner_40). Genuinely missing before 2d close-out, same as set:Vanguard:4 above -- see that entry's note. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same reasoning as set:Drake Hunter:4 above."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Conduit Master:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Surging Conduit charge-count upgrade: 1 -> 2 per fight. A charge COUNT, not a multiplier -- surgingConduitCharges itself isn't dispatched through any hook yet (Surging Conduit's own damage bonus is still unmigrated), so this is pure Rule 1 data ahead of that.",
+    "new": "Surging Conduit charge-count upgrade: 1 -> 2 per fight. A charge COUNT, not a multiplier -- surgingConduitCharges itself isn't dispatched through any hook yet (Surging Conduit's own damage bonus is still unmigrated), so this is pure Rule 1 data ahead of that. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (via resolveUpgradedValue's own new `when` check) for consistency; inert either way until surgingConduitCharges itself is migrated."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Fragmenta:4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Surging Conduit charge-count upgrade: 1 -> 2 per fight (not 3, if somehow both this and Conduit Master:6 are active -- resolveUpgradedValue's Math.max already gives that, same as the old inline OR).",
+    "new": "Surging Conduit charge-count upgrade: 1 -> 2 per fight (not 3, if somehow both this and Conduit Master:6 are active -- resolveUpgradedValue's Math.max already gives that, same as the old inline OR). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 for consistency; inert either way until surgingConduitCharges itself is migrated."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Legion:4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Shield Wall. directApply -- wraps applyShieldWall(holder, edmg) unchanged, which already does its own Math.round(dmg * 0.9).",
+    "new": "Shield Wall. directApply -- wraps applyShieldWall(holder, edmg) unchanged, which already does its own Math.round(dmg * 0.9). R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- applyShieldWall(holder, edmg) is already holder-generic. modifiersForHook checks `when` regardless of directApply (threadIncomingEntries only walks entries it already passed), same precedent as Toxic Preparation's own COMBAT_UNIFY.U3d gate on a directApply entry."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Bastion:2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of Stone. Pure read of current Health vs. 50% max -- live, not a once-per-fight gate.",
+    "new": "Blessing of Stone. Pure read of current Health vs. 50% max -- live, not a once-per-fight gate. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- blessingOfStoneMultiplier(ctx.holder) reads only holder.health/maxHealth, generic."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Leviathan:4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "M1 placeholder only -- grants Spell Ward's base outright (spellWardMultiplier's own hasBase check already covers this); the Coldproof half of this tier is an unrelated flat stat.def grant, outside calculateDamage entirely.",
+    "new": "M1 placeholder only -- grants Spell Ward's base outright (spellWardMultiplier's own hasBase check already covers this); the Coldproof half of this tier is an unrelated flat stat.def grant, outside calculateDamage entirely. R1 (27 Nov): holders widened for consistency, but when:()=>false means this never fires regardless, zero behavior change."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "effect:opening_reach",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "notes",
+    "old": "Opening Reach. Keyed effect:opening_reach (M1 matches EFFECT_DEFS ids by this exact key) even though `source.kind` is 'always', not 'effect' -- firstPhysicalAttackDone is consumed on the first qualifying hit regardless of gear, same reasoning as Storm Barrier/Stonewarden (increment 3c), so the SOURCE can't be a plain hasEffect gate; the key still names which EFFECT_DEFS id this is. Norrvael 6pc's upgrade (1.15x -> 1.3x) applies to the player only, via resolveUpgradedValue; ally/enemy stay flat 1.15x, matching applyOpeningReachForActor's own comment ('no Norrvael 6pc widening, that's a player-only set') exactly.",
+    "new": "Opening Reach. Keyed effect:opening_reach (M1 matches EFFECT_DEFS ids by this exact key) even though `source.kind` is 'always', not 'effect' -- firstPhysicalAttackDone is consumed on the first qualifying hit regardless of gear, same reasoning as Storm Barrier/Stonewarden (increment 3c), so the SOURCE can't be a plain hasEffect gate; the key still names which EFFECT_DEFS id this is. R1 (27 Nov, reversing the prior ruling quoted below): openingReachRatio's own role==='player' ternary is removed; Norrvael 6pc's upgrade (1.15x -> 1.3x) now reaches ally too, gated behind COMBAT_UNIFY.R1 via resolveUpgradedValue's own holders+when check (its own entry, below) -- enemy stays flat 1.15x until R2."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Norrvael:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Opening Reach upgrade: 1.15x -> 1.3x, player only.",
+    "new": "Opening Reach upgrade: 1.15x -> 1.3x. R1 (27 Nov, reversing the prior player-only ruling): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- openingReachRatio's own role==='player' ternary removed to match (above); enemy still gets the flat 1.15x only, until R2."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Siege Corps:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Siege Corps 6pc. Matches Feint and Earth (the only two actions whose retaliation-defense step includes Brace's own bonus) via the 'appliesBraceDefense' tag; still gated on hasEffect(holder, 'brace') inside the behavior itself, exactly matching today's `hasEffect(state,'brace') && hasSetTier(state,'Siege Corps',6)` pair.",
+    "new": "Siege Corps 6pc. Matches Feint and Earth (the only two actions whose retaliation-defense step includes Brace's own bonus) via the 'appliesBraceDefense' tag; still gated on hasEffect(holder, 'brace') inside the behavior itself, exactly matching today's `hasEffect(state,'brace') && hasSetTier(state,'Siege Corps',6)` pair. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- siegeCorpsChargeGrant writes via holderState, the registry's own per-holder state host, generic; startCombat resets it fresh each fight."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Stonewarden:4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Stonewarden 4pc. Rule 1 upgrade of Brace's own base value (3 -> 5), player only -- matches js/data/sets.js's old braceDefBonus(state) exactly (that function is now dead code, deleted; braceGrant's own behavior, modifiers.js, calls resolveUpgradedValue directly); never applied to the enemy's or an ally's own flat-3 Brace grant, same as today (hasSetTier always reads the PLAYER's own gear).",
+    "new": "Stonewarden 4pc. Rule 1 upgrade of Brace's own base value (3 -> 5) -- matches js/data/sets.js's old braceDefBonus(state) exactly (that function is now dead code, deleted; braceGrant's own behavior, modifiers.js, calls resolveUpgradedValue directly). R1 (27 Nov, reversing the prior player-only ruling): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- braceGrant's own role==='player' ternary removed to match (above), and resolveUpgradedValue's own new `when` check is what makes the gate possible; enemy still gets the flat-3 Brace grant only, until R2."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Legion:6",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Heart:2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of Compassion: +25% healing received, stacking multiplicatively with Flourishing Soul. The 'removes one minor negative status effect' clause is a pre-existing no-op (nothing in this engine inflicts one on the player) -- untouched, not this entry's concern.",
+    "new": "Blessing of Compassion: +25% healing received, stacking multiplicatively with Flourishing Soul. The 'removes one minor negative status effect' clause is a pre-existing no-op (nothing in this engine inflicts one on the player) -- untouched, not this entry's concern. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- plain value:1.25, no state."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Eternal Hour:4",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Keeper of History: heals 10% max Health on a kill. `when` reproduces today's own `heal > 0 && state.health < state.maxHealth` skip (heal is always >0 here, so only the health check matters) -- same reasoning as Soul Leech/Blood Debt's own `when`.",
+    "new": "Keeper of History: heals 10% max Health on a kill. `when` reproduces today's own `heal > 0 && state.health < state.maxHealth` skip (heal is always >0 here, so only the health check matters) -- same reasoning as Soul Leech/Blood Debt's own `when`. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default)."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Tide:2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of the Tide: a one-time 10% max Health heal the moment any fight begins. Renamed from the source text's own 'Blessing of Renewal' -- that name (and a different, per-round, mechanic) is already Regalia of the First Bloom's own 2pc effect, below.",
+    "new": "Blessing of the Tide: a one-time 10% max Health heal the moment any fight begins. Renamed from the source text's own 'Blessing of Renewal' -- that name (and a different, per-round, mechanic) is already Regalia of the First Bloom's own 2pc effect, below. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- healOnEvent."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the First Bloom:2",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of Renewal: an unconditional 3% max Health heal at the start of every round, for as long as the set bonus is active -- no duration or once-per-fight gate, unlike Endless Bloom.",
+    "new": "Blessing of Renewal: an unconditional 3% max Health heal at the start of every round, for as long as the set bonus is active -- no duration or once-per-fight gate, unlike Endless Bloom. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- healOnEvent."
+   }
+  ]
+ },
+ {
+  "reg": "MODIFIERS",
+  "id": "set:Regalia of the Endless Horizon:2:blessing_of_freedom_heal",
+  "type": "changed",
+  "fields": [
+   {
+    "f": "when",
+    "old": null,
+    "new": "[fn]"
+   },
+   {
+    "f": "holders",
+    "old": [
+     "player"
+    ],
+    "new": [
+     "player",
+     "ally"
+    ]
+   },
+   {
+    "f": "notes",
+    "old": "Blessing of Freedom: restore 5% max Health whenever you evade an attack, from any source.",
+    "new": "Blessing of Freedom: restore 5% max Health whenever you evade an attack, from any source. R1 (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- healOnEvent + healFighter, generic."
+   }
+  ]
+ }
+]

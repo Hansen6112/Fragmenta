@@ -1,0 +1,55 @@
+range: 61af2e04f6c201388adfd3d975d95393858d3e43..cbaee4d7bddff1d2d8047cd3c5f4aa0506b22a4e
+=== cbaee4d7bddff1d2d8047cd3c5f4aa0506b22a4e 2026-11-27 05:50:49 +0000
+R1a: widen 20 kind-B/set-bonus entries + 6 upgrade-tier reversals to ally, gated behind COMBAT_UNIFY.R1 (off by default)
+Task #49 (R1->R2->R3 switches, each measured), first installment: the
+~20 entries whose behavior/value functions were confirmed holder-generic
+by direct code read (Guardian Spirit, Guided Footsteps, Never Where
+Expected, Evasive Guard, River Warden:6, Blessing of Freedom evade+heal,
+Blessing of Compassion, Blessing of the Tide, Blessing of Renewal,
+Keeper of History, Fragmenta:6, Drake Hunter:6, Blessing of Stone,
+Shield Wall, Siege Corps:6, Legion:6, two M1 placeholders, two inert
+Surging Conduit upgrades), plus 6 upgrade-tier reversals of prior
+player-only rulings (Executioner threshold x4, Opening Reach/Norrvael:6,
+Brace base value/Stonewarden:4 -- the last two needed their own
+behavior's role==="player" ternary removed, since resolveUpgradedValue
+doesn't consult `when` on its own until this commit's change to it).
+
+holders widens structurally; the actual on/off switch lives in each
+entry's own `when` (or resolveUpgradedValue's new `when` check, for
+upgrade-tier entries), matching Ashen Lungs/healingReceivedPct's own
+established R1 precedent -- COMBAT_UNIFY.R1 stays false by default, so
+this commit is byte-identical (suite 664/664, audit 0 errors, holders
+widened but every ally dispatch gated off).
+
+Two supporting fixes this surfaced:
+- modifiersForHook now sets ctx.role = holderRole unconditionally --
+  several call sites (rollToHit.defender's evasion/ally-miss phases,
+  calculateDamage.tags) built their own ctx without a role field at all,
+  which every new `when` clause reading ctx.role would have silently
+  misread as undefined, incorrectly gating off the PLAYER's own existing
+  behavior too (caught by phase1_step1b_pipeline_parity.js and
+  fragmenta_6pc_tag_override_ledger.js).
+- startCombat now deletes each ally's modifierState at the start of
+  every fight, matching combat.player's own full per-fight rebuild --
+  an ally's record otherwise persists across fights, so a once-per-fight
+  flag (Guardian Spirit's used:false) would silently become "once ever"
+  instead, a gap modifiersForHook's own comment had already anticipated.
+
+Excluded from this batch (deferred to R1b, a real engine build): the
+~55-60 entries whose behavior hardcodes combat.player.* fields directly
+(no per-ally analog exists yet), and Avatar of Freedom/Mercy of the
+Veil (no registry entry at all, raw inline player-only checks).
+
+phase2_amendment1_test_strike_proof_ledger.js's own GUARDIANSPIRIT
+BEFORE/WIDENED cases updated to save/restore holders AND COMBAT_UNIFY.R1
+explicitly, since the committed default no longer matches its old
+"unwidened" premise.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               | 142 +++++++++++++--------
+ js/engine/combat.js                                |  10 +-
+ .../phase2_amendment1_test_strike_proof_ledger.js  |  23 +++-
+ 3 files changed, 116 insertions(+), 59 deletions(-)
