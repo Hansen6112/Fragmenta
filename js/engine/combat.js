@@ -1121,11 +1121,11 @@ function applyHeal(state, amount) {
   // immediately gain +5 Attack/+5 Magic/+5 Defense for 2 rounds.
   if (healed > 0 && combat && combat.player.avatarOfDevotionTurns > 0) {
     combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, 2);
-    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
+    combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", flatStat(5)));
     combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, 2);
-    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(5)));
+    combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", flatStat(5)));
     combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, 2);
-    combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(5)));
+    combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, "player", flatStat(5)));
   }
   // Cleansing Current / Calm Waters (Regalia): now genuinely live —
   // combat.player.playerStatuses (Enemy Ability Engine) means there's finally
@@ -1812,8 +1812,21 @@ function borrowedSecondsActive(state) {
 // existing call site that sets one of the shared buff-amount fields, the
 // same "touch every enumerable call site" precedent
 // applyBeneficialEffectBonuses already established for duration.
-function applyBlessingOfCreationBonus(state, amount) {
-  return Math.round(amount * resolveUpgradedValue("always:buff_magnitude", 1, state, "player", "max"));
+// R1b (27 Nov): holderRole added as an explicit, required 2nd param
+// (same pattern as applyBeneficialEffectBonuses above) -- all 8
+// existing call sites updated to pass "player" explicitly (zero
+// behavior change for any of them), so the 3 ally-capable callers
+// (checkHoldTheLine/RootedResolve/RallyTheLine, this slice) can pass
+// "ally" instead and have resolveUpgradedValue's own
+// `entry.holders.includes(holderRole)` check actually gate on the real
+// holder's role -- passing a hardcoded "player" here regardless of who
+// was checked would have been a real bug: sourceActiveOn(holder, ...)
+// already respects whichever holder is passed, so an ally wearing
+// Eternal Forge:2 would have incorrectly passed the holders check too
+// (its own array trivially contains "player", a tautology against the
+// hardcoded role, not a real per-holder check).
+function applyBlessingOfCreationBonus(holder, holderRole, amount) {
+  return Math.round(amount * resolveUpgradedValue("always:buff_magnitude", 1, holder, holderRole, "max"));
 }
 
 // Momentum Unbound (Divine Regalia — Galecaller) and Ever Forward
@@ -6034,17 +6047,51 @@ function mitigateAndApplyHitOnPlayer(state, edmg, kind) {
   return { edmg, absorbLines };
 }
 
-function checkHoldTheLine(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generic temporary-stat-buff grant, player OR ally/enemy
+// -- the shared mechanism Hold the Line/Rooted Resolve/Rally the Line
+// (and, in a later slice, War/Creation) all compose through. Player:
+// writes the existing dedicated combat.player.<stat>BuffTurns/
+// <stat>BuffAmount fields (today's exact shape, untouched -- every
+// caller already used Math.max against them directly; this just moves
+// that Math.max inside one shared function). Ally/enemy: writes into
+// holder.buffs[statKey] -- companion.js's own EXISTING crafted-potion-
+// buff system, already read by effectiveAllyAtk/effectiveAllyDef and
+// already ticked down every round by tickAllyBuffs (beginTurn's own
+// per-ally loop) -- reusing it here means no new ally-side storage or
+// decrement code is needed at all for the atk/def half of these
+// effects, only for whatever each one's own SEPARATE dedicated field
+// (if any) tracks beyond the shared buff. "magic" is accepted the same
+// way for parity with War/Creation's own later slice, but is currently
+// a no-op for an ally -- no effectiveAllyMagic reader exists (allies
+// don't cast spells in this engine), same standing limitation as
+// Trailwise/job-gold for allies.
+function grantTemporaryStatBuff(holder, holderRole, statKey, amount, turns) {
+  if (holderRole === "player") {
+    const combat = holder.combat;
+    const turnsField = statKey + "BuffTurns";
+    const amountField = statKey + "BuffAmount";
+    combat.player[turnsField] = Math.max(combat.player[turnsField] || 0, turns);
+    combat.player[amountField] = Math.max(combat.player[amountField] || 0, amount);
+  } else {
+    if (!holder.buffs) holder.buffs = {};
+    const existing = holder.buffs[statKey] || { amount: 0, turns: 0 };
+    holder.buffs[statKey] = { amount: Math.max(existing.amount, amount), turns: Math.max(existing.turns, turns) };
+  }
+}
+
+// R1b (27 Nov): generalized to (holder, holderRole) -- see checkAvatarOfDevotion's
+// own note (2g close-out section) for the exact reasoning.
+function checkHoldTheLine(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: dispatched unconditionally (source:{kind:"always"}) from
   // modifiers.js's own set:Legion:8 entry -- sourceActiveOn replaces the
   // raw hasSetTier here, same primitive, no behavior change.
-  if (!combat || combat.player.holdTheLineUsed || !sourceActiveOn(state, { kind: "set", setName: "Legion", tier: 8 })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.3) return [];
-  combat.player.holdTheLineUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, "player", 2);
-  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
-  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(6)));
+  if (host.holdTheLineUsed || !sourceActiveOn(holder, { kind: "set", setName: "Legion", tier: 8 })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.3) return [];
+  host.holdTheLineUsed = true;
+  const dur = applyBeneficialEffectBonuses(holder, holderRole, 2);
+  grantTemporaryStatBuff(holder, holderRole, "def", applyBlessingOfCreationBonus(holder, holderRole, flatStat(6)), dur);
   return [`Hold the Line — your training snaps into place as your Health falls; +${flatStat(6)} Defense for 2 turns.`];
 }
 
@@ -6052,15 +6099,17 @@ function checkHoldTheLine(state) {
 // player's Health drops below 50% each fight, an immediate +8 Defense for
 // 3 turns. Same shape as Hold the Line, just a different item-level
 // effect instead of a set tier, and checked at the same call sites.
-function checkRootedResolve(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see checkAvatarOfDevotion's
+// own note (2g close-out section) for the exact reasoning.
+function checkRootedResolve(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note just above.
-  if (!combat || combat.player.rootedResolveUsed || !sourceActiveOn(state, { kind: "effect", id: "rooted_resolve" })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
-  combat.player.rootedResolveUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, "player", 3);
-  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
-  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(8)));
+  if (host.rootedResolveUsed || !sourceActiveOn(holder, { kind: "effect", id: "rooted_resolve" })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.5) return [];
+  host.rootedResolveUsed = true;
+  const dur = applyBeneficialEffectBonuses(holder, holderRole, 3);
+  grantTemporaryStatBuff(holder, holderRole, "def", applyBlessingOfCreationBonus(holder, holderRole, flatStat(8)), dur);
   return [`Rooted Resolve — you plant yourself as your Health falls; +${flatStat(8)} Defense for 3 turns.`];
 }
 
@@ -6073,17 +6122,18 @@ function checkRootedResolve(state) {
 // Attack and +10 Defense for 4 rounds — reuses the shared atkBuffTurns/
 // atkBuffAmount and defBuffTurns/defBuffAmount fields via Math.max, the
 // same composition Avatar of Bloom already uses.
-function checkRallyTheLine(state) {
-  const combat = state.combat;
+// R1b (27 Nov): generalized to (holder, holderRole) -- see checkAvatarOfDevotion's
+// own note (2g close-out section) for the exact reasoning.
+function checkRallyTheLine(holder, holderRole) {
+  if (holderRole === "player" && !holder.combat) return [];
+  const host = modifierStateHost(holder, holderRole);
   // 2g: see checkHoldTheLine's own note above.
-  if (!combat || combat.player.rallyTheLineUsed || !sourceActiveOn(state, { kind: "effect", id: "rally_the_line" })) return [];
-  if (state.health <= 0 || state.health >= state.maxHealth * 0.5) return [];
-  combat.player.rallyTheLineUsed = true;
-  const dur = applyBeneficialEffectBonuses(state, "player", 4);
-  combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
-  combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
-  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, flatStat(10)));
+  if (host.rallyTheLineUsed || !sourceActiveOn(holder, { kind: "effect", id: "rally_the_line" })) return [];
+  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.5) return [];
+  host.rallyTheLineUsed = true;
+  const dur = applyBeneficialEffectBonuses(holder, holderRole, 4);
+  grantTemporaryStatBuff(holder, holderRole, "atk", applyBlessingOfCreationBonus(holder, holderRole, flatStat(10)), dur);
+  grantTemporaryStatBuff(holder, holderRole, "def", applyBlessingOfCreationBonus(holder, holderRole, flatStat(10)), dur);
   return [`Rally the Line — your Health falls, and the line holds; +${flatStat(10)} Attack, +${flatStat(10)} Defense for 4 rounds.`];
 }
 
@@ -6151,7 +6201,7 @@ function checkAvatarOfWar(state) {
   const dur = applyBeneficialEffectBonuses(state, "player", 4);
   combat.player.avatarOfWarTurns = dur;
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.5)));
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.atk * 0.5)));
   return [`Avatar of War awakens — for 4 rounds, you fight like the battle itself.`];
 }
 
@@ -6174,8 +6224,8 @@ function checkAvatarOfKnowledge(state) {
   const dur = applyBeneficialEffectBonuses(state, "player", 4);
   combat.player.avatarOfKnowledgeTurns = dur;
   combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.5)));
-  combat.player.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, flatStat(25));
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.magic * 0.5)));
+  combat.player.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, "player", flatStat(25));
   const creature = getCombatCreature(state);
   return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${activeEnemySlot(combat).hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
 }
@@ -6320,9 +6370,9 @@ function checkAvatarOfCreation(state) {
   const dur = applyBeneficialEffectBonuses(state, "player", 4);
   combat.player.avatarOfCreationTurns = dur;
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.4)));
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.atk * 0.4)));
   combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.4)));
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.magic * 0.4)));
   return [`Avatar of Creation awakens — for 4 rounds, every strike and every cast reforges you anew.`];
 }
 

@@ -88,6 +88,7 @@ const LEDGERS = [
   "phase2_r1b_lowhealth_ally_proof_ledger.js",
   "phase2_r1b_avatar_cluster_slice1_proof_ledger.js",
   "phase2_r1b_avatar_freedom_proof_ledger.js",
+  "phase2_r1b_shared_buff_slice_proof_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {

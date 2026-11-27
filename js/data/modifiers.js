@@ -2822,8 +2822,8 @@ registerBehavior("endlessCurrentOnHeal", (ctx) => {
   const state = ctx.holder;
   const combat = state.combat;
   combat.player.endlessCurrentStacks = Math.min(5, (combat.player.endlessCurrentStacks || 0) + 1);
-  const dur = applyBeneficialEffectBonuses(state, 3);
-  const grant = applyBlessingOfCreationBonus(state, flatStat(combat.player.endlessCurrentStacks * 2));
+  const dur = applyBeneficialEffectBonuses(state, "player", 3);
+  const grant = applyBlessingOfCreationBonus(state, "player", flatStat(combat.player.endlessCurrentStacks * 2));
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
   combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, grant);
   combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
@@ -3153,11 +3153,11 @@ registerModifier("effect:endless_study", {
 registerBehavior("wanderersRewardGrant", (ctx) => {
   const state = ctx.state;
   const combat = state.combat;
-  const dur = applyBeneficialEffectBonuses(state, 2);
+  const dur = applyBeneficialEffectBonuses(state, "player", 2);
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", flatStat(4)));
   combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(4)));
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", flatStat(4)));
   return `Wanderer's Reward — new ground, new strength; +${flatStat(4)} Attack, +${flatStat(4)} Magic for ${dur} rounds.`;
 });
 registerModifier("effect:wanderers_reward", {
@@ -3183,11 +3183,11 @@ registerModifier("effect:perfect_memory", {
 registerBehavior("everForwardGrant", (ctx) => {
   const state = ctx.state;
   const combat = state.combat;
-  const dur = applyBeneficialEffectBonuses(state, 3);
+  const dur = applyBeneficialEffectBonuses(state, "player", 3);
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", flatStat(10)));
   combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, flatStat(10)));
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", flatStat(10)));
   return `Ever Forward — three strides, three shapes; +${flatStat(10)} Attack, +${flatStat(10)} Magic for ${dur} rounds.`;
 });
 registerModifier("set:Regalia of the Endless Horizon:4", {
@@ -3458,28 +3458,28 @@ registerBehavior("avatarOfBloomHeal", (ctx) => {
   const combat = state.combat;
   combat.player.avatarOfBloomUsed = true;
   const { healed, lines } = healFighter(state, ctx.role, Math.ceil(state.maxHealth * 0.5), "avatarOfBloomHeal", ctx);
-  const dur = applyBeneficialEffectBonuses(state, 3);
+  const dur = applyBeneficialEffectBonuses(state, "player", 3);
   combat.player.atkBuffTurns = Math.max(combat.player.atkBuffTurns || 0, dur);
-  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.atk * 0.25)));
+  combat.player.atkBuffAmount = Math.max(combat.player.atkBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.atk * 0.25)));
   combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, Math.round(state.magic * 0.25)));
+  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.magic * 0.25)));
   combat.player.defBuffTurns = Math.max(combat.player.defBuffTurns, dur);
-  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, Math.round(state.def * 0.25)));
+  combat.player.defBuffAmount = Math.max(combat.player.defBuffAmount, applyBlessingOfCreationBonus(state, "player", Math.round(state.def * 0.25)));
   return [`Avatar of Bloom awakens — you're mended for ${healed} health, and bloom with +25% Attack/Magic/Defense for 3 turns.`, ...lines];
 });
 registerModifier("set:Legion:8", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 10, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkHoldTheLine(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Hold the Line: buff-only (checkHoldTheLine grants +6 Defense for 2 turns below 30% HP, no heal) -- 2e-2 territory for any further generalization; this entry only relocates its dispatch.",
+  params: { checkFn: (holder, role) => checkHoldTheLine(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Hold the Line: buff-only (checkHoldTheLine grants +6 Defense for 2 turns below 30% HP, no heal). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- checkHoldTheLine generalized (combat.js), its Defense buff now routed through grantTemporaryStatBuff, which writes an ally's own holder.buffs.def (companion.js's existing crafted-potion-buff system, already read by effectiveAllyDef and ticked by tickAllyBuffs) instead of the player's dedicated defBuffTurns/defBuffAmount fields.",
 });
 registerModifier("effect:rooted_resolve", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 20, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkRootedResolve(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Rooted Resolve: buff-only (checkRootedResolve grants +8 Defense for 3 turns below 50% HP, no heal, combat.js:6141) -- 2e-2 territory.",
+  params: { checkFn: (holder, role) => checkRootedResolve(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Rooted Resolve: buff-only (checkRootedResolve grants +8 Defense for 3 turns below 50% HP, no heal). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same grantTemporaryStatBuff routing as set:Legion:8's own note above.",
 });
 registerModifier("set:Regalia of the First Bloom:6", {
   source: { kind: "set", id: "Regalia of the First Bloom:6", setName: "Regalia of the First Bloom", tier: 6 },
@@ -3570,9 +3570,9 @@ registerModifier("set:Regalia of the Endless Tide:6:avatar_of_renewal_trigger", 
 registerModifier("effect:rally_the_line", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 60, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkRallyTheLine(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Rally the Line: buff-only (+10 Attack/+10 Defense for 4 rounds below 50% HP, no heal, combat.js:6174) -- 2e-2 territory.",
+  params: { checkFn: (holder, role) => checkRallyTheLine(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Rally the Line: buff-only (+10 Attack/+10 Defense for 4 rounds below 50% HP, no heal). R1b (27 Nov): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 (off by default) -- same grantTemporaryStatBuff routing as set:Legion:8's own note above, both stats this time.",
 });
 registerModifier("set:Regalia of the Eternal Hour:6:avatar_of_time_trigger", {
   source: { kind: "always" },
