@@ -1,0 +1,56 @@
+range: 98436233bc90cdc97a30773ab88ba65a44741fbd..3770948f61a04e08264505f353d4bd5c50bfe05e
+=== 3770948f61a04e08264505f353d4bd5c50bfe05e 2026-11-28 00:29:28 +0000
+R1b slice 6: generalize the last 4 Avatar-of-X members (Passing, Fate, Knowledge, Time), plus Avatar of War's own lifesteal loose end
+Completes the full 14-member "Avatar of X" cluster. All four triggers
+generalize to (holder, holderRole), but investigation showed most of
+each effect's real mechanic has NO ally analog at all to widen
+alongside the trigger:
+
+- Avatar of Fate: critMultiplier is scoped entirely to state.combat
+  (bails via `if (!combat) return 1`) -- there is no ally crit system
+  to double in the first place. Its cheatDeath save is the same:
+  cheatDeath is only ever dispatched for the player
+  (checkDeathPrevention), so there's no ally cheat-death mechanic to
+  plug avatarOfFateSaveUsed into either. Both stay player-only.
+- Avatar of Knowledge: the matchup-override clause's only call site is
+  already dead code, permanently gated behind `DAMAGE_TYPES_V2 ? 1 :
+  ...` with DAMAGE_TYPES_V2 true -- nothing to generalize there. Free
+  spell casts are a player-only action with no ally analog, same
+  reasoning as Freedom/Creation's cooldown halves. Only the Magic buff
+  (now via grantTemporaryStatBuff, inert for an ally like Creation's)
+  and the Knowledge buff (written to the host for parity, also inert --
+  Expanding Mind reads combat.player.knowledgeBuffAmount directly)
+  generalize.
+- Avatar of Time: cooldown-zeroing stays gated to holderRole ===
+  "player" (combat.cooldowns has no ally analog). The window's +25%
+  damage (set:Regalia of the Eternal Hour:6, calculateDamage.outgoing)
+  widens via modifierStateHost -- a real, working ally-side effect. The
+  frozen-buff-duration read and new-cooldowns-cost-0 read stay
+  player-only; an ally's own buffs are NOT frozen by this window, a
+  deliberate simplification rather than a new cross-mechanic build-out.
+- Avatar of Passing: its entire real mechanic (30%-damage-as-healing)
+  was already a registry entry (always:avatar_of_passing_lifesteal,
+  onHitDealt) -- only its own `when` needed widening, same as Avatar of
+  War's identical always:avatar_of_war_lifesteal entry, which slice 5
+  left untouched. Both fixed here.
+
+New proof ledger (15/15): each trigger fires once crossing its own
+threshold with R1 on and stays silent with R1 off; both lifesteal
+entries actually heal the holder; Knowledge's Magic buff lands via the
+shared ally.buffs system without crashing; Time's window actually
+raises the ally's calculateOutgoingMultiplier and does not touch
+combat.cooldowns; every Turns field decrements at the next beginTurn;
+and the player's own combat.player.* fields are confirmed byte-
+identical for all four. Full suite clean at 717/717 x3.
+
+R1b Avatar-of-X cluster: 14 of 14 members done.
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Y4fM3rLvbfUJXL17CRFtwk
+
+
+ js/data/modifiers.js                               |  38 +--
+ js/engine/combat.js                                | 123 ++++++---
+ ...tar_passing_fate_knowledge_time_proof_ledger.js | 286 +++++++++++++++++++++
+ tools/tests/run_all.js                             |   1 +
+ 4 files changed, 400 insertions(+), 48 deletions(-)

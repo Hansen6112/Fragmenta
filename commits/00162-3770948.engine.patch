@@ -1,0 +1,166 @@
+diff --git a/js/engine/combat.js b/js/engine/combat.js
+index f77f1e9..b1de32a 100644
+--- a/js/engine/combat.js
++++ b/js/engine/combat.js
+@@ -4226,6 +4226,15 @@ function beginTurn(state) {
+     if (ally.avatarOfFreedomTurns > 0) ally.avatarOfFreedomTurns -= 1;
+     if (ally.avatarOfWarTurns > 0) ally.avatarOfWarTurns -= 1;
+     if (ally.avatarOfCreationTurns > 0) ally.avatarOfCreationTurns -= 1;
++    // R1b slice 6: Passing/Fate/Knowledge/Time's own window fields --
++    // same ally-side decrement pattern as the 10 above.
++    if (ally.avatarOfPassingTurns > 0) ally.avatarOfPassingTurns -= 1;
++    if (ally.avatarOfFateTurns > 0) ally.avatarOfFateTurns -= 1;
++    if (ally.avatarOfKnowledgeTurns > 0) {
++      ally.avatarOfKnowledgeTurns -= 1;
++      if (ally.avatarOfKnowledgeTurns === 0) ally.knowledgeBuffAmount = 0;
++    }
++    if (ally.avatarOfTimeTurns > 0) ally.avatarOfTimeTurns -= 1;
+     lines.push(...tickAllyStatuses(state, ally));
+   });
+   // tickAllyStatuses' own DOT tick can call killAlly, whose party-wipe
+@@ -6153,13 +6162,20 @@ function checkRallyTheLine(holder, holderRole) {
+ // enemy resurrection mechanic, no multi-target combat for an AoE to hit
+ // (the user's own note: "future multi-target support"), and no Fear/Death
+ // magic that could ever target the player in the first place.
+-function checkAvatarOfPassing(state) {
+-  const combat = state.combat;
++// R1b (27 Nov, slice 6): generalized to (holder, holderRole) -- see
++// checkAvatarOfDevotion's own note (2g close-out section) for the exact
++// reasoning. The real mechanic (30%-damage-as-healing) is entirely the
++// already-migrated always:avatar_of_passing_lifesteal entry (onHitDealt,
++// above) -- this trigger only sets the window; that entry's own `when`
++// is widened in the same slice.
++function checkAvatarOfPassing(holder, holderRole) {
++  if (holderRole === "player" && !holder.combat) return [];
++  const host = modifierStateHost(holder, holderRole);
+   // 2g: see checkHoldTheLine's own note above.
+-  if (!combat || combat.player.avatarOfPassingUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Final Veil", tier: 6 })) return [];
+-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.player.avatarOfPassingUsed = true;
+-  combat.player.avatarOfPassingTurns = applyBeneficialEffectBonuses(state, "player", 4);
++  if (host.avatarOfPassingUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Final Veil", tier: 6 })) return [];
++  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
++  host.avatarOfPassingUsed = true;
++  host.avatarOfPassingTurns = applyBeneficialEffectBonuses(holder, holderRole, 4);
+   return [`Avatar of Passing awakens — for 4 rounds, the damage you deal returns to you as life.`];
+ }
+ 
+@@ -6172,13 +6188,25 @@ function checkAvatarOfPassing(state) {
+ // true — no miss state exists on the player's attacks, and nothing in
+ // this engine ever lets an enemy dodge/block the player's attack in the
+ // first place.
+-function checkAvatarOfFate(state) {
+-  const combat = state.combat;
++// R1b (27 Nov, slice 6): generalized to (holder, holderRole) -- see
++// checkAvatarOfDevotion's own note above. Only the trigger generalizes:
++// the crit-doubling half (critMultiplier) is entirely scoped to
++// `state.combat` fields with no ally analog -- critMultiplier itself
++// bails via `if (!combat) return 1`, so there is no ally crit system at
++// all for Avatar of Fate to double, the same kind of "clause has no
++// consumer to generalize" case as Freedom's cooldown-recovery. The
++// cheatDeath save (avatarOfFateSaveUsed) is the same -- cheatDeath is
++// only ever dispatched for the player (checkDeathPrevention), so an
++// ally has no cheat-death mechanic for this to plug into either. Both
++// stay player-only and untouched.
++function checkAvatarOfFate(holder, holderRole) {
++  if (holderRole === "player" && !holder.combat) return [];
++  const host = modifierStateHost(holder, holderRole);
+   // 2g: see checkHoldTheLine's own note above.
+-  if (!combat || combat.player.avatarOfFateUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Woven Thread", tier: 6 })) return [];
+-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.player.avatarOfFateUsed = true;
+-  combat.player.avatarOfFateTurns = applyBeneficialEffectBonuses(state, "player", 4);
++  if (host.avatarOfFateUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Woven Thread", tier: 6 })) return [];
++  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
++  host.avatarOfFateUsed = true;
++  host.avatarOfFateTurns = applyBeneficialEffectBonuses(holder, holderRole, 4);
+   return [`Avatar of Fate awakens — for 4 rounds, fate bends further in your favor.`];
+ }
+ 
+@@ -6227,17 +6255,35 @@ function checkAvatarOfWar(holder, holderRole) {
+ // avatarOfKnowledgeMatchupOverride). Its "all attacks reveal hidden enemy
+ // statistics" clause is folded into this same activation message, once,
+ // rather than repeated on every subsequent attack.
+-function checkAvatarOfKnowledge(state) {
+-  const combat = state.combat;
++// R1b (27 Nov, slice 6): generalized to (holder, holderRole, state) --
++// the 3rd param is new, needed only for the flavor line's enemy-reveal
++// (getCombatCreature/activeEnemySlot read the shared GameState, not the
++// triggering holder -- there's one active enemy regardless of which
++// combatant crossed the threshold). The Magic buff half now routes
++// through grantTemporaryStatBuff, same as Creation's identical case
++// (currently inert for an ally -- no effectiveAllyMagic reader exists).
++// The Knowledge buff (+25, feeding Expanding Mind) is written to the
++// host for parity but has no ally consumer at all -- Expanding Mind's
++// formula reads combat.player.knowledgeBuffAmount directly and allies
++// have no Knowledge-scaled formula of their own. The matchup-override
++// clause (avatarOfKnowledgeMatchupOverride) and the free-spell-cast
++// clause (useElementAbility) are both already dead/moot: the matchup
++// override's only call site is gated behind `DAMAGE_TYPES_V2 ? 1 : ...`
++// and DAMAGE_TYPES_V2 is permanently true, so that branch never runs
++// for player or ally; free spell casts are a player-only action with no
++// ally analog, the same reasoning as Freedom/Creation's cooldown halves.
++function checkAvatarOfKnowledge(holder, holderRole, state) {
++  if (holderRole === "player" && !holder.combat) return [];
++  const host = modifierStateHost(holder, holderRole);
+   // 2g: see checkHoldTheLine's own note above.
+-  if (!combat || combat.player.avatarOfKnowledgeUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Endless Archive", tier: 6 })) return [];
+-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.player.avatarOfKnowledgeUsed = true;
+-  const dur = applyBeneficialEffectBonuses(state, "player", 4);
+-  combat.player.avatarOfKnowledgeTurns = dur;
+-  combat.player.magicBuffTurns = Math.max(combat.player.magicBuffTurns || 0, dur);
+-  combat.player.magicBuffAmount = Math.max(combat.player.magicBuffAmount || 0, applyBlessingOfCreationBonus(state, "player", Math.round(state.magic * 0.5)));
+-  combat.player.knowledgeBuffAmount = applyBlessingOfCreationBonus(state, "player", flatStat(25));
++  if (host.avatarOfKnowledgeUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Endless Archive", tier: 6 })) return [];
++  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
++  host.avatarOfKnowledgeUsed = true;
++  const dur = applyBeneficialEffectBonuses(holder, holderRole, 4);
++  host.avatarOfKnowledgeTurns = dur;
++  grantTemporaryStatBuff(holder, holderRole, "magic", applyBlessingOfCreationBonus(holder, holderRole, Math.round(holder.magic * 0.5)), dur);
++  host.knowledgeBuffAmount = applyBlessingOfCreationBonus(holder, holderRole, flatStat(25));
++  const combat = state.combat;
+   const creature = getCombatCreature(state);
+   return [`Avatar of Knowledge awakens — for 4 rounds, every secret of the fight lies open. ${withThe(creature.name, false)} has ${activeEnemySlot(combat).hp} Health remaining, ${creature.def} Defense, ${creature.atk} Attack.`];
+ }
+@@ -6443,14 +6489,33 @@ function checkAvatarOfRenewal(holder, holderRole) {
+ // Concuss). Its "cooldowns resume from whatever they'd have naturally
+ // reached" clause is simplified — see the avatarOfTimeTurns decrement in
+ // beginTurn for why.
+-function checkAvatarOfTime(state) {
+-  const combat = state.combat;
++// R1b (27 Nov, slice 6): generalized to (holder, holderRole) -- see
++// checkAvatarOfDevotion's own note above. The immediate cooldown-zeroing
++// stays gated to holderRole === "player": combat.cooldowns is the
++// player's own Tactics/Abilities cooldown dict with no ally analog (no
++// ally action is cooldown-gated), the same conclusion already reached
++// for Freedom's faster-cooldown-recovery. The window's own +25% damage
++// (set:Regalia of the Eternal Hour:6, calculateDamage.outgoing) is
++// widened in the same slice via modifierStateHost. Two further
++// clauses -- the frozen-buff-duration read (beginTurn) and the
++// new-cooldowns-cost-0 read (useFeint/useDecoy/useDisarm/
++// useElementAbility) -- stay player-only and untouched: both are
++// player-specific action/buff bookkeeping with no ally-side storage to
++// extend into, so an ally's own buffs (ally.buffs, via tickAllyBuffs)
++// are NOT frozen while avatarOfTimeTurns is active, a known, deliberate
++// simplification rather than a new cross-mechanic interaction built out
++// for this slice.
++function checkAvatarOfTime(holder, holderRole) {
++  if (holderRole === "player" && !holder.combat) return [];
++  const host = modifierStateHost(holder, holderRole);
+   // 2g: see checkHoldTheLine's own note above.
+-  if (!combat || combat.player.avatarOfTimeUsed || !sourceActiveOn(state, { kind: "set", setName: "Regalia of the Eternal Hour", tier: 6 })) return [];
+-  if (state.health <= 0 || state.health >= state.maxHealth * 0.25) return [];
+-  combat.player.avatarOfTimeUsed = true;
+-  combat.player.avatarOfTimeTurns = applyBeneficialEffectBonuses(state, "player", 3);
+-  for (const key of Object.keys(combat.cooldowns)) combat.cooldowns[key] = 0;
++  if (host.avatarOfTimeUsed || !sourceActiveOn(holder, { kind: "set", setName: "Regalia of the Eternal Hour", tier: 6 })) return [];
++  if (holder.health <= 0 || holder.health >= holder.maxHealth * 0.25) return [];
++  host.avatarOfTimeUsed = true;
++  host.avatarOfTimeTurns = applyBeneficialEffectBonuses(holder, holderRole, 3);
++  if (holderRole === "player") {
++    for (const key of Object.keys(holder.combat.cooldowns)) holder.combat.cooldowns[key] = 0;
++  }
+   return [`Avatar of Time awakens — for 3 rounds, every clock in the world bends to yours.`];
+ }
+ 
