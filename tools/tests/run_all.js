@@ -90,6 +90,7 @@ const LEDGERS = [
   "phase2_r1b_avatar_freedom_proof_ledger.js",
   "phase2_r1b_shared_buff_slice_proof_ledger.js",
   "phase2_r1b_avatar_war_creation_proof_ledger.js",
+  "phase2_r1b_avatar_passing_fate_knowledge_time_proof_ledger.js",
 ];
 
 function waitForServer(url, timeoutMs) {

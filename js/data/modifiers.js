@@ -1556,9 +1556,9 @@ registerModifier("effect:master_craftsman", {
 registerModifier("set:Regalia of the Eternal Hour:6", {
   source: { kind: "set", id: "Regalia of the Eternal Hour:6", setName: "Regalia of the Eternal Hour", tier: 6 },
   hook: "calculateDamage.outgoing", order: 180, bucket: "burst",
-  value: (ctx) => (ctx.state.combat.player.avatarOfTimeTurns > 0 ? 1.25 : 1) - 1, behavior: null,
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Time's own +25% damage window. Pure read of combat.player.avatarOfTimeTurns.",
+  value: (ctx) => (modifierStateHost(ctx.holder, ctx.role).avatarOfTimeTurns > 0 ? 1.25 : 1) - 1, behavior: null,
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Time's own +25% damage window. R1b (27 Nov, slice 6): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 -- read via modifierStateHost instead of the old direct ctx.state.combat.player.* read; calculateDamage.outgoing already dispatches for an ally.",
 });
 registerModifier("effect:stones_patience", {
   source: { kind: "effect", id: "stones_patience" },
@@ -2898,8 +2898,8 @@ registerModifier("always:avatar_of_war_lifesteal", {
   source: { kind: "always" },
   hook: "applyAndReact.onHitDealt", order: 10, bucket: null, value: null, behavior: "healOnEvent",
   params: { basis: "damageDealt", pct: 0.1, round: "round", target: "self" },
-  when: (ctx) => ctx.holder.combat && ctx.holder.combat.player.avatarOfWarTurns > 0, holders: ["player"], state: null,
-  notes: "Avatar of War: all damage dealt heals 10% of it for its 4-round window. Silent (today's caller discards applyHeal's return at both call sites).",
+  when: (ctx) => (ctx.role === "player" || COMBAT_UNIFY.R1) && modifierStateHost(ctx.holder, ctx.role).avatarOfWarTurns > 0, holders: ["player", "ally"], state: null,
+  notes: "Avatar of War: all damage dealt heals 10% of it for its 4-round window. Silent (today's caller discards applyHeal's return at both call sites). R1b (27 Nov, slice 6): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 -- avatarOfWarTurns read via modifierStateHost (resolves to the bare holder for an ally, same as the old `ctx.holder.combat &&` guard's effective behavior when absent); applyAndReact.onHitDealt already dispatches for an ally (pipeline.js), so no new plumbing needed, just this entry's own `when`.",
 });
 registerModifier("effect:soul_leech", {
   source: { kind: "effect", id: "soul_leech" },
@@ -2912,8 +2912,8 @@ registerModifier("always:avatar_of_passing_lifesteal", {
   source: { kind: "always" },
   hook: "applyAndReact.onHitDealt", order: 30, bucket: null, value: null, behavior: "healOnEvent",
   params: { basis: "damageDealt", pct: 0.3, round: "round", target: "self" },
-  when: (ctx) => ctx.holder.combat && ctx.holder.combat.player.avatarOfPassingTurns > 0, holders: ["player"], state: null,
-  notes: "Avatar of Passing: all damage dealt heals 30% of it for its 4-round window. Silent, same as Avatar of War/Soul Leech.",
+  when: (ctx) => (ctx.role === "player" || COMBAT_UNIFY.R1) && modifierStateHost(ctx.holder, ctx.role).avatarOfPassingTurns > 0, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Passing: all damage dealt heals 30% of it for its 4-round window. Silent, same as Avatar of War/Soul Leech. R1b (27 Nov, slice 6): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 -- same modifierStateHost pattern as avatar_of_war_lifesteal's own note above.",
 });
 
 // ---- applyAndReact.onKill (2e-1): three sources, same order as
@@ -3492,16 +3492,16 @@ registerModifier("set:Regalia of the First Bloom:6", {
 registerModifier("set:Regalia of the Final Veil:6", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 40, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfPassing(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Passing's own window-GRANT trigger: buff-only (grants avatarOfPassingTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). This entry only relocates the grant's dispatch.",
+  params: { checkFn: (holder, role) => checkAvatarOfPassing(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Passing's own window-GRANT trigger: buff-only (grants avatarOfPassingTurns, no heal of its own -- the REAL heal is its onHitDealt lifesteal entry, already migrated above). R1b (27 Nov, slice 6): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 -- checkAvatarOfPassing generalized (combat.js); always:avatar_of_passing_lifesteal's own `when` widened in the same slice.",
 });
 registerModifier("set:Regalia of the Woven Thread:6:avatar_of_fate_trigger", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 50, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfFate(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Fate: buff-only (crit doubling + a cheatDeath save, no heal, combat.js:6239) -- 2e-2/2e-5 territory. Keyed distinctly from set:Regalia of the Woven Thread:6 (the M1 crit-damage placeholder) -- same set tier, unrelated mechanic, same precedent as Crushing Impact's own disambiguated key.",
+  params: { checkFn: (holder, role) => checkAvatarOfFate(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Fate: buff-only (crit doubling + a cheatDeath save, no heal, combat.js:6239) -- 2e-2/2e-5 territory. Keyed distinctly from set:Regalia of the Woven Thread:6 (the M1 crit-damage placeholder) -- same set tier, unrelated mechanic, same precedent as Crushing Impact's own disambiguated key. R1b (27 Nov, slice 6): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 -- checkAvatarOfFate generalized (combat.js); the crit-doubling and cheatDeath-save halves stay player-only (no ally crit system or cheatDeath dispatch exists for either to plug into).",
 });
 registerModifier("set:Regalia of the Crimson Vanguard:6:avatar_of_war_trigger", {
   source: { kind: "always" },
@@ -3513,9 +3513,9 @@ registerModifier("set:Regalia of the Crimson Vanguard:6:avatar_of_war_trigger", 
 registerModifier("set:Regalia of the Endless Archive:6", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 80, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfKnowledge(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Knowledge: buff-only (Magic/Knowledge buffs, free spell casts, matchup overrides, no heal, combat.js:6282) -- 2e-2 territory.",
+  params: { checkFn: (holder, role, state) => checkAvatarOfKnowledge(holder, role, state) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Knowledge: buff-only (Magic/Knowledge buffs, free spell casts, matchup overrides, no heal, combat.js:6282) -- 2e-2 territory. R1b (27 Nov, slice 6): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 -- checkAvatarOfKnowledge generalized (combat.js), now takes a 3rd `state` param for its own flavor line only (lowHealthReactionWrap already forwards ctx.state). The Magic buff routes through grantTemporaryStatBuff (inert for an ally, same as Creation); the Knowledge buff, matchup override, and free-spell-cast clauses stay player-only/moot (no ally consumer for any of the three).",
 });
 registerModifier("effect:love_endures", {
   source: { kind: "effect", id: "love_endures" },
@@ -3577,9 +3577,9 @@ registerModifier("effect:rally_the_line", {
 registerModifier("set:Regalia of the Eternal Hour:6:avatar_of_time_trigger", {
   source: { kind: "always" },
   hook: "applyAndReact.onLowHealth", order: 160, bucket: null, value: null, behavior: "lowHealthReactionWrap",
-  params: { checkFn: (state) => checkAvatarOfTime(state) },
-  when: null, holders: ["player"], state: null,
-  notes: "Avatar of Time: buff-only (zeroes cooldowns, +25% damage window, frozen buff durations, no heal, combat.js:6442) -- 2e-2 territory. Keyed distinctly from set:Regalia of the Eternal Hour:6 (the calculateDamage.outgoing burst entry) -- same set tier, unrelated mechanic.",
+  params: { checkFn: (holder, role) => checkAvatarOfTime(holder, role) },
+  when: (ctx) => ctx.role === "player" || COMBAT_UNIFY.R1, holders: ["player", "ally"], state: null,
+  notes: "Avatar of Time: buff-only (zeroes cooldowns, +25% damage window, frozen buff durations, no heal, combat.js:6442) -- 2e-2 territory. Keyed distinctly from set:Regalia of the Eternal Hour:6 (the calculateDamage.outgoing burst entry) -- same set tier, unrelated mechanic. R1b (27 Nov, slice 6): holders widened to ally structurally, gated behind COMBAT_UNIFY.R1 -- checkAvatarOfTime generalized (combat.js); cooldown-zeroing stays player-only (combat.cooldowns has no ally analog); the frozen-buff-duration read and the new-cooldowns-cost-0 read stay player-only and untouched -- an ally's own buffs are NOT frozen by this window, a deliberate simplification.",
 });
 
 // ================= 2e-1 close-out: applyAndReact.onFavorableRoll =================
